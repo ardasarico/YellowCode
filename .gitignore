@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+build/
+dist/
+
+# Personal
+CLAUDE.local.md
+.claude/settings.local.json
+.prova/
+/.local/
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+.zed/

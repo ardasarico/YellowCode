@@ -1,0 +1,10 @@
+# YellowCode
+
+Alternative terminal UI for Claude Code. It spawns the user's unmodified
+`claude` binary and talks to it over stream-json. Stack: TypeScript, Bun,
+OpenTUI (Solid).
+
+- Everything in this repo is written in English.
+- Ask before every commit and push.
+- Never read or handle credentials, and never call the Anthropic API directly.
+  All requests go through the `claude` binary.
