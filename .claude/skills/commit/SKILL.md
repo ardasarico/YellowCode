@@ -33,9 +33,8 @@ push without the user's explicit approval of the plan in step 5.
    anything is found, stop and tell the user. Do not commit it.
 3. **English check.** Read the added lines and the planned message. Flag any
    non-English text.
-4. **Run checks.** Run each of these that exists as a script in `package.json`:
-   `bun run lint`, `bun run typecheck`, `bun test`. If any fails, show the
-   failure and stop.
+4. **Run checks.** Run `bun run check` (typecheck, lint, format check, tests).
+   If it fails, show the failure and stop.
 5. **Propose a plan.** Group the changes into logical commits, one concern per
    commit. For each commit, list its files and its message. Ask the user to
    approve and wait.
