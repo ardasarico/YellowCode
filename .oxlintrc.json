@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "jsPlugins": ["eslint-plugin-solid", { "name": "yellowcode", "specifier": "./tools/lint/plugin.ts" }],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/require-await": "error",
+    "typescript/return-await": "error",
+    "import/no-cycle": "error",
+
+    "solid/components-return-once": "error",
+    "solid/imports": "error",
+    "solid/jsx-no-duplicate-props": "error",
+    "solid/no-destructure": "error",
+    "solid/no-react-deps": "error",
+    "solid/no-react-specific-props": "error",
+    "solid/prefer-for": "error",
+    "solid/reactivity": "error",
+
+    "yellowcode/no-chained-type-assertions": "error",
+    "yellowcode/require-assertion-comment": "error"
+  },
+  "ignorePatterns": [".agents/**", ".claude/**", ".local/**"],
+  "env": {
+    "builtin": true
+  }
+}
