@@ -35,6 +35,16 @@
     "yellowcode/no-chained-type-assertions": "error",
     "yellowcode/require-assertion-comment": "error"
   },
+  "overrides": [
+    {
+      "files": ["src/**"],
+      "rules": { "no-console": "error", "yellowcode/no-raw-json-parse": "error" }
+    },
+    {
+      "files": ["src/protocol/json.ts"],
+      "rules": { "yellowcode/no-raw-json-parse": "off" }
+    }
+  ],
   "ignorePatterns": [".agents/**", ".claude/**", ".local/**"],
   "env": {
     "builtin": true
