@@ -14,3 +14,7 @@ CLAUDE.local.md
 .idea/
 .vscode/
 .zed/
+
+# Third-party skills, listed in skills-lock.json
+# Install: npx skills add anomalyco/opentui -s opentui -a claude-code -y
+.claude/skills/opentui/
