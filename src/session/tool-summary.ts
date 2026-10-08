@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { Agent } from "./types.ts"
 
 const fields = z.looseObject({
   file_path: z.string().optional(),
@@ -28,11 +29,19 @@ const agentFields = z.looseObject({
   description: z.string().optional(),
 })
 
-export function agentOf(toolName: string, input: unknown): { name: string; task: string } | null {
+export function agentOf(toolName: string, input: unknown): Agent | null {
   if (toolName !== "Agent") return null
   const parsed = agentFields.safeParse(input)
   if (!parsed.success) return null
-  return { name: parsed.data.name ?? parsed.data.subagent_type ?? "agent", task: parsed.data.description ?? "" }
+  return {
+    name: parsed.data.name ?? parsed.data.subagent_type ?? "agent",
+    task: parsed.data.description ?? "",
+    state: "running",
+    toolUses: 0,
+    durationMs: 0,
+    report: "",
+    error: null,
+  }
 }
 
 const writeFields = z.looseObject({ content: z.string() })

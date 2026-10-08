@@ -73,6 +73,40 @@ const backgroundTasksChanged = z.looseObject({
   tasks: z.array(z.looseObject({ task_id: z.string() })),
 })
 
+const taskUsage = z.looseObject({ tool_uses: z.number(), duration_ms: z.number() })
+
+const taskStarted = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("task_started"),
+  task_id: z.string(),
+  tool_use_id: z.string().optional(),
+})
+
+const taskProgress = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("task_progress"),
+  task_id: z.string(),
+  tool_use_id: z.string().optional(),
+  usage: taskUsage,
+})
+
+const taskUpdated = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("task_updated"),
+  task_id: z.string(),
+  patch: z.looseObject({ error: z.string().optional() }),
+})
+
+const taskNotification = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("task_notification"),
+  task_id: z.string(),
+  tool_use_id: z.string().optional(),
+  status: z.enum(["completed", "failed", "stopped"]),
+  summary: z.string(),
+  usage: taskUsage.optional(),
+})
+
 const textDelta = z.looseObject({ type: z.literal("text_delta"), text: z.string() })
 const inputJsonDelta = z.looseObject({ type: z.literal("input_json_delta"), partial_json: z.string() })
 const thinkingDelta = z.looseObject({ type: z.literal("thinking_delta"), thinking: z.string() })
@@ -119,7 +153,11 @@ const user = z.looseObject({
   message: z.looseObject({ content: z.union([z.string(), z.array(userBlock)]) }),
   tool_use_result: z
     .union([
-      z.looseObject({ type: z.string().optional(), structuredPatch: z.array(hunk).optional() }),
+      z.looseObject({
+        type: z.string().optional(),
+        structuredPatch: z.array(hunk).optional(),
+        isAsync: z.boolean().optional(),
+      }),
       z.unknown().transform(() => undefined),
     ])
     .optional(),
@@ -164,7 +202,16 @@ const rateLimit = z.looseObject({
   rate_limit_info: z.looseObject({ status: z.string() }),
 })
 
-const system = z.discriminatedUnion("subtype", [systemInit, compactBoundary, apiRetry, backgroundTasksChanged])
+const system = z.discriminatedUnion("subtype", [
+  systemInit,
+  compactBoundary,
+  apiRetry,
+  backgroundTasksChanged,
+  taskStarted,
+  taskProgress,
+  taskUpdated,
+  taskNotification,
+])
 
 export const protocolMessage = z.discriminatedUnion("type", [
   system,
@@ -186,6 +233,10 @@ export const KNOWN_KEYS = new Set([
   "system/compact_boundary",
   "system/api_retry",
   "system/background_tasks_changed",
+  "system/task_started",
+  "system/task_progress",
+  "system/task_updated",
+  "system/task_notification",
   "stream_event",
   "assistant",
   "user",

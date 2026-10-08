@@ -190,3 +190,13 @@ test("thinking text fills from the stream", () => {
   expect(thinking.length).toBeGreaterThan(0)
   expect(thinking.every((item) => item.kind === "thinking" && item.text.length > 0)).toBe(true)
 })
+
+test("background agents take their outcome from task notifications", () => {
+  const agents = items(replay("agents")).flatMap((item) => (item.kind === "tool" && item.agent ? [item.agent] : []))
+  expect(agents.map((agent) => [agent.name, agent.state, agent.toolUses])).toEqual([
+    ["readme", "completed", 1],
+    ["source", "completed", 1],
+    ["missing", "completed", 1],
+  ])
+  expect(agents.every((agent) => agent.report.length > 0 && agent.durationMs > 0)).toBe(true)
+})

@@ -16,7 +16,16 @@ export type ToolCall = {
   children: ItemId[]
   patch: Hunk[] | null
   createdFile: boolean
-  agent: { name: string; task: string } | null
+  agent: Agent | null
+}
+export type Agent = {
+  name: string
+  task: string
+  state: "running" | "completed" | "failed" | "stopped"
+  toolUses: number
+  durationMs: number
+  report: string
+  error: string | null
 }
 export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }
 export type Permission = {

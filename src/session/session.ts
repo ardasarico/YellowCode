@@ -2,7 +2,7 @@ import { createStore, produce } from "solid-js/store"
 import type { ContentBlock, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
 import type { ParseResult } from "../protocol/parse.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
-import type { Item, ItemId, Session, UserImage } from "./types.ts"
+import type { Agent, Item, ItemId, Session, UserImage } from "./types.ts"
 
 export type SessionStore = {
   state: Session
@@ -40,6 +40,7 @@ export function createSession(): SessionStore {
   let counter = 0
   let interruptSent = false
   let now = 0
+  const taskTools = new Map<string, ItemId>()
   const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
@@ -198,6 +199,11 @@ export function createSession(): SessionStore {
         item.result = toolResultText(block.content)
         if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
         if (fileResult?.type === "create") item.createdFile = true
+        // A background agent's tool result only says it launched; its outcome arrives as a task_notification.
+        if (item.agent && !fileResult?.isAsync) {
+          item.agent.state = block.is_error ? "failed" : "completed"
+          item.agent.report = item.result
+        }
       })
     }
   }
@@ -221,6 +227,14 @@ export function createSession(): SessionStore {
       null,
     )
     setState("status", "idle")
+  }
+
+  function updateAgent(taskId: string, change: (agent: Agent) => void): void {
+    const toolId = taskTools.get(taskId)
+    if (!toolId) return
+    update(toolId, (item) => {
+      if (item.kind === "tool" && item.agent) change(item.agent)
+    })
   }
 
   function onSystem(message: Of<"system">): void {
@@ -252,6 +266,30 @@ export function createSession(): SessionStore {
         )
         return
       case "background_tasks_changed":
+        return
+      case "task_started":
+        if (message.tool_use_id) taskTools.set(message.task_id, message.tool_use_id)
+        return
+      case "task_progress":
+        updateAgent(message.task_id, (agent) => {
+          agent.toolUses = message.usage.tool_uses
+          agent.durationMs = message.usage.duration_ms
+        })
+        return
+      case "task_updated":
+        updateAgent(message.task_id, (agent) => {
+          if (message.patch.error) agent.error = message.patch.error
+        })
+        return
+      case "task_notification":
+        updateAgent(message.task_id, (agent) => {
+          agent.state = message.status
+          agent.report = message.summary
+          if (message.usage) {
+            agent.toolUses = message.usage.tool_uses
+            agent.durationMs = message.usage.duration_ms
+          }
+        })
         return
     }
   }
