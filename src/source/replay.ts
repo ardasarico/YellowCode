@@ -41,6 +41,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
 
   async function* play(): AsyncGenerator<SourceEvent> {
     let base = 0
+    const recordedAt = Date.parse(recording.header.recordedAt)
     let clock = performance.now()
 
     for (const entry of recording.entries) {
@@ -57,7 +58,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
         if (wait > 0) await pause(wait)
       }
       if (closed) return
-      yield { dir: entry.dir, line: entry.line, at: entry.t }
+      yield { dir: entry.dir, line: entry.line, at: recordedAt + entry.t }
     }
     setStatus("finished")
   }

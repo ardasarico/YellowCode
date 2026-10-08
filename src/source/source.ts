@@ -1,3 +1,4 @@
+// `at` is wall-clock time in epoch milliseconds.
 export type SourceEvent = { dir: "in" | "out"; line: string; at: number }
 
 export interface Source {

@@ -180,18 +180,13 @@ test("an Agent call carries the agent's name and task", () => {
   expect(agent).toMatchObject({ agent: { name: "general-purpose", task: "List files in working directory" } })
 })
 
-test("an interrupted turn starts with its model and ends interrupted", () => {
-  const all = items(replay("error"))
-  const ends = all.filter((item) => item.kind === "turn-end")
+test("an interrupted turn ends interrupted", () => {
+  const ends = items(replay("error")).filter((item) => item.kind === "turn-end")
   expect(ends.map((item) => item.kind === "turn-end" && item.interrupted)).toEqual([false, true])
-  const starts = all.filter((item) => item.kind === "turn-start")
-  expect(starts).toHaveLength(2)
-  expect(starts.every((item) => item.kind === "turn-start" && item.model.length > 0)).toBe(true)
 })
 
 test("thinking text fills from the stream", () => {
   const thinking = items(replay("thinking")).filter((item) => item.kind === "thinking")
   expect(thinking.length).toBeGreaterThan(0)
   expect(thinking.every((item) => item.kind === "thinking" && item.text.length > 0)).toBe(true)
-  expect(thinking.every((item) => item.kind === "thinking" && item.durationMs > 0)).toBe(true)
 })

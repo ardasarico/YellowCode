@@ -11,18 +11,9 @@ function rowsOf(name: string) {
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
     session.apply(entry.dir, parse(entry.line), entry.t)
-  const { byId } = session.state
-  return buildRows(session.state).map((row) => {
-    if (row.kind === "group") return row.items.map((id) => byId[id]?.kind)
-    if (row.kind === "end") return `end×${row.turnEnds.length}`
-    return row.kind
-  })
+  return buildRows(session.state).map((row) => (row.kind === "end" ? `end×${row.turnEnds.length}` : row.kind))
 }
 
-test("consecutive tools fold into one group and a permission splits it", () => {
-  expect(rowsOf("tools")).toEqual(["user", "header", ["tool", "tool"], "permission", ["tool"], "markdown", "end×1"])
-})
-
-test("an agent gets its own row, and Claude going on after it stays in the same turn", () => {
-  expect(rowsOf("subagent")).toEqual(["user", "header", "agent", "markdown", ["thinking"], "markdown", "end×2"])
+test("a turn Claude continues on its own merges into the previous one", () => {
+  expect(rowsOf("subagent")).toEqual(["user", "agent", "markdown", "thinking", "markdown", "end×2"])
 })

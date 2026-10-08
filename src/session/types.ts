@@ -3,7 +3,7 @@ export type ItemId = string
 export type UserImage = { mediaType: string; data: string }
 export type UserMessage = { kind: "user"; id: ItemId; text: string; images: UserImage[] }
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
-export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number }
+export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean }
 export type ToolCall = {
   kind: "tool"
   id: ItemId
@@ -35,11 +35,11 @@ export type TurnEnd = {
   outputTokens: number
   error: string | null
   interrupted: boolean
+  endedAt: number
 }
-export type TurnStart = { kind: "turn-start"; id: ItemId; model: string }
 export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning" }
 
-export type Item = UserMessage | AssistantText | Thinking | ToolCall | Permission | TurnStart | TurnEnd | SystemEvent
+export type Item = UserMessage | AssistantText | Thinking | ToolCall | Permission | TurnEnd | SystemEvent
 
 export type SessionInfo = {
   id: string

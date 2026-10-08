@@ -38,17 +38,11 @@ export function createSession(): SessionStore {
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
-  let turnStartPending = false
   let interruptSent = false
   let now = 0
-  const thinkingStarts = new Map<ItemId, number>()
   const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
-    if (turnStartPending && !parent && (item.kind === "text" || item.kind === "thinking" || item.kind === "tool")) {
-      turnStartPending = false
-      add({ kind: "turn-start", id: newId("turn-start"), model: state.info?.model ?? "" }, null)
-    }
     setState("byId", item.id, item)
     const parentItem = parent ? state.byId[parent] : undefined
     if (parentItem?.kind === "tool") {
@@ -74,7 +68,7 @@ export function createSession(): SessionStore {
       case "text":
         return { kind: "text", id: newId("text"), markdown: block.text, streaming: true }
       case "thinking":
-        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true, durationMs: 0 }
+        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true }
       case "tool_use":
         return {
           kind: "tool",
@@ -117,10 +111,6 @@ export function createSession(): SessionStore {
   function stopStreaming(id: ItemId): void {
     update(id, (item) => {
       if (item.kind === "text" || item.kind === "thinking") item.streaming = false
-      if (item.kind === "thinking" && thinkingStarts.has(id)) {
-        item.durationMs = now - (thinkingStarts.get(id) ?? now)
-        thinkingStarts.delete(id)
-      }
     })
   }
 
@@ -136,7 +126,6 @@ export function createSession(): SessionStore {
         const item = startedItem(event.content_block)
         if (!cursor || !item) return
         cursor.blocks.set(event.index, item.id)
-        if (item.kind === "thinking") thinkingStarts.set(item.id, now)
         cursor.lastIndex = event.index
         add(item, message.parent_tool_use_id)
         return
@@ -227,10 +216,10 @@ export function createSession(): SessionStore {
         outputTokens: message.usage.output_tokens,
         error,
         interrupted: interruptSent,
+        endedAt: now,
       },
       null,
     )
-    turnStartPending = false
     setState("status", "idle")
   }
 
@@ -316,7 +305,6 @@ export function createSession(): SessionStore {
     if (message.type === "user") {
       const { text, images } = describeUserContent(message.message.content)
       add({ kind: "user", id: newId("user"), text, images }, null)
-      turnStartPending = true
       interruptSent = false
       setState("status", "running")
     } else if (message.type === "control_request" && message.request.subtype === "interrupt") {
