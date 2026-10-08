@@ -19,7 +19,6 @@ export function TurnEndRow(props: { parts: TurnEnd[] }) {
 
   return (
     <box
-      marginTop={1}
       onSizeChange={function () {
         setWidth(this.width)
       }}

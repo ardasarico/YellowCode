@@ -21,8 +21,6 @@ function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<It
   return item.kind === kind
 }
 
-const STEPS = new Set<Row["kind"]>(["tool", "thinking", "permission"])
-
 function RowView(props: ChatProps & { row: Row; previous: Row["kind"] | undefined }) {
   const item = <K extends Item["kind"]>(kind: K) => {
     const found = props.session.byId[props.row.id]
@@ -36,8 +34,8 @@ function RowView(props: ChatProps & { row: Row; previous: Row["kind"] | undefine
         })
       : null
   const gap = () => {
-    if (props.row.kind === "user") return props.previous === "end" ? 1 : 0
-    return STEPS.has(props.row.kind) && !STEPS.has(props.previous ?? "user") ? 1 : 0
+    if (props.row.kind === "thinking" && !item("thinking")?.streaming) return 0
+    return props.row.kind === "user" && props.previous === "end" ? 2 : 1
   }
 
   return (

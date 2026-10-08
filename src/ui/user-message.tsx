@@ -77,7 +77,6 @@ export function UserMessageRow(props: {
   return (
     <box
       id={props.item.id}
-      marginTop={1}
       flexDirection="column"
       backgroundColor={(props.selected ? theme.selection : theme.band) ?? undefined}
       border={["left"]}

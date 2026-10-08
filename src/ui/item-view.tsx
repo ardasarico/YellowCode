@@ -1,5 +1,5 @@
 import { useTerminalDimensions } from "@opentui/solid"
-import { Match, Show, Switch } from "solid-js"
+import { Match, Switch } from "solid-js"
 import type { Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { Markdown } from "./markdown/markdown.tsx"
@@ -24,23 +24,9 @@ export function ItemView(props: ItemViewProps) {
   const dimensions = useTerminalDimensions()
   return (
     <Switch>
-      <Match when={as(props.item, "user")}>
-        {(item) => (
-          <box marginTop={1} flexDirection="column">
-            <text fg={theme.accent}>{`> ${item().text}`}</text>
-            <Show when={item().images.length > 0}>
-              <text fg={theme.muted}>
-                {item()
-                  .images.map((_, index) => `[image ${index + 1}]`)
-                  .join(" ")}
-              </text>
-            </Show>
-          </box>
-        )}
-      </Match>
       <Match when={as(props.item, "text")}>
         {(item) => (
-          <box marginTop={1}>
+          <box>
             <Markdown markdown={item().markdown} streaming={item().streaming} width={dimensions().width - 2} />
           </box>
         )}
