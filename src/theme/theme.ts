@@ -15,7 +15,6 @@ export type Theme = {
   muted: RGBA
   frame: RGBA
   accent: RGBA
-  success: RGBA
   warning: RGBA
   error: RGBA
   band: RGBA | null
@@ -50,7 +49,6 @@ export function terminalTheme(terminal: Terminal): Theme {
     muted: ansi(8),
     frame: tint("frame") ?? ansi(8),
     accent: ansi(4),
-    success: ansi(2),
     warning: ansi(3),
     error: ansi(1),
     band: tint("band"),
@@ -73,7 +71,6 @@ function paintedTheme(c: ThemeColors): Theme {
     muted: hex(c.muted),
     frame: hex(c.frame),
     accent: hex(c.accent),
-    success: hex(c.success),
     warning: hex(c.warning),
     error: hex(c.error),
     band: hex(c.band),

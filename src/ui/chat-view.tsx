@@ -1,10 +1,12 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
+import { useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
 import type { Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
-import { ItemView } from "./item-view.tsx"
+import { Markdown } from "./markdown/markdown.tsx"
+import { PermissionRow } from "./permission-row.tsx"
 import { buildRows, type Row } from "./structure.ts"
 import { SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
@@ -16,7 +18,6 @@ type ChatProps = {
   session: Session
   selected: string | null
   expanded: Record<string, boolean>
-  onToggle: (id: string) => void
   onOverflow: (id: string, overflowing: boolean) => void
 }
 
@@ -32,6 +33,7 @@ type RowProps = ChatProps & {
 }
 
 function RowView(props: RowProps) {
+  const dimensions = useTerminalDimensions()
   const item = <K extends Item["kind"]>(kind: K) => {
     const found = props.session.byId[props.row.id]
     return found && isKind(found, kind) ? found : undefined
@@ -55,20 +57,7 @@ function RowView(props: RowProps) {
         if (props.selected === props.row.id && theme.selection === null) invertCells(this, buffer, props.viewport())
       }}
     >
-      <Switch
-        fallback={
-          <Show when={props.session.byId[props.row.id]}>
-            {(found) => (
-              <ItemView
-                item={found()}
-                selected={props.selected === props.row.id}
-                expanded={props.expanded[props.row.id] === true}
-                onToggle={props.onToggle}
-              />
-            )}
-          </Show>
-        }
-      >
+      <Switch>
         <Match when={item("user")}>
           {(user) => (
             <UserMessageRow
@@ -100,6 +89,14 @@ function RowView(props: RowProps) {
             />
           )}
         </Match>
+        <Match when={item("text")}>
+          {(text) => (
+            <box>
+              <Markdown markdown={text().markdown} streaming={text().streaming} width={dimensions().width - 2} />
+            </box>
+          )}
+        </Match>
+        <Match when={item("permission")}>{(permission) => <PermissionRow item={permission()} />}</Match>
         <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
         <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
         <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>

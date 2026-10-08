@@ -73,7 +73,6 @@ export function App(props: AppProps) {
         session={props.session}
         selected={focus() === "chat" ? selected() : null}
         expanded={expanded}
-        onToggle={toggle}
         onOverflow={(id, value) => setOverflowing(id, value)}
       />
       <ReplayBar replay={props.replay} focus={focus()} />
