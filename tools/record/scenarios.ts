@@ -64,6 +64,14 @@ export const scenarios: Scenario[] = [
     ],
   },
   {
+    name: "markdown",
+    turns: [
+      {
+        text: "Without using any tools, write a short markdown sample that contains: an H1, an H2 and an H3 heading; a nested bulleted list three levels deep; a numbered list; a task list with two checked and two unchecked items; a table with 5 columns and 4 rows; a markdown link; a bare URL; a 40-character hex hash in inline code; a blockquote; a horizontal rule; and a TypeScript code block that has one line of about 90 characters.",
+      },
+    ],
+  },
+  {
     name: "error",
     turns: [
       { text: "Run `cat does-not-exist.txt` with Bash and tell me what happened in one sentence." },
