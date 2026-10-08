@@ -1,8 +1,9 @@
 export type ItemId = string
 
-export type UserMessage = { kind: "user"; id: ItemId; text: string; imageCount: number }
+export type UserImage = { mediaType: string; data: string }
+export type UserMessage = { kind: "user"; id: ItemId; text: string; images: UserImage[] }
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
-export type Thinking = { kind: "thinking"; id: ItemId; streaming: boolean }
+export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean }
 export type ToolCall = {
   kind: "tool"
   id: ItemId
@@ -13,7 +14,11 @@ export type ToolCall = {
   status: "running" | "done" | "error"
   result: string
   children: ItemId[]
+  patch: Hunk[] | null
+  createdFile: boolean
+  agent: { name: string; task: string } | null
 }
+export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }
 export type Permission = {
   kind: "permission"
   id: ItemId
@@ -29,10 +34,12 @@ export type TurnEnd = {
   inputTokens: number
   outputTokens: number
   error: string | null
+  interrupted: boolean
 }
+export type TurnStart = { kind: "turn-start"; id: ItemId; model: string }
 export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning" }
 
-export type Item = UserMessage | AssistantText | Thinking | ToolCall | Permission | TurnEnd | SystemEvent
+export type Item = UserMessage | AssistantText | Thinking | ToolCall | Permission | TurnStart | TurnEnd | SystemEvent
 
 export type SessionInfo = {
   id: string

@@ -1,8 +1,8 @@
 import { createStore, produce } from "solid-js/store"
 import type { ContentBlock, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
 import type { ParseResult } from "../protocol/parse.ts"
-import { summarizeToolInput } from "./tool-summary.ts"
-import type { Item, ItemId, Session } from "./types.ts"
+import { agentOf, summarizeToolInput } from "./tool-summary.ts"
+import type { Item, ItemId, Session, UserImage } from "./types.ts"
 
 export type SessionStore = {
   state: Session
@@ -16,10 +16,15 @@ type Cursor = { messageId: string; blocks: Map<number, ItemId>; lastIndex: numbe
 
 const MAIN = "main"
 
-function describeUserContent(content: string | UserBlock[]): { text: string; imageCount: number } {
-  if (typeof content === "string") return { text: content, imageCount: 0 }
+function describeUserContent(content: string | UserBlock[]): { text: string; images: UserImage[] } {
+  if (typeof content === "string") return { text: content, images: [] }
   const text = content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
-  return { text, imageCount: content.filter((block) => block.type === "image").length }
+  const images = content.flatMap((block) =>
+    block.type === "image" && block.source.data
+      ? [{ mediaType: block.source.media_type ?? "image/png", data: block.source.data }]
+      : [],
+  )
+  return { text, images }
 }
 
 function toolResultText(content: string | { type: string; text?: string }[] | undefined): string {
@@ -33,9 +38,15 @@ export function createSession(): SessionStore {
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
+  let turnStartPending = false
+  let interruptSent = false
   const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
+    if (turnStartPending && !parent && (item.kind === "text" || item.kind === "thinking" || item.kind === "tool")) {
+      turnStartPending = false
+      add({ kind: "turn-start", id: newId("turn-start"), model: state.info?.model ?? "" }, null)
+    }
     setState("byId", item.id, item)
     const parentItem = parent ? state.byId[parent] : undefined
     if (parentItem?.kind === "tool") {
@@ -61,7 +72,7 @@ export function createSession(): SessionStore {
       case "text":
         return { kind: "text", id: newId("text"), markdown: block.text, streaming: true }
       case "thinking":
-        return { kind: "thinking", id: newId("thinking"), streaming: true }
+        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true }
       case "tool_use":
         return {
           kind: "tool",
@@ -73,6 +84,9 @@ export function createSession(): SessionStore {
           status: "running",
           result: "",
           children: [],
+          patch: null,
+          createdFile: false,
+          agent: null,
         }
       case "unknown":
         return null
@@ -86,12 +100,14 @@ export function createSession(): SessionStore {
       if (item.kind === "text" && block.type === "text") {
         item.markdown = block.text
         item.streaming = false
-      } else if (item.kind === "thinking") {
+      } else if (item.kind === "thinking" && block.type === "thinking") {
+        if (block.thinking) item.text = block.thinking
         item.streaming = false
       } else if (item.kind === "tool" && block.type === "tool_use") {
         item.input = block.input
         item.inputText = JSON.stringify(block.input)
         item.summary = summarizeToolInput(block.input)
+        item.agent = agentOf(item.name, block.input)
       }
     })
   }
@@ -125,6 +141,10 @@ export function createSession(): SessionStore {
         if (delta.type === "text_delta") {
           update(id, (item) => {
             if (item.kind === "text") item.markdown += delta.text
+          })
+        } else if (delta.type === "thinking_delta") {
+          update(id, (item) => {
+            if (item.kind === "thinking") item.text += delta.thinking
           })
         } else if (delta.type === "input_json_delta") {
           update(id, (item) => {
@@ -173,12 +193,15 @@ export function createSession(): SessionStore {
 
   function onToolResults(message: Of<"user">): void {
     if (typeof message.message.content === "string") return
+    const fileResult = message.tool_use_result
     for (const block of message.message.content) {
       if (block.type !== "tool_result") continue
       update(block.tool_use_id, (item) => {
         if (item.kind !== "tool") return
         item.status = block.is_error ? "error" : "done"
         item.result = toolResultText(block.content)
+        if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
+        if (fileResult?.type === "create") item.createdFile = true
       })
     }
   }
@@ -196,9 +219,11 @@ export function createSession(): SessionStore {
         inputTokens: message.usage.input_tokens,
         outputTokens: message.usage.output_tokens,
         error,
+        interrupted: interruptSent,
       },
       null,
     )
+    turnStartPending = false
     setState("status", "idle")
   }
 
@@ -282,9 +307,13 @@ export function createSession(): SessionStore {
 
   function onOutgoing(message: ProtocolMessage): void {
     if (message.type === "user") {
-      const { text, imageCount } = describeUserContent(message.message.content)
-      add({ kind: "user", id: newId("user"), text, imageCount }, null)
+      const { text, images } = describeUserContent(message.message.content)
+      add({ kind: "user", id: newId("user"), text, images }, null)
+      turnStartPending = true
+      interruptSent = false
       setState("status", "running")
+    } else if (message.type === "control_request" && message.request.subtype === "interrupt") {
+      interruptSent = true
     } else if (message.type === "control_response") {
       const behavior = message.response.response?.behavior
       update(`permission-${message.response.request_id}`, (item) => {

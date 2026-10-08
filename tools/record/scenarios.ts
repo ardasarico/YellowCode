@@ -61,4 +61,10 @@ export const scenarios: Scenario[] = [
       { text: "Write a story of at least 800 words about a lighthouse keeper.", interruptAfterFirstText: true },
     ],
   },
+  {
+    name: "thinking",
+    turns: [
+      { text: "Think it through step by step before answering: is 1001 a prime number? Answer in one sentence." },
+    ],
+  },
 ]

@@ -18,7 +18,10 @@ const toolUseBlock = z.looseObject({
   input: z.unknown(),
 })
 const thinkingBlock = z.looseObject({ type: z.literal("thinking"), thinking: z.string() })
-const imageBlock = z.looseObject({ type: z.literal("image") })
+const imageBlock = z.looseObject({
+  type: z.literal("image"),
+  source: z.looseObject({ type: z.string(), media_type: z.string().optional(), data: z.string().optional() }),
+})
 const toolResultBlock = z.looseObject({
   type: z.literal("tool_result"),
   tool_use_id: z.string(),
@@ -72,6 +75,7 @@ const backgroundTasksChanged = z.looseObject({
 
 const textDelta = z.looseObject({ type: z.literal("text_delta"), text: z.string() })
 const inputJsonDelta = z.looseObject({ type: z.literal("input_json_delta"), partial_json: z.string() })
+const thinkingDelta = z.looseObject({ type: z.literal("thinking_delta"), thinking: z.string() })
 
 const streamEvent = z.looseObject({
   type: z.literal("stream_event"),
@@ -83,9 +87,10 @@ const streamEvent = z.looseObject({
       z.looseObject({
         type: z.literal("content_block_delta"),
         index: z.number(),
-        delta: withUnknown(z.discriminatedUnion("type", [textDelta, inputJsonDelta]), [
+        delta: withUnknown(z.discriminatedUnion("type", [textDelta, inputJsonDelta, thinkingDelta]), [
           "text_delta",
           "input_json_delta",
+          "thinking_delta",
         ]),
       }),
       z.looseObject({ type: z.literal("content_block_stop"), index: z.number() }),
@@ -100,10 +105,24 @@ const assistant = z.looseObject({
   message: z.looseObject({ id: z.string(), content: z.array(contentBlock) }),
 })
 
+const hunk = z.looseObject({
+  oldStart: z.number(),
+  oldLines: z.number(),
+  newStart: z.number(),
+  newLines: z.number(),
+  lines: z.array(z.string()),
+})
+
 const user = z.looseObject({
   type: z.literal("user"),
   parent_tool_use_id: z.string().nullable().optional(),
   message: z.looseObject({ content: z.union([z.string(), z.array(userBlock)]) }),
+  tool_use_result: z
+    .union([
+      z.looseObject({ type: z.string().optional(), structuredPatch: z.array(hunk).optional() }),
+      z.unknown().transform(() => undefined),
+    ])
+    .optional(),
 })
 
 const result = z.looseObject({

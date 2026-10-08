@@ -21,3 +21,16 @@ export function summarizeToolInput(input: unknown): string {
   const line = value.split("\n")[0] ?? ""
   return line.length > MAX_LENGTH ? `${line.slice(0, MAX_LENGTH - 1)}…` : line
 }
+
+const agentFields = z.looseObject({
+  name: z.string().optional(),
+  subagent_type: z.string().optional(),
+  description: z.string().optional(),
+})
+
+export function agentOf(toolName: string, input: unknown): { name: string; task: string } | null {
+  if (toolName !== "Agent") return null
+  const parsed = agentFields.safeParse(input)
+  if (!parsed.success) return null
+  return { name: parsed.data.name ?? parsed.data.subagent_type ?? "agent", task: parsed.data.description ?? "" }
+}

@@ -32,9 +32,11 @@ export function ItemView(props: ItemViewProps) {
         {(item) => (
           <box marginTop={1} flexDirection="column">
             <text fg={theme.accent}>{`> ${item().text}`}</text>
-            <Show when={item().imageCount > 0}>
+            <Show when={item().images.length > 0}>
               <text fg={theme.muted}>
-                {Array.from({ length: item().imageCount }, (_, index) => `[image ${index + 1}]`).join(" ")}
+                {item()
+                  .images.map((_, index) => `[image ${index + 1}]`)
+                  .join(" ")}
               </text>
             </Show>
           </box>
