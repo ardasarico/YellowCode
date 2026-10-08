@@ -18,6 +18,7 @@
   "dependencies": {
     "@opentui/core": "0.5.15",
     "@opentui/solid": "0.5.15",
+    "marked": "17.0.1",
     "solid-js": "1.9.12",
     "web-tree-sitter": "0.25.10",
     "zod": "4.6.5"

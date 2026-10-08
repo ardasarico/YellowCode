@@ -1,7 +1,8 @@
-import type { MarkdownTableOptions } from "@opentui/core"
+import { useTerminalDimensions } from "@opentui/solid"
 import { Match, Show, Switch } from "solid-js"
 import type { Item } from "../session/types.ts"
-import { syntaxStyle, theme } from "../theme/theme.ts"
+import { theme } from "../theme/theme.ts"
+import { Markdown } from "./markdown/markdown.tsx"
 import { ToolCallView } from "./tool-call-view.tsx"
 
 export type ItemViewProps = {
@@ -10,8 +11,6 @@ export type ItemViewProps = {
   expanded: boolean
   onToggle: (id: string) => void
 }
-
-const TABLE_OPTIONS: MarkdownTableOptions = { style: "grid" }
 
 function hasKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<Item, { kind: K }> {
   return item.kind === kind
@@ -26,6 +25,7 @@ function formatTurnEnd(item: Extract<Item, { kind: "turn-end" }>): string {
 }
 
 export function ItemView(props: ItemViewProps) {
+  const dimensions = useTerminalDimensions()
   return (
     <Switch>
       <Match when={as(props.item, "user")}>
@@ -43,16 +43,7 @@ export function ItemView(props: ItemViewProps) {
       <Match when={as(props.item, "text")}>
         {(item) => (
           <box marginTop={1}>
-            <markdown
-              content={item().markdown}
-              syntaxStyle={syntaxStyle}
-              streaming={item().streaming}
-              conceal
-              fg={theme.text}
-              // The default "coalesced" mode re-renders the whole message on every delta, which flashes heading markers.
-              internalBlockMode="top-level"
-              tableOptions={TABLE_OPTIONS}
-            />
+            <Markdown markdown={item().markdown} streaming={item().streaming} width={dimensions().width - 2} />
           </box>
         )}
       </Match>
