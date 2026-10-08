@@ -39,8 +39,11 @@ export function CodeBlock(props: { lang: string; code: string; streaming: boolea
           ref={(element) => (code = element)}
           content={props.code}
           filetype={infoStringToFiletype(props.lang)}
-          syntaxStyle={syntaxStyle}
-          streaming={props.streaming}
+          syntaxStyle={syntaxStyle()}
+          // Always streaming, so a re-highlight keeps the old colored text. Only the block still being written may
+          // draw unstyled text first; a finished block keeps its colors through a theme switch.
+          streaming
+          drawUnstyledText={props.streaming}
           fg={theme.text}
           flexGrow={1}
         />

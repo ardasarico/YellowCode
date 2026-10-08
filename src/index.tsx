@@ -8,6 +8,8 @@ import { userMessage } from "./protocol/outgoing.ts"
 import { createSession } from "./session/session.ts"
 import { loadRecording, RecordingError } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
+import { readTerminal } from "./theme/palette.ts"
+import { setTerminal } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
 
 const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>]"
@@ -37,6 +39,12 @@ process.removeAllListeners("uncaughtException")
 process.removeAllListeners("unhandledRejection")
 process.on("uncaughtException", (error) => log.error("uncaught exception", error))
 process.on("unhandledRejection", (reason) => log.error("unhandled rejection", reason))
+
+const look = await readTerminal(renderer)
+// A terminal that answers palette queries supports truecolor in practice, so that stands in until capabilities arrive.
+const rgb = renderer.capabilities?.rgb ?? look.tints !== null
+log.info("terminal", { tints: look.tints !== null, dark: look.dark, rgb })
+setTerminal({ ...look, rgb })
 
 let quitting = false
 

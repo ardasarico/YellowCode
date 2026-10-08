@@ -1,7 +1,9 @@
-import { useKeyboard } from "@opentui/solid"
-import { createSignal } from "solid-js"
+import { RGBA } from "@opentui/core"
+import { useKeyboard, useRenderer } from "@opentui/solid"
+import { createEffect, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { Session } from "../session/types.ts"
+import { nextTheme, theme } from "../theme/theme.ts"
 import { ChatView } from "./chat-view.tsx"
 import { InputBar } from "./input-bar.tsx"
 import { ReplayBar, type ReplayInfo } from "./replay-bar.tsx"
@@ -19,6 +21,9 @@ export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [selected, setSelected] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
+  const renderer = useRenderer()
+
+  createEffect(() => renderer.setBackgroundColor(theme.background ?? RGBA.defaultBackground()))
 
   const toolIds = () => props.session.items.filter((id) => props.session.byId[id]?.kind === "tool")
 
@@ -38,6 +43,10 @@ export function App(props: AppProps) {
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
       props.onQuit()
+      return
+    }
+    if (key.name === "f2") {
+      nextTheme()
       return
     }
     if (key.name === "tab") {
