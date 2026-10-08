@@ -43,6 +43,15 @@ export const scenarios: Scenario[] = [
     ],
   },
   {
+    name: "agents",
+    files: { "README.md": "# Demo\n\nA tiny demo project.\n", "src/index.ts": "console.log('hi')\n" },
+    turns: [
+      {
+        text: "In a single message, launch three general-purpose agents in parallel with the Agent tool, giving each a name: 'readme' reads README.md and summarizes it in one sentence, 'source' reads src/index.ts and says what it prints, and 'missing' reads docs/missing.md and reports what happened. Wait for all three, then reply with one sentence per agent.",
+      },
+    ],
+  },
+  {
     name: "image",
     turns: [{ text: "What color is the square in this image? Answer in one sentence.", image: true }],
   },
