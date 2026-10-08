@@ -21,11 +21,13 @@ export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [selected, setSelected] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
+  const [overflowing, setOverflowing] = createStore<Record<string, boolean>>({})
   const renderer = useRenderer()
 
   createEffect(() => renderer.setBackgroundColor(theme.background ?? RGBA.defaultBackground()))
 
-  const toolIds = () => props.session.items.filter((id) => props.session.byId[id]?.kind === "tool")
+  const selectableIds = () =>
+    props.session.items.filter((id) => props.session.byId[id]?.kind === "tool" || overflowing[id] === true)
 
   const toggle = (id: string) => {
     setSelected(id)
@@ -33,7 +35,7 @@ export function App(props: AppProps) {
   }
 
   const moveSelection = (step: 1 | -1) => {
-    const ids = toolIds()
+    const ids = selectableIds()
     if (ids.length === 0) return
     const current = ids.indexOf(selected() ?? "")
     const next = current === -1 ? ids.length - 1 : Math.min(ids.length - 1, Math.max(0, current + step))
@@ -72,6 +74,7 @@ export function App(props: AppProps) {
         selected={focus() === "chat" ? selected() : null}
         expanded={expanded}
         onToggle={toggle}
+        onOverflow={(id, value) => setOverflowing(id, value)}
       />
       <ReplayBar replay={props.replay} focus={focus()} />
       <InputBar
