@@ -1,4 +1,4 @@
-export type SourceEvent = { dir: "in" | "out"; line: string }
+export type SourceEvent = { dir: "in" | "out"; line: string; at: number }
 
 export interface Source {
   events: AsyncIterable<SourceEvent>

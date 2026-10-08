@@ -3,7 +3,7 @@ export type ItemId = string
 export type UserImage = { mediaType: string; data: string }
 export type UserMessage = { kind: "user"; id: ItemId; text: string; images: UserImage[] }
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
-export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean }
+export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number }
 export type ToolCall = {
   kind: "tool"
   id: ItemId

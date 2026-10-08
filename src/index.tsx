@@ -74,7 +74,7 @@ async function pump(): Promise<void> {
         else if (count % INVALID_LOG_EVERY === 0) log.warn(`invalid ${parsed.key} messages: ${count} so far`)
       }
       if (parsed.kind === "unknown") log.debug(`unknown message ${parsed.key}`)
-      session.apply(event.dir, parsed)
+      session.apply(event.dir, parsed, event.at)
     }
   } catch (error) {
     log.error("replay failed", error)

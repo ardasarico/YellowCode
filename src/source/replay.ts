@@ -57,7 +57,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
         if (wait > 0) await pause(wait)
       }
       if (closed) return
-      yield { dir: entry.dir, line: entry.line }
+      yield { dir: entry.dir, line: entry.line, at: entry.t }
     }
     setStatus("finished")
   }

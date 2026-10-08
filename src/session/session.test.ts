@@ -9,13 +9,14 @@ import type { Item } from "./types.ts"
 function replay(name: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
   const session = createSession()
-  for (const entry of parseRecording(readFileSync(path, "utf8")).entries) session.apply(entry.dir, parse(entry.line))
+  for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
+    session.apply(entry.dir, parse(entry.line), entry.t)
   return session
 }
 
 function feed(...messages: object[]) {
   const session = createSession()
-  for (const message of messages) session.apply("in", parse(JSON.stringify(message)))
+  for (const message of messages) session.apply("in", parse(JSON.stringify(message)), 0)
   return session
 }
 
@@ -60,6 +61,7 @@ test("partial tool input stays raw text until the block completes", () => {
   session.apply(
     "in",
     parse(JSON.stringify(assistant("m1", { type: "tool_use", id: "t1", name: "Bash", input: { command: "ls" } }))),
+    0,
   )
   expect(session.state.byId["t1"]).toMatchObject({ input: { command: "ls" }, summary: "ls" })
 })
@@ -112,7 +114,7 @@ test("a result stops streaming even when the final message never arrived", () =>
   const session = streamingText()
   expect(streaming(session)).toHaveLength(1)
 
-  session.apply("in", parse(JSON.stringify(result)))
+  session.apply("in", parse(JSON.stringify(result)), 0)
   expect(streaming(session)).toEqual([])
   expect(items(session).some((item) => item.kind === "turn-end")).toBe(true)
 })
@@ -191,4 +193,5 @@ test("thinking text fills from the stream", () => {
   const thinking = items(replay("thinking")).filter((item) => item.kind === "thinking")
   expect(thinking.length).toBeGreaterThan(0)
   expect(thinking.every((item) => item.kind === "thinking" && item.text.length > 0)).toBe(true)
+  expect(thinking.every((item) => item.kind === "thinking" && item.durationMs > 0)).toBe(true)
 })

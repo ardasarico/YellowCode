@@ -6,7 +6,7 @@ import type { Item, ItemId, Session, UserImage } from "./types.ts"
 
 export type SessionStore = {
   state: Session
-  apply(dir: "in" | "out", parsed: ParseResult): void
+  apply(dir: "in" | "out", parsed: ParseResult, at: number): void
   end(): void
 }
 
@@ -40,6 +40,8 @@ export function createSession(): SessionStore {
   let counter = 0
   let turnStartPending = false
   let interruptSent = false
+  let now = 0
+  const thinkingStarts = new Map<ItemId, number>()
   const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
@@ -72,7 +74,7 @@ export function createSession(): SessionStore {
       case "text":
         return { kind: "text", id: newId("text"), markdown: block.text, streaming: true }
       case "thinking":
-        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true }
+        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true, durationMs: 0 }
       case "tool_use":
         return {
           kind: "tool",
@@ -115,6 +117,10 @@ export function createSession(): SessionStore {
   function stopStreaming(id: ItemId): void {
     update(id, (item) => {
       if (item.kind === "text" || item.kind === "thinking") item.streaming = false
+      if (item.kind === "thinking" && thinkingStarts.has(id)) {
+        item.durationMs = now - (thinkingStarts.get(id) ?? now)
+        thinkingStarts.delete(id)
+      }
     })
   }
 
@@ -130,6 +136,7 @@ export function createSession(): SessionStore {
         const item = startedItem(event.content_block)
         if (!cursor || !item) return
         cursor.blocks.set(event.index, item.id)
+        if (item.kind === "thinking") thinkingStarts.set(item.id, now)
         cursor.lastIndex = event.index
         add(item, message.parent_tool_use_id)
         return
@@ -324,7 +331,8 @@ export function createSession(): SessionStore {
 
   return {
     state,
-    apply(dir, parsed) {
+    apply(dir, parsed, at) {
+      now = at
       if (parsed.kind === "invalid") {
         const seen = invalid.get(parsed.key)
         if (!seen) {
