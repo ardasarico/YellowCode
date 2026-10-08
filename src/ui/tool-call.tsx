@@ -2,6 +2,9 @@ import { RGBA } from "@opentui/core"
 import { createSignal, Show } from "solid-js"
 import type { ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { writtenContent } from "../session/tool-summary.ts"
+import { addedRows, diffRows } from "./diff.ts"
+import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
 import { cut, cutPath } from "./format.ts"
 
@@ -19,7 +22,10 @@ export function resultSummary(tool: ToolCall): string {
     if (!exit) return lines[0] ?? "failed"
     return [`exit ${exit[1]}`, lines[1]].filter(Boolean).join(" · ")
   }
-  if (tool.createdFile) return "created"
+  if (tool.createdFile) {
+    const content = writtenContent(tool.input)
+    return content === null ? "created" : `created · ${count(addedRows(content).length, "line")}`
+  }
   if (tool.patch) {
     const changed = tool.patch.flatMap((hunk) => hunk.lines)
     const added = changed.filter((line) => line.startsWith("+")).length
@@ -47,6 +53,15 @@ export function ToolCallRow(props: { item: ToolCall; cwd: string; selected: bool
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
   const result = () => (running() ? `running… ${seconds()}s` : resultSummary(props.item))
+  const diff = () => {
+    const tool = props.item
+    if (tool.status !== "done") return null
+    if (tool.createdFile) {
+      const content = writtenContent(tool.input)
+      return content === null ? null : { rows: addedRows(content), tail: true }
+    }
+    return tool.patch && tool.patch.length > 0 ? { rows: diffRows(tool.patch), tail: false } : null
+  }
 
   return (
     <box
@@ -68,10 +83,17 @@ export function ToolCallRow(props: { item: ToolCall; cwd: string; selected: bool
           {cut(result(), width() - RESULT_INDENT.length)}
         </span>
       </text>
-      <Show when={props.expanded && props.item.result}>
-        <box paddingLeft={RESULT_INDENT.length}>
-          <text fg={theme.text}>{props.item.result.trimEnd()}</text>
-        </box>
+      <Show
+        when={diff()}
+        fallback={
+          <Show when={props.expanded && props.item.result}>
+            <box paddingLeft={RESULT_INDENT.length}>
+              <text fg={theme.text}>{props.item.result.trimEnd()}</text>
+            </box>
+          </Show>
+        }
+      >
+        {(shown) => <DiffView rows={shown().rows} tail={shown().tail} expanded={props.expanded} />}
       </Show>
     </box>
   )

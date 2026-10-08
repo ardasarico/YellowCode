@@ -34,3 +34,10 @@ export function agentOf(toolName: string, input: unknown): { name: string; task:
   if (!parsed.success) return null
   return { name: parsed.data.name ?? parsed.data.subagent_type ?? "agent", task: parsed.data.description ?? "" }
 }
+
+const writeFields = z.looseObject({ content: z.string() })
+
+export function writtenContent(input: unknown): string | null {
+  const parsed = writeFields.safeParse(input)
+  return parsed.success ? parsed.data.content : null
+}
