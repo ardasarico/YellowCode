@@ -2,6 +2,7 @@ import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
 import type { Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { ItemView } from "./item-view.tsx"
 import { buildRows, type Row } from "./structure.ts"
@@ -23,7 +24,12 @@ function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<It
   return item.kind === kind
 }
 
-type RowProps = ChatProps & { row: Row; previous: Row["kind"] | undefined; viewport: () => Renderable | undefined }
+type RowProps = ChatProps & {
+  row: Row
+  previous: Row["kind"] | undefined
+  agentIndex: number
+  viewport: () => Renderable | undefined
+}
 
 function RowView(props: RowProps) {
   const item = <K extends Item["kind"]>(kind: K) => {
@@ -83,6 +89,17 @@ function RowView(props: RowProps) {
             />
           )}
         </Match>
+        <Match when={props.row.kind === "agent" ? item("tool") : undefined}>
+          {(tool) => (
+            <AgentRow
+              item={tool()}
+              index={props.agentIndex}
+              session={props.session}
+              selected={props.selected === tool().id}
+              expanded={props.expanded[tool().id] === true}
+            />
+          )}
+        </Match>
         <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
         <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
         <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>
@@ -96,6 +113,14 @@ export function ChatView(props: ChatProps) {
   const rows = createMemo(() => buildRows(props.session))
   const rowIds = createMemo(() => rows().map((row) => row.id))
   const rowById = createMemo(() => new Map(rows().map((row) => [row.id, row])))
+  const agentIndex = createMemo(
+    () =>
+      new Map(
+        rows()
+          .filter((row) => row.kind === "agent")
+          .map((row, index) => [row.id, index]),
+      ),
+  )
   const previousKind = createMemo(() => new Map(rows().map((row, index) => [row.id, rows()[index - 1]?.kind])))
 
   createEffect(() => {
@@ -118,7 +143,13 @@ export function ChatView(props: ChatProps) {
         {(id) => (
           <Show when={rowById().get(id)}>
             {(row) => (
-              <RowView {...props} row={row()} previous={previousKind().get(id)} viewport={() => scroll?.viewport} />
+              <RowView
+                {...props}
+                row={row()}
+                previous={previousKind().get(id)}
+                agentIndex={agentIndex().get(id) ?? 0}
+                viewport={() => scroll?.viewport}
+              />
             )}
           </Show>
         )}

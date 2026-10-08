@@ -38,7 +38,7 @@ export function resultSummary(tool: ToolCall): string {
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
 }
 
-function relative(target: string, cwd: string): string {
+export function relative(target: string, cwd: string): string {
   return cwd && target.startsWith(`${cwd}/`) ? target.slice(cwd.length + 1) : target
 }
 

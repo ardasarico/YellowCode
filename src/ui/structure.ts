@@ -8,7 +8,7 @@ type EndRow = Extract<Row, { kind: "end" }>
 
 function rowKind(item: Exclude<Item, { kind: "turn-end" }>): Exclude<Row["kind"], "end"> {
   if (item.kind === "text") return "markdown"
-  if (item.kind === "tool") return item.agent ? "agent" : "tool"
+  if (item.kind === "tool") return item.agent || item.name === "Agent" ? "agent" : "tool"
   return item.kind
 }
 
@@ -22,6 +22,10 @@ export function buildRows(session: Session): Row[] {
     if (!item) continue
 
     if (item.kind === "turn-end") {
+      if (lastEnd) {
+        rows.splice(rows.indexOf(lastEnd), 1)
+        carried = lastEnd.turnEnds
+      }
       rows.push((lastEnd = { kind: "end", id, turnEnds: [...carried, id] }))
       carried = []
       continue
