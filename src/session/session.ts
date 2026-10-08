@@ -238,7 +238,7 @@ export function createSession(): SessionStore {
         })
         return
       case "compact_boundary":
-        add({ kind: "system", id: newId("system"), text: "Context compacted", level: "info" }, null)
+        add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
         return
       case "api_retry":
         add(

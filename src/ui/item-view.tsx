@@ -41,9 +41,6 @@ export function ItemView(props: ItemViewProps) {
           <text fg={theme.warning}>{`? Permission: ${item().toolName} ${item().summary} → ${item().decision}`}</text>
         )}
       </Match>
-      <Match when={as(props.item, "system")}>
-        {(item) => <text fg={item().level === "warning" ? theme.warning : theme.muted}>{`· ${item().text}`}</text>}
-      </Match>
     </Switch>
   )
 }

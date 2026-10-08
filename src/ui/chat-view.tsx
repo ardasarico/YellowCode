@@ -1,9 +1,11 @@
-import { RGBA, type ScrollBoxRenderable } from "@opentui/core"
+import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
 import type { Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { invertCells } from "./invert.ts"
 import { ItemView } from "./item-view.tsx"
 import { buildRows, type Row } from "./structure.ts"
+import { SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
@@ -21,7 +23,9 @@ function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<It
   return item.kind === kind
 }
 
-function RowView(props: ChatProps & { row: Row; previous: Row["kind"] | undefined }) {
+type RowProps = ChatProps & { row: Row; previous: Row["kind"] | undefined; viewport: () => Renderable | undefined }
+
+function RowView(props: RowProps) {
   const item = <K extends Item["kind"]>(kind: K) => {
     const found = props.session.byId[props.row.id]
     return found && isKind(found, kind) ? found : undefined
@@ -35,11 +39,16 @@ function RowView(props: ChatProps & { row: Row; previous: Row["kind"] | undefine
       : null
   const gap = () => {
     if (props.row.kind === "thinking" && !item("thinking")?.streaming) return 0
-    return props.row.kind === "user" && props.previous === "end" ? 2 : 1
+    return props.previous === "end" ? 2 : 1
   }
 
   return (
-    <box marginTop={gap()}>
+    <box
+      marginTop={gap()}
+      renderAfter={function (buffer) {
+        if (props.selected === props.row.id && theme.selection === null) invertCells(this, buffer, props.viewport())
+      }}
+    >
       <Switch
         fallback={
           <Show when={props.session.byId[props.row.id]}>
@@ -74,6 +83,7 @@ function RowView(props: ChatProps & { row: Row; previous: Row["kind"] | undefine
             />
           )}
         </Match>
+        <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
         <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
         <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>
       </Switch>
@@ -107,7 +117,9 @@ export function ChatView(props: ChatProps) {
       <For each={rowIds()}>
         {(id) => (
           <Show when={rowById().get(id)}>
-            {(row) => <RowView {...props} row={row()} previous={previousKind().get(id)} />}
+            {(row) => (
+              <RowView {...props} row={row()} previous={previousKind().get(id)} viewport={() => scroll?.viewport} />
+            )}
           </Show>
         )}
       </For>
