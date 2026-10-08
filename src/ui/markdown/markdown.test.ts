@@ -43,6 +43,10 @@ test("columns shrink toward their longest word to fit", () => {
   expect(widths[0]).toBe(4)
 })
 
+test("only the widest columns break when longest words do not fit", () => {
+  expect(fitColumns([["pulldown-cmark"], ["Stars"], ["TypeScript"]], 20)).toEqual([7, 5, 8])
+})
+
 test("words longer than the width are broken", () => {
   expect(wrapText("sha256-abcdefghij end", 8)).toEqual(["sha256-a", "bcdefghi", "j end"])
 })

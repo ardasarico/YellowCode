@@ -37,10 +37,26 @@ export function wrapText(text: string, max: number): string[] {
 
 const longestWord = (text: string): number => Math.max(1, ...text.split(/\s+/).map(width))
 
+function capWidest(widths: number[], available: number): number[] {
+  let cap = Math.max(...widths)
+  const capped = () => widths.map((value) => Math.min(value, cap))
+  const sum = () => capped().reduce((total, value) => total + value, 0)
+  while (cap > 1 && sum() > available) cap -= 1
+  const result = capped()
+  let left = available - sum()
+  for (let index = result.length - 1; left > 0 && index >= 0; index--) {
+    if ((result[index] ?? 0) < (widths[index] ?? 0)) {
+      result[index] = (result[index] ?? 0) + 1
+      left -= 1
+    }
+  }
+  return result
+}
+
 // Column widths that fit `available` cells of content. Columns start at their longest word
-// and grow toward their natural width; if even the longest words do not fit, they shrink
-// proportionally and wrapText breaks the words. Rounding leftovers go to the last columns, so the
-// first columns only ever shrink while a table streams in.
+// and grow toward their natural width; if even the longest words do not fit, only the widest
+// columns are cut down to a shared cap and wrapText breaks their words. Rounding leftovers go to
+// the last columns, so the first columns only ever shrink while a table streams in.
 export function fitColumns(columns: string[][], available: number): number[] {
   const natural = columns.map((cells) => Math.max(1, ...cells.map(width)))
   const total = natural.reduce((sum, value) => sum + value, 0)
@@ -48,9 +64,7 @@ export function fitColumns(columns: string[][], available: number): number[] {
 
   const minimum = columns.map((cells) => Math.max(...cells.map(longestWord)))
   const minimumTotal = minimum.reduce((sum, value) => sum + value, 0)
-  if (minimumTotal >= available) {
-    return minimum.map((value) => Math.max(1, Math.floor((value / minimumTotal) * available)))
-  }
+  if (minimumTotal >= available) return capWidest(minimum, available)
 
   const room = available - minimumTotal
   const wants = natural.map((value, index) => value - (minimum[index] ?? 0))
