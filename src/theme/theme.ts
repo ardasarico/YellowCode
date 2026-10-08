@@ -20,6 +20,7 @@ export type Theme = {
   error: RGBA
   band: RGBA | null
   tile: RGBA | null
+  selection: RGBA | null
   diffAdd: RGBA | null
   diffDel: RGBA | null
   diffAddText: RGBA
@@ -54,6 +55,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     error: ansi(1),
     band: tint("band"),
     tile: tint("tile"),
+    selection: tint("selection"),
     diffAdd: tint("diffAdd"),
     diffDel: tint("diffDel"),
     diffAddText: ansi(2),
@@ -76,6 +78,7 @@ function paintedTheme(c: ThemeColors): Theme {
     error: hex(c.error),
     band: hex(c.band),
     tile: hex(c.tile),
+    selection: hex(c.selection),
     diffAdd: hex(c.diffAdd),
     diffDel: hex(c.diffDel),
     diffAddText: hex(c.diffAddText),
