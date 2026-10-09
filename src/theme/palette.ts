@@ -44,7 +44,8 @@ export function isDark(background: string | null): boolean {
   return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0) < 128
 }
 
-export type TerminalLook = { tints: Tints | null; dark: boolean }
+// palette holds the 16 ANSI colors as hex where the terminal reported them; images need real RGB values.
+export type TerminalLook = { tints: Tints | null; dark: boolean; palette: (string | null)[] }
 
 export async function readTerminal(renderer: CliRenderer): Promise<TerminalLook> {
   try {
@@ -52,9 +53,9 @@ export async function readTerminal(renderer: CliRenderer): Promise<TerminalLook>
     const tints = tintsFrom(colors)
     if (tints) log.info("palette tints", tints)
     else log.info("palette without hex colors, using the 16-color fallback", colors)
-    return { tints, dark: isDark(colors.defaultBackground) }
+    return { tints, dark: isDark(colors.defaultBackground), palette: colors.palette.slice(0, 16).map(hex) }
   } catch (error) {
     log.warn("palette query failed, using the 16-color fallback", error)
-    return { tints: null, dark: true }
+    return { tints: null, dark: true, palette: [] }
   }
 }

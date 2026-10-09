@@ -37,11 +37,11 @@ export type ThemeDefinition = { id: string; name: string; dark: ThemeColors; lig
 
 export type Terminal = TerminalLook & { rgb: boolean }
 
-const ansi = (index: number) => RGBA.fromIndex(index)
 const hex = (value: string) => RGBA.fromHex(value)
 
 export function terminalTheme(terminal: Terminal): Theme {
-  const { tints } = terminal
+  const { tints, palette } = terminal
+  const ansi = (index: number) => RGBA.fromIndex(index, palette[index] ?? undefined)
   const tint = (key: keyof Tints) => (tints ? RGBA.fromHex(tints[key]) : null)
   return {
     background: null,
@@ -108,7 +108,7 @@ function syntaxStyles(t: Theme) {
 const painted: ThemeDefinition[] = [dusk, petal, ember]
 export const themes = [{ id: "terminal", name: "Terminal" }, ...painted.map(({ id, name }) => ({ id, name }))]
 
-let terminal: Terminal = { tints: null, dark: true, rgb: false }
+let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [] }
 const initial = terminalTheme(terminal)
 const [theme, setThemeStore] = createStore<Theme>(initial)
 const [themeId, setThemeId] = createSignal("terminal")
