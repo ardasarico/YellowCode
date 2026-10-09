@@ -49,8 +49,9 @@ const systemInit = z.looseObject({
   cwd: z.string(),
   claude_code_version: z.string(),
   tools: z.array(z.string()),
-  mcp_servers: z.array(z.looseObject({ name: z.string(), status: z.string() })),
+  mcp_servers: z.array(z.looseObject({ name: z.string(), status: z.string(), error: z.string().optional() })),
   skills: z.array(z.string()),
+  apiKeySource: z.string().optional(),
   plugins: z.array(z.looseObject({ name: z.string() })).optional(),
 })
 
@@ -136,7 +137,17 @@ const streamEvent = z.looseObject({
 const assistant = z.looseObject({
   type: z.literal("assistant"),
   parent_tool_use_id: z.string().nullable().optional(),
-  message: z.looseObject({ id: z.string(), content: z.array(contentBlock) }),
+  message: z.looseObject({
+    id: z.string(),
+    content: z.array(contentBlock),
+    usage: z
+      .looseObject({
+        input_tokens: z.number(),
+        cache_creation_input_tokens: z.number().optional(),
+        cache_read_input_tokens: z.number().optional(),
+      })
+      .optional(),
+  }),
 })
 
 const hunk = z.looseObject({
@@ -169,7 +180,13 @@ const result = z.looseObject({
   is_error: z.boolean(),
   total_cost_usd: z.number(),
   duration_ms: z.number(),
-  usage: z.looseObject({ input_tokens: z.number(), output_tokens: z.number() }),
+  usage: z.looseObject({
+    input_tokens: z.number(),
+    output_tokens: z.number(),
+    cache_creation_input_tokens: z.number().optional(),
+    cache_read_input_tokens: z.number().optional(),
+  }),
+  modelUsage: z.record(z.string(), z.looseObject({ contextWindow: z.number() })).optional(),
   result: z.string().optional(),
   errors: z.array(z.string()).optional(),
 })
@@ -197,9 +214,17 @@ const controlResponse = z.looseObject({
   }),
 })
 
+const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
+
 const rateLimit = z.looseObject({
   type: z.literal("rate_limit_event"),
-  rate_limit_info: z.looseObject({ status: z.string() }),
+  rate_limit_info: z.looseObject({
+    status: z.string(),
+    resetsAt: z.number().optional(),
+    rateLimitType: z.string().optional(),
+    utilization: z.number().optional(),
+    unifiedWindows: z.looseObject({ five_hour: limitWindow.optional(), seven_day: limitWindow.optional() }).optional(),
+  }),
 })
 
 const system = z.discriminatedUnion("subtype", [

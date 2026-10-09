@@ -2,7 +2,7 @@ import { createStore, produce } from "solid-js/store"
 import type { ContentBlock, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
 import type { ParseResult } from "../protocol/parse.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
-import type { Agent, Item, ItemId, Session, UserImage } from "./types.ts"
+import type { Agent, Item, ItemId, Session, UserImage, Window } from "./types.ts"
 
 export type SessionStore = {
   state: Session
@@ -34,12 +34,27 @@ function toolResultText(content: string | { type: string; text?: string }[] | un
 }
 
 export function createSession(): SessionStore {
-  const [state, setState] = createStore<Session>({ info: null, status: "idle", items: [], byId: {} })
+  const [state, setState] = createStore<Session>({
+    info: null,
+    status: "idle",
+    items: [],
+    byId: {},
+    usage: {
+      startedAt: null,
+      tokens: 0,
+      costUsd: 0,
+      context: { used: 0, window: null },
+      limits: { fiveHour: null, week: null, models: {} },
+      warning: null,
+    },
+  })
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
   let interruptSent = false
   let now = 0
+  // Recorded times are shifted by this much so a replay reads them as if they happened just now.
+  let shift = 0
   const taskTools = new Map<string, ItemId>()
   const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
 
@@ -162,6 +177,15 @@ export function createSession(): SessionStore {
 
   function onAssistant(message: Of<"assistant">): void {
     const key = message.parent_tool_use_id ?? MAIN
+    const usage = message.message.usage
+    if (usage && !message.parent_tool_use_id) {
+      setState(
+        "usage",
+        "context",
+        "used",
+        usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0),
+      )
+    }
     for (const block of message.message.content) {
       if (block.type === "tool_use" && state.byId[block.id]) {
         finalize(block.id, block)
@@ -226,7 +250,49 @@ export function createSession(): SessionStore {
       },
       null,
     )
+    const usage = message.usage
+    const window = state.info ? message.modelUsage?.[state.info.model]?.contextWindow : undefined
+    setState(
+      "usage",
+      produce((current) => {
+        current.tokens +=
+          usage.input_tokens +
+          usage.output_tokens +
+          (usage.cache_creation_input_tokens ?? 0) +
+          (usage.cache_read_input_tokens ?? 0)
+        current.costUsd = message.total_cost_usd
+        if (window !== undefined) current.context.window = window
+      }),
+    )
     setState("status", "idle")
+  }
+
+  function shifted(window: { utilization: number; resetsAt: number }): Window {
+    return { utilization: window.utilization, resetsAt: window.resetsAt * 1000 + shift }
+  }
+
+  function onRateLimit(message: Of<"rate_limit_event">): void {
+    const info = message.rate_limit_info
+    const family = info.rateLimitType?.match(/^seven_day_(opus|sonnet)$/)?.[1]
+    setState(
+      "usage",
+      produce((usage) => {
+        const windows = info.unifiedWindows
+        if (windows?.five_hour) usage.limits.fiveHour = shifted(windows.five_hour)
+        if (windows?.seven_day) usage.limits.week = shifted(windows.seven_day)
+        if (family && info.utilization !== undefined && info.resetsAt !== undefined) {
+          usage.limits.models[family] = shifted({ utilization: info.utilization, resetsAt: info.resetsAt })
+        }
+        usage.warning =
+          info.status === "allowed"
+            ? null
+            : {
+                status: info.status,
+                type: info.rateLimitType ?? "",
+                resetsAt: info.resetsAt === undefined ? 0 : info.resetsAt * 1000 + shift,
+              }
+      }),
+    )
   }
 
   function updateAgent(taskId: string, change: (agent: Agent) => void): void {
@@ -247,8 +313,13 @@ export function createSession(): SessionStore {
           cwd: message.cwd,
           cliVersion: message.claude_code_version,
           tools: message.tools,
-          mcpServers: message.mcp_servers.map((server) => ({ name: server.name, status: server.status })),
+          mcpServers: message.mcp_servers.map((server) => ({
+            name: server.name,
+            status: server.status,
+            error: server.error ?? null,
+          })),
           skills: message.skills,
+          apiKeySource: message.apiKeySource ?? "none",
         })
         return
       case "compact_boundary":
@@ -324,18 +395,7 @@ export function createSession(): SessionStore {
       case "control_response":
         return
       case "rate_limit_event":
-        if (message.rate_limit_info.status !== "allowed") {
-          add(
-            {
-              kind: "system",
-              id: newId("system"),
-              text: `Rate limit: ${message.rate_limit_info.status}`,
-              level: "warning",
-            },
-            null,
-          )
-        }
-        return
+        return onRateLimit(message)
     }
   }
 
@@ -359,6 +419,8 @@ export function createSession(): SessionStore {
     state,
     apply(dir, parsed, at) {
       now = at
+      shift = Date.now() - at
+      if (state.usage.startedAt === null) setState("usage", "startedAt", Date.now())
       if (parsed.kind === "invalid") {
         const seen = invalid.get(parsed.key)
         if (!seen) {

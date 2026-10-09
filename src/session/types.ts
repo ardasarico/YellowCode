@@ -57,8 +57,21 @@ export type SessionInfo = {
   cwd: string
   cliVersion: string
   tools: string[]
-  mcpServers: { name: string; status: string }[]
+  mcpServers: { name: string; status: string; error: string | null }[]
   skills: string[]
+  apiKeySource: string
+}
+
+// Times are epoch milliseconds; in replay they are shifted so recorded resets lie in the future.
+export type Window = { utilization: number; resetsAt: number }
+
+export type Usage = {
+  startedAt: number | null
+  tokens: number
+  costUsd: number
+  context: { used: number; window: number | null }
+  limits: { fiveHour: Window | null; week: Window | null; models: Record<string, Window> }
+  warning: { status: string; type: string; resetsAt: number } | null
 }
 
 export type SessionStatus = "idle" | "running" | "ended"
@@ -68,4 +81,5 @@ export type Session = {
   status: SessionStatus
   items: ItemId[]
   byId: Record<ItemId, Item>
+  usage: Usage
 }

@@ -200,3 +200,18 @@ test("background agents take their outcome from task notifications", () => {
   ])
   expect(agents.every((agent) => agent.report.length > 0 && agent.durationMs > 0)).toBe(true)
 })
+
+test("usage adds up tokens, the context window and plan limits", () => {
+  const usage = replay("chat").state.usage
+  expect(usage.tokens).toBe(2 + 586 + 3856 + 13961 + (2 + 46 + 625 + 17817))
+  expect(usage.context.window).toBe(1_000_000)
+  expect(usage.limits.fiveHour?.utilization).toBe(0.32)
+})
+
+test("MCP servers keep their status", () => {
+  const servers = replay("mcp").state.info?.mcpServers.map((server) => [server.name, server.status])
+  expect(servers).toEqual([
+    ["echo", "connected"],
+    ["broken", "failed"],
+  ])
+})
