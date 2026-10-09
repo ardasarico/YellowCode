@@ -80,13 +80,13 @@ export function AgentRow(props: {
   const toolCount = () => Math.max(agent().toolUses, tools().length)
   const state = () => status(agent(), toolCount(), seconds())
   const cwd = () => props.session.info?.cwd ?? ""
-  const tail = () => {
-    if (agent().state === "failed")
-      return { text: `✗ ${firstSentence(agent().error ?? agent().report)}`, color: theme.error }
-    if (agent().state === "completed") return { text: firstSentence(agent().report), color: theme.muted }
-    return null
-  }
-  const head = () => `   ${agent().name}(${agent().task})  ${state().text}`
+  // A finished agent puts its status on a second line; while running or expanded it stays on the first.
+  const twoLine = () => !running() && !props.expanded
+  const outcome = () =>
+    agent().state === "failed"
+      ? { text: `failed · ${firstSentence(agent().error ?? agent().report)}`, color: theme.error }
+      : state()
+  const head = () => `   ${agent().name}(${agent().task})${twoLine() ? "" : `  ${state().text}`}`
   const recent = () => tools().slice(-VISIBLE_STEPS)
   const earlier = () => tools().length - recent().length
 
@@ -100,24 +100,24 @@ export function AgentRow(props: {
       }}
     >
       <box flexDirection="row">
-        <AgentMark color={color()} state={agent().state} />
+        <AgentMark color={color()} state={agent().state} size={running() ? undefined : "medium"} />
         <text wrapMode="none">
           <span style={{ fg: theme.text, bold: true }}>{` ${agent().name}`}</span>
           <span
             style={{ fg: theme.text }}
           >{`(${cut(agent().task, Math.max(8, width() - head().length + agent().task.length))})`}</span>
-          <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
-          <Show when={tail()}>
-            {(shown) => (
-              <>
-                <span style={{ fg: theme.frame }}>{"  · "}</span>
-                <span style={{ fg: shown().color }}>{cut(shown().text, Math.max(0, width() - head().length - 4))}</span>
-              </>
-            )}
+          <Show when={!twoLine()}>
+            <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
           </Show>
         </text>
       </box>
       <Switch>
+        <Match when={twoLine()}>
+          <text wrapMode="none">
+            <span style={{ fg: color() }}>{CONNECTOR}</span>
+            <span style={{ fg: outcome().color }}>{cut(outcome().text, Math.max(0, width() - CONNECTOR.length))}</span>
+          </text>
+        </Match>
         <Match when={props.expanded}>
           <box flexDirection="column">
             <For each={children()}>

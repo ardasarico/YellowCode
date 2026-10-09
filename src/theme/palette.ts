@@ -1,7 +1,15 @@
 import type { CliRenderer, TerminalColors } from "@opentui/core"
 import { log } from "../log/log.ts"
 
-export type Tints = { band: string; tile: string; selection: string; diffAdd: string; diffDel: string; frame: string }
+export type Tints = {
+  band: string
+  tile: string
+  selection: string
+  diffAdd: string
+  diffDel: string
+  frame: string
+  faint: string
+}
 
 const HEX = /^#[0-9a-f]{6}$/i
 
@@ -34,6 +42,7 @@ export function tintsFrom(colors: TerminalColors): Tints | null {
     diffAdd: mix(background, green, 0.18),
     diffDel: mix(background, red, 0.18),
     frame: mix(background, foreground, 0.3),
+    faint: mix(background, foreground, 0.45),
   }
 }
 

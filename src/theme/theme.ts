@@ -2,7 +2,7 @@ import { RGBA, SyntaxStyle } from "@opentui/core"
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { claudeColor } from "./brand.ts"
-import type { TerminalLook, Tints } from "./palette.ts"
+import { mix, type TerminalLook, type Tints } from "./palette.ts"
 import { dusk } from "./themes/dusk.ts"
 import { ember } from "./themes/ember.ts"
 import { petal } from "./themes/petal.ts"
@@ -13,6 +13,8 @@ export type Theme = {
   background: RGBA | null
   text: RGBA
   muted: RGBA
+  faint: RGBA
+  success: RGBA
   frame: RGBA
   accent: RGBA
   warning: RGBA
@@ -31,7 +33,7 @@ export type Theme = {
 }
 
 export type ThemeColors = {
-  [K in Exclude<keyof Theme, "claude" | "agents" | "syntax" | "rgb">]: string
+  [K in Exclude<keyof Theme, "faint" | "success" | "claude" | "agents" | "syntax" | "rgb">]: string
 } & { agents: string[]; syntax: SyntaxTokens<string> }
 
 export type ThemeDefinition = { id: string; name: string; dark: ThemeColors; light: ThemeColors }
@@ -48,6 +50,8 @@ export function terminalTheme(terminal: Terminal): Theme {
     background: null,
     text: RGBA.defaultForeground(),
     muted: ansi(8),
+    faint: tint("faint") ?? ansi(8),
+    success: ansi(2),
     frame: tint("frame") ?? ansi(8),
     accent: ansi(4),
     warning: ansi(3),
@@ -71,6 +75,8 @@ function paintedTheme(c: ThemeColors): Theme {
     background: hex(c.background),
     text: hex(c.text),
     muted: hex(c.muted),
+    faint: hex(mix(c.muted, c.background, 0.4)),
+    success: hex(c.diffAddText),
     frame: hex(c.frame),
     accent: hex(c.accent),
     warning: hex(c.warning),

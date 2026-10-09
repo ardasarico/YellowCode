@@ -27,6 +27,14 @@ function gradientAt(position: number): RGBA {
   return mix(from, stops[(index + 1) % stops.length] ?? from, scaled - index)
 }
 
+function edgeColor(x: number, width: number, frame: number): RGBA {
+  const base = gradientAt((x / width) * 0.9 - frame * 0.009)
+  if (!theme.rgb) return base
+  const center = wrap(frame * 3, width + 30) - 15
+  const highlight = 0.85 * Math.max(0, 1 - Math.abs(x - center) / 10)
+  return mix(base, WHITE, highlight)
+}
+
 export function UltracodeWord(props: { frame: number }) {
   return (
     <text attributes={TextAttributes.BOLD}>
@@ -37,16 +45,17 @@ export function UltracodeWord(props: { frame: number }) {
   )
 }
 
-export function BottomEdge(props: { width: number; ultracode: boolean; frame: number }) {
+export function InputEdge(props: { width: number; ultracode: boolean; frame: number; glyph?: string }) {
+  const glyph = () => props.glyph ?? EDGE
   const columns = () => Array.from({ length: props.width }, (_, x) => x)
   return (
     <text flexShrink={0} wrapMode="none">
       {props.ultracode ? (
         <Index each={columns()}>
-          {(x) => <span style={{ fg: gradientAt((x() / props.width) * 0.9 - props.frame * 0.004) }}>{EDGE}</span>}
+          {(x) => <span style={{ fg: edgeColor(x(), props.width, props.frame) }}>{glyph()}</span>}
         </Index>
       ) : (
-        <span style={{ fg: theme.frame }}>{EDGE.repeat(props.width)}</span>
+        <span style={{ fg: theme.frame }}>{glyph().repeat(props.width)}</span>
       )}
     </text>
   )

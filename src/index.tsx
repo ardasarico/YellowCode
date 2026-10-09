@@ -14,7 +14,7 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
 
-const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>]"
+const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles]"
 
 function fail(message: string): never {
   process.stderr.write(`${message}\n`)
@@ -22,7 +22,12 @@ function fail(message: string): never {
 }
 
 const { values } = parseArgs({
-  options: { replay: { type: "string" }, speed: { type: "string", default: "1" } },
+  options: {
+    replay: { type: "string" },
+    speed: { type: "string", default: "1" },
+    // Session titles cost a Haiku request per user message, so replays only make them when asked.
+    titles: { type: "boolean", default: false },
+  },
 })
 if (!values.replay) fail(USAGE)
 const speed = parseSpeed(values.speed)
@@ -110,6 +115,7 @@ await render(
         speed: speed === "instant" ? "instant" : `${speed}x`,
         status: source.status,
       }}
+      titles={values.titles}
       onSubmit={(text) => source.send(userMessage(text))}
       onQuit={() => void quit()}
     />

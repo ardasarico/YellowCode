@@ -5,9 +5,9 @@ import { effortColor } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { modelName } from "./format.ts"
 import { useTicker } from "./ticker.ts"
-import { BottomEdge, UltracodeWord } from "./ultracode.tsx"
+import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
-const SUBMIT_ON_ENTER: KeyBinding[] = [
+export const SUBMIT_ON_ENTER: KeyBinding[] = [
   { name: "return", action: "submit" },
   { name: "return", shift: true, action: "newline" },
 ]
@@ -68,7 +68,7 @@ export function InputBlock(props: InputBlockProps) {
           </box>
         </box>
       </box>
-      <BottomEdge width={props.width} ultracode={settings.ultracode} frame={frame()} />
+      <InputEdge width={props.width} ultracode={settings.ultracode} frame={frame()} />
     </box>
   )
 }

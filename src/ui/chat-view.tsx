@@ -1,5 +1,4 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
-import { useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
 import type { Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -14,11 +13,19 @@ import { ToolCallRow } from "./tool-call.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
 import { UserMessageRow } from "./user-message.tsx"
 
+export type ScrollState = { atBottom: boolean; newLines: number }
+
 type ChatProps = {
   session: Session
+  width: number
   selected: string | null
   expanded: Record<string, boolean>
   onOverflow: (id: string, overflowing: boolean) => void
+}
+
+type ChatViewProps = ChatProps & {
+  onScrollState: (state: ScrollState) => void
+  scrollRef: (scroll: ScrollBoxRenderable) => void
 }
 
 function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<Item, { kind: K }> {
@@ -33,7 +40,6 @@ type RowProps = ChatProps & {
 }
 
 function RowView(props: RowProps) {
-  const dimensions = useTerminalDimensions()
   const item = <K extends Item["kind"]>(kind: K) => {
     const found = props.session.byId[props.row.id]
     return found && isKind(found, kind) ? found : undefined
@@ -92,7 +98,7 @@ function RowView(props: RowProps) {
         <Match when={item("text")}>
           {(text) => (
             <box>
-              <Markdown markdown={text().markdown} streaming={text().streaming} width={dimensions().width - 2} />
+              <Markdown markdown={text().markdown} streaming={text().streaming} width={props.width - 2} />
             </box>
           )}
         </Match>
@@ -105,8 +111,10 @@ function RowView(props: RowProps) {
   )
 }
 
-export function ChatView(props: ChatProps) {
+export function ChatView(props: ChatViewProps) {
   let scroll: ScrollBoxRenderable | undefined
+  // The scroll height when the user left the bottom, so growth since then counts as new lines.
+  let leftAtHeight: number | null = null
   const rows = createMemo(() => buildRows(props.session))
   const rowIds = createMemo(() => rows().map((row) => row.id))
   const rowById = createMemo(() => new Map(rows().map((row) => [row.id, row])))
@@ -127,7 +135,15 @@ export function ChatView(props: ChatProps) {
 
   return (
     <scrollbox
-      ref={(element) => (scroll = element)}
+      ref={(element) => {
+        scroll = element
+        props.scrollRef(element)
+      }}
+      renderAfter={function () {
+        const atBottom = this.scrollTop >= this.scrollHeight - this.viewport.height
+        leftAtHeight = atBottom ? null : (leftAtHeight ?? this.scrollHeight)
+        props.onScrollState({ atBottom, newLines: this.scrollHeight - (leftAtHeight ?? this.scrollHeight) })
+      }}
       flexGrow={1}
       stickyScroll
       stickyStart="bottom"

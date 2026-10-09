@@ -33,3 +33,25 @@ export function modelName(id: string): string {
   const name = `${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}.${minor}`
   return suffix ? `${name} ${suffix}` : name
 }
+
+export function formatTokens(n: number): string {
+  if (n === 1_000_000) return "1m"
+  if (n < 1000) return String(n)
+  if (Math.round(n / 1000) < 1000) return `${Math.round(n / 1000)}k`
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
+}
+
+export function formatSpan(ms: number): string {
+  const minutes = Math.floor(ms / 60_000)
+  if (minutes < 1) return "<1m"
+  if (minutes < 60) return `${minutes}m`
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
+}
+
+export function formatUntil(ms: number): string {
+  const minutes = Math.max(0, Math.ceil(ms / 60_000))
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ${minutes % 60}m`
+  return `${Math.floor(hours / 24)}d ${hours % 24}h`
+}

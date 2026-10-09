@@ -17,7 +17,7 @@ const colors = (background: string | null): TerminalColors => ({
 
 test("tints mix the background toward the target color", () => {
   expect(mix("#000000", "#ffffff", 0.5)).toBe("#808080")
-  expect(tintsFrom(colors("#000000"))).toMatchObject({ diffAdd: "#002e00", diffDel: "#2e0000" })
+  expect(tintsFrom(colors("#000000"))).toMatchObject({ diffAdd: "#002e00", diffDel: "#2e0000", faint: "#737373" })
 })
 
 test("a terminal without a background color gets no tints and counts as dark", () => {
