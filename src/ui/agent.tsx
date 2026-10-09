@@ -1,9 +1,9 @@
 import { RGBA } from "@opentui/core"
 import { createSignal, For, Index, Match, Show, Switch } from "solid-js"
 import type { Agent, Item, Session, ToolCall } from "../session/types.ts"
-import { agentIdentity } from "../theme/agents.ts"
 import { theme } from "../theme/theme.ts"
 import { useElapsedSeconds } from "./elapsed.ts"
+import { AgentMark } from "./figures.tsx"
 import { cut, cutPath, formatDuration } from "./format.ts"
 import { relative, resultSummary, ToolCallRow } from "./tool-call.tsx"
 
@@ -67,8 +67,7 @@ export function AgentRow(props: {
   expanded: boolean
 }) {
   const [width, setWidth] = createSignal(0)
-  const identity = () => agentIdentity(props.index)
-  const color = () => theme.agents[identity().color] ?? theme.accent
+  const color = () => theme.agents[props.index % theme.agents.length] ?? theme.accent
   const agent = () => props.item.agent ?? PENDING
   const running = () => agent().state === "running"
   const seconds = useElapsedSeconds(running)
@@ -87,7 +86,7 @@ export function AgentRow(props: {
     if (agent().state === "completed") return { text: firstSentence(agent().report), color: theme.muted }
     return null
   }
-  const head = () => `${identity().shape} ${agent().name}(${agent().task})  ${state().text}`
+  const head = () => `   ${agent().name}(${agent().task})  ${state().text}`
   const recent = () => tools().slice(-VISIBLE_STEPS)
   const earlier = () => tools().length - recent().length
 
@@ -100,22 +99,24 @@ export function AgentRow(props: {
         setWidth(this.width)
       }}
     >
-      <text wrapMode="none">
-        <span style={{ fg: color() }}>{identity().shape}</span>
-        <span style={{ fg: theme.text, bold: true }}>{` ${agent().name}`}</span>
-        <span
-          style={{ fg: theme.text }}
-        >{`(${cut(agent().task, Math.max(8, width() - head().length + agent().task.length))})`}</span>
-        <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
-        <Show when={tail()}>
-          {(shown) => (
-            <>
-              <span style={{ fg: theme.frame }}>{"  · "}</span>
-              <span style={{ fg: shown().color }}>{cut(shown().text, Math.max(0, width() - head().length - 4))}</span>
-            </>
-          )}
-        </Show>
-      </text>
+      <box flexDirection="row">
+        <AgentMark color={color()} state={agent().state} />
+        <text wrapMode="none">
+          <span style={{ fg: theme.text, bold: true }}>{` ${agent().name}`}</span>
+          <span
+            style={{ fg: theme.text }}
+          >{`(${cut(agent().task, Math.max(8, width() - head().length + agent().task.length))})`}</span>
+          <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
+          <Show when={tail()}>
+            {(shown) => (
+              <>
+                <span style={{ fg: theme.frame }}>{"  · "}</span>
+                <span style={{ fg: shown().color }}>{cut(shown().text, Math.max(0, width() - head().length - 4))}</span>
+              </>
+            )}
+          </Show>
+        </text>
+      </box>
       <Switch>
         <Match when={props.expanded}>
           <box flexDirection="column">

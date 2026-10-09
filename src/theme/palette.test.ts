@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test"
 import type { TerminalColors } from "@opentui/core"
-import { agentIdentity } from "./agents.ts"
 import { isDark, mix, tintsFrom } from "./palette.ts"
 
 const colors = (background: string | null): TerminalColors => ({
@@ -25,9 +24,4 @@ test("a terminal without a background color gets no tints and counts as dark", (
   expect(tintsFrom(colors(null))).toBeNull()
   expect(isDark(null)).toBe(true)
   expect(isDark("#f6efe0")).toBe(false)
-})
-
-test("the first ten agents get distinct identities", () => {
-  const pairs = Array.from({ length: 10 }, (_, i) => agentIdentity(i)).map((a) => `${a.shape}${a.color}`)
-  expect(new Set(pairs).size).toBe(10)
 })
