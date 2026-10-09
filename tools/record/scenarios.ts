@@ -1,3 +1,5 @@
+import { join } from "node:path"
+
 export type Turn = {
   text: string
   image?: boolean
@@ -7,7 +9,15 @@ export type Turn = {
 export type Scenario = {
   name: string
   files?: Record<string, string>
+  args?: string[]
   turns: Turn[]
+}
+
+const mcpConfig = {
+  mcpServers: {
+    echo: { command: "bun", args: [join(import.meta.dir, "echo-mcp.ts")] },
+    broken: { command: "false" },
+  },
 }
 
 export const scenarios: Scenario[] = [
@@ -83,5 +93,10 @@ export const scenarios: Scenario[] = [
     turns: [
       { text: "Think it through step by step before answering: is 1001 a prime number? Answer in one sentence." },
     ],
+  },
+  {
+    name: "mcp",
+    args: ["--mcp-config", JSON.stringify(mcpConfig), "--strict-mcp-config"],
+    turns: [{ text: "Call the echo tool of the echo MCP server with the text 'hi', then reply in one sentence." }],
   },
 ]

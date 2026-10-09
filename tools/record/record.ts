@@ -24,12 +24,16 @@ function timer(ms: number): { done: Promise<null>; cancel: () => void } {
   return { done, cancel: () => clearTimeout(handle) }
 }
 
-function checkIsolation(parsed: ParseResult, scenario: string): void {
+const ownsMcp = (scenario: Scenario) => scenario.args?.includes("--strict-mcp-config") ?? false
+
+function checkIsolation(parsed: ParseResult, scenario: Scenario): void {
   if (parsed.kind === "unknown" && parsed.key.startsWith("system/hook_")) {
-    throw new Error(`${scenario}: hook events recorded; user hooks are not isolated`)
+    throw new Error(`${scenario.name}: hook events recorded; user hooks are not isolated`)
   }
   if (parsed.kind === "message" && parsed.message.type === "system" && parsed.message.subtype === "init") {
-    if (parsed.message.mcp_servers.length > 0) throw new Error(`${scenario}: MCP servers loaded; not isolated`)
+    if (parsed.message.mcp_servers.length > 0 && !ownsMcp(scenario)) {
+      throw new Error(`${scenario.name}: MCP servers loaded; not isolated`)
+    }
     const plugins = parsed.message.plugins?.map((plugin) => plugin.name) ?? []
     if (plugins.length > 0) console.log(`  plugins loaded (review): ${plugins.join(", ")}`)
   }
@@ -45,9 +49,20 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     await writeFile(join(workDir, path), content)
   }
 
+  // --safe-mode turns off every MCP server, including --mcp-config ones, so a scenario with its own servers
+  // skips the settings files instead. Plugin directories passed down by a parent Claude Code session are dropped.
+  const { CLAUDE_CODE_PLUGIN_DIRS: _, ...parentEnv } = process.env
+  const env = { ...parentEnv, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
   const proc = Bun.spawn(
-    ["claude", ...CLAUDE_STREAM_ARGS, "--safe-mode", "--model=haiku", "--permission-mode=default"],
-    { cwd: workDir, stdin: "pipe", stdout: "pipe", stderr: "inherit" },
+    [
+      "claude",
+      ...CLAUDE_STREAM_ARGS,
+      ...(ownsMcp(scenario) ? ["--setting-sources", ""] : ["--safe-mode"]),
+      "--model=haiku",
+      "--permission-mode=default",
+      ...(scenario.args ?? []),
+    ],
+    { cwd: workDir, env, stdin: "pipe", stdout: "pipe", stderr: "inherit" },
   )
   const started = performance.now()
   const entries: RecordingEntry[] = []
@@ -85,7 +100,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
 
         entries.push({ t: now(), dir: "in", line: next.value })
         const parsed = parse(next.value)
-        checkIsolation(parsed, scenario.name)
+        checkIsolation(parsed, scenario)
         if (!(parsed.kind === "message" && parsed.message.type === "result")) sawResult = false
         if (parsed.kind !== "message") continue
         const message = parsed.message
