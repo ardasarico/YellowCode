@@ -50,16 +50,18 @@ tmux(
 
 try {
   const started = Date.now()
-  while (!capture().some((line) => line.includes("Enter: next message"))) {
+  while (!capture().some((line) => line.includes("Enter sends the next recorded message"))) {
     if (Date.now() - started > 10_000) throw new Error("the app did not start")
     await Bun.sleep(100)
   }
+  // The welcome screen animates, so the first message goes out before any frame is compared.
+  tmux("send-keys", "-t", session, "Enter")
 
   const frames: string[][] = []
   let flipBacks = 0
   const flippedLines = new Map<number, number>()
   let lastChange = Date.now()
-  let sends = 0
+  let sends = 1
 
   while (Date.now() - started < TIMEOUT_MS) {
     const frame = capture()

@@ -25,3 +25,11 @@ export function cutPath(path: string, max: number): string {
   while (parts.length > 1 && Bun.stringWidth(`…/${parts.join("/")}`) > max) parts.shift()
   return parts.length > 1 ? `…/${parts.join("/")}` : cut(path, max)
 }
+
+export function modelName(id: string): string {
+  const match = /^claude-([a-z]+)-(\d+)-(\d+)(?:-\d{8})?(\[.+\])?$/.exec(id)
+  if (!match) return id
+  const [, family = "", major, minor, suffix] = match
+  const name = `${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}.${minor}`
+  return suffix ? `${name} ${suffix}` : name
+}

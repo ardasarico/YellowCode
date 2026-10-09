@@ -1,10 +1,13 @@
+import { NativeImage } from "@opentui/core"
+import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { createSignal, Match, Switch } from "solid-js"
 import type { TurnEnd } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { cut, formatClock, formatDuration } from "./format.ts"
+import { onBackground } from "./images.ts"
 
-const SPARK = join(import.meta.dir, "..", "..", "assets", "claude-spark.png")
+const SPARK = NativeImage.decode(readFileSync(join(import.meta.dir, "..", "..", "assets", "claude-spark.png")))
 
 export function TurnEndRow(props: { parts: TurnEnd[] }) {
   const [width, setWidth] = createSignal(0)
@@ -26,7 +29,7 @@ export function TurnEndRow(props: { parts: TurnEnd[] }) {
       <Switch
         fallback={
           <box flexDirection="row" gap={1}>
-            <image source={SPARK} width={2} height={1} flexShrink={0} />
+            <image source={onBackground(SPARK, theme.background)} width={2} height={1} flexShrink={0} />
             <text fg={theme.text}>{`done in ${duration()} · ${clock()}`}</text>
           </box>
         }

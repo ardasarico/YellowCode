@@ -16,7 +16,7 @@ export function ReplayBar(props: { replay: ReplayInfo; focus: "input" | "chat" }
   const text = () =>
     `▶ replay: ${props.replay.file} · ${props.replay.speed} · ${STATUS_TEXT[props.replay.status()]} · Tab: ${
       props.focus === "input" ? "chat" : "input"
-    } · F2: theme ${themes.find((candidate) => candidate.id === themeId())?.name ?? ""}`
+    } · F2: theme ${themes.find((candidate) => candidate.id === themeId())?.name ?? ""} · Shift+↑↓: effort · Shift+←→: model · F4: ultracode`
   return (
     <box flexShrink={0} paddingX={1}>
       <text fg={theme.muted}>{text()}</text>

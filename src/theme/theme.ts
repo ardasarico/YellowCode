@@ -26,11 +26,12 @@ export type Theme = {
   diffDelText: RGBA
   claude: RGBA
   agents: RGBA[]
+  rgb: boolean
   syntax: SyntaxTokens<RGBA>
 }
 
 export type ThemeColors = {
-  [K in Exclude<keyof Theme, "claude" | "agents" | "syntax">]: string
+  [K in Exclude<keyof Theme, "claude" | "agents" | "syntax" | "rgb">]: string
 } & { agents: string[]; syntax: SyntaxTokens<string> }
 
 export type ThemeDefinition = { id: string; name: string; dark: ThemeColors; light: ThemeColors }
@@ -60,6 +61,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     diffDelText: ansi(1),
     claude: claudeColor(terminal.rgb),
     agents: [6, 5, 2, 3, 4].map((index) => ansi(index)),
+    rgb: terminal.rgb,
     syntax: { keyword: ansi(4), string: ansi(2), number: ansi(3), function: ansi(4), type: ansi(3), comment: ansi(8) },
   }
 }
@@ -82,6 +84,7 @@ function paintedTheme(c: ThemeColors): Theme {
     diffDelText: hex(c.diffDelText),
     claude: claudeColor(true),
     agents: c.agents.map((value) => hex(value)),
+    rgb: true,
     syntax: {
       keyword: hex(c.syntax.keyword),
       string: hex(c.syntax.string),

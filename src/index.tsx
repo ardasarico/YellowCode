@@ -1,12 +1,14 @@
 import { createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
+import { homedir } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
 import { userMessage } from "./protocol/outgoing.ts"
 import { createSession } from "./session/session.ts"
-import { loadRecording, RecordingError } from "./source/recording.ts"
+import packageJson from "../package.json"
+import { loadRecording, RecordingError, recordedModel } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal } from "./theme/theme.ts"
@@ -29,6 +31,20 @@ if (speed === null) fail(`Invalid speed "${values.speed}". ${USAGE}`)
 const recording = await loadRecording(values.replay).catch((error: unknown) => {
   fail(error instanceof RecordingError ? `Cannot load replay: ${error.message}` : String(error))
 })
+
+function gitBranch(): string | null {
+  const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], { cwd: process.cwd(), stderr: "ignore" })
+  if (result.exitCode !== 0) return null
+  return result.stdout.toString().trim() || null
+}
+
+const cwd = process.cwd()
+const workspace = {
+  cwd: cwd.startsWith(homedir()) ? `~${cwd.slice(homedir().length)}` : cwd,
+  branch: gitBranch(),
+  version: packageJson.version,
+}
+const firstModel = recordedModel(recording)
 
 const source = createReplaySource(recording, speed)
 const session = createSession()
@@ -87,6 +103,8 @@ await render(
   () => (
     <App
       session={session.state}
+      model={() => session.state.info?.model ?? firstModel}
+      workspace={workspace}
       replay={{
         file: basename(values.replay ?? ""),
         speed: speed === "instant" ? "instant" : `${speed}x`,

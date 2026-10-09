@@ -1,9 +1,10 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import type { Agent } from "../session/types.ts"
+import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
+import { onBackground } from "./images.ts"
 
-const YELLOW = RGBA.fromHex("#FFD23F")
 const GRAY = RGBA.fromHex("#8A8A8A")
 
 // Digits 1-4 are the toes from left to right, X is the pad.
@@ -105,7 +106,14 @@ function Paw(props: { color: RGBA; running: boolean }) {
     const timer = setInterval(() => setStep((value) => (value + 1) % 4), TOE_MS)
     onCleanup(() => clearInterval(timer))
   })
-  return <image source={pawFrame(props.color, props.running ? step() : null)} width={2} height={1} flexShrink={0} />
+  return (
+    <image
+      source={onBackground(pawFrame(props.color, props.running ? step() : null), theme.background)}
+      width={2}
+      height={1}
+      flexShrink={0}
+    />
+  )
 }
 
 export function AgentMark(props: { color: RGBA; state: Agent["state"] }) {
@@ -117,11 +125,11 @@ export function AgentMark(props: { color: RGBA; state: Agent["state"] }) {
   }
   return (
     <Show when={still()} fallback={<Paw color={props.color} running />}>
-      {(source) => <image source={source()} width={2} height={1} flexShrink={0} />}
+      {(source) => <image source={onBackground(source(), theme.background)} width={2} height={1} flexShrink={0} />}
     </Show>
   )
 }
 
 export function ClaudeMark(props: { running: boolean }) {
-  return <Paw color={YELLOW} running={props.running} />
+  return <Paw color={yellow(true)} running={props.running} />
 }

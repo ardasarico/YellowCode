@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
+import { parse } from "../protocol/parse.ts"
 
 const headerSchema = z.object({ cliVersion: z.string(), scenario: z.string(), recordedAt: z.string() })
 const entrySchema = z.object({ t: z.number(), dir: z.enum(["in", "out"]), line: z.string() })
@@ -39,4 +40,14 @@ export async function loadRecording(path: string): Promise<Recording> {
 
 export function serializeRecording(recording: Recording): string {
   return [recording.header, ...recording.entries].map((value) => JSON.stringify(value)).join("\n") + "\n"
+}
+
+export function recordedModel(recording: Recording): string | null {
+  for (const entry of recording.entries) {
+    if (entry.dir !== "in") continue
+    const parsed = parse(entry.line)
+    if (parsed.kind === "message" && parsed.message.type === "system" && parsed.message.subtype === "init")
+      return parsed.message.model
+  }
+  return null
 }
