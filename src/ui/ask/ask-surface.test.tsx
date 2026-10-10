@@ -83,3 +83,34 @@ test("question answers keep option order, take the typed answer and send only no
     notes: { "Which?": "keep it small; strict" },
   })
 })
+
+test("arrows on the own-answer row edit the text instead of switching question", async () => {
+  const options = [{ label: "JSON" }]
+  const input = {
+    questions: [
+      { question: "Where?", header: "Storage", options },
+      { question: "Which?", header: "Formats", options },
+    ],
+  }
+  const sent: string[] = []
+  const setup = await testRender(
+    () => (
+      <AskSurface
+        ask={{ ...ask, toolName: "AskUserQuestion", input }}
+        width={80}
+        onAnswer={(_, line) => sent.push(line)}
+      />
+    ),
+    { width: 80, height: 30 },
+  )
+  setup.mockInput.pressArrow("down")
+  await setup.mockInput.typeText("ac")
+  setup.mockInput.pressArrow("left")
+  await setup.mockInput.typeText("b")
+  setup.mockInput.pressArrow("right")
+  setup.mockInput.pressArrow("right")
+  await setup.renderOnce()
+  expect(setup.captureCharFrame()).toContain("Where?")
+  expect(setup.captureCharFrame()).toContain("abc")
+  setup.renderer.destroy()
+})

@@ -1,4 +1,4 @@
-import { TextAttributes } from "@opentui/core"
+import { type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -19,22 +19,33 @@ const HINTS: [string, string][] = [
   ["esc", "cancel"],
 ]
 const NOTE_HINTS = "enter save · esc drop"
-const SUBMIT_HINTS = "←→ question · enter submit · esc cancel"
-const SHORT_SUBMIT_HINTS = "←→ · enter · esc"
+const OWN_HINTS = "↑ back · enter select · esc cancel"
+const SUBMIT_HINTS = "←→ question · ↓ note · enter submit · esc cancel"
+const SHORT_SUBMIT_HINTS = "←→ · ↓ · enter · esc"
+const EXTRA_HINTS = "↑ back · enter submit · esc cancel"
+const SHORT_TEXT_HINTS = "↑ · enter · esc"
 
-// Only the keys that act here: ←→ needs pages, and on the own-answer row n and space type into the input.
-function questionHints(paged: boolean, ownRow: boolean, width: number): string {
-  const keys = HINTS.filter(([key]) => (paged || key !== "←→") && (!ownRow || (key !== "n" && key !== "space")))
+// Only the keys that act here: ←→ needs pages.
+function questionHints(paged: boolean, width: number): string {
+  const keys = HINTS.filter(([key]) => paged || key !== "←→")
   const full = keys.map((hint) => hint.join(" ")).join(" · ")
   const short = keys.map(([key]) => key).join(" · ")
   return fitHints(full, short, width)
 }
 
+// A key the input would type as text.
+function printable(key: KeyEvent): boolean {
+  if (key.name === "space") return true
+  const code = key.sequence.charCodeAt(0)
+  return code >= 32 && code !== 127
+}
+
 type Question = AskUserQuestionInput["questions"][number]
 
-// `page` runs past the last question to Submit. Per question, `focus` is the cursor row (the options' length is
-// the own-answer row), `chosen` the marked options (at most one for a radio), `own` the typed answer, and `notes`
-// one note per option. `extra` is the additional note on the Submit page.
+// `page` runs past the last question to Submit. Per page, `focus` is the cursor row: on a question the options'
+// length is the own-answer row, on Submit 0 is the review and 1 the note row. Per question, `chosen` holds the
+// marked options (at most one for a radio), `own` the typed answer, and `notes` one note per option. `extra` is
+// the additional note on the Submit page.
 export type QuestionState = {
   page: number
   focus: number[]
@@ -118,7 +129,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
   const [state, setState] = createStore<QuestionState>(
     untrack(() => ({
       page: 0,
-      focus: questions().map(() => 0),
+      focus: [...questions().map(() => 0), 0],
       chosen: questions().map(() => []),
       own: questions().map(() => ""),
       notes: questions().map((current) => current.options.map(() => "")),
@@ -130,6 +141,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
   const question = () => questions()[state.page]
   const focus = () => state.focus[state.page] ?? 0
   const onOwnRow = () => focus() === question()?.options.length
+  const onExtraRow = () => !question() && focus() === 1
   const scrollTarget = () => {
     if (noting()) return "note"
     if (!question()) return "extra-row"
@@ -188,7 +200,8 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
     setNoting(false)
   }
 
-  // On the own-answer row and on Submit the focused input takes the keys this handler leaves alone, so they type there.
+  // On a text row the focused input takes the keys this handler leaves alone, ←→ included, so they edit the text
+  // there. Typing on the Submit review moves to its note row and the key lands in that input.
   useKeyboard((key) => {
     if (props.answered) return
     if (noting()) {
@@ -199,16 +212,20 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
       return
     }
     const current = question()
-    const last = current?.options.length ?? 0
+    const last = current ? current.options.length : 1
+    const onText = onOwnRow() || onExtraRow()
     if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_DECLINED))
-    else if (paged() && (key.name === "left" || key.name === "right")) {
+    else if (paged() && !onText && (key.name === "left" || key.name === "right")) {
       const step = key.name === "left" ? -1 : 1
       setState("page", (page) => Math.min(questions().length, Math.max(0, page + step)))
-    } else if (current && key.name === "up") setState("focus", state.page, (row) => Math.max(0, row - 1))
-    else if (current && key.name === "down") setState("focus", state.page, (row) => Math.min(last, row + 1))
+    } else if (key.name === "up") setState("focus", state.page, (row) => Math.max(0, row - 1))
+    else if (key.name === "down") setState("focus", state.page, (row) => Math.min(last, row + 1))
     else if (key.name === "return") select()
-    else if (!current || onOwnRow() || key.ctrl || key.meta) return
-    else if (key.name === "space") choose(focus())
+    else if (onText || key.ctrl || key.meta) return
+    else if (!current) {
+      if (printable(key)) setState("focus", state.page, 1)
+      return
+    } else if (key.name === "space") choose(focus())
     else if (key.name === "n") openNote()
     else if (/^[1-9]$/.test(key.name)) pick(Number(key.name) - 1)
     else return
@@ -247,11 +264,11 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
                 </Index>
               </box>
               <box id="extra-row" flexDirection="row">
-                <text fg={yellow(theme.rgb)} flexShrink={0}>
+                <text fg={onExtraRow() ? yellow(theme.rgb) : theme.muted} flexShrink={0}>
                   {"❯ "}
                 </text>
                 <input
-                  focused
+                  focused={onExtraRow()}
                   flexGrow={1}
                   value={state.extra}
                   onInput={(text: string) => setState("extra", text)}
@@ -350,9 +367,13 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
         <text fg={theme.faint} flexShrink={1}>
           {noting()
             ? NOTE_HINTS
-            : question()
-              ? questionHints(paged(), onOwnRow(), props.width)
-              : fitHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
+            : onOwnRow()
+              ? fitHints(OWN_HINTS, SHORT_TEXT_HINTS, props.width)
+              : onExtraRow()
+                ? fitHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
+                : question()
+                  ? questionHints(paged(), props.width)
+                  : fitHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
         </text>
       </box>
       <Rule width={props.width} color={theme.frame} />
