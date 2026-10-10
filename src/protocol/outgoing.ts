@@ -71,3 +71,11 @@ export function interruptRequest(requestId: string): string {
 export function initializeRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "initialize" } })
 }
+
+export function renameSession(requestId: string, title: string, sessionId?: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "rename_session", title, session_id: sessionId },
+  })
+}

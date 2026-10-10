@@ -2,7 +2,7 @@ import { createSignal, Show } from "solid-js"
 import type { SystemEvent } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 
-function Divider(props: { text: string }) {
+export function Divider(props: { text: string }) {
   const [width, setWidth] = createSignal(0)
   const line = () => {
     const label = ` ${props.text} `

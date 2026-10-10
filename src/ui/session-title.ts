@@ -3,8 +3,12 @@ import { type SessionTitle, titleSession } from "../session/titler.ts"
 import type { Session } from "../session/types.ts"
 
 // Refreshes the title after every user message; one request at a time, then once more if messages arrived meanwhile.
-export function useSessionTitle(session: () => Session, enabled: () => boolean): Accessor<SessionTitle | null> {
-  const [title, setTitle] = createSignal<SessionTitle | null>(null)
+export function useSessionTitle(
+  session: () => Session,
+  enabled: () => boolean,
+  initial?: SessionTitle,
+): Accessor<SessionTitle | null> {
+  const [title, setTitle] = createSignal<SessionTitle | null>(initial ?? null)
   const messages = createMemo(
     () =>
       session().items.flatMap((id) => {

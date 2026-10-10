@@ -23,6 +23,7 @@ function count(n: number, noun: string): string {
 }
 
 export function resultSummary(tool: ToolCall): string {
+  if (tool.status === "stopped") return "stopped"
   const lines = tool.result.split("\n").filter((line) => line.trim() !== "")
   if (tool.status === "error") {
     const exit = /^Exit code (\d+)$/.exec(lines[0] ?? "")
@@ -86,6 +87,7 @@ export function ToolCallRow(props: {
   const color = () => {
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error
+    if (props.item.status === "stopped") return theme.warning
     return props.item.status === "running" ? theme.accent : theme.muted
   }
   const target = () => {

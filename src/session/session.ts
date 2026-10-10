@@ -1,13 +1,16 @@
 import { createStore, produce } from "solid-js/store"
 import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
+import type { SourceEvent } from "../source/source.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type { Agent, Item, ItemId, Session, UserImage, Window } from "./types.ts"
 
 export type SessionStore = {
   state: Session
   apply(dir: "in" | "out", parsed: ParseResult, at: number): void
+  prepend(events: SourceEvent[]): void
   answer(response: string): void
+  stopRunning(): void
   end(): void
 }
 
@@ -46,7 +49,7 @@ function notesOf(annotations: Record<string, { notes?: string }> | undefined): R
   return notes
 }
 
-export function createSession(): SessionStore {
+export function createSession(options?: { idPrefix?: string }): SessionStore {
   const [state, setState] = createStore<Session>({
     info: null,
     status: "idle",
@@ -64,12 +67,14 @@ export function createSession(): SessionStore {
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
+  let prepends = 0
   let interruptSent = false
   let now = 0
   // Recorded times are shifted by this much so a replay reads them as if they happened just now.
   let shift = 0
   const taskTools = new Map<string, ItemId>()
-  const newId = (prefix: string): ItemId => `${prefix}-${++counter}`
+  const idPrefix = options?.idPrefix ?? ""
+  const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
     setState("byId", item.id, item)
@@ -473,9 +478,27 @@ export function createSession(): SessionStore {
       if (dir === "in") onIncoming(parsed.message)
       else onOutgoing(parsed.message)
     },
+    prepend(events) {
+      const earlier = createSession({ idPrefix: `p${++prepends}-` })
+      for (const event of events) earlier.apply(event.dir, parse(event.line), event.at)
+      earlier.stopRunning()
+      setState("byId", earlier.state.byId)
+      setState("items", (ids) => [...earlier.state.items, ...ids])
+    },
     answer(response) {
       const parsed = parse(response)
       if (parsed.kind === "message") onOutgoing(parsed.message)
+    },
+    // For a stored transcript: work with no recorded outcome will never finish.
+    stopRunning() {
+      for (const item of Object.values(state.byId)) {
+        if (item.kind !== "tool" || (item.status !== "running" && item.agent?.state !== "running")) continue
+        update(item.id, (tool) => {
+          if (tool.kind !== "tool") return
+          if (tool.status === "running") tool.status = "stopped"
+          if (tool.agent?.state === "running") tool.agent.state = "stopped"
+        })
+      }
     },
     end() {
       for (const id of Object.keys(state.byId)) stopStreaming(id)

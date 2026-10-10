@@ -13,7 +13,7 @@ export type ToolCall = {
   inputText: string
   input: unknown
   summary: string
-  status: "running" | "done" | "error"
+  status: "running" | "done" | "error" | "stopped"
   result: string
   children: ItemId[]
   patch: Hunk[] | null

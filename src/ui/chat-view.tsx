@@ -1,5 +1,5 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
-import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
+import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
 import type { Command } from "../input/commands.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -7,7 +7,7 @@ import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { Markdown } from "./markdown/markdown.tsx"
 import { buildRows, type Row } from "./structure.ts"
-import { SystemRow } from "./system-row.tsx"
+import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
@@ -25,6 +25,8 @@ type ChatProps = {
 }
 
 type ChatViewProps = ChatProps & {
+  earlier: boolean
+  onReachTop: () => void
   onScrollState: (state: ScrollState) => void
   scrollRef: (scroll: ScrollBoxRenderable) => void
 }
@@ -118,8 +120,23 @@ export function ChatView(props: ChatViewProps) {
   let scroll: ScrollBoxRenderable | undefined
   // The scroll height when the user left the bottom, so growth since then counts as new lines.
   let leftAtHeight: number | null = null
+  let reachedTop = false
+  let shifted = false
   const rows = createMemo(() => buildRows(props.session))
   const rowIds = createMemo(() => rows().map((row) => row.id))
+  createEffect(
+    on(rowIds, (ids, previous) => {
+      const first = previous?.[0]
+      if (first !== undefined && ids[0] !== first && ids.includes(first)) shifted = true
+    }),
+  )
+  createEffect(
+    on(
+      () => props.earlier,
+      () => (shifted = true),
+      { defer: true },
+    ),
+  )
   const rowById = createMemo(() => new Map(rows().map((row) => [row.id, row])))
   const agentIndex = createMemo(
     () =>
@@ -149,11 +166,27 @@ export function ChatView(props: ChatViewProps) {
       ref={(element) => {
         scroll = element
         props.scrollRef(element)
+        // Rows added or removed at the front keep the visible rows in place, in the same layout pass.
+        const resized = element.content.onSizeChange
+        element.content.onSizeChange = () => {
+          const before = element.scrollHeight
+          resized?.()
+          if (!shifted) return
+          reachedTop = false
+          const delta = element.scrollHeight - before
+          element.scrollTo(element.scrollTop + delta)
+          if (leftAtHeight !== null) leftAtHeight += delta
+        }
       }}
       renderAfter={function () {
+        if (props.earlier && this.scrollTop === 0 && !reachedTop) {
+          reachedTop = true
+          props.onReachTop()
+        }
         const atBottom = this.scrollTop >= this.scrollHeight - this.viewport.height
         leftAtHeight = atBottom ? null : (leftAtHeight ?? this.scrollHeight)
         props.onScrollState({ atBottom, newLines: this.scrollHeight - (leftAtHeight ?? this.scrollHeight) })
+        shifted = false
       }}
       flexGrow={1}
       stickyScroll
@@ -163,6 +196,11 @@ export function ChatView(props: ChatViewProps) {
         trackOptions: { foregroundColor: theme.muted, backgroundColor: RGBA.fromValues(0, 0, 0, 0) },
       }}
     >
+      <Show when={props.earlier}>
+        <box marginTop={1}>
+          <Divider text="earlier conversation" />
+        </box>
+      </Show>
       <For each={rowIds()}>
         {(id) => (
           <Show when={rowById().get(id)}>

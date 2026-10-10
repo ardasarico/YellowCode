@@ -6,6 +6,10 @@ import { parse } from "./parse.ts"
 
 const dir = join(import.meta.dir, "..", "..", "fixtures", "sessions")
 const files = readdirSync(dir).filter((file) => file.endsWith(".jsonl"))
+const transcriptsDir = join(import.meta.dir, "..", "..", "fixtures", "transcripts")
+const transcripts = readdirSync(transcriptsDir, { recursive: true, withFileTypes: true }).filter((entry) =>
+  entry.isFile(),
+)
 
 test("all fourteen recordings are present", () => {
   expect(files.toSorted()).toEqual(
@@ -36,13 +40,22 @@ for (const file of files) {
   })
 }
 
+function expectNoPersonalData(text: string): void {
+  expect(text).not.toContain("/var/folders")
+  expect(text).not.toMatch(/\/Users\/(?!user\b)/)
+  expect(text).not.toMatch(/claude-\d+/)
+  const emails = text.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) ?? []
+  expect(emails.filter((email) => email !== "user@example.com")).toEqual([])
+}
+
 test("recordings contain no personal data", () => {
-  for (const file of files) {
-    const text = readFileSync(join(dir, file), "utf8")
-    expect(text).not.toContain("/var/folders")
-    expect(text).not.toMatch(/\/Users\/(?!user\b)/)
-    expect(text).not.toMatch(/claude-\d+/)
-    const emails = text.match(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g) ?? []
-    expect(emails.filter((email) => email !== "user@example.com")).toEqual([])
+  for (const file of files) expectNoPersonalData(readFileSync(join(dir, file), "utf8"))
+})
+
+test("transcripts contain no personal data", () => {
+  for (const entry of transcripts) {
+    const text = readFileSync(join(entry.parentPath, entry.name), "utf8")
+    expectNoPersonalData(text)
+    expect(text).not.toContain("/private/tmp")
   }
 })

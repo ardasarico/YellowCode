@@ -1,5 +1,6 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Index, Show } from "solid-js"
+import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
@@ -7,6 +8,7 @@ import { onBackground } from "./images.ts"
 import { InputBlock, type InputBlockProps } from "./input-block.tsx"
 import { blinkFrame, CAT, CAT_PALETTE, swayFrame } from "./mascot.ts"
 import { PixelArt } from "./pixel-art.tsx"
+import { RecentList } from "./recent-list.tsx"
 import { useTicker } from "./ticker.ts"
 import { wordmark } from "./wordmark.ts"
 
@@ -19,6 +21,7 @@ const LOGO_GAP = 2
 const BLOCK_ROWS = 6
 const BLOCK_WIDTH = 74
 const TICK_MS = 50
+export const RECENT_ROWS = 3
 const WORDMARK = wordmark()
 const HINTS: [string, string][] = [
   ["⇧↑↓", "effort"],
@@ -36,9 +39,21 @@ const LOGO_ROWS = CAT_ROWS + 2 + BLOCK_ROWS + 1 + 1
 const LOGO_WIDTH = CAT_COLS + LOGO_GAP + (WORDMARK[0]?.length ?? 0)
 
 // The cat and the wordmark sit side by side: a short terminal drops both, a narrow one drops the wordmark.
-export function welcomeParts(width: number, height: number): { cat: boolean; wordmark: boolean } {
+// The recent sessions need their heading and a blank row too, and go before the logo does.
+export function welcomeParts(
+  width: number,
+  height: number,
+  recent: number,
+): { cat: boolean; wordmark: boolean; recent: boolean } {
   const logo = height >= LOGO_ROWS
-  return { cat: logo, wordmark: logo && width >= LOGO_WIDTH }
+  return { cat: logo, wordmark: logo && width >= LOGO_WIDTH, recent: recent > 0 && height >= LOGO_ROWS + 2 + recent }
+}
+
+const blockWidth = (width: number) => Math.min(BLOCK_WIDTH, width - 4)
+
+// What the welcome screen shows in a terminal of this size; the bottom row holds the workspace line.
+export function welcomeLayout(width: number, height: number, recent: number) {
+  return welcomeParts(blockWidth(width), height - 1, recent)
 }
 
 const catImages = new Map<string, NativeImage>()
@@ -119,12 +134,13 @@ export function Welcome(props: {
   input: Omit<InputBlockProps, "width">
   workspace: Workspace
   notice: string | null
+  recent: { entries: SessionEntry[]; selected: number | null }
   width: number
   height: number
   covered: boolean
 }) {
-  const blockWidth = () => Math.min(BLOCK_WIDTH, props.width - 4)
-  const parts = () => welcomeParts(blockWidth(), props.height - 1)
+  const width = () => blockWidth(props.width)
+  const parts = () => welcomeLayout(props.width, props.height, props.recent.entries.length)
   return (
     <box flexDirection="column" flexGrow={1}>
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
@@ -140,11 +156,15 @@ export function Welcome(props: {
           </box>
           <box height={2} />
         </Show>
-        <InputBlock {...props.input} width={blockWidth()} />
+        <InputBlock {...props.input} width={width()} />
         <box height={1} />
-        <box width={blockWidth()} flexDirection="row" justifyContent="flex-end">
+        <box width={width()} flexDirection="row" justifyContent="center">
           <Hints />
         </box>
+        <Show when={parts().recent}>
+          <box height={1} />
+          <RecentList entries={props.recent.entries} selected={props.recent.selected} width={width()} />
+        </Show>
       </box>
       <box flexDirection="row" justifyContent="space-between" paddingX={2} flexShrink={0}>
         <text fg={theme.muted}>

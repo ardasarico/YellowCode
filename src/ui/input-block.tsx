@@ -23,6 +23,7 @@ export type InputBlockProps = {
   width: number
   provider: InputProvider
   onSubmit: (text: string) => void
+  onLeaveDown?: () => void
 }
 
 const TILE_PADDING = 3
@@ -41,6 +42,7 @@ export function InputBlock(props: InputBlockProps) {
       return Math.max(0, (block?.y ?? 0) - padding.top - padding.bottom)
     },
     onSubmit: (text) => props.onSubmit(text),
+    onLeaveDown: () => props.onLeaveDown?.(),
   })
 
   return (

@@ -33,6 +33,8 @@ export type CompletionOptions = {
   onSubmit: (text: string) => void
   history?: Accessor<string[]>
   onListOpen?: (open: boolean) => void
+  // Called by ↓ on the last row when there is no history to step through.
+  onLeaveDown?: () => void
 }
 
 // The `/` and `@` completion, the argument hint and the token highlight of a textarea.
@@ -225,12 +227,19 @@ export function useCompletion(options: CompletionOptions) {
     return true
   }
 
+  const onLastRow = () =>
+    area !== undefined && area.visualCursor.visualRow + area.scrollY === area.editorView.getTotalVirtualLineCount() - 1
+
   useKeyboard((key) => {
     if (!options.focused()) return
     const rows = shown()
     const plain = !key.ctrl && !key.meta && !key.shift
     if (rows.length === 0) {
       if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
+      else if (plain && key.name === "down" && !options.history && options.onLeaveDown && onLastRow()) {
+        key.preventDefault()
+        options.onLeaveDown()
+      }
       return
     }
     if (key.name === "escape") {

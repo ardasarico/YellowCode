@@ -55,3 +55,23 @@ export function formatUntil(ms: number): string {
   if (hours < 24) return `${hours}h ${minutes % 60}m`
   return `${Math.floor(hours / 24)}d ${hours % 24}h`
 }
+
+const DAY = 86_400_000
+
+function midnight(ms: number): number {
+  const date = new Date(ms)
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
+export function formatAgo(ms: number, now: number): string {
+  const elapsed = now - ms
+  if (elapsed < 60_000) return "now"
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m`
+  if (elapsed < DAY) return `${Math.floor(elapsed / 3_600_000)}h`
+  const days = Math.round((midnight(now) - midnight(ms)) / DAY)
+  if (days === 1) return "yesterday"
+  if (days < 7) return `${days}d`
+  if (days < 35) return `${Math.floor(days / 7)}w`
+  if (days < 365) return `${Math.floor(days / 30.4375)}mo`
+  return `${Math.floor(days / 365)}y`
+}

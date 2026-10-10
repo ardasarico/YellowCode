@@ -1,13 +1,18 @@
 import { createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
+import { realpathSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
+import { type Accessor, createSignal, type Setter, Show } from "solid-js"
 import { replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
 import { userMessage } from "./protocol/outgoing.ts"
-import { createSession } from "./session/session.ts"
+import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
+import { listSessions, type SessionEntry } from "./resume/session-list.ts"
+import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
+import { createSession, type SessionStore } from "./session/session.ts"
 import { initSettings, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
 import packageJson from "../package.json"
@@ -17,7 +22,7 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, setTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
 
-const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles]"
+const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>]"
 
 function fail(message: string): never {
   process.stderr.write(`${message}\n`)
@@ -30,6 +35,7 @@ const { values } = parseArgs({
     speed: { type: "string", default: "1" },
     // Session titles cost a Haiku request per user message, so replays only make them when asked.
     titles: { type: "boolean", default: false },
+    sessions: { type: "string" },
   },
 })
 if (!values.replay) fail(USAGE)
@@ -53,6 +59,8 @@ const workspace = {
   version: packageJson.version,
 }
 const firstModel = recordedModel(recording)
+const sessionsFolder = values.sessions ?? projectFolder(CLAUDE_PROJECTS, cwd)
+const sessionsCwd = values.sessions ? null : realpathSync(cwd)
 
 const source = createReplaySource(recording, speed)
 const provider = replayProvider(recording)
@@ -110,29 +118,93 @@ async function pump(): Promise<void> {
   session.end()
 }
 
+type View = {
+  entry: SessionEntry
+  session: SessionStore
+  earlier: Accessor<TranscriptCursor | null>
+  setEarlier: Setter<TranscriptCursor | null>
+}
+
+const [view, setView] = createSignal<View | null>(null)
+let opening = 0
+
+async function open(entry: SessionEntry): Promise<void> {
+  const token = ++opening
+  const part = await readTranscript(entry.path)
+  if (token !== opening) return
+  const opened = createSession()
+  loadTranscript(opened, part)
+  source.close()
+  const [earlier, setEarlier] = createSignal(part.earlier)
+  setView({ entry, session: opened, earlier, setEarlier })
+}
+
+async function loadEarlier(shown: View): Promise<void> {
+  const cursor = shown.earlier()
+  if (cursor === null) return
+  const part = await readTranscript(shown.entry.path, cursor)
+  shown.session.prepend(part.events)
+  shown.setEarlier(part.earlier)
+}
+
+const sessions = {
+  list: () => listSessions(sessionsFolder, sessionsCwd),
+  open: (entry: SessionEntry) => {
+    open(entry).catch((error: unknown) => log.error("cannot open session", error))
+  },
+}
+
 void pump()
 await render(
   () => (
-    <App
-      session={session.state}
-      model={() => session.state.info?.model ?? firstModel}
-      workspace={workspace}
-      replay={{
-        file: basename(values.replay ?? ""),
-        speed: speed === "instant" ? "instant" : `${speed}x`,
-        status: source.status,
-      }}
-      titles={values.titles}
-      settingsProblem={problem}
-      provider={provider}
-      onSubmit={(text) => source.send(userMessage(text))}
-      onAnswer={(ask, response) => {
-        log.info(`answer to ${ask.toolName}`, response)
-        session.answer(response)
-        source.send(response)
-      }}
-      onQuit={() => void quit()}
-    />
+    <Show
+      when={view()}
+      keyed
+      fallback={
+        <App
+          session={session.state}
+          model={() => session.state.info?.model ?? firstModel}
+          workspace={workspace}
+          replay={{
+            file: basename(values.replay ?? ""),
+            speed: speed === "instant" ? "instant" : `${speed}x`,
+            status: source.status,
+          }}
+          titles={values.titles}
+          settingsProblem={problem}
+          provider={provider}
+          sessions={sessions}
+          onSubmit={(text) => source.send(userMessage(text))}
+          onAnswer={(ask, response) => {
+            log.info(`answer to ${ask.toolName}`, response)
+            session.answer(response)
+            source.send(response)
+          }}
+          onQuit={() => void quit()}
+        />
+      }
+    >
+      {(shown) => (
+        <App
+          session={shown.session.state}
+          model={() => shown.entry.model ?? firstModel}
+          workspace={workspace}
+          replay={null}
+          readOnly={{ title: shown.entry.title, summary: shown.entry.firstPrompt }}
+          titles={false}
+          settingsProblem={null}
+          provider={provider}
+          sessions={sessions}
+          earlier={shown.earlier() !== null}
+          onEarlier={() => {
+            loadEarlier(shown).catch((error: unknown) => log.error("cannot load earlier conversation", error))
+          }}
+          onSubmit={() => {}}
+          onAnswer={() => {}}
+          onQuit={() => void quit()}
+        />
+      )}
+    </Show>
   ),
   renderer,
 )

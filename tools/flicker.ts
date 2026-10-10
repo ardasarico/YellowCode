@@ -45,7 +45,7 @@ tmux(
   values.height,
   "-c",
   process.cwd(),
-  `bun src/index.tsx --replay ${fixture} --speed ${values.speed}; sleep 600`,
+  `bun src/index.tsx --replay ${fixture} --speed ${values.speed} --sessions fixtures/transcripts/-Users-user-project; sleep 600`,
 )
 
 try {

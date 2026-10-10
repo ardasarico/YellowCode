@@ -1,9 +1,11 @@
 import { RGBA, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, on, Show, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { InputProvider } from "../input/provider.ts"
+import type { SessionEntry } from "../resume/session-list.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
+import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, Session } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
@@ -12,27 +14,32 @@ import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./
 import { noticeFor, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
+import { ResumeDialog } from "./resume/resume-dialog.tsx"
 import { SettingsDialog } from "./settings/settings-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
-import { Welcome, type Workspace } from "./welcome.tsx"
+import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
 
 export type AppProps = {
   session: Session
   model: () => string | null
   workspace: Workspace
-  replay: ReplayInfo
+  replay: ReplayInfo | null
+  readOnly?: SessionTitle
   titles: boolean
   settingsProblem: string | null
   provider: InputProvider
+  sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
+  earlier?: boolean
+  onEarlier?: () => void
   onSubmit: (text: string) => void
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
 }
 
 type Focus = "input" | "chat"
-type DialogName = "settings"
+type DialogName = "settings" | "resume"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -49,6 +56,19 @@ export function App(props: AppProps) {
   const renderer = useRenderer()
   const dimensions = useTerminalDimensions()
   const welcome = () => props.session.items.length === 0
+  const [recents, setRecents] = createSignal<SessionEntry[]>([])
+  // The selected row of the welcome screen's recent sessions; null while the tile has the keys.
+  const [recent, setRecent] = createSignal<number | null>(null)
+  onMount(() => {
+    props.sessions
+      .list()
+      .then((entries) => setRecents(entries.slice(0, RECENT_ROWS)))
+      .catch(() => {})
+  })
+  const recentShown = () => welcome() && welcomeLayout(dimensions().width, dimensions().height, recents().length).recent
+  createEffect(() => {
+    if (!recentShown()) setRecent(null)
+  })
   const [sidebarWidth, setSidebarWidth] = createSignal(loadSidebarWidth())
   const [override, setOverride] = createSignal(overrideFor(settings.sidebar))
   createEffect(
@@ -61,6 +81,7 @@ export function App(props: AppProps) {
   const title = useSessionTitle(
     () => props.session,
     () => props.titles,
+    untrack(() => props.readOnly),
   )
   // A drag that starts on the sidebar edge is captured by whatever lies under the pointer at its first step,
   // so the resize follows drags that bubble up to the layout row.
@@ -148,6 +169,21 @@ export function App(props: AppProps) {
       return
     }
     if (dialog()) return
+    const row = recent()
+    if (row !== null) {
+      // ↑ and Esc give the tile its focus back within this event, so no key may go on to it.
+      key.stopPropagation()
+      key.preventDefault()
+      if (key.ctrl || key.meta || key.shift) return
+      if (key.name === "up") setRecent(row === 0 ? null : row - 1)
+      else if (key.name === "down") setRecent(Math.min(row + 1, recents().length - 1))
+      else if (key.name === "escape") setRecent(null)
+      else if (key.name === "return") {
+        const entry = recents()[row]
+        if (entry) props.sessions.open(entry)
+      }
+      return
+    }
     if (key.name === "f3") {
       key.stopPropagation()
       if (!welcome()) setOverride(sidebar() === "hidden" ? "open" : "closed")
@@ -193,12 +229,15 @@ export function App(props: AppProps) {
   const submit = (text: string) => {
     const command = text.trim()
     if (command === "/settings") setDialog("settings")
+    else if (command === "/resume") setDialog("resume")
     else props.onSubmit(text)
   }
 
   const input = () => ({
-    focused: focus() === "input" && dialog() === null,
-    placeholder: "Enter sends the next recorded message",
+    focused: focus() === "input" && dialog() === null && recent() === null,
+    placeholder: props.readOnly
+      ? "Read-only · resuming needs the live connection"
+      : "Enter sends the next recorded message",
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
@@ -223,6 +262,7 @@ export function App(props: AppProps) {
       usage: props.session.usage,
       scroll: scrollState(),
       replay: props.replay,
+      readOnly: props.readOnly?.title ?? null,
       mcpFailure: mcpFailure(),
       settingsProblem: settingsProblem(),
       asking: pending() !== null,
@@ -236,9 +276,15 @@ export function App(props: AppProps) {
         when={!welcome()}
         fallback={
           <Welcome
-            input={input()}
+            input={{
+              ...input(),
+              onLeaveDown: () => {
+                if (recentShown()) setRecent(0)
+              },
+            }}
             workspace={props.workspace}
             notice={settingsProblem()}
+            recent={{ entries: recents(), selected: recent() }}
             width={dimensions().width}
             height={dimensions().height}
             covered={dialog() !== null}
@@ -273,6 +319,8 @@ export function App(props: AppProps) {
               selected={focus() === "chat" ? selected() : null}
               expanded={expanded}
               onOverflow={(id, value) => setOverflowing(id, value)}
+              earlier={props.earlier ?? false}
+              onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}
               scrollRef={(element) => (scroll = element)}
             />
@@ -308,6 +356,9 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog() === "settings"}>
         <SettingsDialog onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog() === "resume"}>
+        <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
       </Show>
     </box>
   )

@@ -123,7 +123,7 @@ function Title(props: {
     const started = props.session.usage.startedAt
     return started === null ? "" : formatSpan(props.now - started)
   }
-  const description = () => wrapLines(props.title?.summary ?? firstUserLine(props.session), props.width, 2)
+  const description = () => wrapLines(props.title?.summary || firstUserLine(props.session), props.width, 2)
   return (
     <box flexDirection="column" flexShrink={0}>
       <box flexDirection="row" justifyContent="space-between" gap={2}>

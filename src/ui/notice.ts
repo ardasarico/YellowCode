@@ -16,7 +16,8 @@ export type ReplayInfo = {
 export type NoticeState = {
   usage: Usage
   scroll: ScrollState
-  replay: ReplayInfo
+  replay: ReplayInfo | null
+  readOnly: string | null
   mcpFailure: string | null
   settingsProblem: string | null
   asking: boolean
@@ -70,7 +71,9 @@ function leftSpans(state: NoticeState): Span[] {
       { text: " · End to jump down", fg: theme.muted },
     ]
   }
+  if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
   const replay = state.replay
+  if (replay === null) return []
   return [{ text: `▶ ${replay.file} · ${replay.speed} · ${STATUS_TEXT[replay.status()]}`, fg: theme.muted }]
 }
 
