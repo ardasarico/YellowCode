@@ -18,6 +18,7 @@ export type Theme = {
   frame: RGBA
   dimFrame: RGBA
   accent: RGBA
+  dimAccent: RGBA
   warning: RGBA
   error: RGBA
   warningBand: RGBA | null
@@ -26,6 +27,7 @@ export type Theme = {
   errorLine: RGBA | null
   band: RGBA | null
   tile: RGBA | null
+  dimTile: RGBA | null
   selection: RGBA | null
   diffAdd: RGBA | null
   diffDel: RGBA | null
@@ -43,6 +45,8 @@ export type ThemeColors = {
       keyof Theme,
       | "faint"
       | "dimFrame"
+      | "dimTile"
+      | "dimAccent"
       | "success"
       | "warningBand"
       | "warningLine"
@@ -78,6 +82,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     frame: tint("frame") ?? ansi(8),
     dimFrame: tint("dimFrame") ?? ansi(8),
     accent: ansi(4),
+    dimAccent: tint("dimAccent") ?? RGBA.defaultForeground(),
     warning: ansi(3),
     error: ansi(1),
     warningBand: tint("warningBand"),
@@ -86,6 +91,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     errorLine: tint("errorLine"),
     band: tint("band"),
     tile: tint("tile"),
+    dimTile: tint("dimTile"),
     selection: tint("selection"),
     diffAdd: tint("diffAdd"),
     diffDel: tint("diffDel"),
@@ -108,6 +114,7 @@ function paintedTheme(c: ThemeColors): Theme {
     frame: hex(c.frame),
     dimFrame: hex(mix(c.frame, c.background, 0.45)),
     accent: hex(c.accent),
+    dimAccent: hex(mix(c.accent, c.text, 0.5)),
     warning: hex(c.warning),
     error: hex(c.error),
     warningBand: hex(mix(c.background, c.warning, 0.09)),
@@ -116,6 +123,7 @@ function paintedTheme(c: ThemeColors): Theme {
     errorLine: hex(mix(c.background, c.error, 0.16)),
     band: hex(c.band),
     tile: hex(c.tile),
+    dimTile: hex(mix(c.tile, c.background, 0.5)),
     selection: hex(c.selection),
     diffAdd: hex(c.diffAdd),
     diffDel: hex(c.diffDel),
@@ -144,6 +152,7 @@ function syntaxStyles(t: Theme) {
     number: { fg: t.syntax.number },
     function: { fg: t.syntax.function },
     type: { fg: t.syntax.type },
+    "input-token": { fg: t.accent },
   }
 }
 

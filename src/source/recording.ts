@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
+import { initializeModels, initializeResponse, type ModelInfo, type SlashCommand } from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
 
 const headerSchema = z.object({ cliVersion: z.string(), scenario: z.string(), recordedAt: z.string() })
@@ -50,4 +51,38 @@ export function recordedModel(recording: Recording): string | null {
       return parsed.message.model
   }
   return null
+}
+
+export function recordedCommands(recording: Recording): SlashCommand[] {
+  let rich: SlashCommand[] | null = null
+  let init: { names: string[]; terminalOnly: string[] } | null = null
+
+  for (const entry of recording.entries) {
+    if (entry.dir !== "in") continue
+    const parsed = parse(entry.line)
+    if (parsed.kind !== "message") continue
+    const message = parsed.message
+
+    if (message.type === "control_response" && rich === null) {
+      const response = initializeResponse.safeParse(message.response.response)
+      if (response.success) rich = response.data.commands
+    } else if (message.type === "system" && message.subtype === "init" && init === null) {
+      init = { names: message.slash_commands ?? [], terminalOnly: message.terminal_slash_commands ?? [] }
+    }
+  }
+
+  const commands = rich ?? (init?.names ?? []).map((name) => ({ name, description: "", argumentHint: "" }))
+  const dropped = new Set(init?.terminalOnly)
+  return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
+}
+
+export function recordedModels(recording: Recording): ModelInfo[] {
+  for (const entry of recording.entries) {
+    if (entry.dir !== "in") continue
+    const parsed = parse(entry.line)
+    if (parsed.kind !== "message" || parsed.message.type !== "control_response") continue
+    const response = initializeModels.safeParse(parsed.message.response.response)
+    if (response.success) return response.data.models
+  }
+  return []
 }

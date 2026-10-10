@@ -4,7 +4,13 @@ import { mkdir, realpath, rm, writeFile } from "node:fs/promises"
 import { homedir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
 import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/protocol/messages.ts"
-import { allowTool, answerQuestions, interruptRequest, userMessage } from "../../src/protocol/outgoing.ts"
+import {
+  allowTool,
+  answerQuestions,
+  initializeRequest,
+  interruptRequest,
+  userMessage,
+} from "../../src/protocol/outgoing.ts"
 import { parse, type ParseResult } from "../../src/protocol/parse.ts"
 import { CLAUDE_STREAM_ARGS } from "../../src/source/claude-args.ts"
 import { splitLines } from "../../src/source/lines.ts"
@@ -14,6 +20,7 @@ import { scenarios, type Scenario } from "./scenarios.ts"
 import { scrub } from "./scrub.ts"
 
 const QUIET_MS = 3_000
+const INIT_ID = "record-init"
 const SCENARIO_TIMEOUT_MS = 300_000
 const outDir = join(import.meta.dir, "..", "..", "fixtures", "sessions")
 
@@ -77,11 +84,35 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     void proc.stdin.write(line + "\n")
   }
 
+  const receive = (line: string) => {
+    entries.push({ t: now(), dir: "in", line })
+    const parsed = parse(line)
+    checkIsolation(parsed, scenario)
+    return parsed
+  }
+
   const lines = splitLines(proc.stdout)[Symbol.asyncIterator]()
   let pending = lines.next()
   const deadline = timer(SCENARIO_TIMEOUT_MS)
 
   try {
+    if (scenario.initialize) {
+      send(initializeRequest(INIT_ID))
+      while (true) {
+        const next = await Promise.race([pending, deadline.done])
+        if (next === null) throw new Error(`${scenario.name}: timed out`)
+        if (next.done) throw new Error(`${scenario.name}: claude exited early`)
+        pending = lines.next()
+        const parsed = receive(next.value)
+        if (
+          parsed.kind === "message" &&
+          parsed.message.type === "control_response" &&
+          parsed.message.response.request_id === INIT_ID
+        )
+          break
+      }
+    }
+
     for (const turn of scenario.turns) {
       const images = turn.image
         ? [{ mediaType: "image/png" as const, base64: solidPng(32, [220, 30, 30]).toString("base64") }]
@@ -103,9 +134,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
         if (next.done) throw new Error(`${scenario.name}: claude exited early`)
         pending = lines.next()
 
-        entries.push({ t: now(), dir: "in", line: next.value })
-        const parsed = parse(next.value)
-        checkIsolation(parsed, scenario)
+        const parsed = receive(next.value)
         if (!(parsed.kind === "message" && parsed.message.type === "result")) sawResult = false
         if (parsed.kind !== "message") continue
         const message = parsed.message

@@ -1,15 +1,18 @@
-import { type TextareaRenderable, TextAttributes } from "@opentui/core"
+import { TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
-import { Index, type JSX, onCleanup, onMount, Show } from "solid-js"
+import { type Accessor, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
+import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
 import { effortColor, yellow } from "../theme/brand.ts"
-import { theme } from "../theme/theme.ts"
+import { syntaxStyle, theme } from "../theme/theme.ts"
+import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
 import { formatTokens, modelName } from "./format.ts"
-import { type InputBlockProps, SUBMIT_ON_ENTER } from "./input-block.tsx"
+import { type InputBlockProps, PROMPT_KEY_BINDINGS } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
 import type { Notice, Span } from "./notice.ts"
+import { SuggestionList } from "./suggestion-list.tsx"
 import { useTicker } from "./ticker.ts"
 import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
@@ -22,6 +25,8 @@ export type PromptBarProps = InputBlockProps & {
   spaced?: boolean
   edgeGap?: number
   ask?: JSX.Element
+  history: Accessor<string[]>
+  onListOpen?: (open: boolean) => void
 }
 
 function Spans(props: { spans: Span[]; shrink: number }) {
@@ -66,42 +71,67 @@ function NoticeLine(props: { notice: Notice; spaced?: boolean }) {
 
 // An ask unmounts the input, so the draft is handed back on cleanup and restored when the input returns.
 function PromptInput(
-  props: Omit<InputBlockProps, "model"> & { frame: number; draft: string; onDraft: (text: string) => void },
+  props: Omit<InputBlockProps, "model"> & {
+    frame: number
+    draft: string
+    onDraft: (text: string) => void
+    provider: InputProvider
+    history: Accessor<string[]>
+    onListOpen?: (open: boolean) => void
+  },
 ) {
-  let area: TextareaRenderable | undefined
-  onMount(() => {
-    if (!area || !props.draft) return
-    area.setText(props.draft)
-    area.gotoBufferEnd()
+  const dimensions = useTerminalDimensions()
+  const [inputRows, setInputRows] = createSignal(1)
+  const completion = useCompletion({
+    focused: () => props.focused,
+    provider: () => props.provider,
+    width: () => props.width - 2,
+    room: () => dimensions().height - 3 - inputRows(),
+    onSubmit: (text) => props.onSubmit(text),
+    history: () => props.history(),
+    onListOpen: (open) => props.onListOpen?.(open),
   })
-  onCleanup(() => props.onDraft(area?.plainText ?? ""))
-
-  const submit = () => {
-    if (!area) return
-    props.onSubmit(area.plainText)
-    area.setText("")
-  }
+  onMount(() => completion.restore(props.draft))
+  onCleanup(() => props.onDraft(completion.text()))
 
   return (
     <>
-      <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
-      <box flexDirection="row">
+      <box>
+        <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
+        <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
+      </box>
+      <box
+        flexDirection="row"
+        onSizeChange={function () {
+          setInputRows(this.height)
+        }}
+      >
         <text fg={yellow(theme.rgb)} flexShrink={0}>
           {"❯ "}
         </text>
         <textarea
-          ref={(element) => (area = element)}
+          ref={completion.ref}
           flexGrow={1}
           focused={props.focused}
           placeholder={props.placeholder}
           placeholderColor={theme.muted}
           textColor={theme.text}
           focusedTextColor={theme.text}
+          syntaxStyle={syntaxStyle()}
           minHeight={1}
           maxHeight={6}
-          keyBindings={SUBMIT_ON_ENTER}
-          onSubmit={submit}
+          keyBindings={PROMPT_KEY_BINDINGS}
+          onSubmit={completion.submit}
+          onContentChange={completion.refresh}
+          onCursorChange={completion.leftToken}
         />
+        <Show when={completion.hint()}>
+          {(hint) => (
+            <text position="absolute" top={0} left={2 + hint().left} zIndex={1} fg={theme.muted}>
+              {hint().text}
+            </text>
+          )}
+        </Show>
       </box>
       <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
     </>
@@ -177,6 +207,9 @@ export function PromptBar(props: PromptBarProps) {
             frame={frame()}
             draft={draft}
             onDraft={(text) => (draft = text)}
+            provider={props.provider}
+            history={props.history}
+            onListOpen={props.onListOpen}
           />
         }
       >

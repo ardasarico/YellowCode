@@ -3,6 +3,7 @@ import { render } from "@opentui/solid"
 import { homedir } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
+import { replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
 import { userMessage } from "./protocol/outgoing.ts"
@@ -52,6 +53,7 @@ const workspace = {
 const firstModel = recordedModel(recording)
 
 const source = createReplaySource(recording, speed)
+const provider = replayProvider(recording)
 const session = createSession()
 const renderer = await createCliRenderer({ exitOnCtrlC: false, consoleMode: "disabled", openConsoleOnError: false })
 
@@ -116,6 +118,7 @@ await render(
         status: source.status,
       }}
       titles={values.titles}
+      provider={provider}
       onSubmit={(text) => source.send(userMessage(text))}
       onAnswer={(ask, response) => {
         log.info(`answer to ${ask.toolName}`, response)

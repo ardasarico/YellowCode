@@ -2,6 +2,7 @@ import { RGBA, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
+import type { InputProvider } from "../input/provider.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import type { Ask, Session } from "../session/types.ts"
 import { nextTheme, theme } from "../theme/theme.ts"
@@ -22,6 +23,7 @@ export type AppProps = {
   workspace: Workspace
   replay: ReplayInfo
   titles: boolean
+  provider: InputProvider
   onSubmit: (text: string) => void
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
@@ -31,6 +33,7 @@ type Focus = "input" | "chat"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
+  const [listOpen, setListOpen] = createSignal(false)
   const [selected, setSelected] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
   const [overflowing, setOverflowing] = createStore<Record<string, boolean>>({})
@@ -78,6 +81,12 @@ export function App(props: AppProps) {
       if (untrack(sidebar) === "hidden") setMcpFailure(server.name)
     }
   })
+
+  const history = () =>
+    props.session.items
+      .map((id) => props.session.byId[id])
+      .filter((item) => item?.kind === "user")
+      .map((item) => item.text)
 
   const lastUser = createMemo(() => {
     for (const id of props.session.items.toReversed()) if (props.session.byId[id]?.kind === "user") return id
@@ -141,7 +150,7 @@ export function App(props: AppProps) {
       return
     }
     if (key.name === "tab") {
-      if (welcome()) return
+      if (welcome() || listOpen()) return
       key.preventDefault()
       const next = focus() === "input" ? "chat" : "input"
       setFocus(next)
@@ -161,6 +170,7 @@ export function App(props: AppProps) {
     focused: focus() === "input",
     placeholder: "Enter sends the next recorded message",
     model: settings.model ?? props.model(),
+    provider: props.provider,
     onSubmit: props.onSubmit,
   })
 
@@ -219,6 +229,7 @@ export function App(props: AppProps) {
         <box flexDirection="column" width={chatWidth()}>
           <ChatView
             session={props.session}
+            commands={props.provider.commands()}
             width={chatWidth()}
             selected={focus() === "chat" ? selected() : null}
             expanded={expanded}
@@ -234,6 +245,8 @@ export function App(props: AppProps) {
             notice={notice()}
             context={props.session.usage.context}
             ask={askView()}
+            history={history}
+            onListOpen={setListOpen}
           />
         </box>
         <Show when={sidebar() !== "hidden"}>

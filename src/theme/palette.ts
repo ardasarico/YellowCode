@@ -4,12 +4,14 @@ import { log } from "../log/log.ts"
 export type Tints = {
   band: string
   tile: string
+  dimTile: string
   selection: string
   diffAdd: string
   diffDel: string
   frame: string
   dimFrame: string
   faint: string
+  dimAccent: string | null
   warningBand: string | null
   warningLine: string | null
   errorBand: string
@@ -41,15 +43,18 @@ export function tintsFrom(colors: TerminalColors): Tints | null {
   const green = hex(colors.palette[2])
   if (!background || !foreground || !red || !green) return null
   const yellow = hex(colors.palette[3])
+  const blue = hex(colors.palette[4])
   return {
     band: mix(background, foreground, 0.06),
     tile: mix(background, foreground, 0.1),
+    dimTile: mix(background, foreground, 0.05),
     selection: mix(background, foreground, 0.1),
     diffAdd: mix(background, green, 0.18),
     diffDel: mix(background, red, 0.18),
     frame: mix(background, foreground, 0.3),
     dimFrame: mix(background, foreground, 0.165),
     faint: mix(background, foreground, 0.45),
+    dimAccent: blue ? mix(blue, foreground, 0.5) : null,
     warningBand: yellow ? mix(background, yellow, 0.09) : null,
     warningLine: yellow ? mix(background, yellow, 0.16) : null,
     errorBand: mix(background, red, 0.09),

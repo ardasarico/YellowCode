@@ -10,6 +10,7 @@ export type Scenario = {
   name: string
   files?: Record<string, string>
   args?: string[]
+  initialize?: boolean
   turns: Turn[]
 }
 
@@ -111,5 +112,15 @@ export const scenarios: Scenario[] = [
     name: "mcp",
     args: ["--mcp-config", JSON.stringify(mcpConfig), "--strict-mcp-config"],
     turns: [{ text: "Call the echo tool of the echo MCP server with the text 'hi', then reply in one sentence." }],
+  },
+  {
+    name: "commands",
+    initialize: true,
+    files: { "notes.txt": "pelican\n" },
+    turns: [
+      { text: "Reply with the single word ready." },
+      { text: "Reply with one short line for each:\nthe first planet\nthe second planet" },
+      { text: "Reply with the first word of @notes.txt" },
+    ],
   },
 ]

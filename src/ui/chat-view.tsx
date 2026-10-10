@@ -1,5 +1,6 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
+import type { Command } from "../input/commands.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
@@ -16,6 +17,7 @@ export type ScrollState = { atBottom: boolean; newLines: number }
 
 type ChatProps = {
   session: Session
+  commands: Command[]
   width: number
   selected: string | null
   expanded: Record<string, boolean>
@@ -68,6 +70,7 @@ function RowView(props: RowProps) {
           {(user) => (
             <UserMessageRow
               item={user()}
+              commands={props.commands}
               selected={props.selected === user().id}
               expanded={props.expanded[user().id] === true}
               onOverflow={props.onOverflow}

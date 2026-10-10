@@ -67,3 +67,7 @@ export function answerQuestions(
 export function interruptRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "interrupt" } })
 }
+
+export function initializeRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "initialize" } })
+}

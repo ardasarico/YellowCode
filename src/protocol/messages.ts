@@ -53,6 +53,8 @@ const systemInit = z.looseObject({
   skills: z.array(z.string()),
   apiKeySource: z.string().optional(),
   plugins: z.array(z.looseObject({ name: z.string() })).optional(),
+  slash_commands: z.array(z.string()).optional(),
+  terminal_slash_commands: z.array(z.string()).optional(),
 })
 
 const compactBoundary = z.looseObject({
@@ -255,6 +257,20 @@ const controlResponse = z.looseObject({
   }),
 })
 
+export const slashCommand = z.looseObject({
+  name: z.string(),
+  description: z.string(),
+  argumentHint: z.string(),
+  aliases: z.array(z.string()).optional(),
+  builtin: z.boolean().optional(),
+})
+
+export const initializeResponse = z.looseObject({ commands: z.array(slashCommand) })
+
+export const modelInfo = z.looseObject({ value: z.string(), description: z.string().optional() })
+
+export const initializeModels = z.looseObject({ models: z.array(modelInfo) })
+
 const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
 
 const rateLimit = z.looseObject({
@@ -295,6 +311,9 @@ export type ContentBlock = z.infer<typeof contentBlock>
 export type UserBlock = z.infer<typeof userBlock>
 export type PermissionUpdate = z.infer<typeof permissionUpdate>
 export type AskUserQuestionInput = z.infer<typeof askUserQuestionInput>
+export type SlashCommand = z.infer<typeof slashCommand>
+export type InitializeResponse = z.infer<typeof initializeResponse>
+export type ModelInfo = z.infer<typeof modelInfo>
 
 export const KNOWN_KEYS = new Set([
   "system/init",

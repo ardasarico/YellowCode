@@ -1,5 +1,7 @@
 import type { BorderCharacters, ImageRenderable, TextRenderable } from "@opentui/core"
 import { createEffect, createMemo, createSignal, For, Index, onCleanup, onMount, Show } from "solid-js"
+import type { Command } from "../input/commands.ts"
+import { highlightRanges } from "../input/token.ts"
 import type { UserImage, UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 
@@ -47,17 +49,43 @@ function ImageTile(props: { image: UserImage; index: number }) {
   )
 }
 
-function MessageText(props: { text: string }) {
-  const parts = () => props.text.split(/(\[Image \d+\])/)
+type Part = { text: string; kind: "plain" | "image" | "token" }
+
+function messageParts(text: string, commands: Command[]): Part[] {
+  const images = [...text.matchAll(/\[Image \d+\]/g)].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length,
+    kind: "image" as const,
+  }))
+  const tokens = highlightRanges(text, commands)
+    .filter((token) => !images.some((image) => token.start < image.end && image.start < token.end))
+    .map(({ start, end }) => ({ start, end, kind: "token" as const }))
+  const parts: Part[] = []
+  let at = 0
+  for (const mark of [...images, ...tokens].toSorted((a, b) => a.start - b.start)) {
+    if (mark.start > at) parts.push({ text: text.slice(at, mark.start), kind: "plain" })
+    parts.push({ text: text.slice(mark.start, mark.end), kind: mark.kind })
+    at = mark.end
+  }
+  if (at < text.length) parts.push({ text: text.slice(at), kind: "plain" })
+  return parts
+}
+
+function partColor(kind: Part["kind"]) {
+  return kind === "image" ? theme.accent : kind === "token" ? theme.dimAccent : theme.text
+}
+
+function MessageText(props: { text: string; commands: Command[] }) {
   return (
-    <Index each={parts()}>
-      {(part, index) => <span style={{ fg: index % 2 === 1 ? theme.accent : theme.text }}>{part()}</span>}
+    <Index each={messageParts(props.text, props.commands)}>
+      {(part) => <span style={{ fg: partColor(part().kind) }}>{part().text}</span>}
     </Index>
   )
 }
 
 export function UserMessageRow(props: {
   item: UserMessage
+  commands: Command[]
   selected: boolean
   expanded: boolean
   onOverflow: (id: string, overflowing: boolean) => void
@@ -95,7 +123,7 @@ export function UserMessageRow(props: {
         wrapMode="word"
         height={hidden() > 0 ? COLLAPSED_ROWS : "auto"}
       >
-        <MessageText text={props.item.text} />
+        <MessageText text={props.item.text} commands={props.commands} />
       </text>
       <Show when={hidden() > 0}>
         <text fg={theme.muted}>{`+${hidden()} lines`}</text>
