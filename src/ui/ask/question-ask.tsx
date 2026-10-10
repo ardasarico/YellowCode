@@ -4,7 +4,6 @@ import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AskUserQuestionInput } from "../../protocol/messages.ts"
 import { answerQuestions, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
-import { yellow } from "../../theme/brand.ts"
 import { theme } from "../../theme/theme.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import { fitHints, pageLabels } from "./fit.ts"
@@ -264,7 +263,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
                 </Index>
               </box>
               <box id="extra-row" flexDirection="row">
-                <text fg={onExtraRow() ? yellow(theme.rgb) : theme.muted} flexShrink={0}>
+                <text fg={onExtraRow() ? theme.accent : theme.muted} flexShrink={0}>
                   {"❯ "}
                 </text>
                 <input
@@ -291,7 +290,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
                   {(option, index) => {
                     const focused = () => focus() === index
                     const on = () => state.chosen[state.page]?.includes(index) ?? false
-                    const markColor = () => (focused() ? yellow(theme.rgb) : on() ? theme.text : theme.muted)
+                    const markColor = () => (focused() ? theme.accent : on() ? theme.text : theme.muted)
                     const note = () => state.notes[state.page]?.[index] ?? ""
                     return (
                       <box id={`option-${index}`} flexDirection="column" marginBottom={1}>
@@ -300,7 +299,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
                             {`${mark(current(), on())} `}
                           </text>
                           <text
-                            fg={focused() ? yellow(theme.rgb) : theme.text}
+                            fg={focused() ? theme.accent : theme.text}
                             attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
                             wrapMode="word"
                           >
@@ -345,7 +344,7 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
                 </Index>
               </box>
               <box id="own-row" flexDirection="row">
-                <text fg={onOwnRow() ? yellow(theme.rgb) : theme.muted} flexShrink={0}>
+                <text fg={onOwnRow() ? theme.accent : theme.muted} flexShrink={0}>
                   {"❯ "}
                 </text>
                 <input

@@ -111,6 +111,7 @@ export function createSession(): SessionStore {
           children: [],
           patch: null,
           createdFile: false,
+          unchanged: false,
           agent: null,
         }
       case "unknown":
@@ -236,6 +237,7 @@ export function createSession(): SessionStore {
         item.result = toolResultText(block.content)
         if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
         if (fileResult?.type === "create") item.createdFile = true
+        if (fileResult?.type === "file_unchanged") item.unchanged = true
         // A background agent's tool result only says it launched; its outcome arrives as a task_notification.
         if (item.agent && !fileResult?.isAsync) {
           item.agent.state = block.is_error ? "failed" : "completed"

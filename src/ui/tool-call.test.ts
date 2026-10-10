@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import type { ToolCall } from "../session/types.ts"
-import { answerLines } from "./tool-call.tsx"
+import { answerLines, resultSummary } from "./tool-call.tsx"
 
 const tool: ToolCall = {
   kind: "tool",
@@ -20,6 +20,7 @@ const tool: ToolCall = {
   children: [],
   patch: null,
   createdFile: false,
+  unchanged: false,
   agent: null,
 }
 
@@ -34,4 +35,10 @@ test("answers read from the tool result when the Ask has none", () => {
     "Storage: User config file",
     "Formats: JSON · json note Additional note: two envs",
   ])
+})
+
+test("a Read that only says the file is unchanged has no line count", () => {
+  const read = { ...tool, name: "Read", result: "Wasted call — file unchanged since your last Read.", unchanged: true }
+  expect(resultSummary(read)).toBe("unchanged")
+  expect(resultSummary({ ...read, result: "     1\tpelican", unchanged: false })).toBe("1 line")
 })

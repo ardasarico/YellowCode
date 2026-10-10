@@ -18,6 +18,7 @@ export type ToolCall = {
   children: ItemId[]
   patch: Hunk[] | null
   createdFile: boolean
+  unchanged: boolean
   agent: Agent | null
 }
 export type Agent = {

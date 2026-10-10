@@ -37,12 +37,12 @@ function status(agent: Agent, tools: number, seconds: number): { text: string; c
   if (agent.state === "completed") return { text: `done · ${stats}`, color: theme.muted }
   if (agent.state === "failed") return { text: `failed · ${stats}`, color: theme.error }
   if (agent.state === "stopped") return { text: `stopped · ${stats}`, color: theme.warning }
-  return { text: tools === 0 ? "starting…" : `running · ${stats}`, color: theme.warning }
+  return { text: tools === 0 ? "starting…" : `running · ${stats}`, color: theme.accent }
 }
 
 function StepLine(props: { tool: ToolCall; cwd: string; prefix: string; prefixColor: RGBA; width: number }) {
   const color = () =>
-    props.tool.status === "error" ? theme.error : props.tool.status === "running" ? theme.warning : theme.muted
+    props.tool.status === "error" ? theme.error : props.tool.status === "running" ? theme.accent : theme.muted
   const target = () => relative(props.tool.summary, props.cwd)
   const label = () => `${props.tool.name}(${target()})`
   const room = () => props.width - props.prefix.length - 2

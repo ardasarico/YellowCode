@@ -13,6 +13,7 @@ import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 export const PROMPT_KEY_BINDINGS: KeyBinding[] = [
   { name: "return", action: "submit" },
   { name: "return", shift: true, action: "newline" },
+  { name: "_", ctrl: true, action: "undo" },
 ]
 
 export type InputBlockProps = {

@@ -39,6 +39,7 @@ export function resultSummary(tool: ToolCall): string {
     const removed = changed.filter((line) => line.startsWith("-")).length
     return `+${added} −${removed}`
   }
+  if (tool.unchanged) return "unchanged"
   if (tool.name === "Read") return count(lines.filter((line) => /^\s*\d+\t/.test(line)).length, "line")
   if (tool.name === "Glob") return count(lines.length, "file")
   if (lines.length === 0) return "no output"
@@ -85,7 +86,7 @@ export function ToolCallRow(props: {
   const color = () => {
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error
-    return props.item.status === "running" ? theme.warning : theme.muted
+    return props.item.status === "running" ? theme.accent : theme.muted
   }
   const target = () => {
     const value = relative(props.item.summary, props.cwd)

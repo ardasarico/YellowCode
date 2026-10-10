@@ -234,6 +234,11 @@ test("file edits carry their patch", () => {
   expect(write).toMatchObject({ createdFile: true })
 })
 
+test("a Read answered with file_unchanged is marked unchanged", () => {
+  const read = items(replay("commands")).find((item) => item.kind === "tool" && item.name === "Read")
+  expect(read).toMatchObject({ unchanged: true })
+})
+
 test("an Agent call carries the agent's name and task", () => {
   const agent = items(replay("subagent")).find((item) => item.kind === "tool" && item.name === "Agent")
   expect(agent).toMatchObject({ agent: { name: "general-purpose", task: "List files in working directory" } })

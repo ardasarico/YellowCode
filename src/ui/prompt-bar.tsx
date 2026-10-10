@@ -4,7 +4,7 @@ import { type Accessor, createSignal, Index, type JSX, onCleanup, onMount, Show 
 import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
-import { effortColor, yellow } from "../theme/brand.ts"
+import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
 import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
@@ -106,7 +106,7 @@ function PromptInput(
           setInputRows(this.height)
         }}
       >
-        <text fg={yellow(theme.rgb)} flexShrink={0}>
+        <text fg={theme.accent} flexShrink={0}>
           {"❯ "}
         </text>
         <textarea
