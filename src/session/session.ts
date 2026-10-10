@@ -1,12 +1,13 @@
 import { createStore, produce } from "solid-js/store"
 import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
-import type { ParseResult } from "../protocol/parse.ts"
+import { parse, type ParseResult } from "../protocol/parse.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type { Agent, Item, ItemId, Session, UserImage, Window } from "./types.ts"
 
 export type SessionStore = {
   state: Session
   apply(dir: "in" | "out", parsed: ParseResult, at: number): void
+  answer(response: string): void
   end(): void
 }
 
@@ -409,6 +410,7 @@ export function createSession(): SessionStore {
             status: "pending",
             answers: {},
             notes: {},
+            denial: "",
           },
           null,
         )
@@ -432,13 +434,15 @@ export function createSession(): SessionStore {
     } else if (message.type === "control_response") {
       const reply = message.response.response
       update(`ask-${message.response.request_id}`, (item) => {
-        if (item.kind !== "ask") return
+        // The first response settles the ask; in replay that is the user's own, and the recorded one comes after.
+        if (item.kind !== "ask" || item.status !== "pending") return
         const answers = reply?.updatedInput?.answers
         if (reply?.behavior === "deny") item.status = "denied"
         else if (answers) item.status = "answered"
         else item.status = "allowed"
         item.answers = answers ?? {}
         item.notes = notesOf(reply?.updatedInput?.annotations)
+        item.denial = reply?.behavior === "deny" ? (reply.message ?? "") : ""
       })
     }
   }
@@ -466,6 +470,10 @@ export function createSession(): SessionStore {
       if (parsed.kind === "unknown") return
       if (dir === "in") onIncoming(parsed.message)
       else onOutgoing(parsed.message)
+    },
+    answer(response) {
+      const parsed = parse(response)
+      if (parsed.kind === "message") onOutgoing(parsed.message)
     },
     end() {
       for (const id of Object.keys(state.byId)) stopStreaming(id)

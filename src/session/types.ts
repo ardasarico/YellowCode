@@ -46,6 +46,7 @@ export type Ask = {
   status: "pending" | "allowed" | "denied" | "answered"
   answers: Record<string, string>
   notes: Record<string, string>
+  denial: string
 }
 export type TurnEnd = {
   kind: "turn-end"

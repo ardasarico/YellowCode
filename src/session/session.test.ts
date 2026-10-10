@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession } from "./session.ts"
@@ -133,6 +134,13 @@ test("the outgoing response settles the ask", () => {
       updatedInput: { answers: { "Which?": "A" }, annotations: { "Which?": { notes: "because" } } },
     }),
   ).toMatchObject({ status: "answered", answers: { "Which?": "A" }, notes: { "Which?": "because" } })
+})
+
+test("a recorded response does not overwrite the user's own answer", () => {
+  const session = feed(canUseTool({}))
+  session.answer(denyTool("r1", QUESTION_DECLINED))
+  session.apply("out", parse(answerQuestions("r1", { questions: [{ question: "Which?" }] }, { "Which?": "A" }, {})), 0)
+  expect(session.state.byId["ask-r1"]).toMatchObject({ status: "denied", answers: {}, denial: QUESTION_DECLINED })
 })
 
 test("subagent messages land under the Agent tool call", () => {

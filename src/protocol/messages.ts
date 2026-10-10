@@ -243,6 +243,7 @@ const controlResponse = z.looseObject({
     response: z
       .looseObject({
         behavior: z.string().optional(),
+        message: z.string().optional(),
         updatedInput: z
           .looseObject({
             answers: z.record(z.string(), z.string()).optional(),

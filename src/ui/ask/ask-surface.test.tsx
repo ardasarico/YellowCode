@@ -21,6 +21,7 @@ const ask: Ask = {
   status: "pending",
   answers: {},
   notes: {},
+  denial: "",
 }
 
 test("an ask sends only its first response", async () => {

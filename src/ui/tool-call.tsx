@@ -45,15 +45,15 @@ export function resultSummary(tool: ToolCall): string {
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
 }
 
-export function deniedLine(tool: ToolCall): string {
-  const note = tool.result.trim().replaceAll("\n", " ")
+export function deniedLine(ask: Ask): string {
+  const note = ask.denial.trim().replaceAll("\n", " ")
   return note && !DEFAULT_DENIALS.has(note) ? `denied · ${note}` : "denied"
 }
 
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
   let answers = ask?.answers ?? {}
   let notes = ask?.notes ?? {}
-  if (Object.keys(answers).length === 0) {
+  if (ask?.status !== "answered") {
     const found = [...tool.result.matchAll(ANSWER_IN_RESULT)]
     answers = Object.fromEntries(found.map(([, question = "", answer = ""]) => [question, answer]))
     notes = Object.fromEntries(found.map(([, question = "", , note = ""]) => [question, note]))
@@ -94,15 +94,17 @@ export function ToolCallRow(props: {
   }
   const lines = () => {
     if (waiting()) return ["waiting for your approval"]
-    if (denied()) return [deniedLine(props.item)]
+    if (props.ask && denied()) return [deniedLine(props.ask)]
     if (running()) return [`running… ${seconds()}s`]
     const answers = props.item.name === "AskUserQuestion" ? answerLines(props.item, props.ask ?? null) : []
     return answers.length > 0 ? answers : [resultSummary(props.item)]
   }
   const lineColor = () => (props.item.status === "done" && !denied() ? theme.muted : color())
+  // The user's answer outranks a replayed result, which may come from a different answer.
+  const output = () => (denied() || props.ask?.status === "answered" ? "" : props.item.result)
   const diff = () => {
     const tool = props.item
-    if (tool.status !== "done") return null
+    if (tool.status !== "done" || denied()) return null
     if (tool.createdFile) {
       const content = writtenContent(tool.input)
       return content === null ? null : { rows: addedRows(content), tail: true }
@@ -135,9 +137,9 @@ export function ToolCallRow(props: {
       <Show
         when={diff()}
         fallback={
-          <Show when={props.expanded && props.item.result}>
+          <Show when={props.expanded && output()}>
             <box paddingLeft={RESULT_INDENT.length}>
-              <text fg={theme.text}>{props.item.result.trimEnd()}</text>
+              <text fg={theme.text}>{output().trimEnd()}</text>
             </box>
           </Show>
         }
