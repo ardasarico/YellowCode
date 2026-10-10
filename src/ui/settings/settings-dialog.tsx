@@ -1,0 +1,116 @@
+import { batch, createSignal } from "solid-js"
+import { resetSetting, setSetting, settings } from "../../session/settings.ts"
+import { theme } from "../../theme/theme.ts"
+import { Dialog } from "../dialog/dialog.tsx"
+import type { DialogSection } from "../dialog/list.ts"
+import { SETTINGS, type SettingDefinition } from "./options.ts"
+
+const SECTIONS = [...new Set(SETTINGS.map((setting) => setting.section))]
+const LONG = 3
+
+const currentOption = (setting: SettingDefinition) =>
+  setting.options.find((option) => option.value === settings[setting.key]) ?? setting.options[0]
+
+function step(setting: SettingDefinition, by: 1 | -1) {
+  const count = setting.options.length
+  const index = setting.options.findIndex((option) => option.value === settings[setting.key])
+  const next = setting.options[(index + by + count) % count]
+  if (next) setSetting(setting.key, next.value)
+}
+
+const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
+
+const mainSections = (): DialogSection[] =>
+  SECTIONS.map((section) => ({
+    title: section,
+    rows: SETTINGS.filter((setting) => setting.section === section).map((setting) => {
+      const option = currentOption(setting)
+      return { id: setting.key, label: setting.label, value: option?.label, note: option?.note }
+    }),
+  }))
+
+const optionSections = (setting: SettingDefinition): DialogSection[] => [
+  {
+    title: setting.label,
+    rows: setting.options.map((option) => ({
+      id: option.value,
+      label: option.label,
+      value: option.value === settings[setting.key] ? "current" : undefined,
+      note: option.note,
+    })),
+  },
+]
+
+export function SettingsDialog(props: { onClose: () => void }) {
+  const [list, setList] = createSignal<SettingDefinition | null>(null)
+  const [returnTo, setReturnTo] = createSignal<string>(SETTINGS[0]?.key ?? "")
+
+  const back = (setting: SettingDefinition) =>
+    batch(() => {
+      setReturnTo(setting.key)
+      setList(null)
+    })
+
+  const sections = () => {
+    const open = list()
+    return open ? optionSections(open) : mainSections()
+  }
+
+  const selection = () => {
+    const open = list()
+    return open ? settings[open.key] : returnTo()
+  }
+
+  const footer = () =>
+    list()
+      ? [
+          { text: "Choose", fg: theme.text },
+          { text: " enter  ", fg: theme.muted },
+          { text: "Back", fg: theme.text },
+          { text: " esc", fg: theme.muted },
+        ]
+      : [
+          { text: "Change", fg: theme.text },
+          { text: " ←→  ", fg: theme.muted },
+          { text: "Reset", fg: theme.text },
+          { text: " ctrl+r", fg: theme.muted },
+        ]
+
+  return (
+    <Dialog
+      title={list()?.label ?? "Settings"}
+      sections={sections()}
+      footer={footer()}
+      view={list()?.key ?? "main"}
+      initialSelected={selection()}
+      onEnter={(row) => {
+        const open = list()
+        if (open) {
+          const option = open.options.find((candidate) => candidate.value === row.id)
+          if (option) setSetting(open.key, option.value)
+          back(open)
+          return
+        }
+        const setting = settingFor(row.id)
+        if (!setting || setting.options.length <= LONG) return
+        batch(() => {
+          setReturnTo(setting.key)
+          setList(setting)
+        })
+      }}
+      onKey={(key, row) => {
+        const setting = row && !list() ? settingFor(row.id) : undefined
+        if (!setting) return false
+        if (key.name === "left" || key.name === "right") step(setting, key.name === "left" ? -1 : 1)
+        else if (key.ctrl && key.name === "r") resetSetting(setting.key)
+        else return false
+        return true
+      }}
+      onEscape={() => {
+        const open = list()
+        if (open) back(open)
+        else props.onClose()
+      }}
+    />
+  )
+}

@@ -183,11 +183,6 @@ export function setTheme(id: string): void {
   setTimeout(() => previous.destroy(), 0)
 }
 
-export function nextTheme(): void {
-  const index = themes.findIndex((candidate) => candidate.id === themeId())
-  setTheme(themes[(index + 1) % themes.length]?.id ?? "terminal")
-}
-
 export function setTerminal(next: Terminal): void {
   terminal = next
   setTheme(themeId())

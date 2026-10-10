@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { type Command, hintValues, matchCommands } from "./commands.ts"
+import { type Command, hintValues, matchCommands, withOwnCommands } from "./commands.ts"
 
 const command = (name: string, aliases: string[] = [], description = ""): Command => ({
   name,
@@ -54,4 +54,10 @@ test("hint values are the first group's top-level alternatives", () => {
   for (const free of ["<name>", "[instructions]", "[interval] [prompt]", "[prompt-audit [<path>]]", "key=value", ""]) {
     expect(hintValues(free)).toEqual([])
   }
+})
+
+test("an own command hides a recorded alias with its name", () => {
+  const merged = withOwnCommands([command("config", ["settings"])])
+  expect(matchCommands(merged, "set").map((row) => row.name)).toEqual(["settings"])
+  expect(merged.find((entry) => entry.name === "config")?.aliases).toEqual([])
 })

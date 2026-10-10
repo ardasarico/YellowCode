@@ -18,6 +18,7 @@ export type NoticeState = {
   scroll: ScrollState
   replay: ReplayInfo
   mcpFailure: string | null
+  settingsProblem: string | null
   asking: boolean
   now: number
 }
@@ -28,7 +29,7 @@ const STATUS_TEXT = {
   finished: "finished · Ctrl+C: quit",
 } as const
 
-const HINTS = "F2 theme · F3 sidebar · F4 ultracode"
+const HINTS = "F3 sidebar · F4 ultracode"
 
 const LIMIT_NAMES: Record<string, string> = {
   five_hour: "5-hour",
@@ -58,6 +59,7 @@ function warningText(usage: Usage, now: number): Span | null {
 
 function leftSpans(state: NoticeState): Span[] {
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
+  if (state.settingsProblem) return [{ text: state.settingsProblem, fg: theme.warning }]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []

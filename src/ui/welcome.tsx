@@ -118,8 +118,10 @@ function wordmarkPalette(): Record<string, RGBA> {
 export function Welcome(props: {
   input: Omit<InputBlockProps, "width">
   workspace: Workspace
+  notice: string | null
   width: number
   height: number
+  covered: boolean
 }) {
   const blockWidth = () => Math.min(BLOCK_WIDTH, props.width - 4)
   const parts = () => welcomeParts(blockWidth(), props.height - 1)
@@ -128,7 +130,10 @@ export function Welcome(props: {
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
         <Show when={parts().cat}>
           <box flexDirection="row" alignItems="center" gap={LOGO_GAP}>
-            <Cat />
+            {/* Terminals draw images above cell text, so the cat would show through an open dialog. */}
+            <Show when={!props.covered} fallback={<box width={CAT_COLS} height={CAT_ROWS} flexShrink={0} />}>
+              <Cat />
+            </Show>
             <Show when={parts().wordmark}>
               <PixelArt art={WORDMARK} palette={wordmarkPalette()} />
             </Show>
@@ -145,6 +150,7 @@ export function Welcome(props: {
         <text fg={theme.muted}>
           {props.workspace.branch ? `${props.workspace.cwd}  ${props.workspace.branch}` : props.workspace.cwd}
         </text>
+        <Show when={props.notice}>{(notice) => <text fg={theme.warning}>{notice()}</text>}</Show>
         <text fg={theme.muted}>{`v${props.workspace.version}`}</text>
       </box>
     </box>

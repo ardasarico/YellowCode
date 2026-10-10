@@ -8,11 +8,13 @@ import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
 import { userMessage } from "./protocol/outgoing.ts"
 import { createSession } from "./session/session.ts"
+import { initSettings, settings } from "./session/settings.ts"
+import { loadSettings } from "./session/settings-file.ts"
 import packageJson from "../package.json"
 import { loadRecording, RecordingError, recordedModel } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
-import { setTerminal } from "./theme/theme.ts"
+import { setTerminal, setTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
 
 const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles]"
@@ -55,6 +57,8 @@ const firstModel = recordedModel(recording)
 const source = createReplaySource(recording, speed)
 const provider = replayProvider(recording)
 const session = createSession()
+const { settings: stored, problem } = loadSettings()
+initSettings(stored)
 const renderer = await createCliRenderer({ exitOnCtrlC: false, consoleMode: "disabled", openConsoleOnError: false })
 
 // The renderer's own handlers console.error to the terminal, so ours replace them.
@@ -68,6 +72,7 @@ const look = await readTerminal(renderer)
 const rgb = renderer.capabilities?.rgb ?? look.tints !== null
 log.info("terminal", { tints: look.tints !== null, dark: look.dark, rgb })
 setTerminal({ ...look, rgb })
+setTheme(settings.theme)
 
 let quitting = false
 
@@ -118,6 +123,7 @@ await render(
         status: source.status,
       }}
       titles={values.titles}
+      settingsProblem={problem}
       provider={provider}
       onSubmit={(text) => source.send(userMessage(text))}
       onAnswer={(ask, response) => {

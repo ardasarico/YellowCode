@@ -5,13 +5,14 @@ import { createStore } from "solid-js/store"
 import type { InputProvider } from "../input/provider.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import type { Ask, Session } from "../session/types.ts"
-import { nextTheme, theme } from "../theme/theme.ts"
+import { setTheme, theme } from "../theme/theme.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
-import { MIN_CHAT_WIDTH, SIDEBAR_MIN_WIDTH, type SidebarOverride, sidebarShown } from "./layout.ts"
+import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
+import { SettingsDialog } from "./settings/settings-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
@@ -23,6 +24,7 @@ export type AppProps = {
   workspace: Workspace
   replay: ReplayInfo
   titles: boolean
+  settingsProblem: string | null
   provider: InputProvider
   onSubmit: (text: string) => void
   onAnswer: (ask: Ask, response: string) => void
@@ -30,10 +32,12 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat"
+type DialogName = "settings"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
+  const [dialog, setDialog] = createSignal<DialogName | null>(null)
   const [selected, setSelected] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
   const [overflowing, setOverflowing] = createStore<Record<string, boolean>>({})
@@ -46,7 +50,14 @@ export function App(props: AppProps) {
   const dimensions = useTerminalDimensions()
   const welcome = () => props.session.items.length === 0
   const [sidebarWidth, setSidebarWidth] = createSignal(loadSidebarWidth())
-  const [override, setOverride] = createSignal<SidebarOverride>(null)
+  const [override, setOverride] = createSignal(overrideFor(settings.sidebar))
+  createEffect(
+    on(
+      () => settings.sidebar,
+      (value) => setOverride(overrideFor(value)),
+      { defer: true },
+    ),
+  )
   const title = useSessionTitle(
     () => props.session,
     () => props.titles,
@@ -94,6 +105,23 @@ export function App(props: AppProps) {
   })
   createEffect(on(lastUser, () => setMcpFailure(null), { defer: true }))
 
+  const [settingsProblem, setSettingsProblem] = createSignal(untrack(() => props.settingsProblem))
+  // `previous` is undefined on the first run and null on the Enter that leaves the welcome screen.
+  createEffect(
+    on(lastUser, (_, previous) => {
+      if (previous) setSettingsProblem(null)
+    }),
+  )
+  createEffect(
+    on(
+      () => [settings.theme, settings.sidebar, settings.thinking, settings.sessionTitle, settings.permissionMode],
+      () => setSettingsProblem(null),
+      { defer: true },
+    ),
+  )
+
+  createEffect(on(() => settings.theme, setTheme, { defer: true }))
+
   createEffect(() => renderer.setBackgroundColor(theme.background ?? RGBA.defaultBackground()))
 
   const selectableIds = () =>
@@ -119,11 +147,7 @@ export function App(props: AppProps) {
       props.onQuit()
       return
     }
-    if (key.name === "f2") {
-      key.stopPropagation()
-      nextTheme()
-      return
-    }
+    if (dialog()) return
     if (key.name === "f3") {
       key.stopPropagation()
       if (!welcome()) setOverride(sidebar() === "hidden" ? "open" : "closed")
@@ -166,12 +190,18 @@ export function App(props: AppProps) {
     }
   })
 
+  const submit = (text: string) => {
+    const command = text.trim()
+    if (command === "/settings") setDialog("settings")
+    else props.onSubmit(text)
+  }
+
   const input = () => ({
-    focused: focus() === "input",
+    focused: focus() === "input" && dialog() === null,
     placeholder: "Enter sends the next recorded message",
     model: settings.model ?? props.model(),
     provider: props.provider,
-    onSubmit: props.onSubmit,
+    onSubmit: submit,
   })
 
   // Built once per request, so a resize or a sidebar toggle keeps the view's cursor.
@@ -194,78 +224,91 @@ export function App(props: AppProps) {
       scroll: scrollState(),
       replay: props.replay,
       mcpFailure: mcpFailure(),
+      settingsProblem: settingsProblem(),
       asking: pending() !== null,
       now: Date.now(),
     })
   }
 
   return (
-    <Show
-      when={!welcome()}
-      fallback={
-        <Welcome input={input()} workspace={props.workspace} width={dimensions().width} height={dimensions().height} />
-      }
-    >
-      <box
-        flexDirection="row"
-        flexGrow={1}
-        onMouseDown={() => setResizing(false)}
-        onMouseDrag={(event) => {
-          if (!resizing() || event.isDragging) return
-          const width = dimensions().width
-          const half = Math.floor(width / 2)
-          const max = Math.max(
-            SIDEBAR_MIN_WIDTH,
-            sidebar() === "docked" ? Math.min(half, width - MIN_CHAT_WIDTH) : half,
-          )
-          setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x)))
-        }}
-        onMouseUp={() => {
-          if (!resizing()) return
-          setResizing(false)
-          saveSidebarWidth(sidebarWidth())
-        }}
-      >
-        <box flexDirection="column" width={chatWidth()}>
-          <ChatView
-            session={props.session}
-            commands={props.provider.commands()}
-            width={chatWidth()}
-            selected={focus() === "chat" ? selected() : null}
-            expanded={expanded}
-            onOverflow={(id, value) => setOverflowing(id, value)}
-            onScrollState={setScrollState}
-            scrollRef={(element) => (scroll = element)}
-          />
-          <PromptBar
-            {...input()}
-            spaced
-            edgeGap={edgeGap()}
-            width={chatWidth()}
-            notice={notice()}
-            context={props.session.usage.context}
-            ask={askView()}
-            history={history}
-            onListOpen={setListOpen}
-          />
-        </box>
-        <Show when={sidebar() !== "hidden"}>
-          <Sidebar
-            session={props.session}
-            title={title()}
+    <box flexDirection="column" flexGrow={1}>
+      <Show
+        when={!welcome()}
+        fallback={
+          <Welcome
+            input={input()}
             workspace={props.workspace}
-            model={settings.model ?? props.model()}
-            width={shownWidth()}
-            overlay={sidebar() === "overlay"}
-            resizing={resizing()}
-            onResizeStart={() => setResizing(true)}
-            onJump={(id) => {
-              setSelected(id)
-              scroll?.scrollChildIntoView(id)
-            }}
+            notice={settingsProblem()}
+            width={dimensions().width}
+            height={dimensions().height}
+            covered={dialog() !== null}
           />
-        </Show>
-      </box>
-    </Show>
+        }
+      >
+        <box
+          flexDirection="row"
+          flexGrow={1}
+          onMouseDown={() => setResizing(false)}
+          onMouseDrag={(event) => {
+            if (!resizing() || event.isDragging) return
+            const width = dimensions().width
+            const half = Math.floor(width / 2)
+            const max = Math.max(
+              SIDEBAR_MIN_WIDTH,
+              sidebar() === "docked" ? Math.min(half, width - MIN_CHAT_WIDTH) : half,
+            )
+            setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x)))
+          }}
+          onMouseUp={() => {
+            if (!resizing()) return
+            setResizing(false)
+            saveSidebarWidth(sidebarWidth())
+          }}
+        >
+          <box flexDirection="column" width={chatWidth()}>
+            <ChatView
+              session={props.session}
+              commands={props.provider.commands()}
+              width={chatWidth()}
+              selected={focus() === "chat" ? selected() : null}
+              expanded={expanded}
+              onOverflow={(id, value) => setOverflowing(id, value)}
+              onScrollState={setScrollState}
+              scrollRef={(element) => (scroll = element)}
+            />
+            <PromptBar
+              {...input()}
+              spaced
+              edgeGap={edgeGap()}
+              width={chatWidth()}
+              notice={notice()}
+              context={props.session.usage.context}
+              ask={askView()}
+              history={history}
+              onListOpen={setListOpen}
+            />
+          </box>
+          <Show when={sidebar() !== "hidden"}>
+            <Sidebar
+              session={props.session}
+              title={title()}
+              workspace={props.workspace}
+              model={settings.model ?? props.model()}
+              width={shownWidth()}
+              overlay={sidebar() === "overlay"}
+              resizing={resizing()}
+              onResizeStart={() => setResizing(true)}
+              onJump={(id) => {
+                setSelected(id)
+                scroll?.scrollChildIntoView(id)
+              }}
+            />
+          </Show>
+        </box>
+      </Show>
+      <Show when={dialog() === "settings"}>
+        <SettingsDialog onClose={() => setDialog(null)} />
+      </Show>
+    </box>
   )
 }

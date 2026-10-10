@@ -4,7 +4,7 @@ import type { Ask, Session } from "../../session/types.ts"
 import { PermissionBand } from "./permission-band.tsx"
 import { QuestionAsk } from "./question-ask.tsx"
 
-// A view reads keys with its own useKeyboard. While it is open, App passes on every key except Ctrl+C, F2 and F3.
+// A view reads keys with its own useKeyboard. While it is open, App passes on every key except Ctrl+C and F3.
 // `onAnswer` takes the outgoing control_response line; the surface passes on only the first one per ask.
 // `answered` turns true once a response is out; the view then ignores keys.
 export type AskViewProps = {

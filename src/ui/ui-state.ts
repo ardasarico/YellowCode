@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { dirname, join } from "node:path"
+import { dirname } from "node:path"
 import { z } from "zod"
+import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../protocol/json.ts"
 import { SIDEBAR_MIN_WIDTH } from "./layout.ts"
@@ -9,15 +9,10 @@ import { SIDEBAR_MIN_WIDTH } from "./layout.ts"
 const DEFAULT_SIDEBAR_WIDTH = 40
 const State = z.object({ sidebarWidth: z.number().int().min(SIDEBAR_MIN_WIDTH) })
 
-function statePath(): string {
-  const config = process.env["XDG_CONFIG_HOME"] || join(homedir(), ".config")
-  return join(config, "yellowcode", "state.json")
-}
-
 export function loadSidebarWidth(): number {
   let text: string
   try {
-    text = readFileSync(statePath(), "utf8")
+    text = readFileSync(configPath("state.json"), "utf8")
   } catch {
     return DEFAULT_SIDEBAR_WIDTH
   }
@@ -27,7 +22,7 @@ export function loadSidebarWidth(): number {
 }
 
 export function saveSidebarWidth(width: number): void {
-  const path = statePath()
+  const path = configPath("state.json")
   try {
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, `${JSON.stringify({ sidebarWidth: width })}\n`)

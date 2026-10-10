@@ -2,6 +2,21 @@ export type Command = { name: string; description: string; argumentHint: string;
 
 export type CommandRow = Pick<Command, "name" | "description" | "argumentHint">
 
+export const OWN_COMMANDS: Command[] = [
+  { name: "settings", description: "Open YellowCode settings", argumentHint: "", aliases: [] },
+]
+
+// An own command hides recorded commands and aliases with its name, so the list shows it once.
+export function withOwnCommands(commands: Command[]): Command[] {
+  const own = new Set(OWN_COMMANDS.map((command) => command.name.toLowerCase()))
+  const kept: Command[] = []
+  for (const command of commands) {
+    if (own.has(command.name.toLowerCase())) continue
+    kept.push({ ...command, aliases: command.aliases.filter((alias) => !own.has(alias.toLowerCase())) })
+  }
+  return [...kept, ...OWN_COMMANDS]
+}
+
 function flatten(text: string): string {
   return text.replace(/\s+/g, " ").trim()
 }
