@@ -8,7 +8,12 @@ export type Tints = {
   diffAdd: string
   diffDel: string
   frame: string
+  dimFrame: string
   faint: string
+  warningBand: string | null
+  warningLine: string | null
+  errorBand: string
+  errorLine: string
 }
 
 const HEX = /^#[0-9a-f]{6}$/i
@@ -35,6 +40,7 @@ export function tintsFrom(colors: TerminalColors): Tints | null {
   const red = hex(colors.palette[1])
   const green = hex(colors.palette[2])
   if (!background || !foreground || !red || !green) return null
+  const yellow = hex(colors.palette[3])
   return {
     band: mix(background, foreground, 0.06),
     tile: mix(background, foreground, 0.1),
@@ -42,7 +48,12 @@ export function tintsFrom(colors: TerminalColors): Tints | null {
     diffAdd: mix(background, green, 0.18),
     diffDel: mix(background, red, 0.18),
     frame: mix(background, foreground, 0.3),
+    dimFrame: mix(background, foreground, 0.165),
     faint: mix(background, foreground, 0.45),
+    warningBand: yellow ? mix(background, yellow, 0.09) : null,
+    warningLine: yellow ? mix(background, yellow, 0.16) : null,
+    errorBand: mix(background, red, 0.09),
+    errorLine: mix(background, red, 0.16),
   }
 }
 

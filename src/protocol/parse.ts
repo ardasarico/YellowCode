@@ -33,8 +33,3 @@ export function parse(line: string): ParseResult {
   if (!message.success) return { kind: "invalid", key, raw: line, error: z.prettifyError(message.error) }
   return { kind: "message", message: message.data }
 }
-
-export function isUserMessageLine(line: string): boolean {
-  const parsed = parse(line)
-  return parsed.kind === "message" && parsed.message.type === "user"
-}

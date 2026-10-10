@@ -16,9 +16,14 @@ export type Theme = {
   faint: RGBA
   success: RGBA
   frame: RGBA
+  dimFrame: RGBA
   accent: RGBA
   warning: RGBA
   error: RGBA
+  warningBand: RGBA | null
+  warningLine: RGBA | null
+  errorBand: RGBA | null
+  errorLine: RGBA | null
   band: RGBA | null
   tile: RGBA | null
   selection: RGBA | null
@@ -33,7 +38,22 @@ export type Theme = {
 }
 
 export type ThemeColors = {
-  [K in Exclude<keyof Theme, "faint" | "success" | "claude" | "agents" | "syntax" | "rgb">]: string
+  [
+    K in Exclude<
+      keyof Theme,
+      | "faint"
+      | "dimFrame"
+      | "success"
+      | "warningBand"
+      | "warningLine"
+      | "errorBand"
+      | "errorLine"
+      | "claude"
+      | "agents"
+      | "syntax"
+      | "rgb"
+    >
+  ]: string
 } & { agents: string[]; syntax: SyntaxTokens<string> }
 
 export type ThemeDefinition = { id: string; name: string; dark: ThemeColors; light: ThemeColors }
@@ -45,7 +65,10 @@ const hex = (value: string) => RGBA.fromHex(value)
 export function terminalTheme(terminal: Terminal): Theme {
   const { tints, palette } = terminal
   const ansi = (index: number) => RGBA.fromIndex(index, palette[index] ?? undefined)
-  const tint = (key: keyof Tints) => (tints ? RGBA.fromHex(tints[key]) : null)
+  const tint = (key: keyof Tints) => {
+    const value = tints?.[key]
+    return value ? RGBA.fromHex(value) : null
+  }
   return {
     background: null,
     text: RGBA.defaultForeground(),
@@ -53,9 +76,14 @@ export function terminalTheme(terminal: Terminal): Theme {
     faint: tint("faint") ?? ansi(8),
     success: ansi(2),
     frame: tint("frame") ?? ansi(8),
+    dimFrame: tint("dimFrame") ?? ansi(8),
     accent: ansi(4),
     warning: ansi(3),
     error: ansi(1),
+    warningBand: tint("warningBand"),
+    warningLine: tint("warningLine"),
+    errorBand: tint("errorBand"),
+    errorLine: tint("errorLine"),
     band: tint("band"),
     tile: tint("tile"),
     selection: tint("selection"),
@@ -78,9 +106,14 @@ function paintedTheme(c: ThemeColors): Theme {
     faint: hex(mix(c.muted, c.background, 0.4)),
     success: hex(c.diffAddText),
     frame: hex(c.frame),
+    dimFrame: hex(mix(c.frame, c.background, 0.45)),
     accent: hex(c.accent),
     warning: hex(c.warning),
     error: hex(c.error),
+    warningBand: hex(mix(c.background, c.warning, 0.09)),
+    warningLine: hex(mix(c.background, c.warning, 0.16)),
+    errorBand: hex(mix(c.background, c.error, 0.09)),
+    errorLine: hex(mix(c.background, c.error, 0.16)),
     band: hex(c.band),
     tile: hex(c.tile),
     selection: hex(c.selection),

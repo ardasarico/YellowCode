@@ -3,7 +3,7 @@ import type { TerminalColors } from "@opentui/core"
 import { isDark, mix, tintsFrom } from "./palette.ts"
 
 const colors = (background: string | null): TerminalColors => ({
-  palette: [null, "#ff0000", "#00ff00"],
+  palette: [null, "#ff0000", "#00ff00", "#ffff00"],
   defaultForeground: "#ffffff",
   defaultBackground: background,
   cursorColor: null,

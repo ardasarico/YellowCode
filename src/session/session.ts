@@ -1,5 +1,5 @@
 import { createStore, produce } from "solid-js/store"
-import type { ContentBlock, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
+import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
 import type { ParseResult } from "../protocol/parse.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type { Agent, Item, ItemId, Session, UserImage, Window } from "./types.ts"
@@ -31,6 +31,18 @@ function toolResultText(content: string | { type: string; text?: string }[] | un
   if (content === undefined) return ""
   if (typeof content === "string") return content
   return content.map((block) => (block.type === "text" ? (block.text ?? "") : `[${block.type}]`)).join("\n")
+}
+
+function firstSuggestion(suggestions: PermissionUpdate[] | undefined): PermissionUpdate | null {
+  return suggestions?.find((update) => !(update.type === "setMode" && update.mode === "auto")) ?? null
+}
+
+function notesOf(annotations: Record<string, { notes?: string }> | undefined): Record<string, string> {
+  const notes: Record<string, string> = {}
+  for (const [question, annotation] of Object.entries(annotations ?? {})) {
+    if (annotation.notes) notes[question] = annotation.notes
+  }
+  return notes
 }
 
 export function createSession(): SessionStore {
@@ -382,11 +394,21 @@ export function createSession(): SessionStore {
         if (request.subtype !== "can_use_tool") return
         add(
           {
-            kind: "permission",
-            id: `permission-${message.request_id}`,
+            kind: "ask",
+            id: `ask-${message.request_id}`,
+            requestId: message.request_id,
+            toolUseId: request.tool_use_id,
             toolName: request.tool_name,
-            summary: summarizeToolInput(request.input),
-            decision: "pending",
+            displayName: request.display_name ?? request.tool_name,
+            input: request.input,
+            description: request.description ?? "",
+            reason: Bun.stripANSI(request.decision_reason ?? ""),
+            suggestion: request.suppress_always_allow_rule ? null : firstSuggestion(request.permission_suggestions),
+            defaultToNo: request.default_to_no ?? false,
+            safetyCheck: request.decision_reason_type === "safetyCheck",
+            status: "pending",
+            answers: {},
+            notes: {},
           },
           null,
         )
@@ -408,9 +430,15 @@ export function createSession(): SessionStore {
     } else if (message.type === "control_request" && message.request.subtype === "interrupt") {
       interruptSent = true
     } else if (message.type === "control_response") {
-      const behavior = message.response.response?.behavior
-      update(`permission-${message.response.request_id}`, (item) => {
-        if (item.kind === "permission") item.decision = behavior === "deny" ? "denied" : "allowed"
+      const reply = message.response.response
+      update(`ask-${message.response.request_id}`, (item) => {
+        if (item.kind !== "ask") return
+        const answers = reply?.updatedInput?.answers
+        if (reply?.behavior === "deny") item.status = "denied"
+        else if (answers) item.status = "answered"
+        else item.status = "allowed"
+        item.answers = answers ?? {}
+        item.notes = notesOf(reply?.updatedInput?.annotations)
       })
     }
   }

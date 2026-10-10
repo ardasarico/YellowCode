@@ -26,3 +26,31 @@ test("a known block with the wrong shape makes the message invalid and names the
   expect(parsed.kind).toBe("invalid")
   if (parsed.kind === "invalid") expect(parsed.error).toContain("content")
 })
+
+test("a can_use_tool request with a new suggestion or reason type still parses", () => {
+  const request = {
+    subtype: "can_use_tool" as const,
+    tool_name: "Bash",
+    display_name: "Bash",
+    input: { command: "rm -rf old-build" },
+    description: "Remove old-build directory recursively",
+    decision_reason: "rm is dangerous",
+    decision_reason_type: "somethingNew",
+    default_to_no: true,
+    suppress_always_allow_rule: false,
+    blocked_path: "/Users/user/project/old-build",
+    permission_suggestions: [
+      {
+        type: "addRules",
+        rules: [{ toolName: "Bash", ruleContent: "rm -rf old-build" }],
+        behavior: "allow",
+        destination: "localSettings",
+      },
+      { type: "somethingNew", destination: "session", extra: 1 },
+    ],
+    tool_use_id: "toolu_1",
+  }
+  const parsed = parse(JSON.stringify({ type: "control_request", request_id: "r1", request }))
+
+  expect(parsed).toEqual({ kind: "message", message: { type: "control_request", request_id: "r1", request } })
+})

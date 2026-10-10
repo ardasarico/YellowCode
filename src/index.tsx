@@ -117,6 +117,11 @@ await render(
       }}
       titles={values.titles}
       onSubmit={(text) => source.send(userMessage(text))}
+      onAnswer={(ask, response) => {
+        // Replay plays the recorded answer next, so the built one is only logged, not applied to the session.
+        log.info(`answer to ${ask.toolName}`, response)
+        source.send(response)
+      }}
       onQuit={() => void quit()}
     />
   ),

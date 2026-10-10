@@ -7,11 +7,23 @@ import { parse } from "./parse.ts"
 const dir = join(import.meta.dir, "..", "..", "fixtures", "sessions")
 const files = readdirSync(dir).filter((file) => file.endsWith(".jsonl"))
 
-test("all eleven recordings are present", () => {
+test("all thirteen recordings are present", () => {
   expect(files.toSorted()).toEqual(
-    ["agents", "chat", "error", "image", "long", "markdown", "mcp", "permission", "subagent", "thinking", "tools"].map(
-      (name) => `${name}.jsonl`,
-    ),
+    [
+      "agents",
+      "ask",
+      "chat",
+      "error",
+      "image",
+      "long",
+      "markdown",
+      "mcp",
+      "permission-bash",
+      "permission",
+      "subagent",
+      "thinking",
+      "tools",
+    ].map((name) => `${name}.jsonl`),
   )
 })
 

@@ -18,6 +18,7 @@ export type NoticeState = {
   scroll: ScrollState
   replay: ReplayInfo
   mcpFailure: string | null
+  asking: boolean
   now: number
 }
 
@@ -59,6 +60,7 @@ function leftSpans(state: NoticeState): Span[] {
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
+  if (state.asking) return []
   const lines = state.scroll.newLines
   if (!state.scroll.atBottom && lines > 0) {
     return [
@@ -71,5 +73,5 @@ function leftSpans(state: NoticeState): Span[] {
 }
 
 export function noticeFor(state: NoticeState): Notice {
-  return { left: leftSpans(state), right: [{ text: HINTS, fg: theme.muted }] }
+  return { left: leftSpans(state), right: state.asking ? [] : [{ text: HINTS, fg: theme.muted }] }
 }

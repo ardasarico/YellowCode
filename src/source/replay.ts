@@ -1,7 +1,7 @@
 /* oxlint-disable no-await-in-loop */
 import { createSignal, type Accessor } from "solid-js"
-import { isUserMessageLine } from "../protocol/parse.ts"
-import type { Recording } from "./recording.ts"
+import { parse } from "../protocol/parse.ts"
+import type { Recording, RecordingEntry } from "./recording.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
 export type Speed = number | "instant"
@@ -19,6 +19,20 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
   let closed = false
   let release: (() => void) | null = null
   let wakeEarly: (() => void) | null = null
+  const permissionRequests = new Set<string>()
+
+  function waitsForUser(entry: RecordingEntry): boolean {
+    const parsed = parse(entry.line)
+    if (parsed.kind !== "message") return false
+    const message = parsed.message
+    if (message.type === "control_request" && message.request.subtype === "can_use_tool")
+      permissionRequests.add(message.request_id)
+    if (entry.dir !== "out") return false
+    return (
+      message.type === "user" ||
+      (message.type === "control_response" && permissionRequests.has(message.response.request_id))
+    )
+  }
 
   const gate = () =>
     new Promise<void>((resolve) => {
@@ -46,7 +60,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
 
     for (const entry of recording.entries) {
       if (closed) return
-      if (entry.dir === "out" && isUserMessageLine(entry.line)) {
+      if (waitsForUser(entry)) {
         setStatus("waiting")
         await gate()
         if (closed) return

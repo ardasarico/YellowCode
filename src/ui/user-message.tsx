@@ -6,7 +6,7 @@ import { theme } from "../theme/theme.ts"
 const COLLAPSED_ROWS = 8
 const TILE_ROWS = 6
 const BAR = "▌"
-const barChars: BorderCharacters = {
+export const barChars: BorderCharacters = {
   topLeft: BAR,
   topRight: " ",
   bottomLeft: BAR,

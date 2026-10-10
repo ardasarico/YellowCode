@@ -1,3 +1,5 @@
+import type { PermissionUpdate } from "../protocol/messages.ts"
+
 export type ItemId = string
 
 export type UserImage = { mediaType: string; data: string }
@@ -28,12 +30,22 @@ export type Agent = {
   error: string | null
 }
 export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }
-export type Permission = {
-  kind: "permission"
+export type Ask = {
+  kind: "ask"
   id: ItemId
+  requestId: string
+  toolUseId: string
   toolName: string
-  summary: string
-  decision: "pending" | "allowed" | "denied"
+  displayName: string
+  input: unknown
+  description: string
+  reason: string
+  suggestion: PermissionUpdate | null
+  defaultToNo: boolean
+  safetyCheck: boolean
+  status: "pending" | "allowed" | "denied" | "answered"
+  answers: Record<string, string>
+  notes: Record<string, string>
 }
 export type TurnEnd = {
   kind: "turn-end"
@@ -48,7 +60,7 @@ export type TurnEnd = {
 }
 export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning" }
 
-export type Item = UserMessage | AssistantText | Thinking | ToolCall | Permission | TurnEnd | SystemEvent
+export type Item = UserMessage | AssistantText | Thinking | ToolCall | Ask | TurnEnd | SystemEvent
 
 export type SessionInfo = {
   id: string

@@ -1,11 +1,10 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, Show, Switch } from "solid-js"
-import type { Item, Session } from "../session/types.ts"
+import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { Markdown } from "./markdown/markdown.tsx"
-import { PermissionRow } from "./permission-row.tsx"
 import { buildRows, type Row } from "./structure.ts"
 import { SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
@@ -34,6 +33,7 @@ function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<It
 
 type RowProps = ChatProps & {
   row: Row
+  ask: Ask | null
   previous: Row["kind"] | undefined
   agentIndex: number
   viewport: () => Renderable | undefined
@@ -78,6 +78,7 @@ function RowView(props: RowProps) {
           {(tool) => (
             <ToolCallRow
               item={tool()}
+              ask={props.ask}
               cwd={props.session.info?.cwd ?? ""}
               selected={props.selected === tool().id}
               expanded={props.expanded[tool().id] === true}
@@ -102,7 +103,6 @@ function RowView(props: RowProps) {
             </box>
           )}
         </Match>
-        <Match when={item("permission")}>{(permission) => <PermissionRow item={permission()} />}</Match>
         <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
         <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
         <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>
@@ -126,6 +126,14 @@ export function ChatView(props: ChatViewProps) {
           .map((row, index) => [row.id, index]),
       ),
   )
+  const askByTool = createMemo(() => {
+    const asks = new Map<string, Ask>()
+    for (const id of props.session.items) {
+      const item = props.session.byId[id]
+      if (item?.kind === "ask") asks.set(item.toolUseId, item)
+    }
+    return asks
+  })
   const previousKind = createMemo(() => new Map(rows().map((row, index) => [row.id, rows()[index - 1]?.kind])))
 
   createEffect(() => {
@@ -159,6 +167,7 @@ export function ChatView(props: ChatViewProps) {
               <RowView
                 {...props}
                 row={row()}
+                ask={askByTool().get(id) ?? null}
                 previous={previousKind().get(id)}
                 agentIndex={agentIndex().get(id) ?? 0}
                 viewport={() => scroll?.viewport}

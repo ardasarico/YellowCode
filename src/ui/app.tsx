@@ -3,12 +3,13 @@ import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
-import type { Session } from "../session/types.ts"
+import type { Ask, Session } from "../session/types.ts"
 import { nextTheme, theme } from "../theme/theme.ts"
+import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import { MIN_CHAT_WIDTH, SIDEBAR_MIN_WIDTH, type SidebarOverride, sidebarShown } from "./layout.ts"
 import { noticeFor, type ReplayInfo } from "./notice.ts"
-import { PromptBar } from "./prompt-bar.tsx"
+import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
@@ -22,6 +23,7 @@ export type AppProps = {
   replay: ReplayInfo
   titles: boolean
   onSubmit: (text: string) => void
+  onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
 }
 
@@ -53,6 +55,15 @@ export function App(props: AppProps) {
   const shownWidth = () => Math.min(sidebarWidth(), Math.max(SIDEBAR_MIN_WIDTH, Math.floor(dimensions().width / 2)))
   const sidebar = () => sidebarShown(dimensions().width, shownWidth(), override())
   const chatWidth = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
+  const edgeGap = () => (sidebar() === "docked" ? 2 : 0)
+  const pending = createMemo(() => pendingAsk(props.session))
+  createEffect(
+    on(
+      () => pending() !== null,
+      () => setFocus("input"),
+      { defer: true },
+    ),
+  )
   const [mcpFailure, setMcpFailure] = createSignal<string | null>(null)
   const failedServers = new Set<string>()
 
@@ -92,15 +103,24 @@ export function App(props: AppProps) {
     setSelected(ids[next] ?? null)
   }
 
+  // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
+      key.stopPropagation()
       props.onQuit()
       return
     }
     if (key.name === "f2") {
+      key.stopPropagation()
       nextTheme()
       return
     }
+    if (key.name === "f3") {
+      key.stopPropagation()
+      if (!welcome()) setOverride(sidebar() === "hidden" ? "open" : "closed")
+      return
+    }
+    if (pending()) return
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
       stepEffort(key.name === "up" ? 1 : -1)
@@ -109,10 +129,6 @@ export function App(props: AppProps) {
     if (key.shift && (key.name === "left" || key.name === "right")) {
       key.preventDefault()
       stepModel(key.name === "right" ? 1 : -1, props.model())
-      return
-    }
-    if (key.name === "f3") {
-      if (!welcome()) setOverride(sidebar() === "hidden" ? "open" : "closed")
       return
     }
     if (key.name === "f4") {
@@ -148,6 +164,18 @@ export function App(props: AppProps) {
     onSubmit: props.onSubmit,
   })
 
+  // Built once per request, so a resize or a sidebar toggle keeps the view's cursor.
+  const askView = createMemo(
+    on(
+      () => pending()?.requestId,
+      () => {
+        const ask = pending()
+        if (!ask) return undefined
+        return <AskSurface ask={ask} width={promptInnerWidth(chatWidth(), edgeGap())} onAnswer={props.onAnswer} />
+      },
+    ),
+  )
+
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
   const notice = () => {
     clock()
@@ -156,6 +184,7 @@ export function App(props: AppProps) {
       scroll: scrollState(),
       replay: props.replay,
       mcpFailure: mcpFailure(),
+      asking: pending() !== null,
       now: Date.now(),
     })
   }
@@ -200,10 +229,11 @@ export function App(props: AppProps) {
           <PromptBar
             {...input()}
             spaced
-            edgeGap={sidebar() === "docked" ? 2 : 0}
+            edgeGap={edgeGap()}
             width={chatWidth()}
             notice={notice()}
             context={props.session.usage.context}
+            ask={askView()}
           />
         </box>
         <Show when={sidebar() !== "hidden"}>

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { userMessage } from "../protocol/outgoing.ts"
+import { allowTool, userMessage } from "../protocol/outgoing.ts"
 import { createReplaySource, parseSpeed } from "./replay.ts"
 
 const header = { cliVersion: "2.1.293", scenario: "test", recordedAt: "2026-10-07T00:00:00.000Z" }
@@ -35,6 +35,38 @@ test("pauses at each recorded user message until send, and ignores early sends",
   source.send("")
   await done
   expect(seen).toEqual(["out", "in", "out", "in"])
+  expect(source.status()).toBe("finished")
+})
+
+test("pauses before a recorded permission answer until send", async () => {
+  const request = JSON.stringify({
+    type: "control_request",
+    request_id: "r1",
+    request: { subtype: "can_use_tool", tool_name: "Bash", tool_use_id: "toolu_1", input: {} },
+  })
+  const source = createReplaySource(
+    {
+      header,
+      entries: [
+        { t: 0, dir: "in", line: request },
+        { t: 1, dir: "out", line: allowTool("r1", {}) },
+        { t: 2, dir: "in", line: reply },
+      ],
+    },
+    "instant",
+  )
+  const seen: string[] = []
+  const done = (async () => {
+    for await (const event of source.events) seen.push(event.dir)
+  })()
+
+  await Bun.sleep(5)
+  expect(seen).toEqual(["in"])
+  expect(source.status()).toBe("waiting")
+
+  source.send("")
+  await done
+  expect(seen).toEqual(["in", "out", "in"])
   expect(source.status()).toBe("finished")
 })
 

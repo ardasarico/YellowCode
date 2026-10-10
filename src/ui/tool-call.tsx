@@ -1,6 +1,9 @@
 import { RGBA } from "@opentui/core"
-import { createSignal, Show } from "solid-js"
-import type { ToolCall } from "../session/types.ts"
+import { createSignal, Index, Show } from "solid-js"
+import { askUserQuestionInput } from "../protocol/messages.ts"
+import { QUESTION_DECLINED, TOOL_DECLINED } from "../protocol/outgoing.ts"
+import { severe } from "../session/ask.ts"
+import type { Ask, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
 import { addedRows, diffRows } from "./diff.ts"
@@ -10,6 +13,10 @@ import { cut, cutPath } from "./format.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
+const LINE_INDENT = " ".repeat(RESULT_INDENT.length)
+const DEFAULT_DENIALS = new Set([TOOL_DECLINED, QUESTION_DECLINED])
+// Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result.
+const ANSWER_IN_RESULT = /"([^"]*)"="([^"]*)"(?: notes: ([\s\S]*?))?(?=, "|\. |\.?$)/g
 
 function count(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? "" : "s"}`
@@ -38,21 +45,61 @@ export function resultSummary(tool: ToolCall): string {
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
 }
 
+export function deniedLine(tool: ToolCall): string {
+  const note = tool.result.trim().replaceAll("\n", " ")
+  return note && !DEFAULT_DENIALS.has(note) ? `denied · ${note}` : "denied"
+}
+
+export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
+  let answers = ask?.answers ?? {}
+  let notes = ask?.notes ?? {}
+  if (Object.keys(answers).length === 0) {
+    const found = [...tool.result.matchAll(ANSWER_IN_RESULT)]
+    answers = Object.fromEntries(found.map(([, question = "", answer = ""]) => [question, answer]))
+    notes = Object.fromEntries(found.map(([, question = "", , note = ""]) => [question, note]))
+  }
+  const questions = askUserQuestionInput.safeParse(tool.input).data?.questions ?? []
+  return Object.entries(answers).map(([question, answer]) => {
+    const header = questions.find((entry) => entry.question === question)?.header ?? question
+    const note = notes[question]?.replaceAll("\n", " ")
+    return note ? `${header}: ${answer} · ${note}` : `${header}: ${answer}`
+  })
+}
+
 export function relative(target: string, cwd: string): string {
   return cwd && target.startsWith(`${cwd}/`) ? target.slice(cwd.length + 1) : target
 }
 
-export function ToolCallRow(props: { item: ToolCall; cwd: string; selected: boolean; expanded: boolean }) {
+export function ToolCallRow(props: {
+  item: ToolCall
+  ask?: Ask | null
+  cwd: string
+  selected: boolean
+  expanded: boolean
+}) {
   const [width, setWidth] = createSignal(0)
-  const running = () => props.item.status === "running"
+  const waiting = () => props.ask?.status === "pending"
+  const denied = () => props.ask?.status === "denied"
+  const running = () => props.item.status === "running" && !waiting()
   const seconds = useElapsedSeconds(running)
-  const color = () => (props.item.status === "error" ? theme.error : running() ? theme.warning : theme.muted)
+  const color = () => {
+    if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
+    if (denied() || props.item.status === "error") return theme.error
+    return props.item.status === "running" ? theme.warning : theme.muted
+  }
   const target = () => {
     const value = relative(props.item.summary, props.cwd)
     const room = width() - props.item.name.length - 4
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
-  const result = () => (running() ? `running… ${seconds()}s` : resultSummary(props.item))
+  const lines = () => {
+    if (waiting()) return ["waiting for your approval"]
+    if (denied()) return [deniedLine(props.item)]
+    if (running()) return [`running… ${seconds()}s`]
+    const answers = props.item.name === "AskUserQuestion" ? answerLines(props.item, props.ask ?? null) : []
+    return answers.length > 0 ? answers : [resultSummary(props.item)]
+  }
+  const lineColor = () => (props.item.status === "done" && !denied() ? theme.muted : color())
   const diff = () => {
     const tool = props.item
     if (tool.status !== "done") return null
@@ -77,12 +124,14 @@ export function ToolCallRow(props: { item: ToolCall; cwd: string; selected: bool
         <span style={{ fg: theme.text, bold: true }}>{` ${props.item.name}`}</span>
         <span style={{ fg: theme.text }}>{`(${target()})`}</span>
       </text>
-      <text wrapMode="none">
-        <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
-        <span style={{ fg: props.item.status === "done" ? theme.muted : color() }}>
-          {cut(result(), width() - RESULT_INDENT.length)}
-        </span>
-      </text>
+      <Index each={lines()}>
+        {(line, index) => (
+          <text wrapMode="none">
+            <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
+            <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+          </text>
+        )}
+      </Index>
       <Show
         when={diff()}
         fallback={

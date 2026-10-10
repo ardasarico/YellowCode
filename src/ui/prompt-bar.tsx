@@ -1,5 +1,6 @@
 import { type TextareaRenderable, TextAttributes } from "@opentui/core"
-import { Index, Show } from "solid-js"
+import { useTerminalDimensions } from "@opentui/solid"
+import { Index, type JSX, onCleanup, onMount, Show } from "solid-js"
 import { settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
 import { effortColor, yellow } from "../theme/brand.ts"
@@ -14,11 +15,13 @@ import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
 // `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
 // `edgeGap` adds room on the right, so the context indicator does not touch a docked sidebar.
+// `ask` takes the place of the rules and the input.
 export type PromptBarProps = InputBlockProps & {
   notice: Notice
   context: Usage["context"]
   spaced?: boolean
   edgeGap?: number
+  ask?: JSX.Element
 }
 
 function Spans(props: { spans: Span[]; shrink: number }) {
@@ -52,10 +55,26 @@ function ContextIndicator(props: { context: Usage["context"] }) {
   )
 }
 
-export function PromptBar(props: PromptBarProps) {
+function NoticeLine(props: { notice: Notice; spaced?: boolean }) {
+  return (
+    <box flexDirection="row" justifyContent="space-between" height={1} gap={2} marginTop={props.spaced ? 1 : 0}>
+      <Spans spans={props.notice.left} shrink={0} />
+      <Spans spans={props.notice.right} shrink={1} />
+    </box>
+  )
+}
+
+// An ask unmounts the input, so the draft is handed back on cleanup and restored when the input returns.
+function PromptInput(
+  props: Omit<InputBlockProps, "model"> & { frame: number; draft: string; onDraft: (text: string) => void },
+) {
   let area: TextareaRenderable | undefined
-  const frame = useTicker(() => settings.ultracode, 60)
-  const inner = () => Math.max(0, props.width - 2 - (props.edgeGap ?? 0))
+  onMount(() => {
+    if (!area || !props.draft) return
+    area.setText(props.draft)
+    area.gotoBufferEnd()
+  })
+  onCleanup(() => props.onDraft(area?.plainText ?? ""))
 
   const submit = () => {
     if (!area) return
@@ -64,18 +83,8 @@ export function PromptBar(props: PromptBarProps) {
   }
 
   return (
-    <box
-      flexDirection="column"
-      flexShrink={0}
-      width={props.width}
-      paddingLeft={1}
-      paddingRight={1 + (props.edgeGap ?? 0)}
-    >
-      <box flexDirection="row" justifyContent="space-between" height={1} gap={2} marginTop={props.spaced ? 1 : 0}>
-        <Spans spans={props.notice.left} shrink={0} />
-        <Spans spans={props.notice.right} shrink={1} />
-      </box>
-      <InputEdge width={inner()} ultracode={settings.ultracode} frame={frame()} glyph="─" />
+    <>
+      <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
       <box flexDirection="row">
         <text fg={yellow(theme.rgb)} flexShrink={0}>
           {"❯ "}
@@ -94,27 +103,90 @@ export function PromptBar(props: PromptBarProps) {
           onSubmit={submit}
         />
       </box>
-      <InputEdge width={inner()} ultracode={settings.ultracode} frame={frame()} glyph="─" />
-      <box flexDirection="row" justifyContent="space-between">
-        <box flexDirection="row">
-          <text fg={theme.claude} attributes={TextAttributes.BOLD}>
-            {props.model ? `✻ ${modelName(props.model)}` : ""}
-          </text>
-          <Show when={settings.effort}>
-            {(level) => (
-              <text>
-                <span style={{ fg: theme.muted }}>{"  effort "}</span>
-                <span style={{ fg: effortColor(level(), theme.rgb) }}>{level()}</span>
-              </text>
-            )}
-          </Show>
-          <Show when={settings.ultracode}>
-            <text>{"  "}</text>
-            <UltracodeWord frame={frame()} />
-          </Show>
-        </box>
-        <ContextIndicator context={props.context} />
+      <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
+    </>
+  )
+}
+
+function InfoLine(props: { model: string | null; context: Usage["context"]; frame: number }) {
+  return (
+    <box flexDirection="row" justifyContent="space-between">
+      <box flexDirection="row">
+        <text fg={theme.claude} attributes={TextAttributes.BOLD}>
+          {props.model ? `✻ ${modelName(props.model)}` : ""}
+        </text>
+        <Show when={settings.effort}>
+          {(level) => (
+            <text>
+              <span style={{ fg: theme.muted }}>{"  effort "}</span>
+              <span style={{ fg: effortColor(level(), theme.rgb) }}>{level()}</span>
+            </text>
+          )}
+        </Show>
+        <Show when={settings.ultracode}>
+          <text>{"  "}</text>
+          <UltracodeWord frame={props.frame} />
+        </Show>
       </box>
+      <ContextIndicator context={props.context} />
+    </box>
+  )
+}
+
+const CHAT_MIN_ROWS = 6
+const ASK_MIN_ROWS = 7
+
+export function promptInnerWidth(width: number, edgeGap: number): number {
+  return Math.max(0, width - 2 - edgeGap)
+}
+
+export function PromptBar(props: PromptBarProps) {
+  const frame = useTicker(() => settings.ultracode, 60)
+  const inner = () => promptInnerWidth(props.width, props.edgeGap ?? 0)
+  const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
+  const dimensions = useTerminalDimensions()
+  let draft = ""
+
+  // The chat keeps its rows, so a tall ask scrolls inside what is left.
+  const askGap = () => (props.spaced && !hasNotice() ? 1 : 0)
+  const askMaxHeight = () => {
+    const notice = hasNotice() ? 1 + (props.spaced ? 1 : 0) : 0
+    return Math.max(ASK_MIN_ROWS, dimensions().height - CHAT_MIN_ROWS - notice - askGap() - 1)
+  }
+
+  return (
+    <box
+      flexDirection="column"
+      flexShrink={0}
+      width={props.width}
+      paddingLeft={1}
+      paddingRight={1 + (props.edgeGap ?? 0)}
+    >
+      <Show when={hasNotice()}>
+        <NoticeLine notice={props.notice} spaced={props.spaced} />
+      </Show>
+      <Show
+        when={props.ask}
+        keyed
+        fallback={
+          <PromptInput
+            focused={props.focused}
+            placeholder={props.placeholder}
+            width={inner()}
+            onSubmit={props.onSubmit}
+            frame={frame()}
+            draft={draft}
+            onDraft={(text) => (draft = text)}
+          />
+        }
+      >
+        {(ask) => (
+          <box flexDirection="column" marginTop={askGap()} maxHeight={askMaxHeight()}>
+            {ask}
+          </box>
+        )}
+      </Show>
+      <InfoLine model={props.model} context={props.context} frame={frame()} />
     </box>
   )
 }

@@ -3,7 +3,8 @@
 import { mkdir, realpath, rm, writeFile } from "node:fs/promises"
 import { homedir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
-import { allowTool, interruptRequest, userMessage } from "../../src/protocol/outgoing.ts"
+import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/protocol/messages.ts"
+import { allowTool, answerQuestions, interruptRequest, userMessage } from "../../src/protocol/outgoing.ts"
 import { parse, type ParseResult } from "../../src/protocol/parse.ts"
 import { CLAUDE_STREAM_ARGS } from "../../src/source/claude-args.ts"
 import { splitLines } from "../../src/source/lines.ts"
@@ -22,6 +23,10 @@ function timer(ms: number): { done: Promise<null>; cancel: () => void } {
     handle = setTimeout(() => resolve(null), ms)
   })
   return { done, cancel: () => clearTimeout(handle) }
+}
+
+function firstOptions(input: AskUserQuestionInput): Record<string, string> {
+  return Object.fromEntries(input.questions.map((q) => [q.question, q.options[0]?.label ?? ""]))
 }
 
 const ownsMcp = (scenario: Scenario) => scenario.args?.includes("--strict-mcp-config") ?? false
@@ -106,7 +111,13 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
         const message = parsed.message
 
         if (message.type === "control_request" && message.request.subtype === "can_use_tool") {
-          send(allowTool(message.request_id, message.request.input))
+          const { request } = message
+          if (request.tool_name === "AskUserQuestion") {
+            const input = askUserQuestionInput.parse(request.input)
+            send(answerQuestions(message.request_id, input, firstOptions(input), {}))
+          } else {
+            send(allowTool(message.request_id, request.input))
+          }
         } else if (
           turn.interruptAfterFirstText &&
           !interrupted &&

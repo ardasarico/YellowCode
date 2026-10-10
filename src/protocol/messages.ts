@@ -191,6 +191,28 @@ const result = z.looseObject({
   errors: z.array(z.string()).optional(),
 })
 
+const permissionUpdate = z.looseObject({
+  type: z.string(),
+  rules: z.array(z.looseObject({ toolName: z.string(), ruleContent: z.string().optional() })).optional(),
+  behavior: z.string().optional(),
+  mode: z.string().optional(),
+  directories: z.array(z.string()).optional(),
+  destination: z.string().optional(),
+})
+
+export const askUserQuestionInput = z.looseObject({
+  questions: z.array(
+    z.looseObject({
+      question: z.string(),
+      header: z.string(),
+      options: z.array(
+        z.looseObject({ label: z.string(), description: z.string().optional(), preview: z.string().optional() }),
+      ),
+      multiSelect: z.boolean().optional(),
+    }),
+  ),
+})
+
 const controlRequest = z.looseObject({
   type: z.literal("control_request"),
   request_id: z.string(),
@@ -200,6 +222,14 @@ const controlRequest = z.looseObject({
       tool_name: z.string(),
       tool_use_id: z.string(),
       input: z.unknown(),
+      description: z.string().optional(),
+      display_name: z.string().optional(),
+      decision_reason: z.string().optional(),
+      decision_reason_type: z.string().optional(),
+      permission_suggestions: z.array(permissionUpdate).optional(),
+      default_to_no: z.boolean().optional(),
+      suppress_always_allow_rule: z.boolean().optional(),
+      blocked_path: z.string().optional(),
     }),
     z.looseObject({ subtype: z.literal("interrupt") }),
   ]),
@@ -210,7 +240,17 @@ const controlResponse = z.looseObject({
   response: z.looseObject({
     subtype: z.string(),
     request_id: z.string(),
-    response: z.looseObject({ behavior: z.string().optional() }).optional(),
+    response: z
+      .looseObject({
+        behavior: z.string().optional(),
+        updatedInput: z
+          .looseObject({
+            answers: z.record(z.string(), z.string()).optional(),
+            annotations: z.record(z.string(), z.looseObject({ notes: z.string().optional() })).optional(),
+          })
+          .optional(),
+      })
+      .optional(),
   }),
 })
 
@@ -252,6 +292,8 @@ export const protocolMessage = z.discriminatedUnion("type", [
 export type ProtocolMessage = z.infer<typeof protocolMessage>
 export type ContentBlock = z.infer<typeof contentBlock>
 export type UserBlock = z.infer<typeof userBlock>
+export type PermissionUpdate = z.infer<typeof permissionUpdate>
+export type AskUserQuestionInput = z.infer<typeof askUserQuestionInput>
 
 export const KNOWN_KEYS = new Set([
   "system/init",

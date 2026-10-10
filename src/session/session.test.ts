@@ -80,8 +80,59 @@ test("tools recording ends with every tool call finished and permissions answere
   const all = items(replay("tools"))
   expect(all.some((item) => item.kind === "tool")).toBe(true)
   expect(all.filter((item) => item.kind === "tool" && item.status === "running")).toEqual([])
-  expect(all.some((item) => item.kind === "permission")).toBe(true)
-  expect(all.filter((item) => item.kind === "permission" && item.decision !== "allowed")).toEqual([])
+  expect(all.some((item) => item.kind === "ask")).toBe(true)
+  expect(all.filter((item) => item.kind === "ask" && item.status !== "allowed")).toEqual([])
+})
+
+const canUseTool = (extra: object) => ({
+  type: "control_request",
+  request_id: "r1",
+  request: { subtype: "can_use_tool", tool_name: "Bash", tool_use_id: "t1", input: { command: "ls" }, ...extra },
+})
+
+test("an ask offers the first suggestion that is not switching to auto mode", () => {
+  const session = feed(
+    canUseTool({
+      description: "List files",
+      permission_suggestions: [
+        { type: "setMode", mode: "auto", destination: "session" },
+        { type: "addRules", rules: [{ toolName: "Bash", ruleContent: "ls" }], behavior: "allow" },
+      ],
+    }),
+  )
+  expect(session.state.byId["ask-r1"]).toMatchObject({
+    description: "List files",
+    status: "pending",
+    suggestion: { type: "addRules" },
+  })
+})
+
+test("an ask offers no suggestion when always allow is suppressed", () => {
+  const session = feed(
+    canUseTool({
+      suppress_always_allow_rule: true,
+      permission_suggestions: [{ type: "addRules", rules: [{ toolName: "Bash" }], behavior: "allow" }],
+    }),
+  )
+  expect(session.state.byId["ask-r1"]).toMatchObject({ suggestion: null })
+})
+
+const settle = (response: object) => {
+  const session = feed(canUseTool({}))
+  const reply = { type: "control_response", response: { subtype: "success", request_id: "r1", response } }
+  session.apply("out", parse(JSON.stringify(reply)), 0)
+  return session.state.byId["ask-r1"]
+}
+
+test("the outgoing response settles the ask", () => {
+  expect(settle({ behavior: "deny", message: "no" })).toMatchObject({ status: "denied" })
+  expect(settle({ behavior: "allow", updatedInput: {} })).toMatchObject({ status: "allowed" })
+  expect(
+    settle({
+      behavior: "allow",
+      updatedInput: { answers: { "Which?": "A" }, annotations: { "Which?": { notes: "because" } } },
+    }),
+  ).toMatchObject({ status: "answered", answers: { "Which?": "A" }, notes: { "Which?": "because" } })
 })
 
 test("subagent messages land under the Agent tool call", () => {

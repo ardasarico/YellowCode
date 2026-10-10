@@ -44,6 +44,19 @@ export const scenarios: Scenario[] = [
     turns: [{ text: "Use the Write tool to create notes.txt containing 'hello'. Do nothing else." }],
   },
   {
+    name: "permission-bash",
+    files: { "old-build/a.txt": "a\n" },
+    turns: [{ text: "Run `rm -rf old-build` with Bash. Do nothing else." }],
+  },
+  {
+    name: "ask",
+    turns: [
+      {
+        text: "Use the AskUserQuestion tool once to ask me two questions: which storage to use for settings (user config file, per project, environment variable; recommend the first) and which formats to support (JSON, TOML, YAML; multiple answers allowed). Then reply with one sentence.",
+      },
+    ],
+  },
+  {
     name: "subagent",
     files: { "README.md": "# Demo\n", "src/index.ts": "console.log('hi')\n" },
     turns: [
