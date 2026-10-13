@@ -23,7 +23,7 @@ export type DialogProps = {
 const WIDTH = 64
 const FULL_WIDTH_MARGIN = 6
 const PAD_X = 4
-const DIM = RGBA.fromValues(6 / 255, 7 / 255, 12 / 255, 0.74)
+const DIM = RGBA.fromValues(6 / 255, 7 / 255, 12 / 255, 0.75)
 // Title, blank, search row, blank above the sections; the footer below them; one padding row on each side.
 const FIXED_ROWS = 4 + 1 + 2
 

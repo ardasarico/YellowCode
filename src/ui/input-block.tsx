@@ -26,7 +26,7 @@ export type InputBlockProps = {
   onLeaveDown?: () => void
 }
 
-const TILE_PADDING = 3
+export const TILE_PADDING = 3
 
 // The suggestion list opens above the tile, over whatever the welcome screen shows there, and its padding rows are
 // taken from the room.

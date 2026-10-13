@@ -19,13 +19,15 @@ function step(setting: SettingDefinition, by: 1 | -1) {
 }
 
 const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
+const opensList = (setting: SettingDefinition) => setting.options.length > LONG
 
 const mainSections = (): DialogSection[] =>
   SECTIONS.map((section) => ({
     title: section,
     rows: SETTINGS.filter((setting) => setting.section === section).map((setting) => {
       const option = currentOption(setting)
-      return { id: setting.key, label: setting.label, value: option?.label, note: option?.note }
+      const value = opensList(setting) ? `${option?.label} →` : option?.label
+      return { id: setting.key, label: setting.label, value, note: option?.note }
     }),
   }))
 
@@ -70,15 +72,15 @@ export function SettingsDialog(props: { onClose: () => void }) {
           { text: " esc", fg: theme.muted },
         ]
       : [
-          { text: "Change", fg: theme.text },
+          { text: "Switch", fg: theme.text },
           { text: " ←→  ", fg: theme.muted },
-          { text: "Reset", fg: theme.text },
+          { text: "Default", fg: theme.text },
           { text: " ctrl+r", fg: theme.muted },
         ]
 
   return (
     <Dialog
-      title={list()?.label ?? "Settings"}
+      title={list() ? `Settings / ${list()?.label}` : "Settings"}
       sections={sections()}
       footer={footer()}
       view={list()?.key ?? "main"}
@@ -92,7 +94,7 @@ export function SettingsDialog(props: { onClose: () => void }) {
           return
         }
         const setting = settingFor(row.id)
-        if (!setting || setting.options.length <= LONG) return
+        if (!setting || !opensList(setting)) return
         batch(() => {
           setReturnTo(setting.key)
           setList(setting)
