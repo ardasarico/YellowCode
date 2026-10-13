@@ -76,6 +76,33 @@ export const scenarios: Scenario[] = [
     ],
   },
   {
+    name: "nested-agents",
+    files: { "a.txt": "alpha\n", "b.txt": "beta\n" },
+    turns: [
+      {
+        text: "Use the Agent tool once with subagent_type general-purpose, name 'outer' and run_in_background false. Give it exactly this task: \"Use the Agent tool twice in one message. First, with subagent_type general-purpose, name 'inner-fg' and run_in_background false, ask it to read a.txt and reply with its content. Second, with subagent_type general-purpose and name 'inner-bg', leaving run_in_background unset, ask it to read b.txt and reply with its content. Wait for both, then reply with the two words.\" When outer is done, reply with one sentence.",
+      },
+    ],
+  },
+  {
+    name: "background-bash",
+    turns: [
+      {
+        text: "Run `sleep 5; echo done` with Bash with run_in_background true. While it runs, run `echo working` with Bash in the foreground. Then end your turn with one short sentence. When you are notified that the background command finished, reply with its output in one sentence.",
+      },
+    ],
+  },
+  {
+    name: "workflow",
+    args: ["--settings", JSON.stringify({ ultracode: true, workflowSizeGuideline: "small" })],
+    files: { "a.txt": "alpha\n", "b.txt": "beta\n" },
+    turns: [
+      {
+        text: "Use the Workflow tool to run the smallest possible workflow: exactly two agents in parallel, one reads a.txt and returns its content, the other reads b.txt and returns its content. No other agents or phases. Then reply with one sentence.",
+      },
+    ],
+  },
+  {
     name: "image",
     turns: [{ text: "What color is the square in this image? Answer in one sentence.", image: true }],
   },
