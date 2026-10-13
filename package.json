@@ -10,7 +10,7 @@
     "transcripts": "bun tools/record/transcripts.ts",
     "flicker": "bun tools/flicker.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint --type-aware --deny-warnings",
+    "lint": "oxlint --type-aware --deny-warnings --disable-nested-config",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "bun test",
