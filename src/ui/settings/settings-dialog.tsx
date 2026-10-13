@@ -1,6 +1,7 @@
-import { batch, createSignal } from "solid-js"
+import { batch, createSignal, untrack } from "solid-js"
 import { resetSetting, setSetting, settings } from "../../session/settings.ts"
-import { theme } from "../../theme/theme.ts"
+import type { StoredSettings } from "../../session/settings-file.ts"
+import { setTheme, theme, themeId } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import type { DialogSection } from "../dialog/list.ts"
 import { SETTINGS, type SettingDefinition } from "./options.ts"
@@ -43,15 +44,23 @@ const optionSections = (setting: SettingDefinition): DialogSection[] => [
   },
 ]
 
-export function SettingsDialog(props: { onClose: () => void }) {
-  const [list, setList] = createSignal<SettingDefinition | null>(null)
+const preview = (id: string) => {
+  if (id !== themeId()) setTheme(id)
+}
+
+// `only` opens straight on one setting's options, and leaving that list closes the dialog.
+export function SettingsDialog(props: { only?: keyof StoredSettings; onClose: () => void }) {
+  const only = untrack(() => props.only)
+  const [list, setList] = createSignal<SettingDefinition | null>(only ? (settingFor(only) ?? null) : null)
   const [returnTo, setReturnTo] = createSignal<string>(SETTINGS[0]?.key ?? "")
 
-  const back = (setting: SettingDefinition) =>
+  const back = (setting: SettingDefinition) => {
+    if (props.only) return props.onClose()
     batch(() => {
       setReturnTo(setting.key)
       setList(null)
     })
+  }
 
   const sections = () => {
     const open = list()
@@ -68,7 +77,7 @@ export function SettingsDialog(props: { onClose: () => void }) {
       ? [
           { text: "Choose", fg: theme.text },
           { text: " enter  ", fg: theme.muted },
-          { text: "Back", fg: theme.text },
+          { text: props.only ? "Cancel" : "Back", fg: theme.text },
           { text: " esc", fg: theme.muted },
         ]
       : [
@@ -80,11 +89,14 @@ export function SettingsDialog(props: { onClose: () => void }) {
 
   return (
     <Dialog
-      title={list() ? `Settings / ${list()?.label}` : "Settings"}
+      title={props.only ? (list()?.label ?? "") : list() ? `Settings / ${list()?.label}` : "Settings"}
       sections={sections()}
       footer={footer()}
       view={list()?.key ?? "main"}
       initialSelected={selection()}
+      onSelect={(row) => {
+        if (list()?.key === "theme") preview(row.id)
+      }}
       onEnter={(row) => {
         const open = list()
         if (open) {
@@ -110,6 +122,7 @@ export function SettingsDialog(props: { onClose: () => void }) {
       }}
       onEscape={() => {
         const open = list()
+        if (open?.key === "theme") preview(settings.theme)
         if (open) back(open)
         else props.onClose()
       }}

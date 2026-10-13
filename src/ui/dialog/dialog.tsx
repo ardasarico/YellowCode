@@ -15,6 +15,7 @@ export type DialogProps = {
   view: string
   initialSelected?: string
   onEnter: (row: DialogRow) => void
+  onSelect?: (row: DialogRow) => void
   onKey: (key: KeyEvent, row: DialogRow | undefined) => boolean
   onEscape: () => void
   empty?: (query: string) => string
@@ -60,14 +61,19 @@ export function Dialog(props: DialogProps) {
 
   const visible = createMemo(() => filterSections(props.sections, query()))
   const ids = createMemo(() => selectableIds(visible()))
-  const selectedId = () => {
-    const id = chosen()
-    return id !== undefined && ids().includes(id) ? id : ids()[0]
-  }
+  const selectedId = () =>
+    [chosen(), props.initialSelected].find((id) => id !== undefined && ids().includes(id)) ?? ids()[0]
   const selectedRow = () =>
     visible()
       .flatMap((section) => section.rows)
       .find((row) => row.id === selectedId())
+
+  createEffect(
+    on(createMemo(selectedId), () => {
+      const row = selectedRow()
+      if (row) props.onSelect?.(row)
+    }),
+  )
 
   const width = () => {
     const panel = props.width ?? WIDTH

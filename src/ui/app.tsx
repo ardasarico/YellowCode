@@ -39,7 +39,7 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat"
-type DialogName = "settings" | "resume"
+type DialogName = "settings" | "resume" | "theme"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -230,6 +230,7 @@ export function App(props: AppProps) {
     const command = text.trim()
     if (command === "/settings") setDialog("settings")
     else if (command === "/resume") setDialog("resume")
+    else if (command === "/theme") setDialog("theme")
     else props.onSubmit(text)
   }
 
@@ -356,6 +357,9 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog() === "settings"}>
         <SettingsDialog onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog() === "theme"}>
+        <SettingsDialog only="theme" onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog() === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
