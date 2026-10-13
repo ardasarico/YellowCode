@@ -110,10 +110,26 @@ export type SessionInfo = {
   cwd: string
   cliVersion: string
   tools: string[]
-  mcpServers: { name: string; status: string; error: string | null }[]
+  mcpServers: McpServer[]
   skills: string[]
   apiKeySource: string
 }
+
+// Init carries only name, status and source; the rest stays null until a live mcp_status reply fills it in.
+export type McpServer = {
+  name: string
+  status: string
+  // A config scope (project, local, user, managed, …), plugin, claudeai, dynamic or sdk.
+  source: string | null
+  scope: string | null
+  error: string | null
+  config: McpConfig | null
+  serverInfo: { name: string; version: string } | null
+  tools: string[] | null
+}
+
+// Only what is safe to show: env, headers and full arguments can hold credentials.
+export type McpConfig = { command: string; package: string | null } | { url: string }
 
 // Times are epoch milliseconds; in replay they are shifted so recorded resets lie in the future.
 export type Window = { utilization: number; resetsAt: number }

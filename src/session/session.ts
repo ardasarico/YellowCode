@@ -3,7 +3,18 @@ import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from 
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
-import type { Item, ItemId, Session, Task, TaskState, ToolCall, UserImage, Window, WorkflowProgress } from "./types.ts"
+import type {
+  Item,
+  ItemId,
+  Session,
+  SessionInfo,
+  Task,
+  TaskState,
+  ToolCall,
+  UserImage,
+  Window,
+  WorkflowProgress,
+} from "./types.ts"
 
 export type SessionStore = {
   state: Session
@@ -98,6 +109,29 @@ function notesOf(annotations: Record<string, { notes?: string }> | undefined): R
     if (annotation.notes) notes[question] = annotation.notes
   }
   return notes
+}
+
+export function initInfo(message: System<"init">): SessionInfo {
+  return {
+    id: message.session_id,
+    model: message.model,
+    permissionMode: message.permissionMode,
+    cwd: message.cwd,
+    cliVersion: message.claude_code_version,
+    tools: message.tools,
+    mcpServers: message.mcp_servers.map((server) => ({
+      name: server.name,
+      status: server.status,
+      source: server.source ?? null,
+      scope: null,
+      error: server.error ?? null,
+      config: null,
+      serverInfo: null,
+      tools: null,
+    })),
+    skills: message.skills,
+    apiKeySource: message.apiKeySource ?? "none",
+  }
 }
 
 export function createSession(options?: { idPrefix?: string }): SessionStore {
@@ -440,21 +474,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   function onSystem(message: Of<"system">): void {
     switch (message.subtype) {
       case "init":
-        setState("info", {
-          id: message.session_id,
-          model: message.model,
-          permissionMode: message.permissionMode,
-          cwd: message.cwd,
-          cliVersion: message.claude_code_version,
-          tools: message.tools,
-          mcpServers: message.mcp_servers.map((server) => ({
-            name: server.name,
-            status: server.status,
-            error: server.error ?? null,
-          })),
-          skills: message.skills,
-          apiKeySource: message.apiKeySource ?? "none",
-        })
+        setState("info", initInfo(message))
         return
       case "compact_boundary":
         add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)

@@ -1,13 +1,24 @@
 import { type KeyEvent, type OptimizedBuffer, RGBA, TextAttributes } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, For, Index, on, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, Index, on, onCleanup, onMount, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
-import { AskScroll } from "../ask/ask-scroll.tsx"
 import { cut } from "../format.ts"
 import { SCRIM, setCovered } from "../images.ts"
 import { DimmedImages } from "./dimmed-images.tsx"
 import type { Span } from "../notice.ts"
-import { type DialogRow, type DialogSection, filterSections, moveSelection, selectableIds } from "./list.ts"
+import {
+  type DialogLine,
+  type DialogRow,
+  type DialogSection,
+  type DialogText,
+  dialogLines,
+  filterSections,
+  isRow,
+  moveSelection,
+  type ScrollWindow,
+  scrollWindow,
+  selectableIds,
+} from "./list.ts"
 
 // An action that works on the selected row is hidden while no row matches.
 export type FooterAction = { action: string; key: string; needsRow?: boolean }
@@ -16,11 +27,17 @@ export type DialogProps = {
   title: string
   width?: number
   sections: DialogSection[]
-  footer: FooterAction[]
+  // A function follows the selected row.
+  footer: FooterAction[] | ((row: DialogRow | undefined) => FooterAction[])
   view: string
   initialSelected?: string
+  // Without the search row, typing does nothing.
+  search?: boolean
+  // Shorter views keep this height, so the panel does not jump as views change.
+  minHeight?: number
   onEnter: (row: DialogRow) => void
   onSelect?: (row: DialogRow) => void
+  // Sees every key first; returning true keeps the dialog from handling it.
   onKey: (key: KeyEvent, row: DialogRow | undefined) => boolean
   onEscape: () => void
   empty?: (query: string) => string
@@ -29,8 +46,9 @@ export type DialogProps = {
 const WIDTH = 64
 const FULL_WIDTH_MARGIN = 6
 const PAD_X = 4
-// Title, blank, search row, blank above the sections; the footer below them; one padding row on each side.
-const FIXED_ROWS = 4 + 1 + 2
+// The title and the blank under it, the footer, and one padding row on each side.
+const FIXED_ROWS = 2 + 1 + 2
+const SEARCH_ROWS = 2
 
 function printable(key: KeyEvent): boolean {
   const code = key.sequence.charCodeAt(0)
@@ -39,11 +57,37 @@ function printable(key: KeyEvent): boolean {
 
 const fill = () => theme.background ?? theme.tile ?? theme.canvas
 const onAccent = () => theme.background ?? RGBA.fromIndex(0)
+const width = (text: string) => Bun.stringWidth(text)
 
-function spread(left: string, right: string, width: number) {
-  const value = cut(right, width)
-  const label = cut(left, Math.max(0, width - Bun.stringWidth(value) - 1))
-  return { label, gap: " ".repeat(Math.max(0, width - Bun.stringWidth(label) - Bun.stringWidth(value))), value }
+function spread(left: string, right: string, room: number) {
+  const value = cut(right, room)
+  const label = cut(left, Math.max(0, room - width(value) - 1))
+  return { label, gap: " ".repeat(Math.max(0, room - width(label) - width(value))), value }
+}
+
+function rowParts(row: DialogRow, value: string, room: number, tagColumn: number) {
+  const right = value ? cut(value, room) : ""
+  const left = Math.max(0, room - width(right) - (right ? 1 : 0))
+  let label = cut(row.label, left)
+  let tag = ""
+  if (row.tag && tagColumn > 0 && left > tagColumn) {
+    label = cut(row.label, Math.min(left, tagColumn - 2))
+    tag = cut(`${" ".repeat(tagColumn - width(label))}${row.tag}`, left - width(label))
+  }
+  const gap = " ".repeat(Math.max(0, room - width(label) - width(tag) - width(right)))
+  return { label, tag, gap, value: right }
+}
+
+function cutSpans(spans: Span[], room: number): Span[] {
+  const kept: Span[] = []
+  let left = room
+  for (const span of spans) {
+    if (left <= 0) break
+    const text = cut(span.text, left)
+    kept.push({ text, fg: span.fg })
+    left -= width(text)
+  }
+  return kept
 }
 
 export function Dialog(props: DialogProps) {
@@ -53,19 +97,18 @@ export function Dialog(props: DialogProps) {
   onCleanup(() => setCovered(false))
   const [query, setQuery] = createSignal("")
   const [chosen, setChosen] = createSignal(props.initialSelected)
-  const [moved, setMoved] = createSignal(false)
   createEffect(
     on(
       () => props.view,
       () => {
         setQuery("")
         setChosen(props.initialSelected)
-        setMoved(false)
       },
       { defer: true },
     ),
   )
 
+  const searching = () => props.search ?? true
   const visible = createMemo(() => filterSections(props.sections, query()))
   const ids = createMemo(() => selectableIds(visible()))
   const selectedId = () =>
@@ -73,6 +116,7 @@ export function Dialog(props: DialogProps) {
   const selectedRow = () =>
     visible()
       .flatMap((section) => section.rows)
+      .filter(isRow)
       .find((row) => row.id === selectedId())
 
   createEffect(
@@ -82,31 +126,50 @@ export function Dialog(props: DialogProps) {
     }),
   )
 
-  const width = () => {
+  const panelWidth = () => {
     const panel = props.width ?? WIDTH
     return dimensions().width < panel + FULL_WIDTH_MARGIN ? dimensions().width : panel
   }
-  const inner = () => Math.max(0, width() - PAD_X * 2)
-  const emptyText = () => (ids().length === 0 ? props.empty?.(query()) : undefined)
-  const gapAfter = (position: number) => Boolean(visible()[position]?.title) && position < visible().length - 1
-  // The blank row above the footer belongs to the row area, so an empty row area adds no rows.
-  const sectionRows = () => {
-    const sections = visible()
-    const rows = sections.reduce((sum, section) => sum + section.rows.length + (section.title ? 1 : 0), 0)
-    const gaps = sections.slice(0, -1).filter((section) => section.title).length
-    const content = rows + gaps + (selectedRow()?.note ? 1 : 0) + (emptyText() ? 1 : 0)
-    return content === 0 ? 0 : content + 1
+  const inner = () => Math.max(0, panelWidth() - PAD_X * 2)
+  // Measured on every row, so the column stays put while a search narrows the list.
+  const tagColumn = createMemo(() => {
+    const rows = props.sections.flatMap((section) => section.rows).filter(isRow)
+    if (!rows.some((row) => row.tag)) return 0
+    return Math.min(Math.max(...rows.map((row) => width(row.label))) + 2, Math.floor(inner() / 2))
+  })
+  const lines = createMemo((): DialogLine[] => {
+    const body = dialogLines(visible(), selectedId())
+    const text = body.length === 0 ? props.empty?.(query()) : undefined
+    return text ? [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.muted }] } }] : body
+  })
+  const fixedRows = () => FIXED_ROWS + (searching() ? SEARCH_ROWS : 0)
+  // The blank row above the footer belongs to the line area, so an empty view adds no rows.
+  const natural = () => fixedRows() + (lines().length > 0 ? lines().length + 1 : 0)
+  const height = () => Math.min(Math.max(natural(), props.minHeight ?? 0), dimensions().height - 2)
+  const areaRows = () => Math.max(0, height() - fixedRows())
+  const lineRows = () => Math.max(0, areaRows() - (lines().length > 0 ? 1 : 0))
+
+  const focus = () => {
+    const index = lines().findIndex((line) => line.kind === "row" && line.row.id === selectedId())
+    if (index === -1) return { from: 0, to: 0 }
+    const from = lines()[index - 1]?.kind === "title" ? index - 1 : index
+    return { from, to: lines()[index + 1]?.kind === "note" ? index + 1 : index }
   }
-  const scrollRows = () => Math.max(0, Math.min(sectionRows(), dimensions().height - 2 - FIXED_ROWS))
-  const height = () => FIXED_ROWS + scrollRows()
-  // The top edge stays where the tallest list put it, so a search that shrinks the list does not move the panel.
+  const scroll = createMemo<{ view: string; window: ScrollWindow }>((previous) => {
+    const start = previous?.view === props.view ? previous.window.start : 0
+    const { from, to } = focus()
+    return { view: props.view, window: scrollWindow(lines(), lineRows(), from, to, start) }
+  })
+  const shown = () => lines().slice(scroll().window.start, scroll().window.end)
+
+  // The top edge stays where the tallest view put it, so views grow and shrink at the bottom.
   const tallest = createMemo((previous: number) => Math.max(previous, height()), 0)
-  const left = () => Math.floor((dimensions().width - width()) / 2)
+  const left = () => Math.floor((dimensions().width - panelWidth()) / 2)
   const top = () => Math.max(0, Math.floor((dimensions().height - Math.min(tallest(), dimensions().height - 2)) / 2))
   // With no colors to blend with, the cells around the panel are set faint, so the terminal fades them itself.
   const faint = (buffer: OptimizedBuffer) => {
     const { attributes } = buffer.buffers
-    const [x0, y0, x1, y1] = [left(), top(), left() + width(), top() + height()]
+    const [x0, y0, x1, y1] = [left(), top(), left() + panelWidth(), top() + height()]
     for (let y = 0; y < buffer.height; y++) {
       for (let x = 0; x < buffer.width; x++) {
         const index = y * buffer.width + x
@@ -119,21 +182,24 @@ export function Dialog(props: DialogProps) {
     renderer.addPostProcessFn(faint)
     onCleanup(() => renderer.removePostProcessFn(faint))
   })
-  const footer = () => props.footer.filter((item) => !item.needsRow || ids().length > 0)
+  const footer = () => {
+    const actions = typeof props.footer === "function" ? props.footer(selectedRow()) : props.footer
+    return actions.filter((item) => !item.needsRow || ids().length > 0)
+  }
 
   useKeyboard((key) => {
     const row = selectedRow()
-    if (key.name === "up" || key.name === "down") {
-      setChosen(moveSelection(ids(), selectedId(), key.name === "up" ? -1 : 1))
-      setMoved(true)
-    } else if (key.name === "return") {
-      if (row) props.onEnter(row)
-    } else if (key.name === "escape") props.onEscape()
-    else if (key.name === "backspace") setQuery((text) => text.slice(0, -1))
-    else if (printable(key)) setQuery((text) => text + key.sequence)
-    else props.onKey(key, row)
     key.stopPropagation()
     key.preventDefault()
+    if (props.onKey(key, row)) return
+    if (key.name === "up" || key.name === "down")
+      setChosen(moveSelection(ids(), selectedId(), key.name === "up" ? -1 : 1))
+    else if (key.name === "return") {
+      if (row) props.onEnter(row)
+    } else if (key.name === "escape") props.onEscape()
+    else if (!searching()) return
+    else if (key.name === "backspace") setQuery((text) => text.slice(0, -1))
+    else if (printable(key)) setQuery((text) => text + key.sequence)
   })
 
   const Line = (lineProps: { left: Span; right?: Span; bold?: boolean }) => {
@@ -149,28 +215,60 @@ export function Dialog(props: DialogProps) {
     )
   }
 
+  const TextLine = (textProps: { text: DialogText }) => {
+    const indent = () => textProps.text.indent ?? 0
+    return (
+      <box height={1} paddingLeft={PAD_X + indent()}>
+        <text wrapMode="none">
+          <Index each={cutSpans(textProps.text.spans, inner() - indent())}>
+            {(span) => <span style={{ fg: span().fg }}>{span().text}</span>}
+          </Index>
+        </text>
+      </box>
+    )
+  }
+
   const Row = (rowProps: { row: DialogRow }) => {
     const selected = () => rowProps.row.id === selectedId()
-    const parts = () => spread(rowProps.row.label, rowProps.row.value ?? "", inner())
+    const value = () => (selected() ? (rowProps.row.selectedValue ?? rowProps.row.value) : rowProps.row.value) ?? ""
+    const parts = () => rowParts(rowProps.row, value(), inner(), tagColumn())
     return (
-      <>
-        <Show
-          when={selected()}
-          fallback={
-            <Line
-              left={{ text: rowProps.row.label, fg: theme.text }}
-              right={{ text: rowProps.row.value ?? "", fg: theme.muted }}
-            />
-          }
-        >
-          <box height={1} marginLeft={1} width={width() - 2} paddingLeft={1} backgroundColor={theme.accent}>
-            <text wrapMode="none" fg={onAccent()} attributes={TextAttributes.BOLD}>
-              {`● ${parts().label}${parts().gap}${parts().value}`}
+      <Show
+        when={selected()}
+        fallback={
+          <box height={1} paddingLeft={PAD_X - 2}>
+            <text wrapMode="none">
+              <span style={{ fg: rowProps.row.marker?.fg }}>{`${rowProps.row.marker?.text ?? " "} `}</span>
+              <span style={{ fg: rowProps.row.labelColor ?? theme.text }}>{parts().label}</span>
+              <span style={{ fg: theme.faint }}>{parts().tag}</span>
+              {parts().gap}
+              <span style={{ fg: rowProps.row.valueColor ?? theme.muted }}>{parts().value}</span>
             </text>
           </box>
-          <Show when={rowProps.row.note}>{(note) => <Line left={{ text: note(), fg: theme.muted }} />}</Show>
-        </Show>
-      </>
+        }
+      >
+        <box height={1} marginLeft={1} width={panelWidth() - 2} paddingLeft={1} backgroundColor={theme.accent}>
+          <text wrapMode="none">
+            <span style={{ fg: onAccent(), bold: true }}>{`${rowProps.row.marker?.text ?? "●"} ${parts().label}`}</span>
+            <span style={{ fg: onAccent() }}>{parts().tag}</span>
+            <span style={{ fg: onAccent(), bold: true }}>{`${parts().gap}${parts().value}`}</span>
+          </text>
+        </box>
+      </Show>
+    )
+  }
+
+  const lineView = (line: DialogLine) => {
+    if (line.kind === "row") return <Row row={line.row} />
+    if (line.kind === "text") return <TextLine text={line.text} />
+    if (line.kind === "note") return <Line left={{ text: line.text, fg: theme.muted }} />
+    if (line.kind === "gap") return <box height={1} />
+    return (
+      <box height={1} paddingLeft={PAD_X}>
+        <text fg={theme.accent} attributes={TextAttributes.BOLD} wrapMode="none">
+          {cut(line.text, inner())}
+        </text>
+      </box>
     )
   }
 
@@ -186,14 +284,14 @@ export function Dialog(props: DialogProps) {
         backgroundColor={theme.dim ? SCRIM : undefined}
       />
       <Show when={theme.dim}>
-        <DimmedImages panel={{ x: left(), y: top(), width: width(), height: height() }} />
+        <DimmedImages panel={{ x: left(), y: top(), width: panelWidth(), height: height() }} />
       </Show>
       <box
         position="absolute"
         top={top()}
         left={left()}
         zIndex={11}
-        width={width()}
+        width={panelWidth()}
         height={height()}
         paddingTop={1}
         paddingBottom={1}
@@ -202,68 +300,33 @@ export function Dialog(props: DialogProps) {
       >
         <Line left={{ text: props.title, fg: theme.text }} right={{ text: "esc", fg: theme.muted }} bold />
         <box height={1} />
-        <box height={1} paddingLeft={PAD_X}>
-          <Show
-            when={query()}
-            fallback={
+        <Show when={searching()}>
+          <box height={1} paddingLeft={PAD_X}>
+            <Show
+              when={query()}
+              fallback={
+                <text wrapMode="none">
+                  <span style={{ bg: theme.text }}> </span>
+                  <span style={{ fg: theme.muted }}>Search</span>
+                </text>
+              }
+            >
               <text wrapMode="none">
+                <span style={{ fg: theme.text }}>{query()}</span>
                 <span style={{ bg: theme.text }}> </span>
-                <span style={{ fg: theme.muted }}>Search</span>
               </text>
-            }
-          >
-            <text wrapMode="none">
-              <span style={{ fg: theme.text }}>{query()}</span>
-              <span style={{ bg: theme.text }}> </span>
-            </text>
+            </Show>
+          </box>
+          <box height={1} />
+        </Show>
+        <box height={areaRows()} flexDirection="column">
+          <Show when={scroll().window.start > 0}>
+            <Line left={{ text: `↑ ${scroll().window.above} more`, fg: theme.faint }} />
           </Show>
-        </box>
-        <box height={1} />
-        <box height={scrollRows()} flexDirection="column">
-          <AskScroll
-            focus={selectedId() === undefined ? null : `dialog-row-${selectedId()}`}
-            fromTop={!moved()}
-            scope={props.view}
-          >
-            <box flexDirection="column">
-              <Show when={emptyText()}>
-                {(text) => (
-                  <box height={1} paddingLeft={PAD_X}>
-                    <text fg={theme.muted} wrapMode="none">
-                      {cut(text(), inner())}
-                    </text>
-                  </box>
-                )}
-              </Show>
-              <For each={visible()}>
-                {(section, position) => (
-                  <box flexDirection="column">
-                    <Index each={section.rows}>
-                      {(row, index) => (
-                        // The first row carries its section header, so scrolling it into view shows the header too.
-                        <box id={`dialog-row-${row().id}`} flexDirection="column">
-                          <Show when={index === 0 && section.title}>
-                            <box height={1} paddingLeft={PAD_X}>
-                              <text fg={theme.accent} attributes={TextAttributes.BOLD} wrapMode="none">
-                                {cut(section.title, inner())}
-                              </text>
-                            </box>
-                          </Show>
-                          <Row row={row()} />
-                        </box>
-                      )}
-                    </Index>
-                    <Show when={gapAfter(position())}>
-                      <box height={1} />
-                    </Show>
-                  </box>
-                )}
-              </For>
-              <Show when={sectionRows() > 0}>
-                <box height={1} />
-              </Show>
-            </box>
-          </AskScroll>
+          <Index each={shown()}>{(line) => <>{lineView(line())}</>}</Index>
+          <Show when={scroll().window.end < lines().length}>
+            <Line left={{ text: `↓ ${scroll().window.below} more`, fg: theme.faint }} />
+          </Show>
         </box>
         <box height={1} paddingLeft={PAD_X}>
           <text wrapMode="none">
@@ -285,7 +348,7 @@ export function Dialog(props: DialogProps) {
           top={top()}
           left={left()}
           zIndex={12}
-          width={width()}
+          width={panelWidth()}
           height={height()}
           border
           borderColor={theme.muted}

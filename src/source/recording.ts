@@ -2,6 +2,8 @@ import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
 import { initializeModels, initializeResponse, type ModelInfo, type SlashCommand } from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
+import { initInfo } from "../session/session.ts"
+import type { SessionInfo } from "../session/types.ts"
 
 const headerSchema = z.object({ cliVersion: z.string(), scenario: z.string(), recordedAt: z.string() })
 const entrySchema = z.object({ t: z.number(), dir: z.enum(["in", "out"]), line: z.string() })
@@ -43,12 +45,13 @@ export function serializeRecording(recording: Recording): string {
   return [recording.header, ...recording.entries].map((value) => JSON.stringify(value)).join("\n") + "\n"
 }
 
-export function recordedModel(recording: Recording): string | null {
+// Claude sends init only after the first user message, so the welcome screen takes it from the recording.
+export function recordedInfo(recording: Recording): SessionInfo | null {
   for (const entry of recording.entries) {
     if (entry.dir !== "in") continue
     const parsed = parse(entry.line)
     if (parsed.kind === "message" && parsed.message.type === "system" && parsed.message.subtype === "init")
-      return parsed.message.model
+      return initInfo(parsed.message)
   }
   return null
 }

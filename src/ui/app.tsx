@@ -6,11 +6,12 @@ import type { InputProvider } from "../input/provider.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import type { SessionTitle } from "../session/titler.ts"
-import type { Ask, Session } from "../session/types.ts"
+import type { Ask, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
+import { McpDialog } from "./mcp/mcp-dialog.tsx"
 import { noticeFor, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -24,6 +25,8 @@ import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.t
 export type AppProps = {
   session: Session
   model: () => string | null
+  // Stands in for session.info until the real init arrives.
+  firstInfo?: SessionInfo | null
   workspace: Workspace
   replay: ReplayInfo | null
   readOnly?: SessionTitle & { modified: number }
@@ -39,7 +42,7 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat"
-type DialogName = "settings" | "resume" | "theme"
+type DialogName = "settings" | "resume" | "theme" | "mcp"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -231,6 +234,7 @@ export function App(props: AppProps) {
     if (command === "/settings") setDialog("settings")
     else if (command === "/resume") setDialog("resume")
     else if (command === "/theme") setDialog("theme")
+    else if (command === "/mcp") setDialog("mcp")
     else props.onSubmit(text)
   }
 
@@ -360,6 +364,9 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog() === "theme"}>
         <SettingsDialog only="theme" onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog() === "mcp"}>
+        <McpDialog info={props.session.info ?? props.firstInfo ?? null} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog() === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />

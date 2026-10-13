@@ -16,7 +16,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { initSettings, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
 import packageJson from "../package.json"
-import { loadRecording, RecordingError, recordedModel } from "./source/recording.ts"
+import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, setTheme } from "./theme/theme.ts"
@@ -59,7 +59,8 @@ const workspace = {
   branch: gitBranch(),
   version: packageJson.version,
 }
-const firstModel = recordedModel(recording)
+const firstInfo = recordedInfo(recording)
+const firstModel = firstInfo?.model ?? null
 const sessionsFolder = values.sessions ?? projectFolder(CLAUDE_PROJECTS, cwd)
 const sessionsCwd = values.sessions ? null : realpathSync(cwd)
 
@@ -165,6 +166,7 @@ await render(
         <App
           session={session.state}
           model={() => session.state.info?.model ?? firstModel}
+          firstInfo={firstInfo}
           workspace={workspace}
           replay={{
             file: basename(values.replay ?? ""),

@@ -49,7 +49,14 @@ const systemInit = z.looseObject({
   cwd: z.string(),
   claude_code_version: z.string(),
   tools: z.array(z.string()),
-  mcp_servers: z.array(z.looseObject({ name: z.string(), status: z.string(), error: z.string().optional() })),
+  mcp_servers: z.array(
+    z.looseObject({
+      name: z.string(),
+      status: z.string(),
+      source: z.string().optional(),
+      error: z.string().optional(),
+    }),
+  ),
   skills: z.array(z.string()),
   apiKeySource: z.string().optional(),
   plugins: z.array(z.looseObject({ name: z.string() })).optional(),

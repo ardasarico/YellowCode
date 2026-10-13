@@ -5,8 +5,9 @@ import { nestedAgents } from "../session/tasks.ts"
 import type { Agent, Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentMark } from "./figures.tsx"
-import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil } from "./format.ts"
+import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, wrapLines } from "./format.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
+import { shortName, toolPrefix } from "./mcp/servers.ts"
 import { useTicker } from "./ticker.ts"
 import type { Workspace } from "./welcome.tsx"
 
@@ -62,20 +63,6 @@ function firstUserLine(session: Session): string {
   return ""
 }
 
-function wrapLines(text: string, width: number, max: number): string[] {
-  const lines: string[] = []
-  for (const word of text.split(/\s+/).filter(Boolean)) {
-    const last = lines.at(-1)
-    if (last !== undefined && Bun.stringWidth(`${last} ${word}`) <= width) lines[lines.length - 1] = `${last} ${word}`
-    else lines.push(word)
-  }
-  if (lines.length > max) lines.splice(max - 1, lines.length, lines.slice(max - 1).join(" "))
-  return lines.map((line) => cut(line, width).replace(/\s+…$/, "…"))
-}
-
-// MCP tool names carry the server name with every character outside [A-Za-z0-9_-] replaced by `_`.
-const toolPrefix = (server: string) => `mcp__${server.replace(/[^A-Za-z0-9_-]/g, "_")}__`
-
 function serverActivity(session: Session): ServerActivity {
   const items = Object.values(session.byId)
   const tools = items.flatMap((item) => (item.kind === "tool" ? [item] : []))
@@ -94,10 +81,7 @@ function serverActivity(session: Session): ServerActivity {
 
 function serverStatus(server: Server, activity: ServerActivity): ServerStatus {
   const base = { name: theme.text, word: "", problem: false, running: false }
-  if (server.status === "failed") {
-    const word = server.error?.replace(/\s+/g, " ") ?? "failed"
-    return { ...base, mark: "✕", color: theme.error, word, problem: true }
-  }
+  if (server.status === "failed") return { ...base, mark: "✕", color: theme.error, word: "failed", problem: true }
   if (server.status === "needs-auth")
     return { ...base, mark: "!", color: theme.warning, word: "needs login", problem: true }
   if (server.status === "disabled") return { ...base, mark: "–", color: theme.faint, name: theme.faint, word: "off" }
@@ -240,16 +224,26 @@ function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: 
 }
 
 function ServerRow(props: { server: Server; status: ServerStatus; width: number }) {
-  const name = () => cut(props.server.name, props.width - 2)
+  const name = () => cut(shortName(props.server.name), props.width - 2)
   const room = () => props.width - 4 - Bun.stringWidth(name())
+  const error = () => (props.server.status === "failed" ? props.server.error?.replace(/\s+/g, " ").trim() : "")
   return (
-    <text wrapMode="none">
-      <span style={{ fg: props.status.color }}>{`${props.status.mark} `}</span>
-      <span style={{ fg: props.status.name }}>{name()}</span>
-      <span style={{ fg: props.status.color }}>
-        {props.status.word && room() > 0 ? `  ${cut(props.status.word, room())}` : ""}
-      </span>
-    </text>
+    <box flexDirection="column">
+      <text wrapMode="none">
+        <span style={{ fg: props.status.color }}>{`${props.status.mark} `}</span>
+        <span style={{ fg: props.status.name }}>{name()}</span>
+        <span style={{ fg: props.status.color }}>
+          {props.status.word && room() > 0 ? `  ${cut(props.status.word, room())}` : ""}
+        </span>
+      </text>
+      <Show when={error()}>
+        {(text) => (
+          <text fg={theme.error} attributes={TextAttributes.DIM} wrapMode="none">
+            {`  ${cut(text(), props.width - 2)}`}
+          </text>
+        )}
+      </Show>
+    </box>
   )
 }
 

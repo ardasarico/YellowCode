@@ -19,6 +19,17 @@ export function cut(text: string, max: number): string {
   return `${result}…`
 }
 
+export function wrapLines(text: string, width: number, max: number): string[] {
+  const lines: string[] = []
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const last = lines.at(-1)
+    if (last !== undefined && Bun.stringWidth(`${last} ${word}`) <= width) lines[lines.length - 1] = `${last} ${word}`
+    else lines.push(word)
+  }
+  if (lines.length > max) lines.splice(max - 1, lines.length, lines.slice(max - 1).join(" "))
+  return lines.map((line) => cut(line, width).replace(/\s+…$/, "…"))
+}
+
 export function cutPath(path: string, max: number): string {
   if (Bun.stringWidth(path) <= max) return path
   const parts = path.split("/")

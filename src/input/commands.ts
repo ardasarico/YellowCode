@@ -6,6 +6,7 @@ export const OWN_COMMANDS: Command[] = [
   { name: "settings", description: "Open YellowCode settings", argumentHint: "", aliases: [] },
   { name: "resume", description: "Resume a session from this project", argumentHint: "", aliases: [] },
   { name: "theme", description: "Choose the theme", argumentHint: "", aliases: [] },
+  { name: "mcp", description: "See the MCP servers of this session", argumentHint: "", aliases: [] },
 ]
 
 // An own command hides recorded commands and aliases with its name, so the list shows it once.
