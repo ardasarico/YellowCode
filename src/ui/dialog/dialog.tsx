@@ -7,11 +7,14 @@ import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
 import { type DialogRow, type DialogSection, filterSections, moveSelection, selectableIds } from "./list.ts"
 
+// An action that works on the selected row is hidden while no row matches.
+export type FooterAction = { action: string; key: string; needsRow?: boolean }
+
 export type DialogProps = {
   title: string
   width?: number
   sections: DialogSection[]
-  footer: Span[]
+  footer: FooterAction[]
   view: string
   initialSelected?: string
   onEnter: (row: DialogRow) => void
@@ -92,6 +95,11 @@ export function Dialog(props: DialogProps) {
   }
   const scrollRows = () => Math.max(0, Math.min(sectionRows(), dimensions().height - 2 - FIXED_ROWS))
   const height = () => FIXED_ROWS + scrollRows()
+  // The top edge stays where the tallest list put it, so a search that shrinks the list does not move the panel.
+  const tallest = createMemo((previous: number) => Math.max(previous, height()), 0)
+  const left = () => Math.floor((dimensions().width - width()) / 2)
+  const top = () => Math.max(0, Math.floor((dimensions().height - Math.min(tallest(), dimensions().height - 2)) / 2))
+  const footer = () => props.footer.filter((item) => !item.needsRow || ids().length > 0)
 
   useKeyboard((key) => {
     const row = selectedRow()
@@ -159,8 +167,8 @@ export function Dialog(props: DialogProps) {
       />
       <box
         position="absolute"
-        top={Math.max(0, Math.floor((dimensions().height - height()) / 2))}
-        left={Math.floor((dimensions().width - width()) / 2)}
+        top={top()}
+        left={left()}
         zIndex={11}
         width={width()}
         height={height()}
@@ -172,7 +180,15 @@ export function Dialog(props: DialogProps) {
         <Line left={{ text: props.title, fg: theme.text }} right={{ text: "esc", fg: theme.muted }} bold />
         <box height={1} />
         <box height={1} paddingLeft={PAD_X}>
-          <Show when={query()} fallback={<text fg={theme.muted}>Search</text>}>
+          <Show
+            when={query()}
+            fallback={
+              <text wrapMode="none">
+                <span style={{ bg: theme.text }}> </span>
+                <span style={{ fg: theme.muted }}>Search</span>
+              </text>
+            }
+          >
             <text wrapMode="none">
               <span style={{ fg: theme.text }}>{query()}</span>
               <span style={{ bg: theme.text }}> </span>
@@ -228,7 +244,14 @@ export function Dialog(props: DialogProps) {
         </box>
         <box height={1} paddingLeft={PAD_X}>
           <text wrapMode="none">
-            <Index each={props.footer}>{(span) => <span style={{ fg: span().fg }}>{span().text}</span>}</Index>
+            <Index each={footer()}>
+              {(item, index) => (
+                <>
+                  <span style={{ fg: theme.text }}>{`${index === 0 ? "" : "  "}${item().action}`}</span>
+                  <span style={{ fg: theme.muted }}>{` ${item().key}`}</span>
+                </>
+              )}
+            </Index>
           </text>
         </box>
       </box>

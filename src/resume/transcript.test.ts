@@ -37,12 +37,12 @@ test("branch: only the branch the leaf hangs on is loaded", async () => {
   ])
 })
 
-test("compact: the boundary shows as a divider and the summary stays hidden", async () => {
+test("compact: the divider follows the /compact prompt and the summary stays hidden", async () => {
   expect(rows(await open("Reply with the word alpha."))).toEqual([
     "user Reply with the word alpha.",
     "user Reply with the word beta.",
-    "system context compacted",
     "user /compact",
+    "system context compacted",
     "user Reply with the word gamma.",
   ])
 })

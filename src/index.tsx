@@ -53,8 +53,9 @@ function gitBranch(): string | null {
 }
 
 const cwd = process.cwd()
+const home = (path: string) => (path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path)
 const workspace = {
-  cwd: cwd.startsWith(homedir()) ? `~${cwd.slice(homedir().length)}` : cwd,
+  cwd: home(cwd),
   branch: gitBranch(),
   version: packageJson.version,
 }
@@ -188,9 +189,9 @@ await render(
         <App
           session={shown.session.state}
           model={() => shown.entry.model ?? firstModel}
-          workspace={workspace}
+          workspace={{ ...workspace, cwd: home(shown.entry.cwd), branch: shown.entry.branch }}
           replay={null}
-          readOnly={{ title: shown.entry.title, summary: shown.entry.firstPrompt }}
+          readOnly={{ title: shown.entry.title, summary: shown.entry.firstPrompt, modified: shown.entry.modified }}
           titles={false}
           settingsProblem={null}
           provider={provider}

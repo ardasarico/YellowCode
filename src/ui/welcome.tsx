@@ -28,12 +28,15 @@ const HINTS: [string, string][] = [
   ["⇧←→", "model"],
   ["enter", "send"],
   ["/", "commands"],
+  ["↓", "recent"],
   ["ctrl+c", "quit"],
 ]
-const HINT_PARTS = HINTS.flatMap(([key, label], index) => [
-  { text: `${index === 0 ? "" : "   "}${key}`, isKey: true },
-  { text: ` ${label}`, isKey: false },
-])
+
+const hintParts = (recent: boolean) =>
+  HINTS.filter(([key]) => recent || key !== "↓").flatMap(([key, label], index) => [
+    { text: `${index === 0 ? "" : "   "}${key}`, isKey: true },
+    { text: ` ${label}`, isKey: false },
+  ])
 
 const LOGO_ROWS = CAT_ROWS + 2 + BLOCK_ROWS + 1 + 1
 const LOGO_WIDTH = CAT_COLS + LOGO_GAP + (WORDMARK[0]?.length ?? 0)
@@ -101,10 +104,10 @@ function Cat() {
   )
 }
 
-function Hints() {
+function Hints(props: { recent: boolean }) {
   return (
     <text>
-      <Index each={HINT_PARTS}>
+      <Index each={hintParts(props.recent)}>
         {(part) => <span style={{ fg: part().isKey ? theme.text : theme.muted }}>{part().text}</span>}
       </Index>
     </text>
@@ -159,7 +162,7 @@ export function Welcome(props: {
         <InputBlock {...props.input} width={width()} />
         <box height={1} />
         <box width={width()} flexDirection="row" justifyContent="center">
-          <Hints />
+          <Hints recent={parts().recent} />
         </box>
         <Show when={parts().recent}>
           <box height={1} />

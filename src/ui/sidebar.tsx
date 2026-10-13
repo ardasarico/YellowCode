@@ -4,7 +4,7 @@ import type { SessionTitle } from "../session/titler.ts"
 import type { Agent, Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentMark } from "./figures.tsx"
-import { cut, cutPath, formatClock, formatSpan, formatUntil } from "./format.ts"
+import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil } from "./format.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
 import { useTicker } from "./ticker.ts"
 import type { Workspace } from "./welcome.tsx"
@@ -18,6 +18,8 @@ export type SidebarProps = {
   session: Session
   title: SessionTitle | null
   workspace: Workspace
+  // A transcript opened read-only shows its age, like the session list, instead of the running time.
+  modified?: number
   model: string | null
   width: number
   overlay: boolean
@@ -116,14 +118,19 @@ function Title(props: {
   session: Session
   workspace: Workspace
   title: SessionTitle | null
+  modified: number | undefined
   width: number
   now: number
 }) {
   const span = () => {
+    if (props.modified !== undefined) return formatAgo(props.modified, props.now)
     const started = props.session.usage.startedAt
     return started === null ? "" : formatSpan(props.now - started)
   }
-  const description = () => wrapLines(props.title?.summary || firstUserLine(props.session), props.width, 2)
+  const description = () => {
+    const text = props.title?.summary || firstUserLine(props.session)
+    return text === props.title?.title ? [] : wrapLines(text, props.width, 2)
+  }
   return (
     <box flexDirection="column" flexShrink={0}>
       <box flexDirection="row" justifyContent="space-between" gap={2}>
@@ -341,7 +348,14 @@ export function Sidebar(props: SidebarProps) {
         }}
       />
       <box flexDirection="column" flexGrow={1} paddingLeft={1} paddingRight={2} paddingY={1} overflow="hidden">
-        <Title session={props.session} workspace={props.workspace} title={props.title} width={inner()} now={now()} />
+        <Title
+          session={props.session}
+          workspace={props.workspace}
+          title={props.title}
+          modified={props.modified}
+          width={inner()}
+          now={now()}
+        />
         {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
         <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
           <Show when={agents().length > 0}>

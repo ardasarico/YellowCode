@@ -82,6 +82,10 @@ export function toEvent(entry: Entry): SourceEvent | null {
   return event("out", { type: "user", parent_tool_use_id: null, message: { role: "user", content: prompt } })
 }
 
+function isCompactCommand(event: SourceEvent | null): boolean {
+  return event?.dir === "out" && event.line.includes('"content":"/compact')
+}
+
 export async function readTranscript(path: string, cursor?: TranscriptCursor): Promise<TranscriptPart> {
   const events: SourceEvent[] = []
   let wanted = cursor?.wanted ?? null
@@ -90,10 +94,13 @@ export async function readTranscript(path: string, cursor?: TranscriptCursor): P
     const entry = wanted === null ? leafEntry(line) : wantedEntry(line, wanted)
     if (entry === null) continue
     const event = toEvent(entry)
-    if (event) events.push(event)
+    // The file writes the boundary before the `/compact` prompt that caused it; the divider belongs after it.
+    if (event && isCompactBoundary(entry) && isCompactCommand(events.at(-1) ?? null)) {
+      events.splice(-1, 0, event)
+    } else if (event) events.push(event)
     wanted = (isCompactBoundary(entry) ? entry.logicalParentUuid : entry.parentUuid) ?? null
     if (wanted === null) return { events: events.toReversed(), earlier: null }
-    if (event?.dir === "out" && ++prompts === PART_TURNS) {
+    if (event?.dir === "out" && ++prompts >= PART_TURNS && !isCompactCommand(event)) {
       return { events: events.toReversed(), earlier: { offset, wanted } }
     }
   }

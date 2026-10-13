@@ -1,7 +1,7 @@
 import { batch, createSignal, untrack } from "solid-js"
 import { resetSetting, setSetting, settings } from "../../session/settings.ts"
 import type { StoredSettings } from "../../session/settings-file.ts"
-import { setTheme, theme, themeId } from "../../theme/theme.ts"
+import { setTheme, themeId } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import type { DialogSection } from "../dialog/list.ts"
 import { SETTINGS, type SettingDefinition } from "./options.ts"
@@ -75,16 +75,12 @@ export function SettingsDialog(props: { only?: keyof StoredSettings; onClose: ()
   const footer = () =>
     list()
       ? [
-          { text: "Choose", fg: theme.text },
-          { text: " enter  ", fg: theme.muted },
-          { text: props.only ? "Cancel" : "Back", fg: theme.text },
-          { text: " esc", fg: theme.muted },
+          { action: "Choose", key: "enter", needsRow: true },
+          { action: props.only ? "Cancel" : "Back", key: "esc" },
         ]
       : [
-          { text: "Switch", fg: theme.text },
-          { text: " ←→  ", fg: theme.muted },
-          { text: "Default", fg: theme.text },
-          { text: " ctrl+r", fg: theme.muted },
+          { action: "Switch", key: "←→", needsRow: true },
+          { action: "Default", key: "ctrl+r", needsRow: true },
         ]
 
   return (

@@ -26,7 +26,7 @@ export type AppProps = {
   model: () => string | null
   workspace: Workspace
   replay: ReplayInfo | null
-  readOnly?: SessionTitle
+  readOnly?: SessionTitle & { modified: number }
   titles: boolean
   settingsProblem: string | null
   provider: InputProvider
@@ -342,6 +342,7 @@ export function App(props: AppProps) {
               session={props.session}
               title={title()}
               workspace={props.workspace}
+              modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
               width={shownWidth()}
               overlay={sidebar() === "overlay"}

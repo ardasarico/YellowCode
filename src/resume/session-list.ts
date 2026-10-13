@@ -15,6 +15,7 @@ export type SessionEntry = {
   id: string
   path: string
   cwd: string
+  branch: string | null
   title: string
   firstPrompt: string
   model: string | null
@@ -34,6 +35,7 @@ const Block = z.looseObject({ type: z.string(), text: z.string().optional() })
 const Line = z.looseObject({
   type: z.string(),
   cwd: z.string().optional(),
+  gitBranch: z.string().optional(),
   isSidechain: z.boolean().optional(),
   isMeta: z.boolean().optional(),
   isCompactSummary: z.boolean().optional(),
@@ -114,8 +116,10 @@ export function sessionEntry(path: string, lines: HeadTail, modified: number): S
   const fields: TitleFields = { customTitle: null, aiTitle: null, summary: null, firstPrompt, lastPrompt: null }
   let model: string | null = null
   let lastCwd: string | null = null
+  let branch: string | null = null
   for (const line of [...head, ...parseLines(lines.tail)]) {
     lastCwd = line.cwd ?? lastCwd
+    branch = line.gitBranch ?? branch
     if (line.type === "custom-title" && line.customTitle !== undefined) fields.customTitle = line.customTitle
     else if (line.type === "ai-title" && line.aiTitle !== undefined) fields.aiTitle = line.aiTitle
     else if (line.type === "summary" && line.summary !== undefined) fields.summary = line.summary
@@ -129,6 +133,7 @@ export function sessionEntry(path: string, lines: HeadTail, modified: number): S
     id: basename(path, ".jsonl"),
     path,
     cwd: cwd ?? lastCwd ?? "",
+    branch,
     title: displayTitle(fields),
     firstPrompt: prompt,
     model,

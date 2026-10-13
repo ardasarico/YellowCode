@@ -1,6 +1,5 @@
 import { createSignal, onMount } from "solid-js"
 import type { SessionEntry } from "../../resume/session-list.ts"
-import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import { formatAgo } from "../format.ts"
 
@@ -36,10 +35,8 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
       width={72}
       sections={sections()}
       footer={[
-        { text: "Open", fg: theme.text },
-        { text: " enter  ", fg: theme.muted },
-        { text: "Search", fg: theme.text },
-        { text: " type", fg: theme.muted },
+        { action: "Open", key: "enter", needsRow: true },
+        { action: "Search", key: "type" },
       ]}
       view="resume"
       onEnter={(row) => {
