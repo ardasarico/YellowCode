@@ -20,6 +20,7 @@ const PENDING: Agent = {
   durationMs: 0,
   report: "",
   error: null,
+  activity: "",
 }
 
 function count(n: number, noun: string): string {
@@ -62,6 +63,26 @@ function StepLine(props: { tool: ToolCall; cwd: string; prefix: string; prefixCo
   )
 }
 
+const isAgent = (tool: ToolCall) => tool.agent !== null || tool.name === "Agent"
+
+// A child agent is one line in its parent's row; `›` marks that it has a detail of its own.
+function AgentStep(props: { tool: ToolCall; prefix: string; prefixColor: RGBA; width: number }) {
+  const agent = () => props.tool.agent ?? PENDING
+  const seconds = useElapsedSeconds(() => agent().state === "running")
+  const state = () => status(agent(), agent().toolUses, seconds())
+  const label = () => `Agent(${agent().name})`
+  const room = () => props.width - props.prefix.length - 2
+  return (
+    <text wrapMode="none">
+      <span style={{ fg: props.prefixColor }}>{props.prefix}</span>
+      <span style={{ fg: state().color }}>●</span>
+      <span style={{ fg: theme.text }}>{` ${cut(label(), room())}`}</span>
+      <span style={{ fg: state().color }}>{`  ${cut(state().text, Math.max(0, room() - label().length - 4))}`}</span>
+      <span style={{ fg: theme.faint }}>{" ›"}</span>
+    </text>
+  )
+}
+
 export function AgentRow(props: {
   item: ToolCall
   index: number
@@ -80,6 +101,8 @@ export function AgentRow(props: {
       return child ? [child] : []
     })
   const tools = () => children().filter((child): child is ToolCall => child.kind === "tool")
+  // Only tool calls and text draw anything in the expanded view; other items would leave a bare rail line.
+  const shown = () => children().filter((child) => child.kind === "tool" || child.kind === "text")
   const toolCount = () => Math.max(agent().toolUses, tools().length)
   const state = () => status(agent(), toolCount(), seconds())
   const cwd = () => props.session.info?.cwd ?? ""
@@ -89,7 +112,8 @@ export function AgentRow(props: {
     agent().state === "failed"
       ? { text: `failed · ${firstSentence(agent().error ?? agent().report)}`, color: theme.error }
       : state()
-  const head = () => `   ${agent().name}(${agent().task})${twoLine() ? "" : `  ${state().text}`}`
+  const task = () => (running() && agent().activity) || agent().task
+  const head = () => `   ${agent().name}(${task()})${twoLine() ? "" : `  ${state().text}`}`
   const recent = () => tools().slice(-VISIBLE_STEPS)
   const earlier = () => tools().length - recent().length
 
@@ -108,7 +132,7 @@ export function AgentRow(props: {
           <span style={{ fg: theme.text, bold: true }}>{` ${agent().name}`}</span>
           <span
             style={{ fg: theme.text }}
-          >{`(${cut(agent().task, Math.max(8, width() - head().length + agent().task.length))})`}</span>
+          >{`(${cut(task(), Math.max(8, width() - head().length + task().length))})`}</span>
           <Show when={!twoLine()}>
             <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
           </Show>
@@ -123,7 +147,7 @@ export function AgentRow(props: {
         </Match>
         <Match when={props.expanded}>
           <box flexDirection="column">
-            <For each={children()}>
+            <For each={shown()}>
               {(child: Item, position) => (
                 <box flexDirection="row">
                   <text fg={color()} flexShrink={0}>
@@ -131,6 +155,16 @@ export function AgentRow(props: {
                   </text>
                   <box flexGrow={1} flexDirection="column">
                     <Switch>
+                      <Match when={child.kind === "tool" && isAgent(child) ? child : undefined}>
+                        {(tool) => (
+                          <AgentStep
+                            tool={tool()}
+                            prefix=""
+                            prefixColor={color()}
+                            width={Math.max(0, width() - CONNECTOR.length)}
+                          />
+                        )}
+                      </Match>
                       <Match when={child.kind === "tool" ? child : undefined}>
                         {(tool) => <ToolCallRow item={tool()} cwd={cwd()} selected={false} expanded={false} />}
                       </Match>
@@ -153,13 +187,25 @@ export function AgentRow(props: {
           </Show>
           <Index each={recent()}>
             {(tool, position) => (
-              <StepLine
-                tool={tool()}
-                cwd={cwd()}
-                prefix={position === 0 && earlier() === 0 ? CONNECTOR : INDENT}
-                prefixColor={color()}
-                width={width()}
-              />
+              <Show
+                when={isAgent(tool())}
+                fallback={
+                  <StepLine
+                    tool={tool()}
+                    cwd={cwd()}
+                    prefix={position === 0 && earlier() === 0 ? CONNECTOR : INDENT}
+                    prefixColor={color()}
+                    width={width()}
+                  />
+                }
+              >
+                <AgentStep
+                  tool={tool()}
+                  prefix={position === 0 && earlier() === 0 ? CONNECTOR : INDENT}
+                  prefixColor={color()}
+                  width={width()}
+                />
+              </Show>
             )}
           </Index>
         </Match>

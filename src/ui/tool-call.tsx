@@ -9,7 +9,7 @@ import { writtenContent } from "../session/tool-summary.ts"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
-import { cut, cutPath } from "./format.ts"
+import { cut, cutPath, mcpTool } from "./format.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
@@ -68,6 +68,18 @@ export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
   })
 }
 
+// MCP inputs have no known field to summarize, so a single value is shown alone and several as `key: value` pairs.
+function mcpArguments(input: unknown): string {
+  if (typeof input !== "object" || input === null) return ""
+  const pairs = Object.entries(input).flatMap(([key, value]) =>
+    typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+      ? [[key, String(value).split("\n")[0] ?? ""]]
+      : [],
+  )
+  if (pairs.length === 1) return pairs[0]?.[1] ?? ""
+  return pairs.map(([key, value]) => `${key}: ${value}`).join(", ")
+}
+
 export function relative(target: string, cwd: string): string {
   return cwd && target.startsWith(`${cwd}/`) ? target.slice(cwd.length + 1) : target
 }
@@ -90,9 +102,14 @@ export function ToolCallRow(props: {
     if (props.item.status === "stopped") return theme.warning
     return props.item.status === "running" ? theme.accent : theme.muted
   }
+  const label = () => {
+    const mcp = mcpTool(props.item.name)
+    return mcp ? { server: `${mcp.server}/`, tool: mcp.tool } : { server: "", tool: props.item.name }
+  }
   const target = () => {
-    const value = relative(props.item.summary, props.cwd)
-    const room = width() - props.item.name.length - 4
+    const summary = props.item.summary || (label().server ? mcpArguments(props.item.input) : "")
+    const value = relative(summary, props.cwd)
+    const room = width() - Bun.stringWidth(label().server + label().tool) - 4
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
   const lines = () => {
@@ -126,7 +143,8 @@ export function ToolCallRow(props: {
     >
       <text wrapMode="none">
         <span style={{ fg: color() }}>●</span>
-        <span style={{ fg: theme.text, bold: true }}>{` ${props.item.name}`}</span>
+        <span style={{ fg: theme.muted }}>{` ${label().server}`}</span>
+        <span style={{ fg: theme.text, bold: true }}>{label().tool}</span>
         <span style={{ fg: theme.text }}>{`(${target()})`}</span>
       </text>
       <Index each={lines()}>

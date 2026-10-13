@@ -3,7 +3,7 @@ import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from 
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
-import type { Agent, Item, ItemId, Session, UserImage, Window } from "./types.ts"
+import type { Item, ItemId, Session, Task, TaskState, ToolCall, UserImage, Window, WorkflowProgress } from "./types.ts"
 
 export type SessionStore = {
   state: Session
@@ -15,6 +15,7 @@ export type SessionStore = {
 }
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
+type System<S extends Of<"system">["subtype"]> = Extract<Of<"system">, { subtype: S }>
 
 type Cursor = { messageId: string; blocks: Map<number, ItemId>; lastIndex: number; finalized: Set<number> }
 
@@ -41,6 +42,56 @@ function firstSuggestion(suggestions: PermissionUpdate[] | undefined): Permissio
   return suggestions?.find((update) => !(update.type === "setMode" && update.mode === "auto")) ?? null
 }
 
+function toolStatus(state: TaskState): ToolCall["status"] {
+  if (state === "completed") return "done"
+  if (state === "failed") return "error"
+  return state
+}
+
+function workflowOf(items: System<"task_progress">["workflow_progress"]): WorkflowProgress | null {
+  if (!items) return null
+  const progress: WorkflowProgress = { phases: [], agents: [] }
+  for (const item of items) {
+    if (item?.type === "workflow_phase") progress.phases.push({ index: item.index, title: item.title })
+    else if (item?.type === "workflow_agent")
+      progress.agents.push({
+        index: item.index,
+        label: item.label,
+        phaseIndex: item.phaseIndex ?? null,
+        state: item.state,
+        model: item.model ?? null,
+        toolCalls: item.toolCalls ?? 0,
+        durationMs: item.durationMs ?? 0,
+        lastTool: item.lastToolName ?? null,
+        result: item.resultPreview ?? null,
+      })
+  }
+  return progress
+}
+
+function blankTask(id: string): Task {
+  return {
+    id,
+    type: "",
+    toolUseId: null,
+    parentId: null,
+    depth: 1,
+    background: false,
+    state: "running",
+    name: "",
+    description: "",
+    activity: "",
+    lastTool: null,
+    toolUses: 0,
+    durationMs: 0,
+    tokens: 0,
+    summary: "",
+    outputFile: null,
+    error: null,
+    workflow: null,
+  }
+}
+
 function notesOf(annotations: Record<string, { notes?: string }> | undefined): Record<string, string> {
   const notes: Record<string, string> = {}
   for (const [question, annotation] of Object.entries(annotations ?? {})) {
@@ -55,6 +106,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     status: "idle",
     items: [],
     byId: {},
+    tasks: {},
     usage: {
       startedAt: null,
       tokens: 0,
@@ -72,7 +124,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   let now = 0
   // Recorded times are shifted by this much so a replay reads them as if they happened just now.
   let shift = 0
-  const taskTools = new Map<string, ItemId>()
+  // The live background set from the latest background_tasks_changed.
+  let live = new Set<string>()
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
@@ -118,6 +171,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
           createdFile: false,
           unchanged: false,
           agent: null,
+          taskId: null,
         }
       case "unknown":
         return null
@@ -141,6 +195,9 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         item.agent = agentOf(item.name, block.input)
       }
     })
+    const tool = state.byId[id]
+    const name = tool?.kind === "tool" ? tool.agent?.name : undefined
+    if (tool?.kind === "tool" && tool.taskId && name) setTask(tool.taskId, (task) => (task.name = name))
   }
 
   function stopStreaming(id: ItemId): void {
@@ -236,15 +293,19 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     const fileResult = message.tool_use_result
     for (const block of message.message.content) {
       if (block.type !== "tool_result") continue
+      const tool = state.byId[block.tool_use_id]
+      const task = tool?.kind === "tool" && tool.taskId ? state.tasks[tool.taskId] : undefined
       update(block.tool_use_id, (item) => {
         if (item.kind !== "tool") return
-        item.status = block.is_error ? "error" : "done"
+        // A background task's tool result only says it launched; its outcome arrives as a task_notification.
+        const launched = !block.is_error && (task?.background === true || fileResult?.isAsync === true)
+        if (launched && task) item.status = toolStatus(task.state)
+        else item.status = block.is_error ? "error" : "done"
         item.result = toolResultText(block.content)
         if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
         if (fileResult?.type === "create") item.createdFile = true
         if (fileResult?.type === "file_unchanged") item.unchanged = true
-        // A background agent's tool result only says it launched; its outcome arrives as a task_notification.
-        if (item.agent && !fileResult?.isAsync) {
+        if (item.agent && !launched) {
           item.agent.state = block.is_error ? "failed" : "completed"
           item.agent.report = item.result
         }
@@ -315,12 +376,65 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     )
   }
 
-  function updateAgent(taskId: string, change: (agent: Agent) => void): void {
-    const toolId = taskTools.get(taskId)
-    if (!toolId) return
-    update(toolId, (item) => {
-      if (item.kind === "tool" && item.agent) change(item.agent)
+  function setTask(id: string, change: (task: Task) => void): void {
+    if (state.tasks[id]) setState("tasks", id, produce(change))
+  }
+
+  function updateTool(task: Task | undefined, change: (tool: ToolCall) => void): void {
+    if (task?.toolUseId)
+      update(task.toolUseId, (item) => {
+        if (item.kind === "tool") change(item)
+      })
+  }
+
+  // A parent Claude no longer tracks, or never told us about, counts as no parent.
+  const knownParent = (id: string | undefined) => (id && state.tasks[id] ? id : null)
+
+  function onTaskStarted(message: System<"task_started">): void {
+    if (message.ambient) return
+    const tool = message.tool_use_id ? state.byId[message.tool_use_id] : undefined
+    const known = state.tasks[message.task_id] ?? blankTask(message.task_id)
+    const parentId = knownParent(message.parent_task_id) ?? known.parentId
+    const task = {
+      ...known,
+      type: message.task_type ?? "",
+      toolUseId: message.tool_use_id ?? null,
+      parentId,
+      depth: message.spawn_depth ?? (parentId ? (state.tasks[parentId]?.depth ?? 0) + 1 : 1),
+      state: "running" as const,
+      name: (tool?.kind === "tool" ? tool.agent?.name : undefined) ?? message.description ?? "",
+      description: message.description ?? "",
+    }
+    task.background ||= message.is_backgrounded === true
+    setState("tasks", message.task_id, task)
+    updateTool(task, (item) => (item.taskId = task.id))
+  }
+
+  function finishTask(id: string, outcome: TaskState): void {
+    setTask(id, (task) => (task.state = outcome))
+    updateTool(state.tasks[id], (tool) => {
+      if (tool.status === "running") tool.status = toolStatus(outcome)
+      if (tool.agent) tool.agent.state = outcome
     })
+  }
+
+  function onBackgroundTasks(message: System<"background_tasks_changed">): void {
+    const next = new Set<string>()
+    for (const entry of message.tasks) {
+      if (entry.ambient) continue
+      next.add(entry.task_id)
+      const task = state.tasks[entry.task_id] ?? {
+        ...blankTask(entry.task_id),
+        type: entry.task_type ?? "",
+        name: entry.description ?? "",
+        description: entry.description ?? "",
+      }
+      const parentId = knownParent(entry.parent_task_id) ?? task.parentId
+      setState("tasks", entry.task_id, { ...task, background: true, parentId })
+    }
+    // A task that leaves the live set without a notification was lost; it no longer runs.
+    for (const id of live) if (!next.has(id) && state.tasks[id]?.state === "running") finishTask(id, "stopped")
+    live = next
   }
 
   function onSystem(message: Of<"system">): void {
@@ -357,31 +471,60 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         )
         return
       case "background_tasks_changed":
-        return
+        return onBackgroundTasks(message)
       case "task_started":
-        if (message.tool_use_id) taskTools.set(message.task_id, message.tool_use_id)
-        return
-      case "task_progress":
-        updateAgent(message.task_id, (agent) => {
-          agent.toolUses = message.usage.tool_uses
-          agent.durationMs = message.usage.duration_ms
+        return onTaskStarted(message)
+      case "task_progress": {
+        const workflow = workflowOf(message.workflow_progress)
+        setTask(message.task_id, (task) => {
+          task.activity = message.description ?? ""
+          task.lastTool = message.last_tool_name ?? null
+          task.toolUses = message.usage.tool_uses
+          task.durationMs = message.usage.duration_ms
+          task.tokens = message.usage.total_tokens ?? task.tokens
+          if (workflow) task.workflow = workflow
+        })
+        updateTool(state.tasks[message.task_id], (tool) => {
+          if (!tool.agent) return
+          tool.agent.activity = message.description ?? ""
+          tool.agent.toolUses = message.usage.tool_uses
+          tool.agent.durationMs = message.usage.duration_ms
         })
         return
-      case "task_updated":
-        updateAgent(message.task_id, (agent) => {
-          if (message.patch.error) agent.error = message.patch.error
+      }
+      case "task_updated": {
+        const patch = message.patch
+        setTask(message.task_id, (task) => {
+          if (patch.error) task.error = patch.error
+          if (patch.is_backgrounded) task.background = true
+        })
+        updateTool(state.tasks[message.task_id], (tool) => {
+          if (tool.agent && patch.error) tool.agent.error = patch.error
         })
         return
-      case "task_notification":
-        updateAgent(message.task_id, (agent) => {
-          agent.state = message.status
-          agent.report = message.summary
-          if (message.usage) {
-            agent.toolUses = message.usage.tool_uses
-            agent.durationMs = message.usage.duration_ms
+      }
+      case "task_notification": {
+        const usage = message.usage
+        setTask(message.task_id, (task) => {
+          task.summary = message.summary
+          task.outputFile = message.output_file ?? null
+          if (usage) {
+            task.toolUses = usage.tool_uses
+            task.durationMs = usage.duration_ms
+            task.tokens = usage.total_tokens ?? task.tokens
           }
         })
+        updateTool(state.tasks[message.task_id], (tool) => {
+          if (!tool.agent) return
+          tool.agent.report = message.summary
+          if (usage) {
+            tool.agent.toolUses = usage.tool_uses
+            tool.agent.durationMs = usage.duration_ms
+          }
+        })
+        finishTask(message.task_id, message.status)
         return
+      }
     }
   }
 
@@ -491,6 +634,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning() {
+      for (const task of Object.values(state.tasks)) if (task.state === "running") finishTask(task.id, "stopped")
       for (const item of Object.values(state.byId)) {
         if (item.kind !== "tool" || (item.status !== "running" && item.agent?.state !== "running")) continue
         update(item.id, (tool) => {

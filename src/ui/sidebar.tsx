@@ -1,6 +1,7 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
 import { createMemo, createSignal, Index, Show } from "solid-js"
 import type { SessionTitle } from "../session/titler.ts"
+import { nestedAgents } from "../session/tasks.ts"
 import type { Agent, Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentMark } from "./figures.tsx"
@@ -28,9 +29,10 @@ export type SidebarProps = {
   onJump: (id: string) => void
 }
 
-type SidebarAgent = { id: string; agent: Agent; color: RGBA }
+type SidebarAgent = { id: string; agent: Agent; color: RGBA; nested: number }
 type Server = SessionInfo["mcpServers"][number]
-type ServerStatus = { word: string; color: RGBA; problem: boolean }
+type ServerStatus = { mark: string; color: RGBA; name: RGBA; word: string; problem: boolean; running: boolean }
+type ServerActivity = { used: Set<string>; running: Set<string> }
 
 // The visible agents are the running ones plus those started since the latest user message.
 function visibleAgents(session: Session): SidebarAgent[] {
@@ -42,7 +44,8 @@ function visibleAgents(session: Session): SidebarAgent[] {
     if (item?.kind !== "tool" || (!item.agent && item.name !== "Agent")) continue
     const color = theme.agents[order % theme.agents.length] ?? theme.accent
     order += 1
-    if (item.agent) agents.push({ id, agent: item.agent, color, afterUser: true })
+    if (item.agent)
+      agents.push({ id, agent: item.agent, color, nested: nestedAgents(session.tasks, item.taskId), afterUser: true })
   }
   const visible = agents.filter((entry) => entry.afterUser || entry.agent.state === "running")
   return [
@@ -73,23 +76,40 @@ function wrapLines(text: string, width: number, max: number): string[] {
 // MCP tool names carry the server name with every character outside [A-Za-z0-9_-] replaced by `_`.
 const toolPrefix = (server: string) => `mcp__${server.replace(/[^A-Za-z0-9_-]/g, "_")}__`
 
-function serversInUse(session: Session): Set<string> {
-  const running = Object.values(session.byId).flatMap((item) =>
-    item.kind === "tool" && item.status === "running" ? [item.name] : [],
+function serverActivity(session: Session): ServerActivity {
+  const items = Object.values(session.byId)
+  const tools = items.flatMap((item) => (item.kind === "tool" ? [item] : []))
+  const waiting = new Set(
+    items.flatMap((item) => (item.kind === "ask" && item.status === "pending" ? [item.toolUseId] : [])),
   )
-  const servers = session.info?.mcpServers ?? []
-  return new Set(
-    servers.filter((server) => running.some((name) => name.startsWith(toolPrefix(server.name)))).map((s) => s.name),
-  )
+  const used = new Set<string>()
+  const running = new Set<string>()
+  for (const server of session.info?.mcpServers ?? []) {
+    const own = tools.filter((tool) => tool.name.startsWith(toolPrefix(server.name)))
+    if (own.length > 0) used.add(server.name)
+    if (own.some((tool) => tool.status === "running" && !waiting.has(tool.id))) running.add(server.name)
+  }
+  return { used, running }
 }
 
-function serverStatus(server: Server, inUse: boolean): ServerStatus {
-  if (server.status === "failed")
-    return { word: server.error?.replace(/\s+/g, " ") ?? "failed", color: theme.error, problem: true }
-  if (server.status === "needs-auth") return { word: "needs login", color: theme.warning, problem: true }
-  if (inUse) return { word: "in use", color: theme.accent, problem: false }
-  return { word: server.status, color: theme.muted, problem: false }
+function serverStatus(server: Server, activity: ServerActivity): ServerStatus {
+  const base = { name: theme.text, word: "", problem: false, running: false }
+  if (server.status === "failed") {
+    const word = server.error?.replace(/\s+/g, " ") ?? "failed"
+    return { ...base, mark: "✕", color: theme.error, word, problem: true }
+  }
+  if (server.status === "needs-auth")
+    return { ...base, mark: "!", color: theme.warning, word: "needs login", problem: true }
+  if (server.status === "disabled") return { ...base, mark: "–", color: theme.faint, name: theme.faint, word: "off" }
+  if (server.status === "pending") return { ...base, mark: "◌", color: theme.accent }
+  if (activity.running.has(server.name)) return { ...base, mark: "●", color: theme.accent, running: true }
+  if (activity.used.has(server.name)) return { ...base, mark: "●", color: theme.muted }
+  return { ...base, mark: "○", color: theme.faint, name: theme.faint }
 }
+
+// Problems lead and disabled servers trail.
+const serverRank = (row: { server: Server; status: ServerStatus }) =>
+  row.status.problem ? 0 : row.server.status === "disabled" ? 2 : 1
 
 function resetTime(resetsAt: number, now: number): string {
   const clock = formatClock(resetsAt)
@@ -154,12 +174,11 @@ function Title(props: {
   )
 }
 
-function Heading(props: { left: string; right: string; onMouseDown?: (event: MouseEvent) => void; extra?: string }) {
+function Heading(props: { left: string; right: string; onMouseDown?: (event: MouseEvent) => void }) {
   return (
     <box flexDirection="row" justifyContent="space-between" onMouseDown={(event) => props.onMouseDown?.(event)}>
       <text wrapMode="none" flexShrink={1}>
         <span style={{ fg: theme.text, bold: true }}>{props.left}</span>
-        <Show when={props.extra}>{(extra) => <span style={{ fg: theme.accent }}>{`  ● ${extra()}`}</span>}</Show>
       </text>
       <text fg={theme.faint} wrapMode="none" flexShrink={0}>
         {props.right}
@@ -167,6 +186,9 @@ function Heading(props: { left: string; right: string; onMouseDown?: (event: Mou
     </box>
   )
 }
+
+// A running agent shows what it does now; a finished one the task it was given.
+const agentLine = (agent: Agent) => (agent.state === "running" && agent.activity) || agent.task
 
 function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: string) => void }) {
   const shown = () => props.agents.slice(0, MAX_AGENTS)
@@ -176,6 +198,7 @@ function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: 
     if (entry.agent.state === "completed") return theme.text
     return theme.error
   }
+  const nested = (entry: SidebarAgent) => (entry.nested > 0 ? `  +${entry.nested} ›` : "")
   return (
     <box flexDirection="column" marginTop={SECTION_GAP} flexShrink={0}>
       <Heading left="Subagents" right={`${running()}/${props.agents.length}`} />
@@ -195,13 +218,16 @@ function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: 
                 size="small"
                 background={theme.band ?? theme.background}
               />
-              <text fg={nameColor(entry())} wrapMode="none">
-                {` ${cut(entry().agent.name, props.width - 2)}`}
+              <text wrapMode="none">
+                <span
+                  style={{ fg: nameColor(entry()) }}
+                >{` ${cut(entry().agent.name, props.width - 2 - nested(entry()).length)}`}</span>
+                <span style={{ fg: theme.faint }}>{nested(entry())}</span>
               </text>
             </box>
             <text wrapMode="none">
               <span style={{ fg: theme.frame }}>{" ╰─ "}</span>
-              <span style={{ fg: theme.muted }}>{cut(entry().agent.task, props.width - 4)}</span>
+              <span style={{ fg: theme.muted }}>{cut(agentLine(entry().agent), props.width - 4)}</span>
             </text>
           </box>
         )}
@@ -215,33 +241,35 @@ function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: 
 
 function ServerRow(props: { server: Server; status: ServerStatus; width: number }) {
   const name = () => cut(props.server.name, props.width - 2)
+  const room = () => props.width - 4 - Bun.stringWidth(name())
   return (
     <text wrapMode="none">
-      <span style={{ fg: props.status.color }}>{"● "}</span>
-      <span style={{ fg: theme.text }}>{name()}</span>
-      <span
-        style={{ fg: props.status.color }}
-      >{`  ${cut(props.status.word, Math.max(1, props.width - 4 - Bun.stringWidth(name())))}`}</span>
+      <span style={{ fg: props.status.color }}>{`${props.status.mark} `}</span>
+      <span style={{ fg: props.status.name }}>{name()}</span>
+      <span style={{ fg: props.status.color }}>
+        {props.status.word && room() > 0 ? `  ${cut(props.status.word, room())}` : ""}
+      </span>
     </text>
   )
 }
 
 function Mcp(props: { session: Session; width: number }) {
   const [open, setOpen] = createSignal(false)
-  const servers = () => (props.session.info?.mcpServers ?? []).filter((server) => server.status !== "disabled")
-  const rows = createMemo(() => {
-    const inUse = serversInUse(props.session)
-    const all = servers().map((server) => ({ server, status: serverStatus(server, inUse.has(server.name)) }))
-    return [...all.filter((row) => row.status.problem), ...all.filter((row) => !row.status.problem)]
-  })
+  const all = () => props.session.info?.mcpServers ?? []
+  const servers = () => all().filter((server) => server.status !== "disabled")
+  const activity = createMemo(() => serverActivity(props.session))
+  // A closed section still lists problems and running servers.
+  const rows = createMemo(() =>
+    all()
+      .map((server) => ({ server, status: serverStatus(server, activity()) }))
+      .toSorted((a, b) => serverRank(a) - serverRank(b)),
+  )
   const ok = () => servers().filter((server) => server.status === "connected").length
-  const busy = () => (open() ? undefined : rows().find((row) => row.status.word === "in use")?.server.name)
-  const listed = () => (open() ? rows() : rows().filter((row) => row.status.problem))
+  const listed = () => (open() ? rows() : rows().filter((row) => row.status.problem || row.status.running))
   return (
     <box flexDirection="column" marginTop={SECTION_GAP} flexShrink={0}>
       <Heading
         left={open() ? "▾ MCP" : "▸ MCP"}
-        extra={busy()}
         right={`${ok()}/${servers().length}`}
         onMouseDown={(event) => {
           event.preventDefault()

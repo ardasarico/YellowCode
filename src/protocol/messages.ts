@@ -73,16 +73,46 @@ const apiRetry = z.looseObject({
 const backgroundTasksChanged = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("background_tasks_changed"),
-  tasks: z.array(z.looseObject({ task_id: z.string() })),
+  tasks: z.array(
+    z.looseObject({
+      task_id: z.string(),
+      task_type: z.string().optional(),
+      description: z.string().optional(),
+      parent_task_id: z.string().optional(),
+      ambient: z.boolean().optional(),
+    }),
+  ),
 })
 
-const taskUsage = z.looseObject({ tool_uses: z.number(), duration_ms: z.number() })
+const taskUsage = z.looseObject({ tool_uses: z.number(), duration_ms: z.number(), total_tokens: z.number().optional() })
 
 const taskStarted = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("task_started"),
   task_id: z.string(),
   tool_use_id: z.string().optional(),
+  description: z.string().optional(),
+  task_type: z.string().optional(),
+  is_backgrounded: z.boolean().optional(),
+  spawn_depth: z.number().optional(),
+  parent_task_id: z.string().optional(),
+  ambient: z.boolean().optional(),
+})
+
+// Not in the SDK types; observed on local_workflow tasks as full snapshots.
+const workflowPhase = z.looseObject({ type: z.literal("workflow_phase"), index: z.number(), title: z.string() })
+const workflowAgent = z.looseObject({
+  type: z.literal("workflow_agent"),
+  index: z.number(),
+  label: z.string(),
+  phaseIndex: z.number().optional(),
+  state: z.string(),
+  model: z.string().optional(),
+  toolCalls: z.number().optional(),
+  durationMs: z.number().optional(),
+  lastToolName: z.string().optional(),
+  lastToolSummary: z.string().optional(),
+  resultPreview: z.string().optional(),
 })
 
 const taskProgress = z.looseObject({
@@ -90,14 +120,20 @@ const taskProgress = z.looseObject({
   subtype: z.literal("task_progress"),
   task_id: z.string(),
   tool_use_id: z.string().optional(),
+  description: z.string().optional(),
+  last_tool_name: z.string().optional(),
   usage: taskUsage,
+  workflow_progress: z
+    .array(z.union([workflowPhase, workflowAgent, z.unknown().transform(() => null)]))
+    .optional()
+    .catch(undefined),
 })
 
 const taskUpdated = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("task_updated"),
   task_id: z.string(),
-  patch: z.looseObject({ error: z.string().optional() }),
+  patch: z.looseObject({ error: z.string().optional(), is_backgrounded: z.boolean().optional() }),
 })
 
 const taskNotification = z.looseObject({
@@ -107,6 +143,7 @@ const taskNotification = z.looseObject({
   tool_use_id: z.string().optional(),
   status: z.enum(["completed", "failed", "stopped"]),
   summary: z.string(),
+  output_file: z.string().optional(),
   usage: taskUsage.optional(),
 })
 

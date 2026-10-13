@@ -20,15 +20,54 @@ export type ToolCall = {
   createdFile: boolean
   unchanged: boolean
   agent: Agent | null
+  taskId: string | null
 }
 export type Agent = {
   name: string
   task: string
-  state: "running" | "completed" | "failed" | "stopped"
+  state: TaskState
   toolUses: number
   durationMs: number
   report: string
   error: string | null
+  // What the running agent is doing now, from its latest task_progress.
+  activity: string
+}
+export type TaskState = "running" | "completed" | "failed" | "stopped"
+// A background or foreground unit of work Claude reports with task_* messages: a subagent, a shell, a workflow.
+export type Task = {
+  id: string
+  type: string
+  toolUseId: string | null
+  parentId: string | null
+  depth: number
+  background: boolean
+  state: TaskState
+  name: string
+  description: string
+  activity: string
+  lastTool: string | null
+  toolUses: number
+  durationMs: number
+  tokens: number
+  summary: string
+  outputFile: string | null
+  error: string | null
+  workflow: WorkflowProgress | null
+}
+export type WorkflowProgress = {
+  phases: { index: number; title: string }[]
+  agents: {
+    index: number
+    label: string
+    phaseIndex: number | null
+    state: string
+    model: string | null
+    toolCalls: number
+    durationMs: number
+    lastTool: string | null
+    result: string | null
+  }[]
 }
 export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLines: number; lines: string[] }
 export type Ask = {
@@ -95,5 +134,6 @@ export type Session = {
   status: SessionStatus
   items: ItemId[]
   byId: Record<ItemId, Item>
+  tasks: Record<string, Task>
   usage: Usage
 }

@@ -1,5 +1,16 @@
 import { expect, test } from "bun:test"
-import { formatSpan, formatTokens, formatUntil, modelName } from "./format.ts"
+import { formatSpan, formatTokens, formatUntil, modelName, toolLabel } from "./format.ts"
+
+test("toolLabel splits MCP tool names at the first server boundary", () => {
+  expect(toolLabel("mcp__github__list_pull_requests")).toBe("github/list_pull_requests")
+  expect(toolLabel("mcp__my_db__run__query")).toBe("my_db/run__query")
+  expect(["Read", "mcp__echo", "mcp__echo__", "mcp_x__y"].map(toolLabel)).toEqual([
+    "Read",
+    "mcp__echo",
+    "mcp__echo__",
+    "mcp_x__y",
+  ])
+})
 
 test("modelName turns model ids into display names", () => {
   expect(modelName("claude-haiku-5-5")).toBe("Haiku 5.5")

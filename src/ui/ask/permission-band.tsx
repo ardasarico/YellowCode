@@ -8,6 +8,7 @@ import { severe } from "../../session/ask.ts"
 import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
+import { toolLabel } from "../format.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { fitHints } from "./fit.ts"
@@ -61,8 +62,8 @@ export function alwaysChoice(update: PermissionUpdate, toolName: string): Choice
       ? modeWords(update.mode ?? "")
       : update.type === "addDirectories"
         ? (update.directories?.join(", ") ?? "")
-        : (rule?.ruleContent ?? rule?.toolName ?? "")
-  const subject = oneLine(text) || toolName
+        : (rule?.ruleContent ?? toolLabel(rule?.toolName ?? ""))
+  const subject = oneLine(text) || toolLabel(toolName)
   return update.type === "setMode"
     ? { kind: "always", before: "Yes, and allow ", subject, after: " for this session" }
     : { kind: "always", before: "Yes, and always allow ", subject, after: " here" }

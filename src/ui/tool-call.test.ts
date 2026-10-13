@@ -22,6 +22,7 @@ const tool: ToolCall = {
   createdFile: false,
   unchanged: false,
   agent: null,
+  taskId: null,
 }
 
 test("answers read from the tool result when the Ask has none", () => {

@@ -5,13 +5,17 @@ import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoi
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession } from "./session.ts"
+import { nestedAgents } from "./tasks.ts"
 import type { Item } from "./types.ts"
 
-function replay(name: string) {
+// With `until`, stops before the first line that contains it.
+function replay(name: string, until?: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
   const session = createSession()
-  for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
+  for (const entry of parseRecording(readFileSync(path, "utf8")).entries) {
+    if (until && entry.line.includes(until)) break
     session.apply(entry.dir, parse(entry.line), entry.t)
+  }
   return session
 }
 
@@ -277,5 +281,60 @@ test("MCP servers keep their status", () => {
   expect(servers).toEqual([
     ["echo", "connected"],
     ["broken", "failed"],
+  ])
+})
+
+test("nested agents join into one task tree and keep their own steps", () => {
+  const session = replay("nested-agents")
+  const tasks = Object.values(session.state.tasks)
+  const outer = tasks.find((task) => task.name === "outer")
+  expect(tasks.map((task) => [task.name, task.parentId, task.depth, task.background, task.state])).toEqual([
+    ["outer", null, 1, false, "completed"],
+    ["inner-fg", outer?.id ?? "", 2, false, "completed"],
+    ["inner-bg", outer?.id ?? "", 2, true, "completed"],
+  ])
+  expect(nestedAgents(session.state.tasks, outer?.id ?? null)).toBe(2)
+  const outerCall = session.state.byId[outer?.toolUseId ?? ""]
+  const steps = outerCall?.kind === "tool" ? outerCall.children.map((id) => session.state.byId[id]) : []
+  expect(steps.flatMap((item) => (item?.kind === "tool" ? [item.name] : []))).toEqual(["Agent", "Agent"])
+})
+
+test("a background task runs until its notification, not its launch result", () => {
+  const before = replay("nested-agents", '"subtype":"task_updated","task_id":"a62fa8cd579dd30f0"')
+  const innerBg = items(before).find((item) => item.kind === "tool" && item.agent?.name === "inner-bg")
+  expect(innerBg).toMatchObject({ agent: { state: "running" } })
+
+  const bash = (session: ReturnType<typeof createSession>) =>
+    items(session).find((item) => item.kind === "tool" && item.name === "Bash" && item.summary.startsWith("sleep"))
+  expect(bash(replay("background-bash", '"subtype":"task_updated"'))).toMatchObject({ status: "running" })
+  expect(bash(replay("background-bash"))).toMatchObject({ status: "done" })
+})
+
+const started = (extra: object) => ({ type: "system", subtype: "task_started", description: "d", ...extra })
+const live = (ids: string[]) => ({
+  type: "system",
+  subtype: "background_tasks_changed",
+  tasks: ids.map((task_id) => ({ task_id, task_type: "local_bash", description: "d" })),
+})
+
+test("the live background set decides what still runs", () => {
+  const session = feed(
+    live(["lost"]),
+    started({ task_id: "lost", task_type: "local_bash", is_backgrounded: true }),
+    started({ task_id: "orphan", task_type: "local_agent", parent_task_id: "ghost" }),
+    started({ task_id: "quiet", ambient: true }),
+    live([]),
+  )
+  expect(session.state.tasks["lost"]).toMatchObject({ state: "stopped", background: true })
+  expect(session.state.tasks["orphan"]).toMatchObject({ state: "running", parentId: null })
+  expect(session.state.tasks["quiet"]).toBeUndefined()
+})
+
+test("a workflow task keeps its latest progress snapshot", () => {
+  const workflow = Object.values(replay("workflow").state.tasks)[0]?.workflow
+  expect(workflow?.phases).toEqual([{ index: 1, title: "Read" }])
+  expect(workflow?.agents.map((agent) => [agent.label, agent.state])).toEqual([
+    ["read:a.txt", "done"],
+    ["read:b.txt", "done"],
   ])
 })

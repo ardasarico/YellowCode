@@ -53,6 +53,7 @@ export function agentOf(toolName: string, input: unknown): Agent | null {
     durationMs: 0,
     report: "",
     error: null,
+    activity: "",
   }
 }
 
