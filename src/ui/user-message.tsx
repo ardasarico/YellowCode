@@ -4,6 +4,7 @@ import type { Command } from "../input/commands.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserImage, UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { blank, trackImage } from "./images.ts"
 
 const COLLAPSED_ROWS = 8
 const TILE_ROWS = 6
@@ -36,14 +37,19 @@ function ImageTile(props: { image: UserImage; index: number }) {
       alignItems="center"
       flexShrink={0}
     >
-      <image
-        ref={(image) => (element = image)}
-        source={source()}
-        fit="fit"
-        width={imageWidth()}
-        height={TILE_ROWS}
-        onLoad={() => setImageWidth(element?.getFittedSize(1000, TILE_ROWS).width ?? 0)}
-      />
+      <Show when={!blank()} fallback={<box width={imageWidth()} height={TILE_ROWS} />}>
+        <image
+          ref={(image) => {
+            element = image
+            trackImage(image)
+          }}
+          source={source()}
+          fit="fit"
+          width={imageWidth()}
+          height={TILE_ROWS}
+          onLoad={() => setImageWidth(element?.getFittedSize(1000, TILE_ROWS).width ?? 0)}
+        />
+      </Show>
       <text fg={theme.muted}>{caption()}</text>
     </box>
   )

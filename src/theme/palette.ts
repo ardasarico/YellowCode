@@ -1,4 +1,4 @@
-import type { CliRenderer, TerminalColors } from "@opentui/core"
+import type { CliRenderer, TerminalColors, ThemeMode } from "@opentui/core"
 import { log } from "../log/log.ts"
 
 export type Tints = {
@@ -70,17 +70,54 @@ export function isDark(background: string | null): boolean {
 }
 
 // palette holds the 16 ANSI colors as hex where the terminal reported them; images need real RGB values.
-export type TerminalLook = { tints: Tints | null; dark: boolean; palette: (string | null)[] }
+// background and foreground are the terminal's default colors, null when it did not report them.
+export type TerminalLook = {
+  tints: Tints | null
+  dark: boolean
+  palette: (string | null)[]
+  background: string | null
+  foreground: string | null
+}
+
+// Stand-ins for a terminal that reports only whether it is dark or light. They are used for blending under a dialog's
+// dim; a cell in the default colors is still drawn in the terminal's own.
+const SCHEME_COLORS: Record<ThemeMode, { background: string; foreground: string }> = {
+  dark: { background: "#161616", foreground: "#d4d4d4" },
+  light: { background: "#f6f6f6", foreground: "#1c1c1c" },
+}
+
+// COLORFGBG is "fg;bg" or "fg;default;bg" in ANSI indexes; 0 to 6 and 8 are dark backgrounds.
+export function schemeFromColorFgBg(value: string | undefined): ThemeMode | null {
+  const background = value?.split(";").at(-1)
+  if (background === undefined || !/^\d+$/.test(background)) return null
+  const index = Number(background)
+  return index <= 6 || index === 8 ? "dark" : "light"
+}
 
 export async function readTerminal(renderer: CliRenderer): Promise<TerminalLook> {
+  const look = await readPalette(renderer)
+  if (look.background && look.foreground) return look
+  const mode = (await renderer.waitForThemeMode(300).catch(() => null)) ?? schemeFromColorFgBg(process.env.COLORFGBG)
+  if (!mode) return look
+  log.info("terminal colors guessed from the color scheme", mode)
+  return { ...look, dark: mode === "dark", ...SCHEME_COLORS[mode] }
+}
+
+async function readPalette(renderer: CliRenderer): Promise<TerminalLook> {
   try {
     const colors = await renderer.getPalette({ timeout: 300 })
     const tints = tintsFrom(colors)
     if (tints) log.info("palette tints", tints)
     else log.info("palette without hex colors, using the 16-color fallback", colors)
-    return { tints, dark: isDark(colors.defaultBackground), palette: colors.palette.slice(0, 16).map(hex) }
+    return {
+      tints,
+      dark: isDark(colors.defaultBackground),
+      palette: colors.palette.slice(0, 16).map(hex),
+      background: hex(colors.defaultBackground),
+      foreground: hex(colors.defaultForeground),
+    }
   } catch (error) {
     log.warn("palette query failed, using the 16-color fallback", error)
-    return { tints: null, dark: true, palette: [] }
+    return { tints: null, dark: true, palette: [], background: null, foreground: null }
   }
 }

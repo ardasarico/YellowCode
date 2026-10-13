@@ -11,6 +11,10 @@ type SyntaxTokens<T> = { keyword: T; string: T; number: T; function: T; type: T;
 
 export type Theme = {
   background: RGBA | null
+  // What is behind everything: the painted background, or the terminal's own default background.
+  canvas: RGBA
+  // A dialog dims the app only when the colors under it are known; blending against a guessed default draws a slab.
+  dim: boolean
   text: RGBA
   muted: RGBA
   faint: RGBA
@@ -56,6 +60,8 @@ export type ThemeColors = {
       | "agents"
       | "syntax"
       | "rgb"
+      | "canvas"
+      | "dim"
     >
   ]: string
 } & { agents: string[]; syntax: SyntaxTokens<string> }
@@ -73,16 +79,19 @@ export function terminalTheme(terminal: Terminal): Theme {
     const value = tints?.[key]
     return value ? RGBA.fromHex(value) : null
   }
+  const text = RGBA.defaultForeground(terminal.foreground ?? undefined)
   return {
     background: null,
-    text: RGBA.defaultForeground(),
+    canvas: RGBA.defaultBackground(terminal.background ?? undefined),
+    dim: terminal.background !== null && terminal.foreground !== null,
+    text,
     muted: ansi(8),
     faint: tint("faint") ?? ansi(8),
     success: ansi(2),
     frame: tint("frame") ?? ansi(8),
     dimFrame: tint("dimFrame") ?? ansi(8),
     accent: ansi(4),
-    dimAccent: tint("dimAccent") ?? RGBA.defaultForeground(),
+    dimAccent: tint("dimAccent") ?? text,
     warning: ansi(3),
     error: ansi(1),
     warningBand: tint("warningBand"),
@@ -107,6 +116,8 @@ export function terminalTheme(terminal: Terminal): Theme {
 function paintedTheme(c: ThemeColors): Theme {
   return {
     background: hex(c.background),
+    canvas: hex(c.background),
+    dim: true,
     text: hex(c.text),
     muted: hex(c.muted),
     faint: hex(mix(c.muted, c.background, 0.4)),
@@ -159,7 +170,7 @@ function syntaxStyles(t: Theme) {
 const painted: ThemeDefinition[] = [dusk, petal, ember]
 export const themes = [{ id: "terminal", name: "Terminal" }, ...painted.map(({ id, name }) => ({ id, name }))]
 
-let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [] }
+let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [], background: null, foreground: null }
 const initial = terminalTheme(terminal)
 const [theme, setThemeStore] = createStore<Theme>(initial)
 const [themeId, setThemeId] = createSignal("terminal")

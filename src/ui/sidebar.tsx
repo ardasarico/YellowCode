@@ -326,7 +326,7 @@ export function Sidebar(props: SidebarProps) {
       flexDirection="row"
       flexShrink={0}
       width={props.width}
-      backgroundColor={theme.band ?? theme.background ?? RGBA.defaultBackground()}
+      backgroundColor={theme.band ?? theme.canvas}
       position={props.overlay ? "absolute" : "relative"}
       right={0}
       top={0}

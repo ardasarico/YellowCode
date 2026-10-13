@@ -3,7 +3,7 @@ import { createEffect, createSignal, onCleanup, Show } from "solid-js"
 import type { Agent } from "../session/types.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
-import { onBackground } from "./images.ts"
+import { blank, onBackground, trackImage } from "./images.ts"
 
 const GRAY = RGBA.fromHex("#8A8A8A")
 
@@ -116,13 +116,17 @@ function pawFrame(color: RGBA, step: number | null, size: Size): NativeImage {
 }
 
 function Mark(props: { source: NativeImage; size: Size; background: RGBA | null }) {
+  const width = () => (props.size === "small" ? 1 : 2)
   return (
-    <image
-      source={onBackground(props.source, props.background)}
-      width={props.size === "small" ? 1 : 2}
-      height={1}
-      flexShrink={0}
-    />
+    <Show when={!blank()} fallback={<box width={width()} height={1} flexShrink={0} />}>
+      <image
+        ref={trackImage}
+        source={onBackground(props.source, props.background)}
+        width={width()}
+        height={1}
+        flexShrink={0}
+      />
+    </Show>
   )
 }
 
@@ -209,11 +213,14 @@ function ringImage(color: RGBA, track: RGBA, step: number): NativeImage {
 export function ContextRing(props: { fraction: number; color: RGBA; background: RGBA | null }) {
   const step = () => Math.min(RING_STEPS, Math.max(0, Math.round(props.fraction * RING_STEPS)))
   return (
-    <image
-      source={onBackground(ringImage(props.color, theme.frame, step()), props.background)}
-      width={2}
-      height={1}
-      flexShrink={0}
-    />
+    <Show when={!blank()} fallback={<box width={2} height={1} flexShrink={0} />}>
+      <image
+        ref={trackImage}
+        source={onBackground(ringImage(props.color, theme.frame, step()), props.background)}
+        width={2}
+        height={1}
+        flexShrink={0}
+      />
+    </Show>
   )
 }

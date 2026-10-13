@@ -1,9 +1,11 @@
-import { type KeyEvent, RGBA, TextAttributes } from "@opentui/core"
-import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, For, Index, on, Show } from "solid-js"
+import { type KeyEvent, type OptimizedBuffer, RGBA, TextAttributes } from "@opentui/core"
+import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
+import { createEffect, createMemo, createSignal, For, Index, on, onCleanup, onMount, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { AskScroll } from "../ask/ask-scroll.tsx"
 import { cut } from "../format.ts"
+import { SCRIM, setCovered } from "../images.ts"
+import { DimmedImages } from "./dimmed-images.tsx"
 import type { Span } from "../notice.ts"
 import { type DialogRow, type DialogSection, filterSections, moveSelection, selectableIds } from "./list.ts"
 
@@ -27,7 +29,6 @@ export type DialogProps = {
 const WIDTH = 64
 const FULL_WIDTH_MARGIN = 6
 const PAD_X = 4
-const DIM = RGBA.fromValues(6 / 255, 7 / 255, 12 / 255, 0.75)
 // Title, blank, search row, blank above the sections; the footer below them; one padding row on each side.
 const FIXED_ROWS = 4 + 1 + 2
 
@@ -36,7 +37,7 @@ function printable(key: KeyEvent): boolean {
   return !key.ctrl && !key.meta && code >= 32 && code !== 127
 }
 
-const fill = () => theme.background ?? theme.tile ?? RGBA.defaultBackground()
+const fill = () => theme.background ?? theme.tile ?? theme.canvas
 const onAccent = () => theme.background ?? RGBA.fromIndex(0)
 
 function spread(left: string, right: string, width: number) {
@@ -47,6 +48,9 @@ function spread(left: string, right: string, width: number) {
 
 export function Dialog(props: DialogProps) {
   const dimensions = useTerminalDimensions()
+  const renderer = useRenderer()
+  onMount(() => setCovered(true))
+  onCleanup(() => setCovered(false))
   const [query, setQuery] = createSignal("")
   const [chosen, setChosen] = createSignal(props.initialSelected)
   const [moved, setMoved] = createSignal(false)
@@ -99,6 +103,22 @@ export function Dialog(props: DialogProps) {
   const tallest = createMemo((previous: number) => Math.max(previous, height()), 0)
   const left = () => Math.floor((dimensions().width - width()) / 2)
   const top = () => Math.max(0, Math.floor((dimensions().height - Math.min(tallest(), dimensions().height - 2)) / 2))
+  // With no colors to blend with, the cells around the panel are set faint, so the terminal fades them itself.
+  const faint = (buffer: OptimizedBuffer) => {
+    const { attributes } = buffer.buffers
+    const [x0, y0, x1, y1] = [left(), top(), left() + width(), top() + height()]
+    for (let y = 0; y < buffer.height; y++) {
+      for (let x = 0; x < buffer.width; x++) {
+        const index = y * buffer.width + x
+        if (x < x0 || x >= x1 || y < y0 || y >= y1) attributes[index] = (attributes[index] ?? 0) | TextAttributes.DIM
+      }
+    }
+  }
+  createEffect(() => {
+    if (theme.dim) return
+    renderer.addPostProcessFn(faint)
+    onCleanup(() => renderer.removePostProcessFn(faint))
+  })
   const footer = () => props.footer.filter((item) => !item.needsRow || ids().length > 0)
 
   useKeyboard((key) => {
@@ -163,8 +183,11 @@ export function Dialog(props: DialogProps) {
         width="100%"
         height="100%"
         zIndex={10}
-        backgroundColor={theme.background ? DIM : undefined}
+        backgroundColor={theme.dim ? SCRIM : undefined}
       />
+      <Show when={theme.dim}>
+        <DimmedImages panel={{ x: left(), y: top(), width: width(), height: height() }} />
+      </Show>
       <box
         position="absolute"
         top={top()}
@@ -255,6 +278,19 @@ export function Dialog(props: DialogProps) {
           </text>
         </box>
       </box>
+      {/* Without a dim the panel is framed instead; the frame sits on the panel's padding cells. */}
+      <Show when={!theme.dim}>
+        <box
+          position="absolute"
+          top={top()}
+          left={left()}
+          zIndex={12}
+          width={width()}
+          height={height()}
+          border
+          borderColor={theme.muted}
+        />
+      </Show>
     </>
   )
 }

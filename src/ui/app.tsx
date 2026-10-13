@@ -1,4 +1,4 @@
-import { RGBA, type ScrollBoxRenderable } from "@opentui/core"
+import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -143,7 +143,7 @@ export function App(props: AppProps) {
 
   createEffect(on(() => settings.theme, setTheme, { defer: true }))
 
-  createEffect(() => renderer.setBackgroundColor(theme.background ?? RGBA.defaultBackground()))
+  createEffect(() => renderer.setBackgroundColor(theme.canvas))
 
   const selectableIds = () =>
     props.session.items.filter((id) => props.session.byId[id]?.kind === "tool" || overflowing[id] === true)
@@ -288,7 +288,6 @@ export function App(props: AppProps) {
             recent={{ entries: recents(), selected: recent() }}
             width={dimensions().width}
             height={dimensions().height}
-            covered={dialog() !== null}
           />
         }
       >

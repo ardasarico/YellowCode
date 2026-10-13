@@ -4,7 +4,7 @@ import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
-import { onBackground } from "./images.ts"
+import { blank, onBackground, trackImage } from "./images.ts"
 import { InputBlock, type InputBlockProps } from "./input-block.tsx"
 import { blinkFrame, CAT, CAT_PALETTE, swayFrame } from "./mascot.ts"
 import { PixelArt } from "./pixel-art.tsx"
@@ -95,6 +95,7 @@ function Cat() {
   }
   return (
     <image
+      ref={trackImage}
       source={onBackground(source(), theme.background)}
       width={CAT_COLS}
       height={CAT_ROWS}
@@ -140,7 +141,6 @@ export function Welcome(props: {
   recent: { entries: SessionEntry[]; selected: number | null }
   width: number
   height: number
-  covered: boolean
 }) {
   const width = () => blockWidth(props.width)
   const parts = () => welcomeLayout(props.width, props.height, props.recent.entries.length)
@@ -149,8 +149,7 @@ export function Welcome(props: {
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
         <Show when={parts().cat}>
           <box flexDirection="row" alignItems="center" gap={LOGO_GAP}>
-            {/* Terminals draw images above cell text, so the cat would show through an open dialog. */}
-            <Show when={!props.covered} fallback={<box width={CAT_COLS} height={CAT_ROWS} flexShrink={0} />}>
+            <Show when={!blank()} fallback={<box width={CAT_COLS} height={CAT_ROWS} flexShrink={0} />}>
               <Cat />
             </Show>
             <Show when={parts().wordmark}>

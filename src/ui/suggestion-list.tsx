@@ -72,7 +72,7 @@ export function SuggestionList(props: {
         width={props.width}
         height={height()}
         flexDirection="column"
-        backgroundColor={shade() ?? theme.background ?? RGBA.defaultBackground()}
+        backgroundColor={shade() ?? theme.canvas}
       >
         <box height={padding().top} flexShrink={0} />
         <Index each={props.entries}>
