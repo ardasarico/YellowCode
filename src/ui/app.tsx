@@ -7,6 +7,7 @@ import type { InputProvider } from "../input/provider.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
+import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
@@ -47,7 +48,7 @@ export type AppProps = {
   onQuit: () => void
 }
 
-type Focus = "input" | "chat" | "panel"
+type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName = "settings" | "resume" | "theme" | "mcp"
 
 export function App(props: AppProps) {
@@ -188,6 +189,18 @@ export function App(props: AppProps) {
     const top = agentTree(props.session).filter((node) => node.depth === 1)
     const target = top.findLast((node) => node.state === "running") ?? top.at(-1)
     if (target) openAgentView(target.id)
+    else openShells()
+  }
+
+  const shellCount = () => runningShellCount(props.session)
+  createEffect(() => {
+    if (focus() === "shells" && (shellCount() === 0 || pending())) setFocus("input")
+  })
+  const openShells = () => {
+    const first = shellTasks(props.session)[0]
+    if (!first) return
+    setFocus("input")
+    openAgentView(shellNodeId(first.id))
   }
 
   const panel = createMemo(() => (pending() ? [] : panelNodes(props.session)))
@@ -216,7 +229,7 @@ export function App(props: AppProps) {
     const ids = panelIds()
     const at = ids.indexOf(panelSelected() ?? "")
     if (name === "up") {
-      if (at <= 0) setFocus("input")
+      if (at <= 0) setFocus(shellCount() > 0 ? "shells" : "input")
       else setPanelPick(ids[at - 1] ?? null)
     } else if (name === "down") setPanelPick(ids[Math.min(at + 1, ids.length - 1)] ?? null)
     else if (name === "escape") setFocus("input")
@@ -280,6 +293,20 @@ export function App(props: AppProps) {
       key.preventDefault()
       key.stopPropagation()
       panelKey(key.name)
+      return
+    }
+    if (
+      focus() === "shells" &&
+      !key.ctrl &&
+      !key.meta &&
+      !key.shift &&
+      (key.name === "up" || key.name === "down" || key.name === "escape" || key.name === "return")
+    ) {
+      key.preventDefault()
+      key.stopPropagation()
+      if (key.name === "down") enterPanel()
+      else if (key.name === "return") openShells()
+      else setFocus("input")
       return
     }
     if (key.shift && (key.name === "up" || key.name === "down")) {
@@ -446,8 +473,9 @@ export function App(props: AppProps) {
               ask={askView()}
               history={history}
               onListOpen={setListOpen}
-              onLeaveDown={enterPanel}
+              onLeaveDown={() => (shellCount() > 0 ? setFocus("shells") : enterPanel())}
               agents={panel().length > 0}
+              shells={{ count: shellCount(), selected: focus() === "shells", onOpen: openShells }}
             />
             <Show when={panel().length > 0}>
               <AgentPanel

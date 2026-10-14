@@ -1,4 +1,4 @@
-import { TextAttributes } from "@opentui/core"
+import { RGBA, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
 import { type Accessor, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
@@ -23,6 +23,7 @@ import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 // `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
 // `edgeGap` adds room on the right, so the context indicator does not touch a docked sidebar.
 // `ask` takes the place of the rules and the input. `agents` shows the agents hint.
+// `shells` draws the running-shells counter, which ↓ can select.
 export type PromptBarProps = InputBlockProps & {
   notice: Notice
   context: Usage["context"]
@@ -32,7 +33,10 @@ export type PromptBarProps = InputBlockProps & {
   history: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
   agents?: boolean
+  shells?: Shells
 }
+
+type Shells = { count: number; selected: boolean; onOpen: () => void }
 
 function Spans(props: { spans: Span[]; shrink: number }) {
   return (
@@ -161,8 +165,16 @@ function PromptInput(
 }
 
 const AGENTS_HINT = "↓ agents"
+const SHELLS_HINT = "↓ shells"
+const BOTH_HINT = "↓ shells · agents"
+const SHELLS_GAP = "   "
+const SELECTED_HINT = " · enter view shells"
 // The hint's gap and the widest context indicator.
 const HINT_ROOM = 18
+
+function shellsLabel(count: number): string {
+  return count === 1 ? "1 shell" : `${count} shells`
+}
 
 function InfoLine(props: {
   model: string | null
@@ -170,12 +182,26 @@ function InfoLine(props: {
   frame: number
   width: number
   agents: boolean
+  shells?: Shells
 }) {
   const label = () => (props.model ? `✻ ${modelName(props.model)}` : "")
+  const shells = () => (props.shells && props.shells.count > 0 ? props.shells : null)
+  const counterWidth = () => {
+    const counter = shells()
+    if (!counter) return 0
+    return SHELLS_GAP.length + shellsLabel(counter.count).length + (counter.selected ? SELECTED_HINT.length : 0)
+  }
   const leftWidth = () =>
     Bun.stringWidth(label()) +
     (settings.effort ? `  effort ${settings.effort}`.length : 0) +
-    (settings.ultracode ? "  ultracode".length : 0)
+    (settings.ultracode ? "  ultracode".length : 0) +
+    counterWidth()
+  const hint = () => {
+    const counter = shells()
+    const shellsHint = counter !== null && !counter.selected
+    const text = props.agents ? (shellsHint ? BOTH_HINT : AGENTS_HINT) : shellsHint ? SHELLS_HINT : null
+    return text && leftWidth() + Bun.stringWidth(text) + HINT_ROOM <= props.width ? text : null
+  }
   return (
     <box flexDirection="row" justifyContent="space-between">
       <box flexDirection="row">
@@ -194,12 +220,35 @@ function InfoLine(props: {
           <text>{"  "}</text>
           <UltracodeWord frame={props.frame} />
         </Show>
+        <Show when={shells()}>
+          {(counter) => (
+            <box flexDirection="row" onMouseDown={() => counter().onOpen()}>
+              <text wrapMode="none">{SHELLS_GAP}</text>
+              <text
+                wrapMode="none"
+                fg={counter().selected ? (theme.background ?? RGBA.fromIndex(0)) : theme.success}
+                bg={counter().selected ? theme.success : undefined}
+              >
+                {shellsLabel(counter().count)}
+              </text>
+              <Show when={counter().selected}>
+                <text wrapMode="none">
+                  <span style={{ fg: theme.faint }}>{" · "}</span>
+                  <span style={{ fg: theme.text }}>{"enter"}</span>
+                  <span style={{ fg: theme.muted }}>{" view shells"}</span>
+                </text>
+              </Show>
+            </box>
+          )}
+        </Show>
       </box>
       <box flexDirection="row" gap={2}>
-        <Show when={props.agents && leftWidth() + Bun.stringWidth(AGENTS_HINT) + HINT_ROOM <= props.width}>
-          <text fg={theme.muted} wrapMode="none">
-            {AGENTS_HINT}
-          </text>
+        <Show when={hint()}>
+          {(text) => (
+            <text fg={theme.muted} wrapMode="none">
+              {text()}
+            </text>
+          )}
         </Show>
         <ContextIndicator context={props.context} />
       </box>
@@ -270,6 +319,7 @@ export function PromptBar(props: PromptBarProps) {
         frame={frame()}
         width={inner()}
         agents={props.agents ?? false}
+        shells={props.shells}
       />
     </box>
   )
