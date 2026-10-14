@@ -5,14 +5,15 @@ import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
-import { agentTree, type TreeNode } from "./tree.ts"
+import { ShellPage } from "./shell-page.tsx"
+import { agentTree, shellNodes, type TreeNode } from "./tree.ts"
 import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
 const NOTICE_MS = 4000
 const STOP_NOTICE = "Stopping comes with the live connection"
 const FOOTER = [
-  { key: "↑↓", word: "agent" },
+  { key: "↑↓", word: "select" },
   { key: "pgup/pgdn", word: "scroll" },
   { key: "x", word: "stop" },
   { key: "esc", word: "chat" },
@@ -23,11 +24,45 @@ const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40,
 
 const stoppable = (node: TreeNode) => node.state === "running" && node.kind !== "phase"
 
-function Tree(props: { nodes: TreeNode[]; selected: string | null; width: number; onPick: (id: string) => void }) {
+// The Shells section above its rows: a blank row, the title, the rule and another blank row.
+const SHELLS_HEAD = 4
+
+const runningCount = (nodes: TreeNode[]) => nodes.filter((node) => node.selectable && stoppable(node)).length
+
+function SectionTitle(props: { title: string; running: number; width: number }) {
+  return (
+    <>
+      <box flexDirection="row" justifyContent="space-between" paddingX={2} height={1} flexShrink={0}>
+        <text wrapMode="none">
+          <span style={{ fg: theme.text, bold: true }}>{props.title}</span>
+        </text>
+        <text wrapMode="none" fg={theme.faint}>
+          {props.running > 0 ? `${props.running} running` : ""}
+        </text>
+      </box>
+      <box paddingX={2} height={1} flexShrink={0}>
+        <text fg={theme.frame} wrapMode="none">
+          {"─".repeat(Math.max(0, props.width - 4))}
+        </text>
+      </box>
+    </>
+  )
+}
+
+function Tree(props: {
+  agents: TreeNode[]
+  shells: TreeNode[]
+  selected: string | null
+  width: number
+  onPick: (id: string) => void
+}) {
   let scroll: ScrollBoxRenderable | undefined
-  const running = () => props.nodes.filter((node) => node.selectable && stoppable(node)).length
+  const withAgents = () => props.agents.length > 0 || props.shells.length === 0
   createEffect(() => {
-    const index = props.nodes.findIndex((node) => node.id === props.selected)
+    const agent = props.agents.findIndex((node) => node.id === props.selected)
+    const shell = props.shells.findIndex((node) => node.id === props.selected)
+    const index =
+      agent !== -1 ? agent : shell === -1 ? -1 : shell + (withAgents() ? props.agents.length + SHELLS_HEAD : 0)
     if (!scroll || index === -1) return
     if (index < scroll.scrollTop) scroll.scrollTo(index)
     else if (index >= scroll.scrollTop + scroll.viewport.height) scroll.scrollTo(index - scroll.viewport.height + 1)
@@ -40,26 +75,31 @@ function Tree(props: { nodes: TreeNode[]; selected: string | null; width: number
       paddingY={1}
       backgroundColor={theme.band ?? theme.canvas}
     >
-      <box flexDirection="row" justifyContent="space-between" paddingX={2} height={1}>
-        <text wrapMode="none">
-          <span style={{ fg: theme.text, bold: true }}>Agents</span>
-        </text>
-        <text wrapMode="none" fg={theme.faint}>
-          {running() > 0 ? `${running()} running` : ""}
-        </text>
-      </box>
-      <box paddingX={2} height={1}>
-        <text fg={theme.frame} wrapMode="none">
-          {"─".repeat(Math.max(0, props.width - 4))}
-        </text>
-      </box>
+      <SectionTitle
+        title={withAgents() ? "Agents" : "Shells"}
+        running={runningCount(withAgents() ? props.agents : props.shells)}
+        width={props.width}
+      />
       <scrollbox
         ref={(element) => (scroll = element)}
         flexGrow={1}
         marginTop={1}
         verticalScrollbarOptions={{ visible: false }}
       >
-        <TreeRows nodes={props.nodes} selected={props.selected} width={props.width} onPick={props.onPick} />
+        <Show
+          when={withAgents()}
+          fallback={
+            <TreeRows nodes={props.shells} selected={props.selected} width={props.width} onPick={props.onPick} />
+          }
+        >
+          <TreeRows nodes={props.agents} selected={props.selected} width={props.width} onPick={props.onPick} />
+          <Show when={props.shells.length > 0}>
+            <box flexDirection="column" flexShrink={0} paddingY={1}>
+              <SectionTitle title="Shells" running={runningCount(props.shells)} width={props.width} />
+            </box>
+            <TreeRows nodes={props.shells} selected={props.selected} width={props.width} onPick={props.onPick} />
+          </Show>
+        </Show>
       </scrollbox>
     </box>
   )
@@ -105,6 +145,9 @@ function Page(props: PageProps & { rows: TreeNode[] }) {
       <Match when={props.node.kind === "workflow-agent"}>
         <WorkflowAgentPage {...props} />
       </Match>
+      <Match when={props.node.kind === "shell"}>
+        <ShellPage {...props} />
+      </Match>
     </Switch>
   )
 }
@@ -118,7 +161,9 @@ export function AgentView(props: {
   height: number
 }) {
   let scroll: ScrollBoxRenderable | undefined
-  const nodes = createMemo(() => agentTree(props.session))
+  const agents = createMemo(() => agentTree(props.session))
+  const shells = createMemo(() => shellNodes(props.session))
+  const nodes = createMemo(() => [...agents(), ...shells()])
   const byId = createMemo(() => new Map(nodes().map((node) => [node.id, node])))
   const node = () => byId().get(props.selected) ?? nodes().find((entry) => entry.selectable)
   const shownId = createMemo(() => node()?.id ?? null)
@@ -172,7 +217,7 @@ export function AgentView(props: {
   return (
     <box flexDirection="row" width={props.width} height={props.height}>
       <Show when={tree() > 0}>
-        <Tree nodes={nodes()} selected={shownId()} width={tree()} onPick={props.onSelect} />
+        <Tree agents={agents()} shells={shells()} selected={shownId()} width={tree()} onPick={props.onSelect} />
       </Show>
       <box flexDirection="column" flexGrow={1} paddingX={2} paddingY={1}>
         <Show when={shownId()} keyed>

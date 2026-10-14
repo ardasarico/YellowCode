@@ -1,8 +1,9 @@
+import { shellNodeId, shellTasks } from "../../session/shells.ts"
 import type { Session, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
 
 export type TreeNode = {
   id: string
-  kind: "agent" | "workflow" | "phase" | "workflow-agent" | "queued"
+  kind: "agent" | "workflow" | "phase" | "workflow-agent" | "queued" | "shell"
   depth: number
   parentId: string | null
   name: string
@@ -235,6 +236,23 @@ export function agentTree(session: Session): TreeNode[] {
     order += 1
   }
   return nodes
+}
+
+export function shellNodes(session: Session): TreeNode[] {
+  return shellTasks(session).map((task) => ({
+    id: shellNodeId(task.id),
+    kind: "shell",
+    depth: 1,
+    parentId: null,
+    name: task.description || task.command,
+    state: task.state,
+    detail: task.command,
+    toolUses: 0,
+    durationMs: task.endedAt !== null && task.startedAt !== null ? task.endedAt - task.startedAt : 0,
+    startedAt: task.startedAt,
+    colorIndex: 0,
+    selectable: true,
+  }))
 }
 
 // Top-level agents and workflows that are running or started since the latest user message, each followed by its

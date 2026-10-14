@@ -12,6 +12,12 @@ const MARGIN = 2
 
 export const agentColor = (index: number) => theme.agents[index % theme.agents.length] ?? theme.accent
 
+export function shellColor(state: TreeNode["state"]) {
+  if (state === "failed") return theme.error
+  if (state === "stopped") return theme.warning
+  return state === "running" ? theme.accent : theme.muted
+}
+
 type RowsProps = {
   selected: string | null
   width: number
@@ -52,6 +58,11 @@ function Row(props: Omit<RowsProps, "selected"> & { node: TreeNode; selected: bo
         <Match when={props.node.kind === "queued"}>
           <text fg={theme.faint} flexShrink={0}>
             {"○ "}
+          </text>
+        </Match>
+        <Match when={props.node.kind === "shell"}>
+          <text fg={shellColor(props.node.state)} flexShrink={0}>
+            {"$ "}
           </text>
         </Match>
         <Match when={hasMark()}>
