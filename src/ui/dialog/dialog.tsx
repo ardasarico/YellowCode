@@ -33,6 +33,12 @@ export type DialogProps = {
   initialSelected?: string
   // Without the search row, typing does nothing.
   search?: boolean
+  searchPlaceholder?: string
+  filter?: (sections: DialogSection[], query: string) => DialogSection[]
+  // "keys" draws each action as `key action`, joined by a faint dot.
+  footerStyle?: "keys"
+  // Drawn at the right end of the footer line.
+  notice?: string
   // Shorter views keep this height, so the panel does not jump as views change.
   minHeight?: number
   onEnter: (row: DialogRow) => void
@@ -75,7 +81,20 @@ function rowParts(row: DialogRow, value: string, room: number, tagColumn: number
     tag = cut(`${" ".repeat(tagColumn - width(label))}${row.tag}`, left - width(label))
   }
   const gap = " ".repeat(Math.max(0, room - width(label) - width(tag) - width(right)))
-  return { label, tag, gap, value: right }
+  return { label, tag, pad: "", detail: "", gap, value: right }
+}
+
+// The tag follows the label, and the detail starts at `column`.
+function detailParts(row: DialogRow, value: string, room: number, column: number) {
+  const right = value ? cut(value, room) : ""
+  const left = Math.max(0, room - width(right) - (right ? 1 : 0))
+  const head = Math.min(column - 1, left)
+  const label = cut(row.label, head)
+  const tag = row.tag && head - width(label) > 1 ? cut(` ${row.tag}`, head - width(label)) : ""
+  const detail = row.detail && left > column ? cut(row.detail, left - column) : ""
+  const pad = detail ? " ".repeat(Math.max(0, column - width(label) - width(tag))) : ""
+  const gap = " ".repeat(Math.max(0, room - width(label) - width(tag) - width(pad) - width(detail) - width(right)))
+  return { label, tag, pad, detail, gap, value: right }
 }
 
 function cutSpans(spans: Span[], room: number): Span[] {
@@ -109,7 +128,7 @@ export function Dialog(props: DialogProps) {
   )
 
   const searching = () => props.search ?? true
-  const visible = createMemo(() => filterSections(props.sections, query()))
+  const visible = createMemo(() => (props.filter ?? filterSections)(props.sections, query()))
   const ids = createMemo(() => selectableIds(visible()))
   const selectedId = () =>
     [chosen(), props.initialSelected].find((id) => id !== undefined && ids().includes(id)) ?? ids()[0]
@@ -136,6 +155,15 @@ export function Dialog(props: DialogProps) {
     const rows = props.sections.flatMap((section) => section.rows).filter(isRow)
     if (!rows.some((row) => row.tag)) return 0
     return Math.min(Math.max(...rows.map((row) => width(row.label))) + 2, Math.floor(inner() / 2))
+  })
+  const detailColumn = createMemo(() => {
+    const rows = props.sections
+      .flatMap((section) => section.rows)
+      .filter(isRow)
+      .filter((row) => row.detail !== undefined)
+    if (rows.length === 0) return 0
+    const widest = Math.max(...rows.map((row) => width(row.label) + (row.tag ? 1 + width(row.tag) : 0)))
+    return Math.min(widest + 3, Math.floor(inner() * 0.45))
   })
   const lines = createMemo((): DialogLine[] => {
     const body = dialogLines(visible(), selectedId())
@@ -186,6 +214,15 @@ export function Dialog(props: DialogProps) {
     const actions = typeof props.footer === "function" ? props.footer(selectedRow()) : props.footer
     return actions.filter((item) => !item.needsRow || ids().length > 0)
   }
+  const keys = () => props.footerStyle === "keys"
+  const hintsWidth = () => {
+    const separator = keys() ? 3 : 2
+    return footer().reduce((sum, item, index) => sum + width(`${item.key} ${item.action}`) + (index ? separator : 0), 0)
+  }
+  const notice = () => {
+    const room = inner() - hintsWidth() - 2
+    return props.notice && room > 0 ? cut(props.notice, room) : ""
+  }
 
   useKeyboard((key) => {
     const row = selectedRow()
@@ -231,7 +268,10 @@ export function Dialog(props: DialogProps) {
   const Row = (rowProps: { row: DialogRow }) => {
     const selected = () => rowProps.row.id === selectedId()
     const value = () => (selected() ? (rowProps.row.selectedValue ?? rowProps.row.value) : rowProps.row.value) ?? ""
-    const parts = () => rowParts(rowProps.row, value(), inner(), tagColumn())
+    const parts = () =>
+      rowProps.row.detail !== undefined
+        ? detailParts(rowProps.row, value(), inner(), detailColumn())
+        : rowParts(rowProps.row, value(), inner(), tagColumn())
     return (
       <Show
         when={selected()}
@@ -241,6 +281,10 @@ export function Dialog(props: DialogProps) {
               <span style={{ fg: rowProps.row.marker?.fg }}>{`${rowProps.row.marker?.text ?? " "} `}</span>
               <span style={{ fg: rowProps.row.labelColor ?? theme.text }}>{parts().label}</span>
               <span style={{ fg: theme.faint }}>{parts().tag}</span>
+              <Show when={parts().detail}>
+                {parts().pad}
+                <span style={{ fg: rowProps.row.valueColor ?? theme.muted }}>{parts().detail}</span>
+              </Show>
               {parts().gap}
               <span style={{ fg: rowProps.row.valueColor ?? theme.muted }}>{parts().value}</span>
             </text>
@@ -251,7 +295,9 @@ export function Dialog(props: DialogProps) {
           <text wrapMode="none">
             <span style={{ fg: onAccent(), bold: true }}>{`${rowProps.row.marker?.text ?? "●"} ${parts().label}`}</span>
             <span style={{ fg: onAccent() }}>{parts().tag}</span>
-            <span style={{ fg: onAccent(), bold: true }}>{`${parts().gap}${parts().value}`}</span>
+            <span style={{ fg: onAccent(), bold: true }}>
+              {`${parts().pad}${parts().detail}${parts().gap}${parts().value}`}
+            </span>
           </text>
         </box>
       </Show>
@@ -307,7 +353,7 @@ export function Dialog(props: DialogProps) {
               fallback={
                 <text wrapMode="none">
                   <span style={{ bg: theme.text }}> </span>
-                  <span style={{ fg: theme.muted }}>Search</span>
+                  <span style={{ fg: theme.muted }}>{props.searchPlaceholder ?? "Search"}</span>
                 </text>
               }
             >
@@ -332,12 +378,25 @@ export function Dialog(props: DialogProps) {
           <text wrapMode="none">
             <Index each={footer()}>
               {(item, index) => (
-                <>
-                  <span style={{ fg: theme.text }}>{`${index === 0 ? "" : "  "}${item().action}`}</span>
-                  <span style={{ fg: theme.muted }}>{` ${item().key}`}</span>
-                </>
+                <Show
+                  when={keys()}
+                  fallback={
+                    <>
+                      <span style={{ fg: theme.text }}>{`${index === 0 ? "" : "  "}${item().action}`}</span>
+                      <span style={{ fg: theme.muted }}>{` ${item().key}`}</span>
+                    </>
+                  }
+                >
+                  <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
+                  <span style={{ fg: theme.text }}>{item().key}</span>
+                  <span style={{ fg: theme.muted }}>{` ${item().action}`}</span>
+                </Show>
               )}
             </Index>
+            <Show when={notice()}>
+              {" ".repeat(Math.max(0, inner() - hintsWidth() - width(notice())))}
+              <span style={{ fg: theme.warning }}>{notice()}</span>
+            </Show>
           </text>
         </box>
       </box>

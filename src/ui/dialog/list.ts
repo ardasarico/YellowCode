@@ -12,6 +12,8 @@ export type DialogRow = {
   labelColor?: RGBA
   // A faint word in a column the rows share.
   tag?: string
+  // A text in a column after the label, drawn in valueColor.
+  detail?: string
   valueColor?: RGBA
   // Replaces the value while the row is selected.
   selectedValue?: string
