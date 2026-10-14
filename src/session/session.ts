@@ -59,7 +59,7 @@ function toolStatus(state: TaskState): ToolCall["status"] {
   return state
 }
 
-function workflowOf(items: System<"task_progress">["workflow_progress"]): WorkflowProgress | null {
+function workflowOf(items: System<"task_progress">["workflow_progress"], shift: number): WorkflowProgress | null {
   if (!items) return null
   const progress: WorkflowProgress = { phases: [], agents: [] }
   for (const item of items) {
@@ -69,11 +69,16 @@ function workflowOf(items: System<"task_progress">["workflow_progress"]): Workfl
         index: item.index,
         label: item.label,
         phaseIndex: item.phaseIndex ?? null,
+        phaseTitle: item.phaseTitle ?? null,
         state: item.state,
+        prompt: item.promptPreview ?? "",
         model: item.model ?? null,
         toolCalls: item.toolCalls ?? 0,
+        tokens: item.tokens ?? 0,
         durationMs: item.durationMs ?? 0,
+        startedAt: item.startedAt === undefined ? null : item.startedAt + shift,
         lastTool: item.lastToolName ?? null,
+        lastToolSummary: item.lastToolSummary ?? null,
         result: item.resultPreview ?? null,
       })
   }
@@ -91,6 +96,9 @@ function blankTask(id: string): Task {
     state: "running",
     name: "",
     description: "",
+    prompt: "",
+    workflowName: "",
+    startedAt: null,
     activity: "",
     lastTool: null,
     toolUses: 0,
@@ -296,6 +304,12 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         usage.input_tokens + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0),
       )
     }
+    const model = message.message.model
+    if (message.parent_tool_use_id && model) {
+      update(message.parent_tool_use_id, (item) => {
+        if (item.kind === "tool" && item.agent && !item.agent.model) item.agent.model = model
+      })
+    }
     for (const block of message.message.content) {
       if (block.type === "tool_use" && state.byId[block.id]) {
         finalize(block.id, block)
@@ -438,10 +452,18 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       state: "running" as const,
       name: (tool?.kind === "tool" ? tool.agent?.name : undefined) ?? message.description ?? "",
       description: message.description ?? "",
+      prompt: message.prompt ?? "",
+      workflowName: message.workflow_name ?? "",
+      startedAt: now + shift,
     }
     task.background ||= message.is_backgrounded === true
     setState("tasks", message.task_id, task)
-    updateTool(task, (item) => (item.taskId = task.id))
+    updateTool(task, (item) => {
+      item.taskId = task.id
+      if (!item.agent) return
+      item.agent.prompt ||= task.prompt
+      item.agent.type ||= message.subagent_type ?? ""
+    })
   }
 
   function finishTask(id: string, outcome: TaskState): void {
@@ -495,7 +517,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       case "task_started":
         return onTaskStarted(message)
       case "task_progress": {
-        const workflow = workflowOf(message.workflow_progress)
+        const workflow = workflowOf(message.workflow_progress, shift)
         setTask(message.task_id, (task) => {
           task.activity = message.description ?? ""
           task.lastTool = message.last_tool_name ?? null
@@ -509,6 +531,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
           tool.agent.activity = message.description ?? ""
           tool.agent.toolUses = message.usage.tool_uses
           tool.agent.durationMs = message.usage.duration_ms
+          tool.agent.tokens = message.usage.total_tokens ?? tool.agent.tokens
         })
         return
       }
@@ -540,6 +563,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
           if (usage) {
             tool.agent.toolUses = usage.tool_uses
             tool.agent.durationMs = usage.duration_ms
+            tool.agent.tokens = usage.total_tokens ?? tool.agent.tokens
           }
         })
         finishTask(message.task_id, message.status)

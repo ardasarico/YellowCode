@@ -1,215 +1,48 @@
 import { RGBA } from "@opentui/core"
-import { createSignal, For, Index, Match, Show, Switch } from "solid-js"
-import type { Agent, Item, Session, ToolCall } from "../session/types.ts"
+import { createSignal, Show } from "solid-js"
+import type { Session, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { useElapsedSeconds } from "./elapsed.ts"
-import { AgentMark } from "./figures.tsx"
-import { cut, cutPath, formatDuration } from "./format.ts"
-import { relative, resultSummary, ToolCallRow } from "./tool-call.tsx"
+import { AgentLine, WorkflowLine } from "./agents/agent-line.tsx"
+import { isWorkflowCall } from "./agents/tree.ts"
+import { agentColor } from "./agents/tree-rows.tsx"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
-const CONNECTOR = "  ⎿  "
-const INDENT = " ".repeat(CONNECTOR.length)
-const VISIBLE_STEPS = 3
-// Shown while the Agent call's input is still streaming in.
-const PENDING: Agent = {
-  name: "agent",
-  task: "",
-  state: "running",
-  toolUses: 0,
-  durationMs: 0,
-  report: "",
-  error: null,
-  activity: "",
-}
-
-function count(n: number, noun: string): string {
-  return `${n} ${noun}${n === 1 ? "" : "s"}`
-}
-
-function firstSentence(text: string): string {
-  const line = text.trim().split("\n")[0] ?? ""
-  const end = line.indexOf(". ")
-  return end === -1 ? line : line.slice(0, end + 1)
-}
-
-function status(agent: Agent, tools: number, seconds: number): { text: string; color: RGBA } {
-  const stats = `${count(tools, "tool")} · ${formatDuration(agent.durationMs || seconds * 1000)}`
-  if (agent.state === "completed") return { text: `done · ${stats}`, color: theme.muted }
-  if (agent.state === "failed") return { text: `failed · ${stats}`, color: theme.error }
-  if (agent.state === "stopped") return { text: `stopped · ${stats}`, color: theme.warning }
-  return { text: tools === 0 ? "starting…" : `running · ${stats}`, color: theme.accent }
-}
-
-function StepLine(props: { tool: ToolCall; cwd: string; prefix: string; prefixColor: RGBA; width: number }) {
-  const color = () => {
-    if (props.tool.status === "error") return theme.error
-    if (props.tool.status === "stopped") return theme.warning
-    return props.tool.status === "running" ? theme.accent : theme.muted
-  }
-  const target = () => relative(props.tool.summary, props.cwd)
-  const label = () => `${props.tool.name}(${target()})`
-  const room = () => props.width - props.prefix.length - 2
-  const result = () => (props.tool.status === "running" ? "running…" : resultSummary(props.tool))
-  return (
-    <text wrapMode="none">
-      <span style={{ fg: props.prefixColor }}>{props.prefix}</span>
-      <span style={{ fg: color() }}>●</span>
-      <span
-        style={{ fg: theme.text }}
-      >{` ${target().includes(" ") ? cut(label(), room()) : cutPath(label(), room())}`}</span>
-      <span style={{ fg: color() }}>{`  ${cut(result(), Math.max(0, room() - label().length - 2))}`}</span>
-    </text>
-  )
-}
-
-const isAgent = (tool: ToolCall) => tool.agent !== null || tool.name === "Agent"
-
-// A child agent is one line in its parent's row; `›` marks that it has a detail of its own.
-function AgentStep(props: { tool: ToolCall; prefix: string; prefixColor: RGBA; width: number }) {
-  const agent = () => props.tool.agent ?? PENDING
-  const seconds = useElapsedSeconds(() => agent().state === "running")
-  const state = () => status(agent(), agent().toolUses, seconds())
-  const label = () => `Agent(${agent().name})`
-  const room = () => props.width - props.prefix.length - 2
-  return (
-    <text wrapMode="none">
-      <span style={{ fg: props.prefixColor }}>{props.prefix}</span>
-      <span style={{ fg: state().color }}>●</span>
-      <span style={{ fg: theme.text }}>{` ${cut(label(), room())}`}</span>
-      <span style={{ fg: state().color }}>{`  ${cut(state().text, Math.max(0, room() - label().length - 4))}`}</span>
-      <span style={{ fg: theme.faint }}>{" ›"}</span>
-    </text>
-  )
-}
 
 export function AgentRow(props: {
   item: ToolCall
   index: number
   session: Session
   selected: boolean
-  expanded: boolean
+  onOpen: (id: string) => void
 }) {
   const [width, setWidth] = createSignal(0)
-  const color = () => theme.agents[props.index % theme.agents.length] ?? theme.accent
-  const agent = () => props.item.agent ?? PENDING
-  const running = () => agent().state === "running"
-  const seconds = useElapsedSeconds(running)
-  const children = () =>
-    props.item.children.flatMap((id) => {
-      const child = props.session.byId[id]
-      return child ? [child] : []
-    })
-  const tools = () => children().filter((child): child is ToolCall => child.kind === "tool")
-  // Only tool calls and text draw anything in the expanded view; other items would leave a bare rail line.
-  const shown = () => children().filter((child) => child.kind === "tool" || child.kind === "text")
-  const toolCount = () => Math.max(agent().toolUses, tools().length)
-  const state = () => status(agent(), toolCount(), seconds())
-  const cwd = () => props.session.info?.cwd ?? ""
-  // A finished agent puts its status on a second line; while running or expanded it stays on the first.
-  const twoLine = () => !running() && !props.expanded
-  const outcome = () =>
-    agent().state === "failed"
-      ? { text: `failed · ${firstSentence(agent().error ?? agent().report)}`, color: theme.error }
-      : state()
-  const task = () => (running() && agent().activity) || agent().task
-  const head = () => `   ${agent().name}(${task()})${twoLine() ? "" : `  ${state().text}`}`
-  const recent = () => tools().slice(-VISIBLE_STEPS)
-  const earlier = () => tools().length - recent().length
+  const [hovered, setHovered] = createSignal(false)
+  const background = () => (props.selected ? theme.selection : hovered() ? theme.band : null)
+  const line = () => ({
+    session: props.session,
+    tool: props.item,
+    color: agentColor(props.index),
+    width: width(),
+    background: background(),
+  })
 
   return (
     <box
       id={props.item.id}
-      flexDirection="column"
-      backgroundColor={(props.selected ? theme.selection : null) ?? CLEAR}
+      backgroundColor={background() ?? CLEAR}
       onSizeChange={function () {
         setWidth(this.width)
       }}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
+      onMouseDown={(event) => {
+        event.preventDefault()
+        props.onOpen(props.item.id)
+      }}
     >
-      <box flexDirection="row">
-        <AgentMark color={color()} state={agent().state} size={running() ? undefined : "medium"} />
-        <text wrapMode="none">
-          <span style={{ fg: theme.text, bold: true }}>{` ${agent().name}`}</span>
-          <span
-            style={{ fg: theme.text }}
-          >{`(${cut(task(), Math.max(8, width() - head().length + task().length))})`}</span>
-          <Show when={!twoLine()}>
-            <span style={{ fg: state().color }}>{`  ${state().text}`}</span>
-          </Show>
-        </text>
-      </box>
-      <Switch>
-        <Match when={twoLine()}>
-          <text wrapMode="none">
-            <span style={{ fg: color() }}>{CONNECTOR}</span>
-            <span style={{ fg: outcome().color }}>{cut(outcome().text, Math.max(0, width() - CONNECTOR.length))}</span>
-          </text>
-        </Match>
-        <Match when={props.expanded}>
-          <box flexDirection="column">
-            <For each={shown()}>
-              {(child: Item, position) => (
-                <box flexDirection="row">
-                  <text fg={color()} flexShrink={0}>
-                    {position() === 0 ? CONNECTOR : INDENT}
-                  </text>
-                  <box flexGrow={1} flexDirection="column">
-                    <Switch>
-                      <Match when={child.kind === "tool" && isAgent(child) ? child : undefined}>
-                        {(tool) => (
-                          <AgentStep
-                            tool={tool()}
-                            prefix=""
-                            prefixColor={color()}
-                            width={Math.max(0, width() - CONNECTOR.length)}
-                          />
-                        )}
-                      </Match>
-                      <Match when={child.kind === "tool" ? child : undefined}>
-                        {(tool) => <ToolCallRow item={tool()} cwd={cwd()} selected={false} expanded={false} />}
-                      </Match>
-                      <Match when={child.kind === "text" ? child : undefined}>
-                        {(text) => <text fg={theme.muted}>{text().markdown}</text>}
-                      </Match>
-                    </Switch>
-                  </box>
-                </box>
-              )}
-            </For>
-          </box>
-        </Match>
-        <Match when={running() && tools().length > 0}>
-          <Show when={earlier() > 0}>
-            <text>
-              <span style={{ fg: color() }}>{CONNECTOR}</span>
-              <span style={{ fg: theme.muted }}>{`… ${count(earlier(), "earlier tool")}`}</span>
-            </text>
-          </Show>
-          <Index each={recent()}>
-            {(tool, position) => (
-              <Show
-                when={isAgent(tool())}
-                fallback={
-                  <StepLine
-                    tool={tool()}
-                    cwd={cwd()}
-                    prefix={position === 0 && earlier() === 0 ? CONNECTOR : INDENT}
-                    prefixColor={color()}
-                    width={width()}
-                  />
-                }
-              >
-                <AgentStep
-                  tool={tool()}
-                  prefix={position === 0 && earlier() === 0 ? CONNECTOR : INDENT}
-                  prefixColor={color()}
-                  width={width()}
-                />
-              </Show>
-            )}
-          </Index>
-        </Match>
-      </Switch>
+      <Show when={isWorkflowCall(props.item)} fallback={<AgentLine {...line()} />}>
+        <WorkflowLine {...line()} />
+      </Show>
     </box>
   )
 }

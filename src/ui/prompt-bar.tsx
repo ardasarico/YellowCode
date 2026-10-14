@@ -22,7 +22,7 @@ import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
 // `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
 // `edgeGap` adds room on the right, so the context indicator does not touch a docked sidebar.
-// `ask` takes the place of the rules and the input.
+// `ask` takes the place of the rules and the input. `agents` shows the agents hint.
 export type PromptBarProps = InputBlockProps & {
   notice: Notice
   context: Usage["context"]
@@ -31,6 +31,7 @@ export type PromptBarProps = InputBlockProps & {
   ask?: JSX.Element
   history: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
+  agents?: boolean
 }
 
 function Spans(props: { spans: Span[]; shrink: number }) {
@@ -82,6 +83,7 @@ function PromptInput(
     provider: InputProvider
     history: Accessor<Draft[]>
     onListOpen?: (open: boolean) => void
+    onLeaveDown?: () => void
   },
 ) {
   const dimensions = useTerminalDimensions()
@@ -104,6 +106,7 @@ function PromptInput(
     loadImage,
     history: () => props.history(),
     onListOpen: (open) => props.onListOpen?.(open),
+    onLeaveDown: () => props.onLeaveDown?.(),
   })
   onMount(() => {
     completion.restore(props.draft)
@@ -157,12 +160,27 @@ function PromptInput(
   )
 }
 
-function InfoLine(props: { model: string | null; context: Usage["context"]; frame: number }) {
+const AGENTS_HINT = "↓ agents"
+// The hint's gap and the widest context indicator.
+const HINT_ROOM = 18
+
+function InfoLine(props: {
+  model: string | null
+  context: Usage["context"]
+  frame: number
+  width: number
+  agents: boolean
+}) {
+  const label = () => (props.model ? `✻ ${modelName(props.model)}` : "")
+  const leftWidth = () =>
+    Bun.stringWidth(label()) +
+    (settings.effort ? `  effort ${settings.effort}`.length : 0) +
+    (settings.ultracode ? "  ultracode".length : 0)
   return (
     <box flexDirection="row" justifyContent="space-between">
       <box flexDirection="row">
         <text fg={theme.claude} attributes={TextAttributes.BOLD}>
-          {props.model ? `✻ ${modelName(props.model)}` : ""}
+          {label()}
         </text>
         <Show when={settings.effort}>
           {(level) => (
@@ -177,7 +195,14 @@ function InfoLine(props: { model: string | null; context: Usage["context"]; fram
           <UltracodeWord frame={props.frame} />
         </Show>
       </box>
-      <ContextIndicator context={props.context} />
+      <box flexDirection="row" gap={2}>
+        <Show when={props.agents && leftWidth() + Bun.stringWidth(AGENTS_HINT) + HINT_ROOM <= props.width}>
+          <text fg={theme.muted} wrapMode="none">
+            {AGENTS_HINT}
+          </text>
+        </Show>
+        <ContextIndicator context={props.context} />
+      </box>
     </box>
   )
 }
@@ -229,6 +254,7 @@ export function PromptBar(props: PromptBarProps) {
             provider={props.provider}
             history={props.history}
             onListOpen={props.onListOpen}
+            onLeaveDown={props.onLeaveDown}
           />
         }
       >
@@ -238,7 +264,13 @@ export function PromptBar(props: PromptBarProps) {
           </box>
         )}
       </Show>
-      <InfoLine model={props.model} context={props.context} frame={frame()} />
+      <InfoLine
+        model={props.model}
+        context={props.context}
+        frame={frame()}
+        width={inner()}
+        agents={props.agents ?? false}
+      />
     </box>
   )
 }

@@ -12,6 +12,10 @@ const scenarios: Record<string, Scenario> = {
   subagent: {
     prompt: "Use the Agent tool with subagent_type general-purpose to list the files here, then reply with one word.",
   },
+  "subagent-text": {
+    prompt:
+      "Use the Agent tool with subagent_type general-purpose; tell it to think briefly, write one sentence about what it will do, run `ls`, and reply with one word. Then reply with one word.",
+  },
   control: {
     controls: [{ subtype: "initialize" }, { subtype: "get_context_usage", detail: "summary" }, { subtype: "mcp_status" }],
   },

@@ -10,6 +10,9 @@ import { settings, stepEffort, stepModel, toggleUltracode } from "../session/set
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
+import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
+import { AgentView } from "./agents/agent-view.tsx"
+import { agentTree, isAgentCall, isWorkflowCall } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
@@ -44,7 +47,7 @@ export type AppProps = {
   onQuit: () => void
 }
 
-type Focus = "input" | "chat"
+type Focus = "input" | "chat" | "panel"
 type DialogName = "settings" | "resume" | "theme" | "mcp"
 
 export function App(props: AppProps) {
@@ -52,6 +55,7 @@ export function App(props: AppProps) {
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
   const [selected, setSelected] = createSignal<string | null>(null)
+  const [agentView, setAgentView] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
   const [overflowing, setOverflowing] = createStore<Record<string, boolean>>({})
   const [scrollState, setScrollState] = createSignal<ScrollState>(
@@ -105,6 +109,9 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
+  createEffect(() => {
+    if (pending()) setAgentView(null)
+  })
   const [mcpFailure, setMcpFailure] = createSignal<string | null>(null)
   const failedServers = new Set<string>()
 
@@ -164,6 +171,61 @@ export function App(props: AppProps) {
     setExpanded(id, (open) => !open)
   }
 
+  const isAgentRow = (id: string) => {
+    const item = props.session.byId[id]
+    return item?.kind === "tool" && (isAgentCall(item) || isWorkflowCall(item))
+  }
+
+  const openAgentView = (id: string) => {
+    if (!pending()) setAgentView(id)
+  }
+
+  const toggleAgentView = () => {
+    if (agentView() !== null) {
+      setAgentView(null)
+      return
+    }
+    const top = agentTree(props.session).filter((node) => node.depth === 1)
+    const target = top.findLast((node) => node.state === "running") ?? top.at(-1)
+    if (target) openAgentView(target.id)
+  }
+
+  const panel = createMemo(() => (pending() ? [] : panelNodes(props.session)))
+  const [panelPick, setPanelPick] = createSignal<string | null>(null)
+  const panelIds = () => shownNodes(panel()).map((node) => node.id)
+  const panelSelected = () => {
+    if (focus() !== "panel") return null
+    const ids = panelIds()
+    const pick = panelPick()
+    return pick !== null && ids.includes(pick) ? pick : (ids[0] ?? null)
+  }
+  createEffect(() => {
+    if (focus() === "panel" && panel().length === 0) setFocus("input")
+  })
+  const enterPanel = () => {
+    const first = panelIds()[0]
+    if (!first) return
+    setPanelPick(first)
+    setFocus("panel")
+  }
+  const openFromPanel = (id: string) => {
+    setFocus("input")
+    openAgentView(id)
+  }
+  const panelKey = (name: string | undefined) => {
+    const ids = panelIds()
+    const at = ids.indexOf(panelSelected() ?? "")
+    if (name === "up") {
+      if (at <= 0) setFocus("input")
+      else setPanelPick(ids[at - 1] ?? null)
+    } else if (name === "down") setPanelPick(ids[Math.min(at + 1, ids.length - 1)] ?? null)
+    else if (name === "escape") setFocus("input")
+    else if (name === "return") {
+      const id = panelSelected()
+      if (id) openFromPanel(id)
+    }
+  }
+
   const moveSelection = (step: 1 | -1) => {
     const ids = selectableIds()
     if (ids.length === 0) return
@@ -180,6 +242,13 @@ export function App(props: AppProps) {
       return
     }
     if (dialog()) return
+    if (key.ctrl && key.name === "t") {
+      key.preventDefault()
+      key.stopPropagation()
+      if (!pending()) toggleAgentView()
+      return
+    }
+    if (agentView() !== null) return
     const row = recent()
     if (row !== null) {
       // ↑ and Esc give the tile its focus back within this event, so no key may go on to it.
@@ -201,6 +270,18 @@ export function App(props: AppProps) {
       return
     }
     if (pending()) return
+    if (
+      focus() === "panel" &&
+      !key.ctrl &&
+      !key.meta &&
+      !key.shift &&
+      (key.name === "up" || key.name === "down" || key.name === "escape" || key.name === "return")
+    ) {
+      key.preventDefault()
+      key.stopPropagation()
+      panelKey(key.name)
+      return
+    }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
       stepEffort(key.name === "up" ? 1 : -1)
@@ -233,7 +314,8 @@ export function App(props: AppProps) {
     else if (key.name === "down") moveSelection(1)
     else if (key.name === "return") {
       const id = selected()
-      if (id) toggle(id)
+      if (id && isAgentRow(id)) setAgentView(id)
+      else if (id) toggle(id)
     }
   })
 
@@ -250,7 +332,7 @@ export function App(props: AppProps) {
   }
 
   const input = () => ({
-    focused: focus() === "input" && dialog() === null && recent() === null,
+    focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
     placeholder: props.readOnly
       ? "Read-only · resuming needs the live connection"
       : "Enter sends the next recorded message",
@@ -306,9 +388,22 @@ export function App(props: AppProps) {
           />
         }
       >
+        <Show when={agentView()}>
+          {(id) => (
+            <AgentView
+              session={props.session}
+              selected={id()}
+              onSelect={setAgentView}
+              onClose={() => setAgentView(null)}
+              width={dimensions().width}
+              height={dimensions().height}
+            />
+          )}
+        </Show>
         <box
           flexDirection="row"
           flexGrow={1}
+          visible={agentView() === null}
           onMouseDown={() => setResizing(false)}
           onMouseDrag={(event) => {
             if (!resizing() || event.isDragging) return
@@ -335,6 +430,7 @@ export function App(props: AppProps) {
               expanded={expanded}
               onOverflow={(id, value) => setOverflowing(id, value)}
               onToggle={(id) => setExpanded(id, (open) => !open)}
+              onOpenAgent={openAgentView}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}
@@ -350,7 +446,17 @@ export function App(props: AppProps) {
               ask={askView()}
               history={history}
               onListOpen={setListOpen}
+              onLeaveDown={enterPanel}
+              agents={panel().length > 0}
             />
+            <Show when={panel().length > 0}>
+              <AgentPanel
+                nodes={panel()}
+                selected={panelSelected()}
+                width={chatWidth() - 1 - edgeGap()}
+                onOpen={openFromPanel}
+              />
+            </Show>
           </box>
           <Show when={sidebar() !== "hidden"}>
             <Sidebar
@@ -363,10 +469,6 @@ export function App(props: AppProps) {
               overlay={sidebar() === "overlay"}
               resizing={resizing()}
               onResizeStart={() => setResizing(true)}
-              onJump={(id) => {
-                setSelected(id)
-                scroll?.scrollChildIntoView(id)
-              }}
             />
           </Show>
         </box>

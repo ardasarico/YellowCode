@@ -25,6 +25,11 @@ export type ToolCall = {
 export type Agent = {
   name: string
   task: string
+  prompt: string
+  type: string
+  // "" until the Agent input or the subagent's first message names it.
+  model: string
+  tokens: number
   state: TaskState
   toolUses: number
   durationMs: number
@@ -45,6 +50,9 @@ export type Task = {
   state: TaskState
   name: string
   description: string
+  prompt: string
+  workflowName: string
+  startedAt: number | null
   activity: string
   lastTool: string | null
   toolUses: number
@@ -61,11 +69,17 @@ export type WorkflowProgress = {
     index: number
     label: string
     phaseIndex: number | null
+    phaseTitle: string | null
     state: string
+    prompt: string
     model: string | null
     toolCalls: number
+    tokens: number
     durationMs: number
+    // Epoch milliseconds, shifted like every other replayed time.
+    startedAt: number | null
     lastTool: string | null
+    lastToolSummary: string | null
     result: string | null
   }[]
 }

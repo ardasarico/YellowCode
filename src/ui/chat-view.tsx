@@ -23,6 +23,7 @@ type ChatProps = {
   expanded: Record<string, boolean>
   onOverflow: (id: string, overflowing: boolean) => void
   onToggle: (id: string) => void
+  onOpenAgent: (id: string) => void
 }
 
 type ChatViewProps = ChatProps & {
@@ -99,7 +100,7 @@ function RowView(props: RowProps) {
               index={props.agentIndex}
               session={props.session}
               selected={props.selected === tool().id}
-              expanded={props.expanded[tool().id] === true}
+              onOpen={props.onOpenAgent}
             />
           )}
         </Match>

@@ -5,7 +5,6 @@ import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoi
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession } from "./session.ts"
-import { nestedAgents } from "./tasks.ts"
 import type { Item } from "./types.ts"
 
 // With `until`, stops before the first line that contains it.
@@ -293,10 +292,12 @@ test("nested agents join into one task tree and keep their own steps", () => {
     ["inner-fg", outer?.id ?? "", 2, false, "completed"],
     ["inner-bg", outer?.id ?? "", 2, true, "completed"],
   ])
-  expect(nestedAgents(session.state.tasks, outer?.id ?? null)).toBe(2)
   const outerCall = session.state.byId[outer?.toolUseId ?? ""]
   const steps = outerCall?.kind === "tool" ? outerCall.children.map((id) => session.state.byId[id]) : []
   expect(steps.flatMap((item) => (item?.kind === "tool" ? [item.name] : []))).toEqual(["Agent", "Agent"])
+  const agent = outerCall?.kind === "tool" ? outerCall.agent : null
+  expect(agent?.prompt).toStartWith("Use the Agent tool twice in one message.")
+  expect(agent).toMatchObject({ model: "claude-haiku-5-5", tokens: 13664 })
 })
 
 test("a background task runs until its notification, not its launch result", () => {
@@ -337,4 +338,9 @@ test("a workflow task keeps its latest progress snapshot", () => {
     ["read:a.txt", "done"],
     ["read:b.txt", "done"],
   ])
+  expect(workflow?.agents[0]).toMatchObject({
+    prompt: "Read the file /Users/user/project/a.txt and return its exact content as your final text, nothing else.",
+    tokens: 9322,
+    lastToolSummary: "/Users/user/project/a.txt",
+  })
 })

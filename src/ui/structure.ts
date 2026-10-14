@@ -8,7 +8,7 @@ type EndRow = Extract<Row, { kind: "end" }>
 
 function rowKind(item: Exclude<Item, { kind: "turn-end" | "ask" }>): Exclude<Row["kind"], "end"> {
   if (item.kind === "text") return "markdown"
-  if (item.kind === "tool") return item.agent || item.name === "Agent" ? "agent" : "tool"
+  if (item.kind === "tool") return item.agent || item.name === "Agent" || item.name === "Workflow" ? "agent" : "tool"
   return item.kind
 }
 

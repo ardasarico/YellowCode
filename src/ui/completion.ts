@@ -47,7 +47,7 @@ export type CompletionOptions = {
   loadImage: LoadImage
   history?: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
-  // Called by ↓ on the last row when there is no history to step through.
+  // Called by ↓ on the last row without history, or on an empty prompt that is not browsing it.
   onLeaveDown?: () => void
 }
 
@@ -298,6 +298,7 @@ export function useCompletion(options: CompletionOptions) {
 
   const onLastRow = () =>
     area !== undefined && area.visualCursor.visualRow + area.scrollY === area.editorView.getTotalVirtualLineCount() - 1
+  const leavesDown = () => (options.history ? browsing === null && area?.plainText === "" : onLastRow())
 
   useKeyboard((key) => {
     if (!options.focused()) return
@@ -305,7 +306,7 @@ export function useCompletion(options: CompletionOptions) {
     const plain = !key.ctrl && !key.meta && !key.shift
     if (rows.length === 0) {
       if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
-      else if (plain && key.name === "down" && !options.history && options.onLeaveDown && onLastRow()) {
+      else if (plain && key.name === "down" && options.onLeaveDown && leavesDown()) {
         key.preventDefault()
         options.onLeaveDown()
       }

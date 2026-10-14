@@ -104,6 +104,9 @@ const taskStarted = z.looseObject({
   spawn_depth: z.number().optional(),
   parent_task_id: z.string().optional(),
   ambient: z.boolean().optional(),
+  prompt: z.string().optional(),
+  workflow_name: z.string().optional(),
+  subagent_type: z.string().optional(),
 })
 
 // Not in the SDK types; observed on local_workflow tasks as full snapshots.
@@ -113,6 +116,7 @@ const workflowAgent = z.looseObject({
   index: z.number(),
   label: z.string(),
   phaseIndex: z.number().optional(),
+  phaseTitle: z.string().optional(),
   state: z.string(),
   model: z.string().optional(),
   toolCalls: z.number().optional(),
@@ -120,6 +124,9 @@ const workflowAgent = z.looseObject({
   lastToolName: z.string().optional(),
   lastToolSummary: z.string().optional(),
   resultPreview: z.string().optional(),
+  promptPreview: z.string().optional(),
+  tokens: z.number().optional(),
+  startedAt: z.number().optional(),
 })
 
 const taskProgress = z.looseObject({
@@ -185,6 +192,7 @@ const assistant = z.looseObject({
   parent_tool_use_id: z.string().nullable().optional(),
   message: z.looseObject({
     id: z.string(),
+    model: z.string().optional(),
     content: z.array(contentBlock),
     usage: z
       .looseObject({

@@ -18,3 +18,7 @@ test("a turn Claude continues on its own merges into the previous one", () => {
   expect(rowsOf("subagent")).toEqual(["user", "agent", "markdown", "thinking", "markdown", "end×2"])
   expect(rowsOf("agents").filter((row) => row.startsWith("end"))).toEqual(["end×4"])
 })
+
+test("a workflow call is one agent row", () => {
+  expect(rowsOf("workflow").filter((row) => row === "agent")).toHaveLength(1)
+})

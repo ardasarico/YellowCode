@@ -39,6 +39,8 @@ const agentFields = z.looseObject({
   name: z.string().optional(),
   subagent_type: z.string().optional(),
   description: z.string().optional(),
+  prompt: z.string().optional(),
+  model: z.string().optional(),
 })
 
 export function agentOf(toolName: string, input: unknown): Agent | null {
@@ -48,6 +50,10 @@ export function agentOf(toolName: string, input: unknown): Agent | null {
   return {
     name: parsed.data.name ?? parsed.data.subagent_type ?? "agent",
     task: parsed.data.description ?? "",
+    prompt: parsed.data.prompt ?? "",
+    type: parsed.data.subagent_type ?? "",
+    model: parsed.data.model ?? "",
+    tokens: 0,
     state: "running",
     toolUses: 0,
     durationMs: 0,

@@ -1,17 +1,15 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
 import { createMemo, createSignal, Index, Show } from "solid-js"
 import type { SessionTitle } from "../session/titler.ts"
-import { nestedAgents } from "../session/tasks.ts"
-import type { Agent, Session, SessionInfo, Window } from "../session/types.ts"
+import type { Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { AgentMark } from "./figures.tsx"
 import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, wrapLines } from "./format.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
 import { shortName, toolPrefix } from "./mcp/servers.ts"
 import { useTicker } from "./ticker.ts"
 import type { Workspace } from "./welcome.tsx"
 
-const MAX_AGENTS = 5
+const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const SECTION_GAP = 1
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const DAY_MS = 86_400_000
@@ -27,33 +25,11 @@ export type SidebarProps = {
   overlay: boolean
   resizing: boolean
   onResizeStart: () => void
-  onJump: (id: string) => void
 }
 
-type SidebarAgent = { id: string; agent: Agent; color: RGBA; nested: number }
 type Server = SessionInfo["mcpServers"][number]
 type ServerStatus = { mark: string; color: RGBA; name: RGBA; word: string; problem: boolean; running: boolean }
 type ServerActivity = { used: Set<string>; running: Set<string> }
-
-// The visible agents are the running ones plus those started since the latest user message.
-function visibleAgents(session: Session): SidebarAgent[] {
-  const agents: (SidebarAgent & { afterUser: boolean })[] = []
-  let order = 0
-  for (const id of session.items) {
-    const item = session.byId[id]
-    if (item?.kind === "user") for (const agent of agents) agent.afterUser = false
-    if (item?.kind !== "tool" || (!item.agent && item.name !== "Agent")) continue
-    const color = theme.agents[order % theme.agents.length] ?? theme.accent
-    order += 1
-    if (item.agent)
-      agents.push({ id, agent: item.agent, color, nested: nestedAgents(session.tasks, item.taskId), afterUser: true })
-  }
-  const visible = agents.filter((entry) => entry.afterUser || entry.agent.state === "running")
-  return [
-    ...visible.filter((entry) => entry.agent.state === "running"),
-    ...visible.filter((entry) => entry.agent.state !== "running"),
-  ]
-}
 
 function firstUserLine(session: Session): string {
   for (const id of session.items) {
@@ -159,66 +135,22 @@ function Title(props: {
 }
 
 function Heading(props: { left: string; right: string; onMouseDown?: (event: MouseEvent) => void }) {
+  const [hovered, setHovered] = createSignal(false)
   return (
-    <box flexDirection="row" justifyContent="space-between" onMouseDown={(event) => props.onMouseDown?.(event)}>
+    <box
+      flexDirection="row"
+      justifyContent="space-between"
+      backgroundColor={hovered() && props.onMouseDown ? (theme.tile ?? CLEAR) : CLEAR}
+      onMouseOver={() => setHovered(true)}
+      onMouseOut={() => setHovered(false)}
+      onMouseDown={(event) => props.onMouseDown?.(event)}
+    >
       <text wrapMode="none" flexShrink={1}>
         <span style={{ fg: theme.text, bold: true }}>{props.left}</span>
       </text>
       <text fg={theme.faint} wrapMode="none" flexShrink={0}>
         {props.right}
       </text>
-    </box>
-  )
-}
-
-// A running agent shows what it does now; a finished one the task it was given.
-const agentLine = (agent: Agent) => (agent.state === "running" && agent.activity) || agent.task
-
-function Subagents(props: { agents: SidebarAgent[]; width: number; onJump: (id: string) => void }) {
-  const shown = () => props.agents.slice(0, MAX_AGENTS)
-  const running = () => props.agents.filter((entry) => entry.agent.state === "running").length
-  const nameColor = (entry: SidebarAgent) => {
-    if (entry.agent.state === "running") return entry.color
-    if (entry.agent.state === "completed") return theme.text
-    return theme.error
-  }
-  const nested = (entry: SidebarAgent) => (entry.nested > 0 ? `  +${entry.nested} ›` : "")
-  return (
-    <box flexDirection="column" marginTop={SECTION_GAP} flexShrink={0}>
-      <Heading left="Subagents" right={`${running()}/${props.agents.length}`} />
-      <Index each={shown()}>
-        {(entry) => (
-          <box
-            flexDirection="column"
-            onMouseDown={(event) => {
-              event.preventDefault()
-              props.onJump(entry().id)
-            }}
-          >
-            <box flexDirection="row">
-              <AgentMark
-                color={entry().color}
-                state={entry().agent.state}
-                size="small"
-                background={theme.band ?? theme.background}
-              />
-              <text wrapMode="none">
-                <span
-                  style={{ fg: nameColor(entry()) }}
-                >{` ${cut(entry().agent.name, props.width - 2 - nested(entry()).length)}`}</span>
-                <span style={{ fg: theme.faint }}>{nested(entry())}</span>
-              </text>
-            </box>
-            <text wrapMode="none">
-              <span style={{ fg: theme.frame }}>{" ╰─ "}</span>
-              <span style={{ fg: theme.muted }}>{cut(agentLine(entry().agent), props.width - 4)}</span>
-            </text>
-          </box>
-        )}
-      </Index>
-      <Show when={props.agents.length > MAX_AGENTS}>
-        <text fg={theme.faint} wrapMode="none">{`+${props.agents.length - MAX_AGENTS} more`}</text>
-      </Show>
     </box>
   )
 }
@@ -335,7 +267,6 @@ export function Sidebar(props: SidebarProps) {
     return Date.now()
   }
   const inner = () => props.width - 4
-  const agents = createMemo(() => visibleAgents(props.session))
   const [hover, setHover] = createSignal(false)
   const edgeColor = () => {
     if (props.resizing) return theme.accent
@@ -380,9 +311,6 @@ export function Sidebar(props: SidebarProps) {
         />
         {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
         <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
-          <Show when={agents().length > 0}>
-            <Subagents agents={agents()} width={inner()} onJump={props.onJump} />
-          </Show>
           <Show when={(props.session.info?.mcpServers ?? []).some((server) => server.status !== "disabled")}>
             <Mcp session={props.session} width={inner()} />
           </Show>
