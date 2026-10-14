@@ -6,6 +6,7 @@ dist/
 # Personal
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/worktrees/
 .prova/
 /.local/
 
