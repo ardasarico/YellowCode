@@ -12,9 +12,14 @@ export type Scenario = {
   files?: Record<string, string>
   args?: string[]
   initialize?: boolean
+  userConfig?: boolean
   perTaskStopAffordance?: boolean
   turns: Turn[]
 }
+
+const projectPlugin = process.env.YC_PROJECT_PLUGIN
+
+const skill = (description: string) => `---\ndescription: ${description}\n---\n\n${description}\n`
 
 const mcpConfig = {
   mcpServers: {
@@ -170,5 +175,20 @@ export const scenarios: Scenario[] = [
       { text: "Reply with one short line for each:\nthe first planet\nthe second planet" },
       { text: "Reply with the first word of @notes.txt" },
     ],
+  },
+  {
+    name: "skills",
+    initialize: true,
+    userConfig: true,
+    files: {
+      ".claude/skills/release-notes/SKILL.md": skill("Write release notes from the git log of this project."),
+      ".claude/skills/old-deploy/SKILL.md": skill("Deploy with the old shell script."),
+      ".claude/commands/hello-cmd.md": "---\ndescription: Say hello to someone\n---\n\nSay hello to $ARGUMENTS.\n",
+      ".claude/settings.local.json": JSON.stringify({ skillOverrides: { "old-deploy": "off" } }),
+      ...(projectPlugin
+        ? { ".claude/settings.json": JSON.stringify({ enabledPlugins: { [projectPlugin]: true } }) }
+        : {}),
+    },
+    turns: [{ text: "Reply with the single word ready." }],
   },
 ]

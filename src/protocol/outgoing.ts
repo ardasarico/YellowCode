@@ -99,3 +99,11 @@ export function renameSession(requestId: string, title: string, sessionId?: stri
     request: { subtype: "rename_session", title, session_id: sessionId },
   })
 }
+
+export function getSettingsRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_settings" } })
+}
+
+export function getSkillsDialogRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_skills_dialog" } })
+}

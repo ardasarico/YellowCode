@@ -7,6 +7,8 @@ import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/proto
 import {
   allowTool,
   answerQuestions,
+  getSettingsRequest,
+  getSkillsDialogRequest,
   getTaskOutputRequest,
   initializeRequest,
   interruptRequest,
@@ -16,10 +18,10 @@ import {
 import { parse, type ParseResult } from "../../src/protocol/parse.ts"
 import { CLAUDE_STREAM_ARGS } from "../../src/source/claude-args.ts"
 import { splitLines } from "../../src/source/lines.ts"
-import { serializeRecording, type RecordingEntry } from "../../src/source/recording.ts"
+import { serializeRecording, SETTINGS_ID, SKILLS_DIALOG_ID, type RecordingEntry } from "../../src/source/recording.ts"
 import { solidPng } from "./png.ts"
 import { scenarios, type Scenario } from "./scenarios.ts"
-import { scrub } from "./scrub.ts"
+import { createNames, keptNames, scrub } from "./scrub.ts"
 
 const QUIET_MS = 3_000
 const POLL_MS = 1_000
@@ -65,14 +67,26 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
   }
 
   // --safe-mode turns off every MCP server, including --mcp-config ones, so a scenario with its own servers
-  // skips the settings files instead. Plugin directories passed down by a parent Claude Code session are dropped.
+  // skips the settings files instead. A scenario with the user's config keeps settings, skills and plugins but
+  // not hooks or MCP servers, and runs as a host started outside Claude Code. Plugin directories passed down by
+  // a parent Claude Code session are dropped.
   const { CLAUDE_CODE_PLUGIN_DIRS: _, ...parentEnv } = process.env
-  const env = { ...parentEnv, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
+  const baseEnv = scenario.userConfig
+    ? Object.fromEntries(
+        Object.entries(parentEnv).filter(([key]) => key !== "CLAUDECODE" && !key.startsWith("CLAUDE_CODE_")),
+      )
+    : parentEnv
+  const env = { ...baseEnv, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
+  const isolation = scenario.userConfig
+    ? ["--strict-mcp-config", "--settings", JSON.stringify({ disableAllHooks: true })]
+    : ownsMcp(scenario)
+      ? ["--setting-sources", ""]
+      : ["--safe-mode"]
   const proc = Bun.spawn(
     [
       "claude",
       ...CLAUDE_STREAM_ARGS,
-      ...(ownsMcp(scenario) ? ["--setting-sources", ""] : ["--safe-mode"]),
+      ...isolation,
       "--model=haiku",
       "--permission-mode=default",
       ...(scenario.args ?? []),
@@ -106,22 +120,31 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
   const requestOutput = (taskId: string) => send(getTaskOutputRequest(`record-output-${requestCount++}`, taskId))
   const shellCommand = (taskId: string) => bashCommands.get(runningShells.get(taskId)?.toolUseId ?? "") ?? ""
 
+  const sendAndWait = async (line: string, id: string) => {
+    send(line)
+    while (true) {
+      const next = await Promise.race([pending, deadline.done])
+      if (next === null) throw new Error(`${scenario.name}: timed out`)
+      if (next.done) throw new Error(`${scenario.name}: claude exited early`)
+      pending = lines.next()
+      const parsed = receive(next.value)
+      if (
+        parsed.kind === "message" &&
+        parsed.message.type === "control_response" &&
+        parsed.message.response.request_id === id
+      )
+        return
+    }
+  }
+
   try {
-    if (scenario.initialize || scenario.perTaskStopAffordance) {
-      send(initializeRequest(INIT_ID, scenario.perTaskStopAffordance ? { perTaskStopAffordance: true } : {}))
-      while (true) {
-        const next = await Promise.race([pending, deadline.done])
-        if (next === null) throw new Error(`${scenario.name}: timed out`)
-        if (next.done) throw new Error(`${scenario.name}: claude exited early`)
-        pending = lines.next()
-        const parsed = receive(next.value)
-        if (
-          parsed.kind === "message" &&
-          parsed.message.type === "control_response" &&
-          parsed.message.response.request_id === INIT_ID
-        )
-          break
-      }
+    if (scenario.initialize || scenario.perTaskStopAffordance || scenario.userConfig) {
+      const options = scenario.perTaskStopAffordance ? { perTaskStopAffordance: true } : {}
+      await sendAndWait(initializeRequest(INIT_ID, options), INIT_ID)
+    }
+    if (scenario.userConfig) {
+      await sendAndWait(getSkillsDialogRequest(SKILLS_DIALOG_ID), SKILLS_DIALOG_ID)
+      await sendAndWait(getSettingsRequest(SETTINGS_ID), SETTINGS_ID)
     }
 
     for (const turn of scenario.turns) {
@@ -237,9 +260,10 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     username: userInfo().username,
     uid: userInfo().uid,
   }
+  const names = createNames(keptNames(scenario.files))
   const recording = {
     header: { cliVersion, scenario: scenario.name, recordedAt: new Date().toISOString() },
-    entries: entries.map((entry) => ({ t: entry.t, dir: entry.dir, line: scrub(entry.line, paths) })),
+    entries: entries.map((entry) => ({ t: entry.t, dir: entry.dir, line: scrub(entry.line, paths, names) })),
   }
   await mkdir(outDir, { recursive: true })
   await writeFile(join(outDir, `${scenario.name}.jsonl`), serializeRecording(recording))

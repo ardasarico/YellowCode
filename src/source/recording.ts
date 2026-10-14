@@ -8,6 +8,9 @@ import type { SessionInfo } from "../session/types.ts"
 const headerSchema = z.object({ cliVersion: z.string(), scenario: z.string(), recordedAt: z.string() })
 const entrySchema = z.object({ t: z.number(), dir: z.enum(["in", "out"]), line: z.string() })
 
+export const SKILLS_DIALOG_ID = "record-skills-dialog"
+export const SETTINGS_ID = "record-settings"
+
 export type RecordingHeader = z.infer<typeof headerSchema>
 export type RecordingEntry = z.infer<typeof entrySchema>
 export type Recording = { header: RecordingHeader; entries: RecordingEntry[] }
