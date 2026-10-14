@@ -70,6 +70,40 @@ test("pauses before a recorded permission answer until send", async () => {
   expect(source.status()).toBe("finished")
 })
 
+test("a sent user line replaces the recorded one, and an answer releases the recorded answer", async () => {
+  const request = JSON.stringify({
+    type: "control_request",
+    request_id: "r1",
+    request: { subtype: "can_use_tool", tool_name: "Bash", tool_use_id: "toolu_1", input: {} },
+  })
+  const recordedAnswer = allowTool("r1", {})
+  const source = createReplaySource(
+    {
+      header,
+      entries: [
+        { t: 0, dir: "out", line: userMessage("recorded") },
+        { t: 1, dir: "in", line: request },
+        { t: 2, dir: "out", line: recordedAnswer },
+        { t: 3, dir: "in", line: reply },
+      ],
+    },
+    "instant",
+  )
+  const seen: string[] = []
+  const done = (async () => {
+    for await (const event of source.events) seen.push(event.line)
+  })()
+
+  await Bun.sleep(5)
+  source.send(userMessage("mine"))
+  await Bun.sleep(5)
+  expect(seen).toEqual([userMessage("mine"), request])
+
+  source.send(allowTool("r1", { command: "ls" }))
+  await done
+  expect(seen).toEqual([userMessage("mine"), request, recordedAnswer, reply])
+})
+
 test("parses speeds", () => {
   expect(parseSpeed("instant")).toBe("instant")
   expect(parseSpeed("2")).toBe(2)

@@ -2,7 +2,9 @@ import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
+import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
+import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import type { SessionTitle } from "../session/titler.ts"
@@ -10,6 +12,7 @@ import type { Ask, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
+import type { Submission } from "./completion.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { McpDialog } from "./mcp/mcp-dialog.tsx"
 import { noticeFor, type ReplayInfo } from "./notice.ts"
@@ -36,7 +39,7 @@ export type AppProps = {
   sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
   earlier?: boolean
   onEarlier?: () => void
-  onSubmit: (text: string) => void
+  onSubmit: (text: string, images: OutgoingImage[]) => void
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
 }
@@ -117,11 +120,16 @@ export function App(props: AppProps) {
     }
   })
 
+  const userItems = () =>
+    props.session.items.map((id) => props.session.byId[id]).filter((item) => item?.kind === "user")
+  // The drafts of messages sent from here, by the index their user item will get, so a recalled message gets its chips
+  // back. The text check skips a draft whose message never arrived.
+  const drafts = new Map<number, { text: string; draft: Draft }>()
   const history = () =>
-    props.session.items
-      .map((id) => props.session.byId[id])
-      .filter((item) => item?.kind === "user")
-      .map((item) => item.text)
+    userItems().map((item, index) => {
+      const sent = drafts.get(index)
+      return sent?.text === item.text ? sent.draft : draftFromMessage(item.text, item.images)
+    })
 
   const lastUser = createMemo(() => {
     for (const id of props.session.items.toReversed()) if (props.session.byId[id]?.kind === "user") return id
@@ -229,13 +237,16 @@ export function App(props: AppProps) {
     }
   })
 
-  const submit = (text: string) => {
+  const submit = ({ text, images, draft }: Submission) => {
     const command = text.trim()
     if (command === "/settings") setDialog("settings")
     else if (command === "/resume") setDialog("resume")
     else if (command === "/theme") setDialog("theme")
     else if (command === "/mcp") setDialog("mcp")
-    else props.onSubmit(text)
+    else {
+      if (draft.chips.length > 0) drafts.set(userItems().length, { text, draft })
+      props.onSubmit(text, images)
+    }
   }
 
   const input = () => ({
@@ -323,6 +334,7 @@ export function App(props: AppProps) {
               selected={focus() === "chat" ? selected() : null}
               expanded={expanded}
               onOverflow={(id, value) => setOverflowing(id, value)}
+              onToggle={(id) => setExpanded(id, (open) => !open)}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}

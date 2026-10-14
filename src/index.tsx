@@ -183,7 +183,7 @@ await render(
           settingsProblem={problem}
           provider={provider}
           sessions={sessions}
-          onSubmit={(text) => source.send(userMessage(text))}
+          onSubmit={(text, images) => source.send(text.trim() || images.length > 0 ? userMessage(text, images) : "")}
           onAnswer={(ask, response) => {
             log.info(`answer to ${ask.toolName}`, response)
             session.answer(response)

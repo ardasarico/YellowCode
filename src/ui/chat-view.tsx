@@ -22,6 +22,7 @@ type ChatProps = {
   selected: string | null
   expanded: Record<string, boolean>
   onOverflow: (id: string, overflowing: boolean) => void
+  onToggle: (id: string) => void
 }
 
 type ChatViewProps = ChatProps & {
@@ -76,6 +77,7 @@ function RowView(props: RowProps) {
               selected={props.selected === user().id}
               expanded={props.expanded[user().id] === true}
               onOverflow={props.onOverflow}
+              onToggle={props.onToggle}
             />
           )}
         </Match>

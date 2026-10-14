@@ -1,19 +1,20 @@
 export type HistoryCursor = { row: number; rows: number; empty: boolean }
 
-export type HistoryStep = { state: number | null; text: string; cursor: number }
+// `entry` is null when the step leaves the history for an empty prompt.
+export type HistoryStep<T> = { state: number | null; entry: T | null; cursor: number }
 
-function recall(entries: string[], state: number): HistoryStep {
-  const text = entries[state] ?? ""
-  return { state, text, cursor: text.length }
+function recall<T extends { text: string }>(entries: T[], state: number): HistoryStep<T> {
+  const entry = entries[state] ?? null
+  return { state, entry, cursor: entry?.text.length ?? 0 }
 }
 
-export function historyStep(
-  entries: string[],
+export function historyStep<T extends { text: string }>(
+  entries: T[],
   state: number | null,
   direction: "up" | "down",
   cursor: HistoryCursor,
-): HistoryStep | null {
-  const list = entries.filter((entry, index) => index === 0 || entry !== entries[index - 1])
+): HistoryStep<T> | null {
+  const list = entries.filter((entry, index) => index === 0 || entry.text !== entries[index - 1]?.text)
 
   if (direction === "up") {
     if (state === null) return cursor.empty && list.length > 0 ? recall(list, list.length - 1) : null
@@ -21,5 +22,5 @@ export function historyStep(
   }
 
   if (state === null || cursor.row !== cursor.rows - 1) return null
-  return state < list.length - 1 ? recall(list, state + 1) : { state: null, text: "", cursor: 0 }
+  return state < list.length - 1 ? recall(list, state + 1) : { state: null, entry: null, cursor: 0 }
 }

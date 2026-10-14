@@ -1,9 +1,18 @@
-import type { TextareaRenderable } from "@opentui/core"
+import type { PasteEvent, TextareaRenderable } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { type Accessor, createEffect, createSignal, on, onCleanup } from "solid-js"
 import { argumentValues, findCommand, matchCommands, matchValues } from "../input/commands.ts"
+import {
+  type Draft,
+  expandDraft,
+  graphemes,
+  type LoadImage,
+  type ReadClipboard,
+  toBufferOffset,
+} from "../input/draft.ts"
 import { historyStep } from "../input/history.ts"
 import type { InputProvider } from "../input/provider.ts"
+import type { OutgoingImage } from "../protocol/outgoing.ts"
 import {
   argumentToken,
   atToken,
@@ -15,8 +24,11 @@ import {
   slashQuery,
 } from "../input/token.ts"
 import { syntaxStyle } from "../theme/theme.ts"
+import { useChips } from "./chips.ts"
 import { cut } from "./format.ts"
 import { type Suggestion, suggestionRows } from "./suggestion-list.tsx"
+
+export type Submission = { text: string; images: OutgoingImage[]; draft: Draft }
 
 type Completion =
   | { kind: "command"; entries: Suggestion[] }
@@ -30,8 +42,10 @@ export type CompletionOptions = {
   width: Accessor<number>
   // Rows free above the input for the list.
   room: Accessor<number>
-  onSubmit: (text: string) => void
-  history?: Accessor<string[]>
+  onSubmit: (submission: Submission) => void
+  readClipboard: ReadClipboard
+  loadImage: LoadImage
+  history?: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
   // Called by ↓ on the last row when there is no history to step through.
   onLeaveDown?: () => void
@@ -68,27 +82,59 @@ export function useCompletion(options: CompletionOptions) {
 
   const [ghost, setGhost] = createSignal<{ text: string; hint: string } | null>(null)
 
+  // The extmarks controller clears every highlight on each edit and on each mark change, after the content change
+  // reaches us, so painting waits for a microtask.
+  let painting = false
   const paint = () => {
-    if (!area) return
-    area.clearAllHighlights()
-    const styleId = syntaxStyle().resolveStyleId("input-token")
-    if (styleId === null) return
-    const text = area.plainText
-    const width = (end: number) => Bun.stringWidth(text.slice(0, end).replaceAll("\n", ""))
-    for (const range of highlightRanges(text, options.provider().commands())) {
-      area.addHighlightByCharRange({ start: width(range.start), end: width(range.end), styleId })
-    }
+    if (painting) return
+    painting = true
+    queueMicrotask(() => {
+      painting = false
+      if (!area || area.isDestroyed) return
+      area.clearAllHighlights()
+      const token = syntaxStyle().resolveStyleId("input-token")
+      const chip = syntaxStyle().resolveStyleId("input-chip")
+      const text = area.plainText
+      const width = (end: number) => Bun.stringWidth(text.slice(0, end).replaceAll("\n", ""))
+      const labels = chips.chips()
+      if (chip !== null) {
+        for (const range of labels) {
+          area.addHighlightByCharRange({ start: width(range.start), end: width(range.end), styleId: chip })
+        }
+      }
+      for (const range of highlightRanges(text, options.provider().commands())) {
+        if (token === null || labels.some((other) => range.start < other.end && other.start < range.end)) continue
+        area.addHighlightByCharRange({ start: width(range.start), end: width(range.end), styleId: token })
+      }
+    })
   }
+
+  const chips = useChips({
+    area: () => area,
+    focused: options.focused,
+    readClipboard: options.readClipboard,
+    loadImage: options.loadImage,
+    place: (text) => (placed = text),
+    onChange: paint,
+  })
 
   createEffect(() => {
     syntaxStyle()
     paint()
   })
 
+  // The text the last refresh handled.
+  let seen = ""
+
   const refresh = () => {
     if (!area) return
-    paint()
     const text = area.plainText
+    if (text === seen) {
+      paint()
+      return
+    }
+    seen = text
+    chips.sync()
     if (text !== ghost()?.text) setGhost(null)
     if (text === placed) return
     placed = null
@@ -134,6 +180,8 @@ export function useCompletion(options: CompletionOptions) {
 
   const leftToken = () => {
     if (!area) return
+    // Undo and redo change the text without a content change event.
+    if (area.plainText !== seen) queueMicrotask(refresh)
     if (ghost() && area.cursorOffset !== area.plainText.length) setGhost(null)
     const open = completion()
     if (!open) return
@@ -161,23 +209,42 @@ export function useCompletion(options: CompletionOptions) {
   createEffect(() => options.onListOpen?.(shown().length > 0))
   onCleanup(() => options.onListOpen?.(false))
 
-  const send = (text: string) => {
+  const submit = () => {
     if (!area) return
-    options.onSubmit(text)
-    area.setText("")
+    const draft = chips.draft()
+    options.onSubmit({ ...expandDraft(draft), draft })
+    chips.clear()
   }
-  const submit = () => send(area?.plainText ?? "")
 
+  // Only the changed middle is replaced, so the chips around it and the undo history stay.
   const edit = (next: { text: string; cursor: number }) => {
     if (!area) return
-    area.replaceText(next.text)
-    area.cursorOffset = next.cursor
+    const text = area.plainText
+    const before = Array.from(graphemes.segment(text), ({ segment }) => segment)
+    const after = Array.from(graphemes.segment(next.text), ({ segment }) => segment)
+    let head = 0
+    while (head < before.length && head < after.length && before[head] === after[head]) head++
+    let tail = 0
+    while (
+      tail < before.length - head &&
+      tail < after.length - head &&
+      before[before.length - 1 - tail] === after[after.length - 1 - tail]
+    )
+      tail++
+    const start = before.slice(0, head).join("").length
+    const end = text.length - before.slice(before.length - tail).join("").length
+    chips.replace(
+      toBufferOffset(text, start),
+      toBufferOffset(text, end),
+      after.slice(head, after.length - tail).join(""),
+    )
+    area.cursorOffset = toBufferOffset(next.text, next.cursor)
   }
 
-  const restore = (text: string) => {
-    if (!area || !text) return
-    placed = text
-    area.setText(text)
+  const restore = (draft: Draft) => {
+    if (!area || !draft.text) return
+    placed = draft.text
+    chips.load(draft)
     area.gotoBufferEnd()
   }
 
@@ -186,8 +253,10 @@ export function useCompletion(options: CompletionOptions) {
     const text = area.plainText
     if (entry.kind === "command") {
       close()
-      if (enter) send(commandLine(text, entry.name))
-      else {
+      if (enter) {
+        edit({ text: commandLine(text, entry.name), cursor: 0 })
+        submit()
+      } else {
         const next = completeCommand(text, entry.name)
         edit(next)
         const hint = entry.argumentHint.replace(/\s+/g, " ").trim()
@@ -200,11 +269,9 @@ export function useCompletion(options: CompletionOptions) {
       const token = argumentToken(text, area.cursorOffset)
       if (!token) return
       const next = replaceArgument(text, token, entry.value)
-      if (enter) send(next.text)
-      else {
-        placed = next.text
-        edit(next)
-      }
+      placed = next.text
+      edit(next)
+      if (enter) submit()
       return
     }
     const token = atToken(text, area.cursorOffset)
@@ -220,9 +287,11 @@ export function useCompletion(options: CompletionOptions) {
       empty: area.plainText === "",
     })
     if (!step) return false
+    const draft = step.entry ?? { text: "", chips: [] }
     browsing = step.state
-    placed = step.text
-    edit(step)
+    placed = draft.text
+    chips.load(draft)
+    area.cursorOffset = toBufferOffset(draft.text, step.cursor)
     close()
     return true
   }
@@ -266,7 +335,9 @@ export function useCompletion(options: CompletionOptions) {
 
   return {
     ref: (element: TextareaRenderable) => (area = element),
-    text: () => area?.plainText ?? "",
+    chips: chips.chips,
+    draft: chips.draft,
+    paste: (event: PasteEvent) => chips.paste(event),
     shown,
     selected: index,
     hint,

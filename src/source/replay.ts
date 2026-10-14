@@ -17,28 +17,27 @@ export function parseSpeed(value: string): Speed | null {
 export function createReplaySource(recording: Recording, speed: Speed): ReplaySource {
   const [status, setStatus] = createSignal<ReplayStatus>("playing")
   let closed = false
-  let release: (() => void) | null = null
+  let release: ((line: string) => void) | null = null
   let wakeEarly: (() => void) | null = null
   const permissionRequests = new Set<string>()
 
-  function waitsForUser(entry: RecordingEntry): boolean {
+  function waitsForUser(entry: RecordingEntry): "message" | "answer" | null {
     const parsed = parse(entry.line)
-    if (parsed.kind !== "message") return false
+    if (parsed.kind !== "message") return null
     const message = parsed.message
     if (message.type === "control_request" && message.request.subtype === "can_use_tool")
       permissionRequests.add(message.request_id)
-    if (entry.dir !== "out") return false
-    return (
-      message.type === "user" ||
-      (message.type === "control_response" && permissionRequests.has(message.response.request_id))
-    )
+    if (entry.dir !== "out") return null
+    if (message.type === "user") return "message"
+    if (message.type === "control_response" && permissionRequests.has(message.response.request_id)) return "answer"
+    return null
   }
 
   const gate = () =>
-    new Promise<void>((resolve) => {
-      release = () => {
+    new Promise<string>((resolve) => {
+      release = (line) => {
         release = null
-        resolve()
+        resolve(line)
       }
     })
 
@@ -60,10 +59,14 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
 
     for (const entry of recording.entries) {
       if (closed) return
-      if (waitsForUser(entry)) {
+      let line = entry.line
+      const waits = waitsForUser(entry)
+      if (waits) {
         setStatus("waiting")
-        await gate()
+        const sent = await gate()
         if (closed) return
+        // The user's own message takes the recorded one's place; an answer only releases the recorded answer.
+        if (waits === "message" && sent) line = sent
         setStatus("playing")
         base = entry.t
         clock = performance.now()
@@ -72,7 +75,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
         if (wait > 0) await pause(wait)
       }
       if (closed) return
-      yield { dir: entry.dir, line: entry.line, at: recordedAt + entry.t }
+      yield { dir: entry.dir, line, at: recordedAt + entry.t }
     }
     setStatus("finished")
   }
@@ -80,12 +83,12 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
   return {
     events: play(),
     status,
-    send() {
-      release?.()
+    send(line) {
+      release?.(line)
     },
     close() {
       closed = true
-      release?.()
+      release?.("")
       wakeEarly?.()
     },
   }

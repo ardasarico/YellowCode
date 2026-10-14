@@ -1,11 +1,14 @@
 import { type BoxRenderable, type KeyBinding, TextAttributes } from "@opentui/core"
 import { Show } from "solid-js"
+import { readClipboard } from "../input/clipboard.ts"
+import { loadImage } from "../input/image-file.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
-import { useCompletion } from "./completion.ts"
+import { type Submission, useCompletion } from "./completion.ts"
 import { modelName } from "./format.ts"
+import { ImageStrip } from "./image-strip.tsx"
 import { filledPadding, SuggestionList } from "./suggestion-list.tsx"
 import { useTicker } from "./ticker.ts"
 import { InputEdge, UltracodeWord } from "./ultracode.tsx"
@@ -22,7 +25,7 @@ export type InputBlockProps = {
   model: string | null
   width: number
   provider: InputProvider
-  onSubmit: (text: string) => void
+  onSubmit: (submission: Submission) => void
   onLeaveDown?: () => void
 }
 
@@ -41,7 +44,9 @@ export function InputBlock(props: InputBlockProps) {
       const padding = filledPadding()
       return Math.max(0, (block?.y ?? 0) - padding.top - padding.bottom)
     },
-    onSubmit: (text) => props.onSubmit(text),
+    onSubmit: (submission) => props.onSubmit(submission),
+    readClipboard,
+    loadImage,
     onLeaveDown: () => props.onLeaveDown?.(),
   })
 
@@ -57,6 +62,7 @@ export function InputBlock(props: InputBlockProps) {
       <box flexDirection="column" backgroundColor={theme.tile ?? undefined}>
         <box height={1} flexShrink={0} />
         <box flexDirection="column" paddingX={TILE_PADDING} paddingBottom={1}>
+          <ImageStrip chips={completion.chips()} />
           <box flexDirection="row">
             <textarea
               ref={completion.ref}
@@ -73,6 +79,7 @@ export function InputBlock(props: InputBlockProps) {
               maxHeight={6}
               keyBindings={PROMPT_KEY_BINDINGS}
               onSubmit={completion.submit}
+              onPaste={completion.paste}
               onContentChange={completion.refresh}
               onCursorChange={completion.leftToken}
             />

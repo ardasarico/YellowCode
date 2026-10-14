@@ -1,6 +1,9 @@
 import { TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
 import { type Accessor, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
+import { readClipboard } from "../input/clipboard.ts"
+import type { Draft } from "../input/draft.ts"
+import { loadImage } from "../input/image-file.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
@@ -9,6 +12,7 @@ import { syntaxStyle, theme } from "../theme/theme.ts"
 import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
 import { formatTokens, modelName } from "./format.ts"
+import { ImageStrip } from "./image-strip.tsx"
 import { type InputBlockProps, PROMPT_KEY_BINDINGS } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
 import type { Notice, Span } from "./notice.ts"
@@ -25,7 +29,7 @@ export type PromptBarProps = InputBlockProps & {
   spaced?: boolean
   edgeGap?: number
   ask?: JSX.Element
-  history: Accessor<string[]>
+  history: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
 }
 
@@ -73,26 +77,39 @@ function NoticeLine(props: { notice: Notice; spaced?: boolean }) {
 function PromptInput(
   props: Omit<InputBlockProps, "model"> & {
     frame: number
-    draft: string
-    onDraft: (text: string) => void
+    draft: Draft
+    onDraft: (draft: Draft) => void
     provider: InputProvider
-    history: Accessor<string[]>
+    history: Accessor<Draft[]>
     onListOpen?: (open: boolean) => void
   },
 ) {
   const dimensions = useTerminalDimensions()
   const [inputRows, setInputRows] = createSignal(1)
+  const [stripRows, setStripRows] = createSignal(0)
+  // The key that closes an ask is still being dispatched when the input mounts; it must not reach the textarea.
+  const [armed, setArmed] = createSignal(false)
+  const focused = () => props.focused && armed()
   const completion = useCompletion({
-    focused: () => props.focused,
+    focused,
     provider: () => props.provider,
     width: () => props.width - 2,
-    room: () => dimensions().height - 3 - inputRows(),
-    onSubmit: (text) => props.onSubmit(text),
+    room: () =>
+      dimensions().height -
+      3 -
+      inputRows() -
+      (completion.chips().some(({ chip }) => chip.kind === "image") ? stripRows() : 0),
+    onSubmit: (submission) => props.onSubmit(submission),
+    readClipboard,
+    loadImage,
     history: () => props.history(),
     onListOpen: (open) => props.onListOpen?.(open),
   })
-  onMount(() => completion.restore(props.draft))
-  onCleanup(() => props.onDraft(completion.text()))
+  onMount(() => {
+    completion.restore(props.draft)
+    queueMicrotask(() => setArmed(true))
+  })
+  onCleanup(() => props.onDraft(completion.draft()))
 
   return (
     <>
@@ -100,6 +117,7 @@ function PromptInput(
         <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
       </box>
+      <ImageStrip chips={completion.chips()} marginLeft={2} onRows={setStripRows} />
       <box
         flexDirection="row"
         onSizeChange={function () {
@@ -112,7 +130,7 @@ function PromptInput(
         <textarea
           ref={completion.ref}
           flexGrow={1}
-          focused={props.focused}
+          focused={focused()}
           placeholder={props.placeholder}
           placeholderColor={theme.muted}
           textColor={theme.text}
@@ -122,6 +140,7 @@ function PromptInput(
           maxHeight={6}
           keyBindings={PROMPT_KEY_BINDINGS}
           onSubmit={completion.submit}
+          onPaste={completion.paste}
           onContentChange={completion.refresh}
           onCursorChange={completion.leftToken}
         />
@@ -175,7 +194,7 @@ export function PromptBar(props: PromptBarProps) {
   const inner = () => promptInnerWidth(props.width, props.edgeGap ?? 0)
   const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
   const dimensions = useTerminalDimensions()
-  let draft = ""
+  let draft: Draft = { text: "", chips: [] }
 
   // The chat keeps its rows, so a tall ask scrolls inside what is left.
   const askGap = () => (props.spaced && !hasNotice() ? 1 : 0)
@@ -206,7 +225,7 @@ export function PromptBar(props: PromptBarProps) {
             onSubmit={props.onSubmit}
             frame={frame()}
             draft={draft}
-            onDraft={(text) => (draft = text)}
+            onDraft={(next) => (draft = next)}
             provider={props.provider}
             history={props.history}
             onListOpen={props.onListOpen}

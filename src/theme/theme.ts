@@ -31,6 +31,8 @@ export type Theme = {
   errorLine: RGBA | null
   band: RGBA | null
   tile: RGBA | null
+  // The background of a pasted text or image label in the prompt.
+  chip: RGBA | null
   dimTile: RGBA | null
   selection: RGBA | null
   diffAdd: RGBA | null
@@ -62,6 +64,7 @@ export type ThemeColors = {
       | "rgb"
       | "canvas"
       | "dim"
+      | "chip"
     >
   ]: string
 } & { agents: string[]; syntax: SyntaxTokens<string> }
@@ -100,6 +103,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     errorLine: tint("errorLine"),
     band: tint("band"),
     tile: tint("tile"),
+    chip: tints && terminal.background && palette[4] ? hex(mix(terminal.background, palette[4], 0.25)) : null,
     dimTile: tint("dimTile"),
     selection: tint("selection"),
     diffAdd: tint("diffAdd"),
@@ -134,6 +138,7 @@ function paintedTheme(c: ThemeColors): Theme {
     errorLine: hex(mix(c.background, c.error, 0.16)),
     band: hex(c.band),
     tile: hex(c.tile),
+    chip: hex(mix(c.background, c.accent, 0.25)),
     dimTile: hex(mix(c.tile, c.background, 0.5)),
     selection: hex(c.selection),
     diffAdd: hex(c.diffAdd),
@@ -164,6 +169,7 @@ function syntaxStyles(t: Theme) {
     function: { fg: t.syntax.function },
     type: { fg: t.syntax.type },
     "input-token": { fg: t.accent },
+    "input-chip": t.chip ? { fg: t.accent, bg: t.chip } : { fg: t.accent, bold: true },
   }
 }
 
