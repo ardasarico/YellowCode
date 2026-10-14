@@ -22,3 +22,11 @@ test("a turn Claude continues on its own merges into the previous one", () => {
 test("a workflow call is one agent row", () => {
   expect(rowsOf("workflow").filter((row) => row === "agent")).toHaveLength(1)
 })
+
+test("each shell end is its own row after the Bash rows that started them", () => {
+  const rows = rowsOf("shells")
+  const ends = rows.flatMap((row, index) => (row === "shell-end" ? [index] : []))
+  expect(ends).toHaveLength(3)
+  expect(rows.lastIndexOf("tool")).toBeLessThan(ends[0] ?? -1)
+  expect(rowsOf("tools")).not.toContain("shell-end")
+})

@@ -125,7 +125,15 @@ function Step(props: { session: Session; item: Item; color: RGBA; width: number 
         {(call) => <AgentLine session={props.session} tool={call()} color={props.color} width={props.width} />}
       </Match>
       <Match when={tool(() => true)}>
-        {(call) => <ToolCallRow item={call()} cwd={props.session.info?.cwd ?? ""} selected={false} expanded={false} />}
+        {(call) => (
+          <ToolCallRow
+            item={call()}
+            task={props.session.tasks[call().taskId ?? ""]}
+            cwd={props.session.info?.cwd ?? ""}
+            selected={false}
+            expanded={false}
+          />
+        )}
       </Match>
       <Match when={props.item.kind === "text" ? props.item : undefined}>
         {(text) => <Markdown markdown={text().markdown} streaming={text().streaming} width={props.width} />}

@@ -1,11 +1,13 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
 import type { Command } from "../input/commands.ts"
+import { shellNodeId } from "../session/shells.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { Markdown } from "./markdown/markdown.tsx"
+import { ShellEndRow } from "./shell-end-row.tsx"
 import { buildRows, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
@@ -57,6 +59,7 @@ function RowView(props: RowProps) {
           return found?.kind === "turn-end" ? [found] : []
         })
       : null
+  const openShell = (taskId: string) => props.onOpenAgent(shellNodeId(taskId))
   const gap = () => {
     if (props.row.kind === "thinking" && !item("thinking")?.streaming) return 0
     return props.previous === "end" ? 2 : 1
@@ -87,9 +90,11 @@ function RowView(props: RowProps) {
             <ToolCallRow
               item={tool()}
               ask={props.ask}
+              task={props.session.tasks[tool().taskId ?? ""]}
               cwd={props.session.info?.cwd ?? ""}
               selected={props.selected === tool().id}
               expanded={props.expanded[tool().id] === true}
+              onOpenShell={openShell}
             />
           )}
         </Match>
@@ -113,6 +118,9 @@ function RowView(props: RowProps) {
         </Match>
         <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
         <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
+        <Match when={item("shell-end")}>
+          {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
+        </Match>
         <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>
       </Switch>
     </box>

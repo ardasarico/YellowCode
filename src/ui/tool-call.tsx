@@ -3,13 +3,14 @@ import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput } from "../protocol/messages.ts"
 import { QUESTION_DECLINED, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { severe } from "../session/ask.ts"
-import type { Ask, ToolCall } from "../session/types.ts"
+import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
+import { useDuration } from "./agents/agent-line.tsx"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
-import { cut, cutPath, mcpTool } from "./format.ts"
+import { cut, cutPath, formatDuration, mcpTool } from "./format.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
@@ -45,6 +46,37 @@ export function resultSummary(tool: ToolCall): string {
   if (tool.name === "Glob") return count(lines.length, "file")
   if (lines.length === 0) return "no output"
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
+}
+
+export function isBackgroundShell(tool: ToolCall): boolean {
+  const input = tool.input
+  const background = typeof input === "object" && input !== null && "run_in_background" in input
+  return tool.name === "Bash" && tool.taskId !== null && background && input.run_in_background === true
+}
+
+// The result of a background Bash only says it was launched, so the line follows the shell's task instead.
+export function toolLines(
+  tool: ToolCall,
+  ask: Ask | null,
+  shell: Pick<Task, "state"> | null,
+  elapsedMs: number,
+): string[] {
+  if (ask?.status === "pending") return ["waiting for your approval"]
+  if (ask?.status === "denied") return [deniedLine(ask)]
+  if (isBackgroundShell(tool)) {
+    if (!shell) return ["in background"]
+    return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
+  }
+  if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
+  const answers = tool.name === "AskUserQuestion" ? answerLines(tool, ask) : []
+  return answers.length > 0 ? answers : [resultSummary(tool)]
+}
+
+function shellColor(shell: Task | null) {
+  if (shell?.state === "running") return theme.accent
+  if (shell?.state === "failed") return theme.error
+  if (shell?.state === "stopped") return theme.warning
+  return theme.muted
 }
 
 export function deniedLine(ask: Ask): string {
@@ -87,16 +119,26 @@ export function relative(target: string, cwd: string): string {
 export function ToolCallRow(props: {
   item: ToolCall
   ask?: Ask | null
+  task?: Task | null
   cwd: string
   selected: boolean
   expanded: boolean
+  onOpenShell?: (taskId: string) => void
 }) {
   const [width, setWidth] = createSignal(0)
   const waiting = () => props.ask?.status === "pending"
   const denied = () => props.ask?.status === "denied"
   const running = () => props.item.status === "running" && !waiting()
   const seconds = useElapsedSeconds(running)
+  const background = () => isBackgroundShell(props.item)
+  const shell = () => (background() ? (props.task ?? null) : null)
+  const shellMs = useDuration(() => ({
+    state: shell()?.state ?? "completed",
+    durationMs: 0,
+    startedAt: shell()?.startedAt ?? null,
+  }))
   const color = () => {
+    if (background() && !waiting() && !denied()) return shellColor(shell())
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error
     if (props.item.status === "stopped") return theme.warning
@@ -112,16 +154,10 @@ export function ToolCallRow(props: {
     const room = width() - Bun.stringWidth(label().server + label().tool) - 4
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
-  const lines = () => {
-    if (waiting()) return ["waiting for your approval"]
-    if (props.ask && denied()) return [deniedLine(props.ask)]
-    if (running()) return [`running… ${seconds()}s`]
-    const answers = props.item.name === "AskUserQuestion" ? answerLines(props.item, props.ask ?? null) : []
-    return answers.length > 0 ? answers : [resultSummary(props.item)]
-  }
-  const lineColor = () => (props.item.status === "done" && !denied() ? theme.muted : color())
+  const lines = () => toolLines(props.item, props.ask ?? null, shell(), background() ? shellMs() : seconds() * 1000)
+  const lineColor = () => (props.item.status === "done" && !denied() && !background() ? theme.muted : color())
   // The user's answer outranks a replayed result, which may come from a different answer.
-  const output = () => (denied() || props.ask?.status === "answered" ? "" : props.item.result)
+  const output = () => (denied() || background() || props.ask?.status === "answered" ? "" : props.item.result)
   const diff = () => {
     const tool = props.item
     if (tool.status !== "done" || denied()) return null
@@ -139,6 +175,12 @@ export function ToolCallRow(props: {
       backgroundColor={(props.selected ? theme.selection : null) ?? CLEAR}
       onSizeChange={function () {
         setWidth(this.width)
+      }}
+      onMouseDown={(event) => {
+        const taskId = props.item.taskId
+        if (!background() || !taskId || !props.onOpenShell) return
+        event.preventDefault()
+        props.onOpenShell(taskId)
       }}
     >
       <text wrapMode="none">
