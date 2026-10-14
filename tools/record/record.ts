@@ -7,8 +7,10 @@ import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/proto
 import {
   allowTool,
   answerQuestions,
+  getTaskOutputRequest,
   initializeRequest,
   interruptRequest,
+  stopTaskRequest,
   userMessage,
 } from "../../src/protocol/outgoing.ts"
 import { parse, type ParseResult } from "../../src/protocol/parse.ts"
@@ -20,6 +22,7 @@ import { scenarios, type Scenario } from "./scenarios.ts"
 import { scrub } from "./scrub.ts"
 
 const QUIET_MS = 3_000
+const POLL_MS = 1_000
 const INIT_ID = "record-init"
 const SCENARIO_TIMEOUT_MS = 300_000
 const outDir = join(import.meta.dir, "..", "..", "fixtures", "sessions")
@@ -94,10 +97,18 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
   const lines = splitLines(proc.stdout)[Symbol.asyncIterator]()
   let pending = lines.next()
   const deadline = timer(SCENARIO_TIMEOUT_MS)
+  const expired = deadline.done.then(() => "expired" as const)
+
+  const bashCommands = new Map<string, string>()
+  const runningShells = new Map<string, { startedAt: number; toolUseId: string | undefined }>()
+  let requestCount = 0
+  let nextPollAt = 0
+  const requestOutput = (taskId: string) => send(getTaskOutputRequest(`record-output-${requestCount++}`, taskId))
+  const shellCommand = (taskId: string) => bashCommands.get(runningShells.get(taskId)?.toolUseId ?? "") ?? ""
 
   try {
-    if (scenario.initialize) {
-      send(initializeRequest(INIT_ID))
+    if (scenario.initialize || scenario.perTaskStopAffordance) {
+      send(initializeRequest(INIT_ID, scenario.perTaskStopAffordance ? { perTaskStopAffordance: true } : {}))
       while (true) {
         const next = await Promise.race([pending, deadline.done])
         if (next === null) throw new Error(`${scenario.name}: timed out`)
@@ -119,23 +130,50 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
         : []
       send(userMessage(turn.text, images))
 
-      let sawResult = false
+      let resultAt: number | null = null
       let runningTasks = 0
       let interrupted = false
+      let stopSent = false
 
       while (true) {
-        const quiet = timer(sawResult && runningTasks === 0 ? QUIET_MS : SCENARIO_TIMEOUT_MS)
-        const next = await Promise.race([pending, quiet.done, deadline.done])
-        quiet.cancel()
-        if (next === null) {
-          if (sawResult && runningTasks === 0) break
-          throw new Error(`${scenario.name}: timed out`)
+        const quietEndsAt = resultAt !== null && runningTasks === 0 ? resultAt + QUIET_MS : null
+        if (quietEndsAt !== null && now() >= quietEndsAt) break
+        const wakeAt = Math.min(
+          now() + SCENARIO_TIMEOUT_MS,
+          quietEndsAt ?? Infinity,
+          runningShells.size > 0 ? nextPollAt : Infinity,
+        )
+        const wake = timer(Math.max(0, wakeAt - now()))
+        const next = await Promise.race([pending, wake.done, expired])
+        wake.cancel()
+        if (next === "expired") throw new Error(`${scenario.name}: timed out`)
+
+        if (runningShells.size > 0 && now() >= nextPollAt) {
+          for (const taskId of runningShells.keys()) requestOutput(taskId)
+          nextPollAt = now() + POLL_MS
         }
+        const { stopShell } = turn
+        if (stopShell && !stopSent) {
+          for (const [taskId, shell] of runningShells) {
+            if (shellCommand(taskId).includes(stopShell.command) && now() - shell.startedAt >= stopShell.afterMs) {
+              stopSent = true
+              send(stopTaskRequest(`record-stop-${requestCount++}`, taskId))
+              break
+            }
+          }
+        }
+
+        if (next === null) continue
         if (next.done) throw new Error(`${scenario.name}: claude exited early`)
         pending = lines.next()
 
         const parsed = receive(next.value)
-        if (!(parsed.kind === "message" && parsed.message.type === "result")) sawResult = false
+        const isResult = parsed.kind === "message" && parsed.message.type === "result"
+        const isOwnResponse =
+          parsed.kind === "message" &&
+          parsed.message.type === "control_response" &&
+          parsed.message.response.request_id.startsWith("record-")
+        if (!isResult && !isOwnResponse) resultAt = null
         if (parsed.kind !== "message") continue
         const message = parsed.message
 
@@ -156,10 +194,32 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
         ) {
           interrupted = true
           send(interruptRequest("record-interrupt"))
+        } else if (message.type === "assistant") {
+          for (const block of message.message.content) {
+            if (block.type !== "tool_use" || block.name !== "Bash") continue
+            const { input } = block
+            if (
+              typeof input === "object" &&
+              input !== null &&
+              "command" in input &&
+              typeof input.command === "string"
+            ) {
+              bashCommands.set(block.id, input.command)
+            }
+          }
+        } else if (message.type === "system" && message.subtype === "task_started") {
+          if (message.task_type === "local_bash" && !message.ambient) {
+            runningShells.set(message.task_id, { startedAt: now(), toolUseId: message.tool_use_id })
+          }
+        } else if (message.type === "system" && message.subtype === "task_notification") {
+          if (runningShells.has(message.task_id)) {
+            requestOutput(message.task_id)
+            runningShells.delete(message.task_id)
+          }
         } else if (message.type === "system" && message.subtype === "background_tasks_changed") {
           runningTasks = message.tasks.length
         } else if (message.type === "result") {
-          sawResult = true
+          resultAt = now()
         }
       }
     }

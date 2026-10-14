@@ -4,6 +4,7 @@ export type Turn = {
   text: string
   image?: boolean
   interruptAfterFirstText?: boolean
+  stopShell?: { command: string; afterMs: number }
 }
 
 export type Scenario = {
@@ -11,6 +12,7 @@ export type Scenario = {
   files?: Record<string, string>
   args?: string[]
   initialize?: boolean
+  perTaskStopAffordance?: boolean
   turns: Turn[]
 }
 
@@ -89,6 +91,25 @@ export const scenarios: Scenario[] = [
     turns: [
       {
         text: "Run `sleep 5; echo done` with Bash with run_in_background true. While it runs, run `echo working` with Bash in the foreground. Then end your turn with one short sentence. When you are notified that the background command finished, reply with its output in one sentence.",
+      },
+    ],
+  },
+  {
+    name: "shells",
+    perTaskStopAffordance: true,
+    turns: [
+      {
+        text: 'In a single message, use the Bash tool three times with run_in_background true, one call per command, then end your turn with the word started without checking them: (1) `for i in $(seq 1 60); do echo "tick $i"; sleep 0.5; done` (2) `for i in $(seq 1 6); do echo "step $i"; sleep 1; done; echo boom; exit 1` (3) `for i in $(seq 1 300); do echo "wait $i"; sleep 1; done`. Each time you are notified that a command finished, reply with one short sentence.',
+        stopShell: { command: "wait", afterMs: 10_000 },
+      },
+    ],
+  },
+  {
+    name: "agent-shell",
+    perTaskStopAffordance: true,
+    turns: [
+      {
+        text: "Use the Agent tool once with subagent_type general-purpose, name 'starter' and run_in_background false. Give it exactly this task: \"Run `for i in 1 2 3 4 5; do echo agent $i; sleep 1; done` with Bash with run_in_background true, then reply with the word started.\" When starter is done, reply with one word. When you are notified that the background command finished, reply with one short sentence.",
       },
     ],
   },

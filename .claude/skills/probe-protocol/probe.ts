@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 type Message = Record<string, any>
-type Scenario = { prompt?: string; controls?: Message[] }
+type Scenario = { prompt?: string; controls?: Message[]; timeoutMs?: number; untilNotification?: boolean }
 
 const scenarios: Record<string, Scenario> = {
   text: { prompt: "Reply with the single word: ready" },
@@ -18,6 +18,12 @@ const scenarios: Record<string, Scenario> = {
   },
   control: {
     controls: [{ subtype: "initialize" }, { subtype: "get_context_usage", detail: "summary" }, { subtype: "mcp_status" }],
+  },
+  "shell-limit": {
+    prompt:
+      "Run `sleep 1900; echo survived` with Bash with run_in_background true, then reply with one word. When you are notified that it finished, reply with one word.",
+    timeoutMs: 2_400_000,
+    untilNotification: true,
   },
 }
 
@@ -59,10 +65,12 @@ scenario.controls?.forEach((request, index) => {
 })
 if (scenario.prompt) send({ type: "user", message: { role: "user", content: scenario.prompt } })
 
-const timeout = setTimeout(() => proc.kill(), 180_000)
+const started = performance.now()
+const timeout = setTimeout(() => proc.kill(), scenario.timeoutMs ?? 180_000)
 const messages: Message[] = []
 const decoder = new TextDecoder()
 let buffer = ""
+let sawNotification = false
 
 read: for await (const chunk of proc.stdout) {
   buffer += decoder.decode(chunk, { stream: true })
@@ -86,8 +94,14 @@ read: for await (const chunk of proc.stdout) {
       })
     }
     if (message.type === "control_response") pendingControls.delete(message.response?.request_id)
+    if (message.type === "system" && message.subtype === "task_notification") {
+      sawNotification = true
+      const seconds = Math.round((performance.now() - started) / 1000)
+      console.log(`${seconds}s task_notification ${message.status}: ${message.summary}`)
+    }
 
-    const promptDone = !scenario.prompt || message.type === "result"
+    const resultDone = message.type === "result" && (!scenario.untilNotification || sawNotification)
+    const promptDone = !scenario.prompt || resultDone
     if (promptDone && pendingControls.size === 0) break read
   }
 }

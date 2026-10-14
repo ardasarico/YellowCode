@@ -68,8 +68,28 @@ export function interruptRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "interrupt" } })
 }
 
-export function initializeRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "initialize" } })
+export function initializeRequest(requestId: string, options: { perTaskStopAffordance?: boolean } = {}): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "initialize", ...options },
+  })
+}
+
+export function getTaskOutputRequest(requestId: string, taskId: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "get_task_output", task_id: taskId },
+  })
+}
+
+export function stopTaskRequest(requestId: string, taskId: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "stop_task", task_id: taskId },
+  })
 }
 
 export function renameSession(requestId: string, title: string, sessionId?: string): string {
