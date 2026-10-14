@@ -1,7 +1,14 @@
 import { createStore, produce } from "solid-js/store"
-import type { ContentBlock, PermissionUpdate, ProtocolMessage, UserBlock } from "../protocol/messages.ts"
+import {
+  taskOutput,
+  type ContentBlock,
+  type PermissionUpdate,
+  type ProtocolMessage,
+  type UserBlock,
+} from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
+import { isShell } from "./shells.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type {
   Item,
@@ -108,7 +115,18 @@ function blankTask(id: string): Task {
     outputFile: null,
     error: null,
     workflow: null,
+    command: "",
+    endedAt: null,
+    output: null,
+    outputBytes: 0,
+    truncated: false,
   }
+}
+
+function commandOf(item: Item | undefined): string {
+  const input = item?.kind === "tool" ? item.input : undefined
+  const command = typeof input === "object" && input !== null && "command" in input ? input.command : undefined
+  return typeof command === "string" ? command : ""
 }
 
 function notesOf(annotations: Record<string, { notes?: string }> | undefined): Record<string, string> {
@@ -168,6 +186,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   let shift = 0
   // The live background set from the latest background_tasks_changed.
   let live = new Set<string>()
+  // Our own get_task_output requests: request id → task id.
+  const outputRequests = new Map<string, string>()
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
@@ -239,7 +259,9 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     })
     const tool = state.byId[id]
     const name = tool?.kind === "tool" ? tool.agent?.name : undefined
+    const command = commandOf(tool)
     if (tool?.kind === "tool" && tool.taskId && name) setTask(tool.taskId, (task) => (task.name = name))
+    if (tool?.kind === "tool" && tool.taskId && command) setTask(tool.taskId, (task) => (task.command ||= command))
   }
 
   function stopStreaming(id: ItemId): void {
@@ -455,6 +477,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       prompt: message.prompt ?? "",
       workflowName: message.workflow_name ?? "",
       startedAt: now + shift,
+      command: commandOf(tool) || known.command,
     }
     task.background ||= message.is_backgrounded === true
     setState("tasks", message.task_id, task)
@@ -467,7 +490,10 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   }
 
   function finishTask(id: string, outcome: TaskState): void {
-    setTask(id, (task) => (task.state = outcome))
+    setTask(id, (task) => {
+      task.state = outcome
+      task.endedAt ??= now + shift
+    })
     updateTool(state.tasks[id], (tool) => {
       if (tool.status === "running") tool.status = toolStatus(outcome)
       if (tool.agent) tool.agent.state = outcome
@@ -544,6 +570,10 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         updateTool(state.tasks[message.task_id], (tool) => {
           if (tool.agent && patch.error) tool.agent.error = patch.error
         })
+        const task = state.tasks[message.task_id]
+        const outcome = patch.status === "killed" ? "stopped" : patch.status
+        if (task && isShell(task) && (outcome === "completed" || outcome === "failed" || outcome === "stopped"))
+          finishTask(task.id, outcome)
         return
       }
       case "task_notification": {
@@ -567,6 +597,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
           }
         })
         finishTask(message.task_id, message.status)
+        const task = state.tasks[message.task_id]
+        if (task && isShell(task)) add({ kind: "shell-end", id: newId("shell-end"), taskId: task.id }, null)
         return
       }
     }
@@ -610,8 +642,19 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         )
         return
       }
-      case "control_response":
+      case "control_response": {
+        const taskId = outputRequests.get(message.response.request_id)
+        if (!taskId) return
+        outputRequests.delete(message.response.request_id)
+        const reply = taskOutput.safeParse(message.response.response)
+        if (!reply.success) return
+        setTask(taskId, (task) => {
+          task.output = reply.data.output
+          task.outputBytes = reply.data.total_bytes
+          task.truncated = reply.data.truncated
+        })
         return
+      }
       case "rate_limit_event":
         return onRateLimit(message)
     }
@@ -625,6 +668,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       setState("status", "running")
     } else if (message.type === "control_request" && message.request.subtype === "interrupt") {
       interruptSent = true
+    } else if (message.type === "control_request" && message.request.subtype === "get_task_output") {
+      outputRequests.set(message.request_id, message.request.task_id)
     } else if (message.type === "control_response") {
       const reply = message.response.response
       update(`ask-${message.response.request_id}`, (item) => {

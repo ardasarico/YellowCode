@@ -147,7 +147,11 @@ const taskUpdated = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("task_updated"),
   task_id: z.string(),
-  patch: z.looseObject({ error: z.string().optional(), is_backgrounded: z.boolean().optional() }),
+  patch: z.looseObject({
+    status: z.string().optional(),
+    error: z.string().optional(),
+    is_backgrounded: z.boolean().optional(),
+  }),
 })
 
 const taskNotification = z.looseObject({
@@ -286,6 +290,8 @@ const controlRequest = z.looseObject({
       blocked_path: z.string().optional(),
     }),
     z.looseObject({ subtype: z.literal("interrupt") }),
+    z.looseObject({ subtype: z.literal("get_task_output"), task_id: z.string() }),
+    z.looseObject({ subtype: z.literal("stop_task"), task_id: z.string() }),
   ]),
 })
 
@@ -308,6 +314,8 @@ const controlResponse = z.looseObject({
       .optional(),
   }),
 })
+
+export const taskOutput = z.looseObject({ output: z.string(), total_bytes: z.number(), truncated: z.boolean() })
 
 export const slashCommand = z.looseObject({
   name: z.string(),
@@ -382,6 +390,8 @@ export const KNOWN_KEYS = new Set([
   "result",
   "control_request/can_use_tool",
   "control_request/interrupt",
+  "control_request/get_task_output",
+  "control_request/stop_task",
   "control_response",
   "rate_limit_event",
 ])

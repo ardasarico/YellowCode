@@ -62,6 +62,14 @@ export type Task = {
   outputFile: string | null
   error: string | null
   workflow: WorkflowProgress | null
+  // The Bash command of a shell; "" for other tasks.
+  command: string
+  // Epoch milliseconds, shifted like every other replayed time.
+  endedAt: number | null
+  // The latest get_task_output tail; null until a response arrives.
+  output: string | null
+  outputBytes: number
+  truncated: boolean
 }
 export type WorkflowProgress = {
   phases: { index: number; title: string }[]
@@ -114,8 +122,9 @@ export type TurnEnd = {
   endedAt: number
 }
 export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning" }
+export type ShellEnd = { kind: "shell-end"; id: ItemId; taskId: string }
 
-export type Item = UserMessage | AssistantText | Thinking | ToolCall | Ask | TurnEnd | SystemEvent
+export type Item = UserMessage | AssistantText | Thinking | ToolCall | Ask | TurnEnd | SystemEvent | ShellEnd
 
 export type SessionInfo = {
   id: string

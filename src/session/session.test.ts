@@ -5,6 +5,7 @@ import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoi
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession } from "./session.ts"
+import { exitCode, runningShellCount, shellEndText, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
 // With `until`, stops before the first line that contains it.
@@ -343,4 +344,41 @@ test("a workflow task keeps its latest progress snapshot", () => {
     tokens: 9322,
     lastToolSummary: "/Users/user/project/a.txt",
   })
+})
+
+test("shells keep their command, outcome, exit code and output", () => {
+  const session = replay("shells")
+  const tasks = Object.values(session.state.tasks)
+  const byCommand = (word: string) => tasks.find((task) => task.command.includes(word))
+  const tick = byCommand("tick")
+  const step = byCommand("step")
+  const wait = byCommand("wait")
+  expect([tick?.state, tick && exitCode(tick), tick?.output?.endsWith("tick 60\n")]).toEqual(["completed", 0, true])
+  expect([step?.state, step && exitCode(step), step?.output?.includes("boom")]).toEqual(["failed", 1, true])
+  expect([wait?.state, wait && exitCode(wait)]).toEqual(["stopped", null])
+  const limited = wait && {
+    ...wait,
+    summary: `Background command "x" was stopped after reaching its background time limit`,
+  }
+  expect(limited && shellEndText(limited)).toEndWith("was stopped (time limit)")
+
+  const ends = session.state.items.flatMap((id) => {
+    const item = session.state.byId[id]
+    return item?.kind === "shell-end" ? [session.state.tasks[item.taskId]] : []
+  })
+  expect(ends).toEqual([step, wait, tick])
+
+  expect(runningShellCount(replay("shells", '"subtype":"task_updated"').state)).toBe(3)
+})
+
+test("a shell a subagent started names that subagent", () => {
+  const state = replay("agent-shell").state
+  const shell = Object.values(state.tasks).find((task) => task.type === "local_bash")
+  expect(shell && shellStartedBy(state, shell)).toBe("starter")
+})
+
+test("a shell without recorded output still has its exit code", () => {
+  const shell = Object.values(replay("background-bash").state.tasks)[0]
+  expect(shell?.output).toBeNull()
+  expect(shell && exitCode(shell)).toBe(0)
 })

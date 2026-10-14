@@ -1,7 +1,7 @@
 import type { Item, ItemId, Session } from "../session/types.ts"
 
 export type Row =
-  | { kind: "user" | "markdown" | "thinking" | "tool" | "agent" | "system"; id: ItemId }
+  | { kind: "user" | "markdown" | "thinking" | "tool" | "agent" | "system" | "shell-end"; id: ItemId }
   | { kind: "end"; id: ItemId; turnEnds: ItemId[] }
 
 type EndRow = Extract<Row, { kind: "end" }>
