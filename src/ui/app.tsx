@@ -24,6 +24,7 @@ import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
 import { SettingsDialog } from "./settings/settings-dialog.tsx"
+import { SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
@@ -49,12 +50,13 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat" | "panel" | "shells"
-type DialogName = "settings" | "resume" | "theme" | "mcp"
+type DialogName = "settings" | "resume" | "theme" | "mcp" | "skills"
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
+  const [fill, setFill] = createSignal<{ text: string; seq: number }>()
   const [selected, setSelected] = createSignal<string | null>(null)
   const [agentView, setAgentView] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
@@ -352,6 +354,7 @@ export function App(props: AppProps) {
     else if (command === "/resume") setDialog("resume")
     else if (command === "/theme") setDialog("theme")
     else if (command === "/mcp") setDialog("mcp")
+    else if (command === "/skills") setDialog("skills")
     else {
       if (draft.chips.length > 0) drafts.set(userItems().length, { text, draft })
       props.onSubmit(text, images)
@@ -366,6 +369,7 @@ export function App(props: AppProps) {
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
+    fill: fill(),
   })
 
   // Built once per request, so a resize or a sidebar toggle keeps the view's cursor.
@@ -509,6 +513,16 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog() === "mcp"}>
         <McpDialog info={props.session.info ?? props.firstInfo ?? null} onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog() === "skills"}>
+        <SkillsDialog
+          skills={props.provider.skills()}
+          onUse={(command) => {
+            setDialog(null)
+            setFill((previous) => ({ text: `/${command} `, seq: (previous?.seq ?? 0) + 1 }))
+          }}
+          onClose={() => setDialog(null)}
+        />
       </Show>
       <Show when={dialog() === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />

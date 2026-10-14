@@ -111,6 +111,7 @@ function PromptInput(
     history: () => props.history(),
     onListOpen: (open) => props.onListOpen?.(open),
     onLeaveDown: () => props.onLeaveDown?.(),
+    fill: () => props.fill,
   })
   onMount(() => {
     completion.restore(props.draft)
@@ -304,6 +305,7 @@ export function PromptBar(props: PromptBarProps) {
             history={props.history}
             onListOpen={props.onListOpen}
             onLeaveDown={props.onLeaveDown}
+            fill={props.fill}
           />
         }
       >

@@ -331,6 +331,29 @@ export const modelInfo = z.looseObject({ value: z.string(), description: z.strin
 
 export const initializeModels = z.looseObject({ models: z.array(modelInfo) })
 
+export const skillRow = z.looseObject({
+  name: z.string(),
+  display_name: z.string(),
+  description: z.string(),
+  source: z.string(),
+  state: z.string(),
+  locked_by: z.string().optional(),
+})
+
+export const skillsDialog = z.looseObject({ skills: z.array(z.unknown()) })
+
+export const settingsSources = z.looseObject({
+  sources: z.array(
+    z.looseObject({
+      source: z.string(),
+      settings: z.looseObject({
+        enabledPlugins: z.record(z.string(), z.unknown()).optional(),
+        skillOverrides: z.record(z.string(), z.string()).optional(),
+      }),
+    }),
+  ),
+})
+
 const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
 
 const rateLimit = z.looseObject({
@@ -374,6 +397,8 @@ export type AskUserQuestionInput = z.infer<typeof askUserQuestionInput>
 export type SlashCommand = z.infer<typeof slashCommand>
 export type InitializeResponse = z.infer<typeof initializeResponse>
 export type ModelInfo = z.infer<typeof modelInfo>
+export type SkillRow = z.infer<typeof skillRow>
+export type SettingsSource = z.infer<typeof settingsSources>["sources"][number]
 
 export const KNOWN_KEYS = new Set([
   "system/init",

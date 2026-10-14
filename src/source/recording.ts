@@ -1,6 +1,16 @@
 import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
-import { initializeModels, initializeResponse, type ModelInfo, type SlashCommand } from "../protocol/messages.ts"
+import {
+  initializeModels,
+  initializeResponse,
+  type ModelInfo,
+  type SettingsSource,
+  settingsSources,
+  skillRow,
+  type SkillRow,
+  skillsDialog,
+  type SlashCommand,
+} from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
 import { initInfo } from "../session/session.ts"
 import type { SessionInfo } from "../session/types.ts"
@@ -91,4 +101,47 @@ export function recordedModels(recording: Recording): ModelInfo[] {
     if (response.success) return response.data.models
   }
   return []
+}
+
+function recordedReply(recording: Recording, requestId: string) {
+  for (const entry of recording.entries) {
+    if (entry.dir !== "in") continue
+    const parsed = parse(entry.line)
+    if (parsed.kind !== "message" || parsed.message.type !== "control_response") continue
+    if (parsed.message.response.request_id === requestId) return parsed.message.response
+  }
+  return null
+}
+
+export function recordedSkillRows(recording: Recording): { rows: SkillRow[]; problem: string | null } {
+  const reply = recordedReply(recording, SKILLS_DIALOG_ID)
+  if (reply === null) return { rows: [], problem: null }
+  if (reply.subtype !== "success") return { rows: [], problem: `${reply.subtype}: ${JSON.stringify(reply["error"])}` }
+
+  const dialog = skillsDialog.safeParse(reply.response)
+  if (!dialog.success) return { rows: [], problem: "no skills array" }
+
+  const rows: SkillRow[] = []
+  for (const value of dialog.data.skills) {
+    const row = skillRow.safeParse(value)
+    if (row.success) rows.push(row.data)
+  }
+  const dropped = dialog.data.skills.length - rows.length
+  return { rows, problem: dropped > 0 ? `dropped ${dropped} of ${dialog.data.skills.length} rows` : null }
+}
+
+export function recordedSettingsSources(recording: Recording): SettingsSource[] {
+  const reply = recordedReply(recording, SETTINGS_ID)
+  const parsed = settingsSources.safeParse(reply?.response)
+  return parsed.success ? parsed.data.sources : []
+}
+
+export function recordedInitLists(recording: Recording): { skills: string[]; slashCommands: string[] } | null {
+  for (const entry of recording.entries) {
+    if (entry.dir !== "in") continue
+    const parsed = parse(entry.line)
+    if (parsed.kind === "message" && parsed.message.type === "system" && parsed.message.subtype === "init")
+      return { skills: parsed.message.skills, slashCommands: parsed.message.slash_commands ?? [] }
+  }
+  return null
 }

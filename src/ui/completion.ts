@@ -1,6 +1,6 @@
 import type { PasteEvent, TextareaRenderable } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
-import { type Accessor, createEffect, createSignal, on, onCleanup } from "solid-js"
+import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { argumentValues, findCommand, matchCommands, matchValues } from "../input/commands.ts"
 import {
   type Draft,
@@ -49,6 +49,8 @@ export type CompletionOptions = {
   onListOpen?: (open: boolean) => void
   // Called by ↓ on the last row without history, or on an empty prompt that is not browsing it.
   onLeaveDown?: () => void
+  // Each new `seq` replaces the prompt with `text`.
+  fill?: Accessor<{ text: string; seq: number } | undefined>
 }
 
 // The `/` and `@` completion, the argument hint and the token highlight of a textarea.
@@ -247,6 +249,19 @@ export function useCompletion(options: CompletionOptions) {
     chips.load(draft)
     area.gotoBufferEnd()
   }
+
+  // The memo drops reruns with the same seq, which the props around `fill` cause.
+  const fillSeq = createMemo(() => options.fill?.()?.seq)
+  createEffect(
+    on(
+      fillSeq,
+      () => {
+        const next = options.fill?.()
+        if (next) restore({ text: next.text, chips: [] })
+      },
+      { defer: true },
+    ),
+  )
 
   const pick = (entry: Suggestion, enter: boolean) => {
     if (!area) return

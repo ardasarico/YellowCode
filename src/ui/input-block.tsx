@@ -27,6 +27,7 @@ export type InputBlockProps = {
   provider: InputProvider
   onSubmit: (submission: Submission) => void
   onLeaveDown?: () => void
+  fill?: { text: string; seq: number }
 }
 
 export const TILE_PADDING = 3
@@ -48,6 +49,7 @@ export function InputBlock(props: InputBlockProps) {
     readClipboard,
     loadImage,
     onLeaveDown: () => props.onLeaveDown?.(),
+    fill: () => props.fill,
   })
 
   return (
