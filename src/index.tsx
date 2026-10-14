@@ -1,4 +1,4 @@
-import { createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
+import { CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
 import { realpathSync } from "node:fs"
 import { homedir } from "node:os"
@@ -77,12 +77,18 @@ process.removeAllListeners("unhandledRejection")
 process.on("uncaughtException", (error) => log.error("uncaught exception", error))
 process.on("unhandledRejection", (reason) => log.error("unhandled rejection", reason))
 
-const look = await readTerminal(renderer)
-// A terminal that answers palette queries supports truecolor in practice, so that stands in until capabilities arrive.
-const rgb = renderer.capabilities?.rgb ?? look.tints !== null
-log.info("terminal", { tints: look.tints !== null, dark: look.dark, rgb })
-setTerminal({ ...look, rgb })
+async function applyTerminal(): Promise<void> {
+  const look = await readTerminal(renderer)
+  // A terminal that answers palette queries supports truecolor in practice, so that stands in until capabilities arrive.
+  const rgb = renderer.capabilities?.rgb ?? look.tints !== null
+  log.info("terminal", { tints: look.tints !== null, dark: look.dark, rgb })
+  setTerminal({ ...look, rgb })
+}
+
+await applyTerminal()
 setTheme(settings.theme)
+// OpenTUI clears its palette cache before it reports a light/dark switch, so the same read picks up the new colors.
+renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
 
 let quitting = false
 
