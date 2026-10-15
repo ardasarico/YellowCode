@@ -22,6 +22,9 @@ const editSkill = (name: string, state: string): Step => ({
 })
 // A skill of a plugin that loads for the user, as `<plugin>:<skill>`; editing it shows the plugin lock.
 const loadedPluginSkill = process.env.YC_PLUGIN_SKILL
+// Installed plugins as `<plugin>@<marketplace>`, turned on and off in the temporary project's settings.
+const pluginOn = process.env.YC_PLUGIN_ON
+const pluginOff = process.env.YC_PLUGIN_OFF
 
 const scenarios: Record<string, Scenario> = {
   text: { prompt: "Reply with the single word: ready" },
@@ -71,6 +74,26 @@ const scenarios: Record<string, Scenario> = {
       { control: { subtype: "reload_skills" } },
       ...(loadedPluginSkill ? [editSkill(loadedPluginSkill, "off")] : []),
       editSkill("plugin-a:skill-1", "off"),
+    ],
+  },
+  plugins: {
+    prompt: "Reply with the single word: ready",
+    args: ["--settings", '{"disableAllHooks":true}'],
+    files: {
+      ".claude/settings.json": JSON.stringify({
+        enabledPlugins: {
+          ...(pluginOn ? { [pluginOn]: true } : {}),
+          ...(pluginOff ? { [pluginOff]: false } : {}),
+        },
+      }),
+    },
+    steps: [
+      { control: { subtype: "initialize" } },
+      { control: { subtype: "get_settings" } },
+      { control: { subtype: "get_skills_dialog" } },
+      { control: { subtype: "mcp_status" } },
+      { control: { subtype: "get_hooks_listing" } },
+      { waitMs: 15_000 },
     ],
   },
 }
@@ -154,6 +177,32 @@ const cutSettings = (response: Message) => ({
   })),
 })
 
+// Only what the plugin probe needs: initialize also carries the account, hooks carry their commands.
+const cutInitialize = (response: Message) => ({
+  keys: Object.keys(response),
+  commands: response.commands,
+  agents: response.agents,
+  output_style: response.output_style,
+})
+const cutHooks = (response: Message) => ({
+  keys: Object.keys(response),
+  hookKeys: Object.keys(response.hooks?.[0] ?? {}),
+  events: response.events?.map(({ name }: Message) => name),
+  hooks: response.hooks?.map(({ event, matcher, source, sourceLabel, pluginName, type }: Message) => ({
+    event,
+    matcher,
+    source,
+    sourceLabel,
+    pluginName,
+    type,
+  })),
+})
+const cuts: Record<string, (response: Message) => Message> = {
+  get_settings: cutSettings,
+  initialize: cutInitialize,
+  get_hooks_listing: cutHooks,
+}
+
 scenario.controls?.forEach((request, index) => {
   const id = `probe-${index}`
   pendingControls.add(id)
@@ -202,9 +251,8 @@ read: for await (const chunk of proc.stdout) {
 
     const message: Message = JSON.parse(line)
     const requestId = message.type === "control_response" ? message.response?.request_id : undefined
-    if (requestId && controlSubtypes.get(requestId) === "get_settings" && message.response.response) {
-      message.response.response = cutSettings(message.response.response)
-    }
+    const cut = requestId ? cuts[controlSubtypes.get(requestId) ?? ""] : undefined
+    if (cut && message.response.response) message.response.response = cut(message.response.response)
     messages.push(message)
 
     if (message.type === "control_request" && message.request?.subtype === "can_use_tool") {
