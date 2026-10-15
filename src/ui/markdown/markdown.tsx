@@ -1,5 +1,6 @@
 import { RGBA } from "@opentui/core"
 import type { Tokens } from "marked"
+import { diagramKind } from "grok-mermaid"
 import { createContext, createMemo, createSignal, Index, Match, type JSX, Show, Switch, useContext } from "solid-js"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
@@ -7,9 +8,13 @@ import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
 import { InlineImages } from "../inline-images.tsx"
 import { is, splitBlocks, type Block } from "./blocks.ts"
 import { type CalloutKind, calloutOf } from "./callout.ts"
+import { isLineChart, parseChart } from "./chart.ts"
 import { CodeBlock } from "./code-block.tsx"
+import { drawDiagram } from "./diagram.ts"
+import { ChartBars, DiagramArt, GanttView, LineChartImage, LineChartText, useKittyGraphics } from "./diagram-view.tsx"
 import { type Details, type Entry, groupDetails, isDetails } from "./details.ts"
-import { codeDiffRows, diffOf, FOLDED_CODE, foldId, foldNumbers, LONG_CODE } from "./folds.ts"
+import { codeDiffRows, diffOf, drawsMermaid, FOLDED_CODE, foldId, foldNumbers, LONG_CODE, mermaidOf } from "./folds.ts"
+import { parseGantt } from "./gantt.ts"
 import { imageLines } from "./images.ts"
 import { Inline } from "./inline.tsx"
 import { toUnicode } from "./math.ts"
@@ -67,7 +72,7 @@ function useFold(entry: () => Entry): Fold {
   }
 }
 
-function FoldLine(props: { fold: Fold; children: JSX.Element }) {
+function FoldLine(props: { fold: Fold; hints?: [string, string]; children: JSX.Element }) {
   return (
     <box
       id={props.fold.id()}
@@ -81,7 +86,9 @@ function FoldLine(props: { fold: Fold; children: JSX.Element }) {
       <text fg={theme.text} wrapMode="none">
         {props.children}
         <Show when={props.fold.selected()}>
-          <span style={{ fg: theme.accent }}>{props.fold.open() ? "   ↵ close" : "   ↵ open"}</span>
+          <span style={{ fg: theme.accent }}>
+            {`   ↵ ${(props.hints ?? ["open", "close"])[props.fold.open() ? 1 : 0]}`}
+          </span>
         </Show>
       </text>
     </box>
@@ -178,17 +185,11 @@ function BlockView(props: BlockProps) {
           </box>
         )}
       </Match>
-      <Match when={diffOf(props.token)}>{(token) => <DiffBlock token={token()} />}</Match>
-      <Match when={is(props.token, "code")}>
-        {(token) => (
-          <Show
-            when={token().text.split("\n").length > LONG_CODE}
-            fallback={<CodeBlock lang={token().lang ?? ""} code={token().text} streaming={props.streaming} />}
-          >
-            <LongCode token={token()} streaming={props.streaming} />
-          </Show>
-        )}
+      <Match when={mermaidOf(props.token)}>
+        {(token) => <MermaidBlock token={token()} streaming={props.streaming} width={props.width} />}
       </Match>
+      <Match when={diffOf(props.token)}>{(token) => <DiffBlock token={token()} />}</Match>
+      <Match when={is(props.token, "code")}>{(token) => <Code token={token()} streaming={props.streaming} />}</Match>
       <Match when={is(props.token, "table")}>{(token) => <Table token={token()} width={props.width} />}</Match>
       <Match when={is(props.token, "hr")}>
         <text fg={theme.frame}>{"─".repeat(Math.max(1, props.width))}</text>
@@ -227,6 +228,128 @@ function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: nu
         </box>
       </Show>
     </box>
+  )
+}
+
+function Code(props: { token: Tokens.Code; streaming: boolean }) {
+  return (
+    <Show
+      when={props.token.text.split("\n").length > LONG_CODE}
+      fallback={<CodeBlock lang={props.token.lang ?? ""} code={props.token.text} streaming={props.streaming} />}
+    >
+      <LongCode token={props.token} streaming={props.streaming} />
+    </Show>
+  )
+}
+
+function Note(props: { children: string }) {
+  return (
+    <box paddingLeft={2}>
+      <text fg={theme.muted}>{props.children}</text>
+    </box>
+  )
+}
+
+// A mermaid block that draws shows a kind line, which toggles to its source. One that cannot draw stays code, with a
+// note when its type is one we draw.
+function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: number }) {
+  const fold = useFold(() => props.token)
+  const kitty = useKittyGraphics()
+  const text = () => props.token.text
+  const chart = createMemo(() => parseChart(text()))
+  const gantt = createMemo(() => (chart() ? null : parseGantt(text())))
+  const drawing = createMemo(() => (chart() || gantt() ? null : drawDiagram(text(), props.width - 2, props.streaming)))
+  const kind = () => {
+    const value = chart()
+    if (value) return value.type === "pie" ? "pie" : "chart"
+    return gantt() ? "gantt" : (diagramKind(text()) ?? "mermaid")
+  }
+  const art = () => {
+    const value = drawing()
+    return value?.kind === "art" ? value.art : undefined
+  }
+  const wide = () => {
+    const value = drawing()
+    return value?.kind === "wide" ? value.columns : undefined
+  }
+  const lineChart = () => {
+    const value = chart()
+    return value?.type === "xy" && isLineChart(value) ? value : undefined
+  }
+  const known = () => chart() !== null || gantt() !== null || diagramKind(text()) !== null
+  // While the first line is still coming the type is not known yet.
+  const pending = () => props.streaming && (!text().includes("\n") || (known() && !drawsMermaid(text())))
+  const source = () => <CodeBlock lang="" code={text()} streaming={props.streaming} />
+  return (
+    <Switch
+      fallback={
+        <box flexDirection="column">
+          <Code token={props.token} streaming={props.streaming} />
+          <Show when={known()}>
+            <Note>diagram cannot be drawn</Note>
+          </Show>
+        </box>
+      }
+    >
+      <Match when={pending()}>
+        <box paddingLeft={2}>
+          <text fg={theme.muted}>{kind()}</text>
+        </box>
+      </Match>
+      <Match when={drawsMermaid(text())}>
+        <box flexDirection="column">
+          <box paddingLeft={2}>
+            <FoldLine fold={fold} hints={wide() === undefined ? ["source", "diagram"] : undefined}>
+              <span style={{ fg: theme.muted }}>{kind()}</span>
+            </FoldLine>
+          </box>
+          <Switch>
+            <Match when={fold.open()}>{source()}</Match>
+            <Match when={wide()}>
+              {(columns) => (
+                <box flexDirection="column">
+                  {source()}
+                  <Note>{`diagram needs ${columns()} columns`}</Note>
+                </box>
+              )}
+            </Match>
+            <Match when={art()}>
+              {(value) => (
+                <box paddingLeft={2}>
+                  <DiagramArt art={value()} />
+                </box>
+              )}
+            </Match>
+            <Match when={lineChart()}>
+              {(value) => (
+                <box paddingLeft={2}>
+                  <Show
+                    when={!props.streaming && kitty()}
+                    fallback={<LineChartText chart={value()} width={props.width - 2} />}
+                  >
+                    <LineChartImage chart={value()} width={props.width - 2} />
+                  </Show>
+                </box>
+              )}
+            </Match>
+            <Match when={chart()}>
+              {(value) => (
+                <box paddingLeft={2}>
+                  <ChartBars chart={value()} width={props.width - 2} />
+                </box>
+              )}
+            </Match>
+            <Match when={gantt()}>
+              {(value) => (
+                <box paddingLeft={2}>
+                  <GanttView gantt={value()} width={props.width - 2} />
+                </box>
+              )}
+            </Match>
+          </Switch>
+        </box>
+      </Match>
+    </Switch>
   )
 }
 

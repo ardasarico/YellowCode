@@ -1,9 +1,12 @@
+import { render } from "grok-mermaid"
 import { Lexer, type Tokens } from "marked"
 import { diffRows, type DiffRow, unifiedHunks } from "../diff.ts"
 import { HEAD_LIMIT } from "../diff-view.tsx"
 import { is } from "./blocks.ts"
 import { calloutOf } from "./callout.ts"
+import { hasData, parseChart } from "./chart.ts"
 import { type Entry, groupDetails, isDetails } from "./details.ts"
+import { parseGantt } from "./gantt.ts"
 
 export const LONG_CODE = 20
 export const FOLDED_CODE = 10
@@ -23,8 +26,31 @@ export function diffOf(entry: Entry): Tokens.Code | undefined {
   return code && /^diff\b/i.test(code.lang ?? "") && codeDiffRows(code).length > 0 ? code : undefined
 }
 
+export function mermaidOf(entry: Entry): Tokens.Code | undefined {
+  const code = is(entry, "code")
+  return code?.lang?.trim().toLowerCase() === "mermaid" ? code : undefined
+}
+
+const drawable = new Map<string, boolean>()
+
+// A mermaid block that draws as a diagram or chart, whatever the width. Its fold shows the source.
+export function drawsMermaid(text: string): boolean {
+  let found = drawable.get(text)
+  if (found === undefined) {
+    const chart = parseChart(text)
+    const gantt = parseGantt(text)
+    if (chart) found = hasData(chart)
+    else found = gantt ? gantt.tasks.length > 0 : render(text) !== null
+    if (drawable.size > 200) drawable.clear()
+    drawable.set(text, found)
+  }
+  return found
+}
+
 function foldable(entry: Entry): boolean {
   if (isDetails(entry)) return true
+  const mermaid = mermaidOf(entry)
+  if (mermaid && drawsMermaid(mermaid.text)) return true
   const diff = diffOf(entry)
   if (diff) return codeDiffRows(diff).length > HEAD_LIMIT
   const code = is(entry, "code")
@@ -71,7 +97,7 @@ export function foldNumbers(entries: readonly Entry[]): Map<Entry, number> {
 
 // The folds a message shows, in order, for keyboard selection.
 export function messageFolds(markdown: string, itemId: string, expanded: Record<string, boolean>): string[] {
-  if (!/<details/i.test(markdown) && markdown.split("\n").length <= LONG_CODE) return []
+  if (!/<details|```\s*mermaid/i.test(markdown) && markdown.split("\n").length <= LONG_CODE) return []
   const tokens = Lexer.lex(markdown, { gfm: true }).filter((token) => token.type !== "space" && token.type !== "def")
   const ids: string[] = []
   walkFolds(
