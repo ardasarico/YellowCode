@@ -36,6 +36,7 @@ test("all twenty-six recordings are present", () => {
       "permission",
       "plugins",
       "read-image",
+      "references",
       "shells",
       "skills",
       "subagent",
