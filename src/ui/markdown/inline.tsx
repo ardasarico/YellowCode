@@ -1,11 +1,21 @@
-import type { RGBA } from "@opentui/core"
+import { RGBA } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import type { Token } from "marked"
 import { createMemo, For, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { isLocalImage } from "./images.ts"
+import { mathSpans } from "./math.ts"
+import { shortcutKeys } from "./shortcut.ts"
+import { swatchColor } from "./swatch.ts"
 
-export type RunStyle = { fg: RGBA; bold?: boolean; italic?: boolean; underline?: boolean; strikethrough?: boolean }
+export type RunStyle = {
+  fg: RGBA
+  bg?: RGBA
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  strikethrough?: boolean
+}
 export type Run = { text: string; style: RunStyle; url?: string }
 
 const withoutScheme = (url: string): string => url.replace(/^[a-z]+:\/\//i, "")
@@ -23,7 +33,31 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
     if (hasChildren(token)) runs.push(...toRuns(token.tokens, next, hyperlinks, nextUrl))
     else push(token.raw, next, nextUrl)
   }
+  const keyCap = (key: string) =>
+    push(` ${key} `, { ...style, fg: theme.text, bold: true, bg: theme.tile ?? theme.band ?? undefined })
+  const code = (text: string) => {
+    const keys = shortcutKeys(text)
+    if (keys) {
+      keys.forEach((key, index) => {
+        if (index > 0) push("+", { ...style, fg: theme.muted })
+        keyCap(key)
+      })
+      return
+    }
+    const color = swatchColor(text)
+    if (color) push("■ ", { ...style, fg: RGBA.fromInts(...color, 255) })
+    push(text, { ...style, fg: theme.accent })
+  }
+  let inKbd = false
   for (const token of tokens) {
+    if (token.type === "html" && /^<\/?kbd>$/i.test(token.raw)) {
+      inKbd = !token.raw.startsWith("</")
+      continue
+    }
+    if (inKbd && (token.type === "text" || token.type === "escape")) {
+      keyCap(String(token.text))
+      continue
+    }
     switch (token.type) {
       case "strong":
         nested(token, { ...style, bold: true })
@@ -35,7 +69,7 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
         nested(token, { ...style, strikethrough: true })
         break
       case "codespan":
-        push(String(token.text), { ...style, fg: theme.accent })
+        code(String(token.text))
         break
       case "image":
       case "link": {
@@ -52,9 +86,13 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
       case "checkbox":
         break
       case "text":
-      case "escape":
         if (hasChildren(token)) nested(token, style)
-        else push(String(token.text), style)
+        else
+          for (const span of mathSpans(String(token.text)))
+            push(span.text, span.math ? { ...style, fg: theme.accent, italic: true } : style)
+        break
+      case "escape":
+        push(String(token.text), style)
         break
       default:
         push(token.raw, style)

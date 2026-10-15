@@ -39,3 +39,32 @@ export function addedRows(content: string): DiffRow[] {
     .split("\n")
     .map((text, index) => ({ kind: "add", number: index + 1, text }))
 }
+
+// A unified diff as Claude writes it in a ```diff block: `@@` headers number the lines, file headers are skipped.
+export function unifiedHunks(text: string): Hunk[] {
+  const hunks: Hunk[] = []
+  let hunk: Hunk | undefined
+  for (const line of text.replace(/\n$/, "").split("\n")) {
+    const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line)
+    if (header) {
+      const [oldStart, oldLines, newStart, newLines] = header.slice(1).map((value) => Number(value ?? 1))
+      hunk = {
+        oldStart: oldStart ?? 1,
+        oldLines: oldLines ?? 1,
+        newStart: newStart ?? 1,
+        newLines: newLines ?? 1,
+        lines: [],
+      }
+      hunks.push(hunk)
+      continue
+    }
+    if (!hunk && /^(diff |index |--- |\+\+\+ )/.test(line)) continue
+    if (line.startsWith("\\")) continue
+    if (!hunk) {
+      hunk = { oldStart: 1, oldLines: 0, newStart: 1, newLines: 0, lines: [] }
+      hunks.push(hunk)
+    }
+    hunk.lines.push(/^[+\- ]/.test(line) ? line : ` ${line}`)
+  }
+  return hunks
+}

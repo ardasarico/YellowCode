@@ -4,7 +4,7 @@ import { theme } from "../theme/theme.ts"
 import type { DiffRow } from "./diff.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
-const HEAD_LIMIT = 20
+export const HEAD_LIMIT = 20
 const TAIL_LIMIT = 10
 const SIGN = { add: "+", del: "-", ctx: " " } as const
 

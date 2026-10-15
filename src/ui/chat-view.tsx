@@ -73,7 +73,7 @@ function RowView(props: RowProps) {
         const id = props.selected
         if (!id || theme.selection !== null) return
         if (id === props.row.id) invertCells(this, buffer, props.viewport())
-        else if (id.startsWith(`${props.row.id}/image/`)) {
+        else if (id.startsWith(`${props.row.id}/`)) {
           const label = this.findDescendantById(id)
           if (label) invertCells(label, buffer, props.viewport())
         }
@@ -127,7 +127,13 @@ function RowView(props: RowProps) {
                 markdown={text().markdown}
                 streaming={text().streaming}
                 width={props.width - 2}
-                images={{ itemId: text().id, selection: props.selected, onOpen: props.onOpenImage }}
+                chat={{
+                  itemId: text().id,
+                  selection: props.selected,
+                  expanded: props.expanded,
+                  onOpenImage: props.onOpenImage,
+                  onToggle: props.onToggle,
+                }}
               />
             </box>
           )}

@@ -19,6 +19,7 @@ import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
 import { ImageView } from "./dialog/image-view.tsx"
 import { itemImages, labelId, labelTarget, loadImage } from "./image-label.tsx"
+import { messageFolds } from "./markdown/folds.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
@@ -182,10 +183,11 @@ export function App(props: AppProps) {
     props.session.items.flatMap((id) => {
       const item = props.session.byId[id]
       const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
+      const folds = item?.kind === "text" ? messageFolds(item.markdown, id, expanded) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
         loadImage(image) ? [labelId(id, index)] : [],
       )
-      return [...own, ...labels]
+      return [...own, ...folds, ...labels]
     })
 
   const imageView = () => {
