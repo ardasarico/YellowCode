@@ -135,6 +135,9 @@ export type SessionInfo = {
   tools: string[]
   mcpServers: McpServer[]
   skills: string[]
+  slashCommands: string[]
+  agents: string[]
+  plugins: { name: string; path: string; source: string | null }[]
   apiKeySource: string
 }
 

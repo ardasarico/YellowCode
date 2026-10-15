@@ -59,7 +59,8 @@ const systemInit = z.looseObject({
   ),
   skills: z.array(z.string()),
   apiKeySource: z.string().optional(),
-  plugins: z.array(z.looseObject({ name: z.string() })).optional(),
+  plugins: z.array(z.looseObject({ name: z.string(), path: z.string(), source: z.string().optional() })).optional(),
+  agents: z.array(z.string()).optional(),
   slash_commands: z.array(z.string()).optional(),
   terminal_slash_commands: z.array(z.string()).optional(),
 })
@@ -354,6 +355,10 @@ export const settingsSources = z.looseObject({
   ),
 })
 
+export const pluginHook = z.looseObject({ event: z.string(), matcher: z.string(), pluginName: z.string() })
+
+export const hooksListing = z.looseObject({ hooks: z.array(z.unknown()) })
+
 const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
 
 const rateLimit = z.looseObject({
@@ -399,6 +404,7 @@ export type InitializeResponse = z.infer<typeof initializeResponse>
 export type ModelInfo = z.infer<typeof modelInfo>
 export type SkillRow = z.infer<typeof skillRow>
 export type SettingsSource = z.infer<typeof settingsSources>["sources"][number]
+export type PluginHook = z.infer<typeof pluginHook>
 
 export const KNOWN_KEYS = new Set([
   "system/init",

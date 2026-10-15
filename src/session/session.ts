@@ -156,6 +156,9 @@ export function initInfo(message: System<"init">): SessionInfo {
       tools: null,
     })),
     skills: message.skills,
+    slashCommands: message.slash_commands ?? [],
+    agents: message.agents ?? [],
+    plugins: (message.plugins ?? []).map(({ name, path, source }) => ({ name, path, source: source ?? null })),
     apiKeySource: message.apiKeySource ?? "none",
   }
 }

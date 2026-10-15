@@ -104,6 +104,10 @@ export function getSettingsRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_settings" } })
 }
 
+export function getHooksListingRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_hooks_listing" } })
+}
+
 export function getSkillsDialogRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_skills_dialog" } })
 }

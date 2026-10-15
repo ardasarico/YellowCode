@@ -7,6 +7,7 @@ import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/proto
 import {
   allowTool,
   answerQuestions,
+  getHooksListingRequest,
   getSettingsRequest,
   getSkillsDialogRequest,
   getTaskOutputRequest,
@@ -18,10 +19,16 @@ import {
 import { parse, type ParseResult } from "../../src/protocol/parse.ts"
 import { CLAUDE_STREAM_ARGS } from "../../src/source/claude-args.ts"
 import { splitLines } from "../../src/source/lines.ts"
-import { serializeRecording, SETTINGS_ID, SKILLS_DIALOG_ID, type RecordingEntry } from "../../src/source/recording.ts"
+import {
+  HOOKS_ID,
+  serializeRecording,
+  SETTINGS_ID,
+  SKILLS_DIALOG_ID,
+  type RecordingEntry,
+} from "../../src/source/recording.ts"
 import { solidPng } from "./png.ts"
 import { scenarios, type Scenario } from "./scenarios.ts"
-import { createNames, keptNames, scrub } from "./scrub.ts"
+import { createNames, keptNames, learnSkills, scrub } from "./scrub.ts"
 
 const QUIET_MS = 3_000
 const POLL_MS = 1_000
@@ -41,7 +48,8 @@ function firstOptions(input: AskUserQuestionInput): Record<string, string> {
   return Object.fromEntries(input.questions.map((q) => [q.question, q.options[0]?.label ?? ""]))
 }
 
-const ownsMcp = (scenario: Scenario) => scenario.args?.includes("--strict-mcp-config") ?? false
+const ownsMcp = (scenario: Scenario) =>
+  (scenario.args?.includes("--strict-mcp-config") ?? false) || (scenario.userMcp ?? false)
 
 function checkIsolation(parsed: ParseResult, scenario: Scenario): void {
   if (parsed.kind === "unknown" && parsed.key.startsWith("system/hook_")) {
@@ -68,8 +76,8 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
 
   // --safe-mode turns off every MCP server, including --mcp-config ones, so a scenario with its own servers
   // skips the settings files instead. A scenario with the user's config keeps settings, skills and plugins but
-  // not hooks or MCP servers, and runs as a host started outside Claude Code. Plugin directories passed down by
-  // a parent Claude Code session are dropped.
+  // not hooks or MCP servers (unless it asks for the user's MCP servers, which the scrub renames), and runs as a
+  // host started outside Claude Code. Plugin directories passed down by a parent Claude Code session are dropped.
   const { CLAUDE_CODE_PLUGIN_DIRS: _, ...parentEnv } = process.env
   const baseEnv = scenario.userConfig
     ? Object.fromEntries(
@@ -78,7 +86,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     : parentEnv
   const env = { ...baseEnv, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
   const isolation = scenario.userConfig
-    ? ["--strict-mcp-config", "--settings", JSON.stringify({ disableAllHooks: true })]
+    ? [...(scenario.userMcp ? [] : ["--strict-mcp-config"]), "--settings", JSON.stringify({ disableAllHooks: true })]
     : ownsMcp(scenario)
       ? ["--setting-sources", ""]
       : ["--safe-mode"]
@@ -145,6 +153,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     if (scenario.userConfig) {
       await sendAndWait(getSkillsDialogRequest(SKILLS_DIALOG_ID), SKILLS_DIALOG_ID)
       await sendAndWait(getSettingsRequest(SETTINGS_ID), SETTINGS_ID)
+      await sendAndWait(getHooksListingRequest(HOOKS_ID), HOOKS_ID)
     }
 
     for (const turn of scenario.turns) {
@@ -261,6 +270,10 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     uid: userInfo().uid,
   }
   const names = createNames(keptNames(scenario.files))
+  learnSkills(
+    entries.map((entry) => entry.line),
+    names,
+  )
   const recording = {
     header: { cliVersion, scenario: scenario.name, recordedAt: new Date().toISOString() },
     entries: entries.map((entry) => ({ t: entry.t, dir: entry.dir, line: scrub(entry.line, paths, names) })),

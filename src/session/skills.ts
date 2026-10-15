@@ -25,8 +25,8 @@ type InitLists = { skills: string[]; slashCommands: string[] }
 const HIDDEN_SOURCES = new Set(["bundled", "built-in"])
 const PROJECT_SCOPES = new Set(["projectSettings", "localSettings"])
 
-function pluginGroup(plugin: string, sources: SettingsSource[]): SkillGroup {
-  let group: SkillGroup = "global"
+export function pluginGroup(plugin: string, sources: SettingsSource[]): "global" | "project" {
+  let group: "global" | "project" = "global"
   for (const { source, settings } of sources) {
     const enabled = Object.entries(settings.enabledPlugins ?? {}).some(
       ([id, value]) => (id === plugin || id.startsWith(`${plugin}@`)) && value !== false,

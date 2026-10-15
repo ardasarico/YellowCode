@@ -2,8 +2,11 @@ import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
 import {
   initializeModels,
+  hooksListing,
   initializeResponse,
   type ModelInfo,
+  pluginHook,
+  type PluginHook,
   type SettingsSource,
   settingsSources,
   skillRow,
@@ -20,6 +23,7 @@ const entrySchema = z.object({ t: z.number(), dir: z.enum(["in", "out"]), line: 
 
 export const SKILLS_DIALOG_ID = "record-skills-dialog"
 export const SETTINGS_ID = "record-settings"
+export const HOOKS_ID = "record-hooks"
 
 export type RecordingHeader = z.infer<typeof headerSchema>
 export type RecordingEntry = z.infer<typeof entrySchema>
@@ -113,13 +117,18 @@ function recordedReply(recording: Recording, requestId: string) {
   return null
 }
 
-export function recordedSkillRows(recording: Recording): { rows: SkillRow[]; problem: string | null } {
+export function recordedSkillRows(recording: Recording): {
+  rows: SkillRow[]
+  problem: string | null
+  recorded: boolean
+} {
   const reply = recordedReply(recording, SKILLS_DIALOG_ID)
-  if (reply === null) return { rows: [], problem: null }
-  if (reply.subtype !== "success") return { rows: [], problem: `${reply.subtype}: ${JSON.stringify(reply["error"])}` }
+  if (reply === null) return { rows: [], problem: null, recorded: false }
+  if (reply.subtype !== "success")
+    return { rows: [], problem: `${reply.subtype}: ${JSON.stringify(reply["error"])}`, recorded: true }
 
   const dialog = skillsDialog.safeParse(reply.response)
-  if (!dialog.success) return { rows: [], problem: "no skills array" }
+  if (!dialog.success) return { rows: [], problem: "no skills array", recorded: true }
 
   const rows: SkillRow[] = []
   for (const value of dialog.data.skills) {
@@ -127,13 +136,27 @@ export function recordedSkillRows(recording: Recording): { rows: SkillRow[]; pro
     if (row.success) rows.push(row.data)
   }
   const dropped = dialog.data.skills.length - rows.length
-  return { rows, problem: dropped > 0 ? `dropped ${dropped} of ${dialog.data.skills.length} rows` : null }
+  return {
+    rows,
+    problem: dropped > 0 ? `dropped ${dropped} of ${dialog.data.skills.length} rows` : null,
+    recorded: true,
+  }
 }
 
 export function recordedSettingsSources(recording: Recording): SettingsSource[] {
   const reply = recordedReply(recording, SETTINGS_ID)
   const parsed = settingsSources.safeParse(reply?.response)
   return parsed.success ? parsed.data.sources : []
+}
+
+export function recordedPluginHooks(recording: Recording): PluginHook[] {
+  const reply = recordedReply(recording, HOOKS_ID)
+  const listing = hooksListing.safeParse(reply?.response)
+  if (!listing.success) return []
+  return listing.data.hooks.flatMap((value) => {
+    const hook = pluginHook.safeParse(value)
+    return hook.success ? [hook.data] : []
+  })
 }
 
 export function recordedInitLists(recording: Recording): { skills: string[]; slashCommands: string[] } | null {

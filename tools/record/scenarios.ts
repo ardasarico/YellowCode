@@ -13,11 +13,13 @@ export type Scenario = {
   args?: string[]
   initialize?: boolean
   userConfig?: boolean
+  userMcp?: boolean
   perTaskStopAffordance?: boolean
   turns: Turn[]
 }
 
 const projectPlugin = process.env.YC_PROJECT_PLUGIN
+const offPlugin = process.env.YC_OFF_PLUGIN
 
 const skill = (description: string) => `---\ndescription: ${description}\n---\n\n${description}\n`
 
@@ -188,6 +190,21 @@ export const scenarios: Scenario[] = [
       ...(projectPlugin
         ? { ".claude/settings.json": JSON.stringify({ enabledPlugins: { [projectPlugin]: true } }) }
         : {}),
+    },
+    turns: [{ text: "Reply with the single word ready." }],
+  },
+  {
+    name: "plugins",
+    initialize: true,
+    userConfig: true,
+    userMcp: true,
+    files: {
+      ".claude/settings.json": JSON.stringify({
+        enabledPlugins: {
+          ...(projectPlugin ? { [projectPlugin]: true } : {}),
+          ...(offPlugin ? { [offPlugin]: false } : {}),
+        },
+      }),
     },
     turns: [{ text: "Reply with the single word ready." }],
   },

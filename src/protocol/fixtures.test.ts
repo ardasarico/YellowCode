@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { scenarios } from "../../tools/record/scenarios.ts"
-import { createNames, keptNames, rewrite } from "../../tools/record/scrub.ts"
+import { createNames, keptNames, learnSkills, rewrite, SAMPLE_SERVER } from "../../tools/record/scrub.ts"
 import { parseRecording } from "../source/recording.ts"
 import { parse } from "./parse.ts"
 
@@ -13,7 +13,7 @@ const transcripts = readdirSync(transcriptsDir, { recursive: true, withFileTypes
   entry.isFile(),
 )
 
-test("all twenty-one recordings are present", () => {
+test("all twenty-two recordings are present", () => {
   expect(files.toSorted()).toEqual(
     [
       "agent-shell",
@@ -31,6 +31,7 @@ test("all twenty-one recordings are present", () => {
       "nested-agents",
       "permission-bash",
       "permission",
+      "plugins",
       "shells",
       "skills",
       "subagent",
@@ -64,17 +65,25 @@ test("recordings contain no personal data", () => {
 // The repo is public: skills, plugins, agents and MCP servers in recordings are built-in, made by the scenario,
 // or sample names, never the recording user's own.
 test("recordings carry no names from the user's own setup", () => {
-  const sampleServer =
-    /^(echo|broken|postgres|claude-in-chrome|server-[a-z]|plugin:plugin-[a-z]:plugin-[a-z]|claude\.ai Connector [A-Z])$/
   for (const file of files) {
     const recording = parseRecording(readFileSync(join(dir, file), "utf8"))
     const scenario = scenarios.find((entry) => entry.name === recording.header.scenario)
     const names = createNames(keptNames(scenario?.files))
+    learnSkills(
+      recording.entries.map((entry) => entry.line),
+      names,
+    )
     for (const { line } of recording.entries) {
       expect(rewrite(line, names)).toBe(line)
       const message = parse(line)
-      if (message.kind === "message" && message.message.type === "system" && message.message.subtype === "init")
-        for (const server of message.message.mcp_servers) expect(server.name).toMatch(sampleServer)
+      if (message.kind !== "message" || message.message.type !== "system" || message.message.subtype !== "init")
+        continue
+      for (const server of message.message.mcp_servers) expect(server.name).toMatch(SAMPLE_SERVER)
+      for (const plugin of message.message.plugins ?? []) {
+        expect(plugin.name).toMatch(/^plugin-[a-z]$/)
+        expect(plugin.path).toBe(`/plugins/${plugin.name}`)
+        expect(plugin.source ?? "").toMatch(/^plugin-[a-z]@(marketplace-[a-z]|inline|synced|builtin)$/)
+      }
     }
   }
 })
