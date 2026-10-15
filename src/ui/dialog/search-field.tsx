@@ -19,9 +19,9 @@ export function SearchField(props: { query: string; placeholder: string; focused
           <Show
             when={props.query}
             fallback={
-              <Show when={props.focused} fallback={<span style={{ fg: theme.faint }}>{placeholder()}</span>}>
+              <Show when={props.focused} fallback={<span style={{ fg: theme.panelFaint }}>{placeholder()}</span>}>
                 <span style={{ fg: fill(), bg: theme.text }}>{placeholder().slice(0, 1)}</span>
-                <span style={{ fg: theme.faint }}>{placeholder().slice(1)}</span>
+                <span style={{ fg: theme.panelFaint }}>{placeholder().slice(1)}</span>
               </Show>
             }
           >

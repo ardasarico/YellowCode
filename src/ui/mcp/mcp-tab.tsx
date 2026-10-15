@@ -30,7 +30,7 @@ const look = (state: McpState) =>
     "needs-login": { mark: "!", word: "needs login", color: theme.warning },
     connecting: { mark: "◌", word: "connecting", color: theme.accent },
     connected: { mark: "", word: "connected", color: theme.text },
-    off: { mark: "", word: "off", color: theme.faint },
+    off: { mark: "", word: "off", color: theme.panelFaint },
   })[state]
 
 const toolCount = (count: number) => (count === 1 ? "1 tool" : `${count} tools`)
@@ -44,10 +44,10 @@ function listRow(entry: McpEntry): DialogRow {
     tag: entry.tag,
     search: `${entry.label} ${entry.tag}`,
     marker: mark ? { text: mark, fg: color } : undefined,
-    labelColor: entry.state === "off" ? theme.faint : undefined,
+    labelColor: entry.state === "off" ? theme.panelFaint : undefined,
     valueColor: color,
   }
-  if (entry.state === "connected") return { ...row, value: toolCount(entry.tools.length), valueColor: theme.faint }
+  if (entry.state === "connected") return { ...row, value: toolCount(entry.tools.length), valueColor: theme.panelFaint }
   if (entry.state === "needs-login") return { ...row, selectedValue: word }
   return { ...row, value: word }
 }
@@ -61,7 +61,7 @@ const listSections = (entries: McpEntry[]): DialogSection[] =>
 function stateSpan(state: McpState): Span {
   const { mark, word, color } = look(state)
   if (state === "connected") return { text: `● ${word}`, fg: theme.success }
-  if (state === "off") return { text: `◯ ${word}`, fg: theme.faint }
+  if (state === "off") return { text: `◯ ${word}`, fg: theme.panelFaint }
   return { text: `${mark} ${word}`, fg: color }
 }
 

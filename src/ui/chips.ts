@@ -37,6 +37,8 @@ type Mark = { id: number; start: number; end: number; chip: Chip }
 export function useChips(options: ChipsOptions) {
   const [chips, setChips] = createSignal<PlacedChip[]>([])
   let pathUndo: { id: number; text: string } | null = null
+  // The text right after Ctrl+X unfolded a chip. While it is unchanged, one undo takes back both steps of the unfold.
+  let unfolded: string | null = null
   // Undo brings back marks by id, so a chip stays here after its mark is gone, until `clear` drops the undo history.
   const chipOf = new Map<number, Chip>()
 
@@ -183,10 +185,15 @@ export function useChips(options: ChipsOptions) {
     const undo = pathUndo
     pathUndo = null
     const plain = !key.ctrl && !key.meta && !key.shift && !key.super
-    if (
-      undo &&
-      ((key.ctrl && (key.name === "_" || key.name === "-")) || (key.super && key.name === "z" && !key.shift))
-    ) {
+    const undoKey =
+      (key.ctrl && !key.shift && (key.name === "_" || key.name === "-" || key.name === "z")) ||
+      (key.super && key.name === "z" && !key.shift)
+    if (undoKey && unfolded !== null && area.plainText === unfolded) {
+      unfolded = null
+      key.preventDefault()
+      area.undo()
+      area.undo()
+    } else if (undo && undoKey) {
       const mark = marks().find(({ id }) => id === undo.id)
       if (mark) {
         key.preventDefault()
@@ -201,6 +208,7 @@ export function useChips(options: ChipsOptions) {
       if (mark?.chip.kind === "text") {
         key.preventDefault()
         replacePlaced(mark.start, mark.end, mark.chip.content)
+        unfolded = area.plainText
       }
     } else if (plain && (key.name === "left" || key.name === "right") && !area.hasSelection()) {
       // The controller's own jump lands one cell beyond the label on both sides.

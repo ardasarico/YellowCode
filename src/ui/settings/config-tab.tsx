@@ -73,7 +73,7 @@ export function ConfigTab(props: { api: TabApi }) {
     return [
       {
         kind: "text" as const,
-        text: { id: "empty", spans: [{ text: `No settings match "${query()}".`, fg: theme.muted }] },
+        text: { id: "empty", spans: [{ text: `No settings match "${query()}".`, fg: theme.panelMuted }] },
       },
     ]
   })
@@ -141,8 +141,8 @@ export function ConfigTab(props: { api: TabApi }) {
           <>
             <box height={1} paddingLeft={PAD_X}>
               <text wrapMode="none">
-                <span style={{ fg: theme.muted }}>Config</span>
-                <span style={{ fg: theme.faint }}>{" › "}</span>
+                <span style={{ fg: theme.panelMuted }}>Config</span>
+                <span style={{ fg: theme.panelFaint }}>{" › "}</span>
                 <span style={{ fg: theme.accent, bold: true }}>{open().label}</span>
               </text>
             </box>

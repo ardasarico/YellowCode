@@ -70,7 +70,7 @@ export function Frame(props: { panel: Rect; children: JSX.Element }) {
           width={props.panel.width}
           height={props.panel.height}
           border
-          borderColor={theme.muted}
+          borderColor={theme.panelMuted}
         />
       </Show>
     </>

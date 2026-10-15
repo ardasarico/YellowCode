@@ -36,7 +36,12 @@ function listRow(plugin: Plugin): DialogRow {
     value: scopeLabel(plugin),
   }
   if (plugin.on) return row
-  return { ...row, marker: { text: "◯", fg: theme.faint }, labelColor: theme.faint, valueColor: theme.faint }
+  return {
+    ...row,
+    marker: { text: "◯", fg: theme.panelFaint },
+    labelColor: theme.panelFaint,
+    valueColor: theme.panelFaint,
+  }
 }
 
 const MORE = "-more"
@@ -46,7 +51,7 @@ function detailItems(plugin: Plugin, width: number, opened: Set<string>): Dialog
     const list = plugin.brings[key]
     return list.length > 0 ? names(key, list, width, { label, open: opened.has(`${key}${MORE}`) }) : []
   })
-  const state = plugin.on ? { text: "● on", fg: theme.success } : { text: "◯ off", fg: theme.faint }
+  const state = plugin.on ? { text: "● on", fg: theme.success } : { text: "◯ off", fg: theme.panelFaint }
   return [
     header(plugin.name, state),
     blank("gap-head"),

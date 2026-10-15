@@ -51,6 +51,8 @@ export type CompletionOptions = {
   onLeaveDown?: () => void
   // Each new `seq` replaces the prompt with `text`.
   fill?: Accessor<{ text: string; seq: number } | undefined>
+  // Called by Ctrl+C on an empty prompt; Ctrl+C on text clears it.
+  onQuit?: () => void
 }
 
 // The `/` and `@` completion, the argument hint and the token highlight of a textarea.
@@ -317,6 +319,15 @@ export function useCompletion(options: CompletionOptions) {
 
   useKeyboard((key) => {
     if (!options.focused()) return
+    if (key.ctrl && key.name === "c") {
+      key.preventDefault()
+      if (area && area.plainText !== "") {
+        close()
+        browsing = null
+        edit({ text: "", cursor: 0 })
+      } else options.onQuit?.()
+      return
+    }
     const rows = shown()
     const plain = !key.ctrl && !key.meta && !key.shift
     if (rows.length === 0) {

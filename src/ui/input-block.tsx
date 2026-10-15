@@ -17,6 +17,8 @@ export const PROMPT_KEY_BINDINGS: KeyBinding[] = [
   { name: "return", action: "submit" },
   { name: "return", shift: true, action: "newline" },
   { name: "_", ctrl: true, action: "undo" },
+  { name: "z", ctrl: true, action: "undo" },
+  { name: "z", ctrl: true, shift: true, action: "redo" },
 ]
 
 export type InputBlockProps = {
@@ -27,6 +29,7 @@ export type InputBlockProps = {
   provider: InputProvider
   onSubmit: (submission: Submission) => void
   onLeaveDown?: () => void
+  onQuit?: () => void
   fill?: { text: string; seq: number }
 }
 
@@ -49,6 +52,7 @@ export function InputBlock(props: InputBlockProps) {
     readClipboard,
     loadImage,
     onLeaveDown: () => props.onLeaveDown?.(),
+    onQuit: () => props.onQuit?.(),
     fill: () => props.fill,
   })
 

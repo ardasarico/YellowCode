@@ -90,7 +90,7 @@ export function Dialog(props: DialogProps) {
   const lines = createMemo((): DialogLine[] => {
     const body = dialogLines(visible(), selectedId())
     const text = body.length === 0 ? props.empty?.(query()) : undefined
-    return text ? [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.muted }] } }] : body
+    return text ? [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.panelMuted }] } }] : body
   })
   const fixedRows = () => FIXED_ROWS + (searching() ? SEARCH_ROWS : 0)
   // The blank row above the footer belongs to the line area, so an empty view adds no rows.
@@ -127,7 +127,7 @@ export function Dialog(props: DialogProps) {
     <Frame panel={{ x: left(), y: top(), width: panelWidth(), height: height() }}>
       <Line
         left={{ text: props.title, fg: theme.text }}
-        right={{ text: "esc", fg: theme.muted }}
+        right={{ text: "esc", fg: theme.panelMuted }}
         bold
         width={inner()}
       />

@@ -131,7 +131,7 @@ export function TabbedDialog<Id extends string>(props: {
             return (
               <span
                 style={{
-                  fg: filled ? onAccent() : active ? theme.accent : theme.muted,
+                  fg: filled ? onAccent() : active ? theme.accent : theme.panelMuted,
                   bg: filled ? theme.accent : undefined,
                   bold: active,
                 }}
@@ -143,7 +143,7 @@ export function TabbedDialog<Id extends string>(props: {
         </For>
       </text>
       <box flexGrow={1} />
-      <text fg={theme.muted} wrapMode="none">
+      <text fg={theme.panelMuted} wrapMode="none">
         esc
       </text>
     </box>

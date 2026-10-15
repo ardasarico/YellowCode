@@ -1,6 +1,6 @@
 import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, on, onMount, Show, untrack } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
@@ -18,7 +18,7 @@ import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { noticeFor, type ReplayInfo } from "./notice.ts"
+import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
@@ -29,6 +29,8 @@ import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
+
+const QUIT_WINDOW = 2000
 
 export type AppProps = {
   session: Session
@@ -104,8 +106,9 @@ export function App(props: AppProps) {
   // so the resize follows drags that bubble up to the layout row.
   const [resizing, setResizing] = createSignal(false)
   // A width saved in a wider terminal still has to fit in half of this one.
-  const shownWidth = () => Math.min(sidebarWidth(), Math.max(SIDEBAR_MIN_WIDTH, Math.floor(dimensions().width / 2)))
-  const sidebar = () => sidebarShown(dimensions().width, shownWidth(), override())
+  const layout = () => sidebarShown(dimensions().width, sidebarWidth(), override())
+  const shownWidth = () => layout().width
+  const sidebar = () => layout().mode
   const chatWidth = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
   const edgeGap = () => (sidebar() === "docked" ? 2 : 0)
   const pending = createMemo(() => pendingAsk(props.session))
@@ -253,11 +256,24 @@ export function App(props: AppProps) {
     setSelected(ids[next] ?? null)
   }
 
+  // The first Ctrl+C only warns, so a stray press does not end the session.
+  const [quitArmed, setQuitArmed] = createSignal(false)
+  let disarm: ReturnType<typeof setTimeout> | undefined
+  const pressQuit = () => {
+    if (quitArmed()) return props.onQuit()
+    setQuitArmed(true)
+    clearTimeout(disarm)
+    disarm = setTimeout(() => setQuitArmed(false), QUIT_WINDOW)
+  }
+  onCleanup(() => clearTimeout(disarm))
+
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
+      // A focused prompt takes it: it clears its text, or calls pressQuit when empty.
+      if (input().focused && !pending()) return
       key.stopPropagation()
-      props.onQuit()
+      pressQuit()
       return
     }
     if (dialog()) return
@@ -374,6 +390,7 @@ export function App(props: AppProps) {
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
+    onQuit: pressQuit,
     fill: fill(),
   })
 
@@ -389,6 +406,12 @@ export function App(props: AppProps) {
     ),
   )
 
+  const welcomeNotice = () => {
+    if (quitArmed()) return quitHint()
+    const problem = settingsProblem()
+    return problem ? { text: problem, fg: theme.warning } : null
+  }
+
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
   const notice = () => {
     clock()
@@ -400,6 +423,7 @@ export function App(props: AppProps) {
       mcpFailure: mcpFailure(),
       settingsProblem: settingsProblem(),
       asking: pending() !== null,
+      quitArmed: quitArmed(),
       now: Date.now(),
     })
   }
@@ -417,7 +441,7 @@ export function App(props: AppProps) {
               },
             }}
             workspace={props.workspace}
-            notice={settingsProblem()}
+            notice={welcomeNotice()}
             recent={{ entries: recents(), selected: recent() }}
             width={dimensions().width}
             height={dimensions().height}

@@ -89,7 +89,7 @@ export function SearchRow(props: { query: string; placeholder?: string; pad?: nu
         fallback={
           <text wrapMode="none">
             <Cursor />
-            <span style={{ fg: theme.muted }}>{props.placeholder ?? "Search"}</span>
+            <span style={{ fg: theme.panelMuted }}>{props.placeholder ?? "Search"}</span>
           </text>
         }
       >
@@ -141,13 +141,13 @@ export function Footer(props: {
               fallback={
                 <>
                   <span style={{ fg: theme.text }}>{`${index === 0 ? "" : "  "}${item().action}`}</span>
-                  <span style={{ fg: theme.muted }}>{` ${item().key}`}</span>
+                  <span style={{ fg: theme.panelMuted }}>{` ${item().key}`}</span>
                 </>
               }
             >
-              <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
+              <span style={{ fg: theme.panelFaint }}>{index === 0 ? "" : " · "}</span>
               <span style={{ fg: theme.text }}>{item().key}</span>
-              <span style={{ fg: theme.muted }}>{` ${item().action}`}</span>
+              <span style={{ fg: theme.panelMuted }}>{` ${item().action}`}</span>
             </Show>
           )}
         </Index>
@@ -245,13 +245,13 @@ export function ListView(props: ListViewProps) {
             <text wrapMode="none">
               <span style={{ fg: rowProps.row.marker?.fg }}>{`${rowProps.row.marker?.text ?? " "} `}</span>
               <span style={{ fg: rowProps.row.labelColor ?? theme.text }}>{parts().label}</span>
-              <span style={{ fg: theme.faint }}>{parts().tag}</span>
+              <span style={{ fg: theme.panelFaint }}>{parts().tag}</span>
               <Show when={parts().detail}>
                 {parts().pad}
-                <span style={{ fg: rowProps.row.valueColor ?? theme.muted }}>{parts().detail}</span>
+                <span style={{ fg: rowProps.row.valueColor ?? theme.panelMuted }}>{parts().detail}</span>
               </Show>
               {parts().gap}
-              <span style={{ fg: rowProps.row.valueColor ?? theme.muted }}>{parts().value}</span>
+              <span style={{ fg: rowProps.row.valueColor ?? theme.panelMuted }}>{parts().value}</span>
             </text>
           </box>
         }
@@ -287,7 +287,7 @@ export function ListView(props: ListViewProps) {
     if (line.kind === "row") return <Row row={line.row} />
     if (line.kind === "text") return <TextLine text={line.text} />
     if (line.kind === "note")
-      return <Line left={{ text: line.text, fg: theme.muted }} width={props.width} pad={pad()} />
+      return <Line left={{ text: line.text, fg: theme.panelMuted }} width={props.width} pad={pad()} />
     if (line.kind === "gap") return <box height={1} />
     return (
       <box height={1} paddingLeft={pad()}>
@@ -301,11 +301,19 @@ export function ListView(props: ListViewProps) {
   return (
     <>
       <Show when={scroll().window.start > 0}>
-        <Line left={{ text: `↑ ${scroll().window.above} more`, fg: theme.faint }} width={props.width} pad={pad()} />
+        <Line
+          left={{ text: `↑ ${scroll().window.above} more`, fg: theme.panelFaint }}
+          width={props.width}
+          pad={pad()}
+        />
       </Show>
       <Index each={shown()}>{(line) => <>{lineView(line())}</>}</Index>
       <Show when={scroll().window.end < props.lines.length}>
-        <Line left={{ text: `↓ ${scroll().window.below} more`, fg: theme.faint }} width={props.width} pad={pad()} />
+        <Line
+          left={{ text: `↓ ${scroll().window.below} more`, fg: theme.panelFaint }}
+          width={props.width}
+          pad={pad()}
+        />
       </Show>
     </>
   )

@@ -4,6 +4,7 @@ import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
+import type { Span } from "./notice.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 import { InputBlock, type InputBlockProps } from "./input-block.tsx"
 import { blinkFrame, CAT, CAT_PALETTE, swayFrame } from "./mascot.ts"
@@ -137,7 +138,7 @@ function wordmarkPalette(): Record<string, RGBA> {
 export function Welcome(props: {
   input: Omit<InputBlockProps, "width">
   workspace: Workspace
-  notice: string | null
+  notice: Span | null
   recent: { entries: SessionEntry[]; selected: number | null }
   width: number
   height: number
@@ -172,7 +173,7 @@ export function Welcome(props: {
         <text fg={theme.muted}>
           {props.workspace.branch ? `${props.workspace.cwd}  ${props.workspace.branch}` : props.workspace.cwd}
         </text>
-        <Show when={props.notice}>{(notice) => <text fg={theme.warning}>{notice()}</text>}</Show>
+        <Show when={props.notice}>{(notice) => <text fg={notice().fg}>{notice().text}</text>}</Show>
         <text fg={theme.muted}>{`v${props.workspace.version}`}</text>
       </box>
     </box>

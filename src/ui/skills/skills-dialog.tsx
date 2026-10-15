@@ -27,7 +27,12 @@ function skillRow(skill: Skill): DialogRow {
     detail: skill.description,
   }
   if (skill.enabled) return row
-  return { ...row, marker: { text: "◯", fg: theme.faint }, labelColor: theme.faint, valueColor: theme.faint }
+  return {
+    ...row,
+    marker: { text: "◯", fg: theme.panelFaint },
+    labelColor: theme.panelFaint,
+    valueColor: theme.panelFaint,
+  }
 }
 
 const skillSections = (skills: Skill[]): DialogSection[] =>

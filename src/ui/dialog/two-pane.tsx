@@ -52,7 +52,7 @@ const DETAIL_FOOTER: FooterAction[] = [
 ]
 
 const textLines = (lines: DialogLine[], text: string): DialogLine[] =>
-  lines.length > 0 ? lines : [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.muted }] } }]
+  lines.length > 0 ? lines : [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.panelMuted }] } }]
 
 // The list on the left and the selected row's detail on the right; under an inner width of 90 the detail takes
 // the list's place while it has the focus.

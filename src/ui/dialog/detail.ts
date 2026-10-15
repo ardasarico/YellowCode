@@ -24,7 +24,7 @@ export function title(id: string, label: string): DialogText {
 export function fact(id: string, label: string, value: string, width: number, fg: RGBA = theme.text): DialogText[] {
   return wrapLines(value, width - KEY_WIDTH, VALUE_LINES).map((part, index) =>
     text(`${id}-${index}`, [
-      { text: (index === 0 ? label : "").padEnd(KEY_WIDTH), fg: theme.muted },
+      { text: (index === 0 ? label : "").padEnd(KEY_WIDTH), fg: theme.panelMuted },
       { text: part, fg },
     ]),
   )
@@ -59,14 +59,15 @@ export function names(
   const mark = options.open ? "▾" : "▸"
   return [
     ...nameLines(id, options.open ? lines : cutLines, room, options.label, !options.open),
-    { id: `${id}-more`, label: `${" ".repeat(indent)}${mark} ${hidden} more`, labelColor: theme.muted },
+    { id: `${id}-more`, label: `${" ".repeat(indent)}${mark} ${hidden} more`, labelColor: theme.panelMuted },
   ]
 }
 
 function nameLines(id: string, lines: string[][], room: number, label: string | undefined, cutShort: boolean) {
   return lines.map((line, index) => {
     const end = cutShort && index === lines.length - 1 ? ", …" : index < lines.length - 1 ? "," : ""
-    const lead = label === undefined ? [] : [{ text: (index === 0 ? label : "").padEnd(KEY_WIDTH), fg: theme.muted }]
+    const lead =
+      label === undefined ? [] : [{ text: (index === 0 ? label : "").padEnd(KEY_WIDTH), fg: theme.panelMuted }]
     return text(`${id}-${index}`, [...lead, { text: cut(`${line.join(", ")}${end}`, room), fg: theme.text }])
   })
 }

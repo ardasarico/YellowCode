@@ -21,6 +21,7 @@ export type NoticeState = {
   mcpFailure: string | null
   settingsProblem: string | null
   asking: boolean
+  quitArmed: boolean
   now: number
 }
 
@@ -29,6 +30,8 @@ const STATUS_TEXT = {
   waiting: "Enter: next message",
   finished: "finished · Ctrl+C: quit",
 } as const
+
+export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: theme.muted })
 
 const HINTS = "F3 sidebar · F4 ultracode"
 
@@ -59,6 +62,7 @@ function warningText(usage: Usage, now: number): Span | null {
 }
 
 function leftSpans(state: NoticeState): Span[] {
+  if (state.quitArmed) return [quitHint()]
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [{ text: state.settingsProblem, fg: theme.warning }]
   const warning = warningText(state.usage, state.now)

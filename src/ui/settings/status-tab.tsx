@@ -28,11 +28,11 @@ const FOOTER: FooterAction[] = [
 ]
 
 const shown = (value: string | number | null) =>
-  value === null || value === "" ? { text: "–", fg: theme.muted } : { text: String(value), fg: theme.text }
+  value === null || value === "" ? { text: "–", fg: theme.panelMuted } : { text: String(value), fg: theme.text }
 
 const fact = (label: string, value: string | number | null): DialogItem => ({
   id: label,
-  spans: [{ text: label.padEnd(COLUMN), fg: theme.muted }, shown(value)],
+  spans: [{ text: label.padEnd(COLUMN), fg: theme.panelMuted }, shown(value)],
 })
 
 const blank = (id: string): DialogItem => ({ id, spans: [] })
@@ -41,8 +41,8 @@ const jump = (id: "mcp" | "plugins", label: string, count: number | null): Dialo
   id,
   label,
   detail: `${shown(count).text} ›`,
-  labelColor: theme.muted,
-  valueColor: count === null ? theme.muted : theme.text,
+  labelColor: theme.panelMuted,
+  valueColor: count === null ? theme.panelMuted : theme.text,
 })
 
 export function StatusTab(props: { api: TabApi<SettingsTab>; facts: StatusFacts }) {

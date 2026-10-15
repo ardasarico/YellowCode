@@ -18,6 +18,9 @@ export type Theme = {
   text: RGBA
   muted: RGBA
   faint: RGBA
+  // Muted and faint text on a dialog panel, which can be lighter than the canvas.
+  panelMuted: RGBA
+  panelFaint: RGBA
   success: RGBA
   frame: RGBA
   dimFrame: RGBA
@@ -50,6 +53,8 @@ export type ThemeColors = {
     K in Exclude<
       keyof Theme,
       | "faint"
+      | "panelMuted"
+      | "panelFaint"
       | "dimFrame"
       | "dimTile"
       | "dimAccent"
@@ -83,6 +88,8 @@ export function terminalTheme(terminal: Terminal): Theme {
     return value ? RGBA.fromHex(value) : null
   }
   const text = RGBA.defaultForeground(terminal.foreground ?? undefined)
+  const onPanel = (amount: number) =>
+    tints && terminal.foreground ? hex(mix(tints.tile, terminal.foreground, amount)) : null
   return {
     background: null,
     canvas: RGBA.defaultBackground(terminal.background ?? undefined),
@@ -90,6 +97,8 @@ export function terminalTheme(terminal: Terminal): Theme {
     text,
     muted: ansi(8),
     faint: tint("faint") ?? ansi(8),
+    panelMuted: onPanel(0.55) ?? ansi(8),
+    panelFaint: onPanel(0.45) ?? tint("faint") ?? ansi(8),
     success: ansi(2),
     frame: tint("frame") ?? ansi(8),
     dimFrame: tint("dimFrame") ?? ansi(8),
@@ -125,6 +134,8 @@ function paintedTheme(c: ThemeColors): Theme {
     text: hex(c.text),
     muted: hex(c.muted),
     faint: hex(mix(c.muted, c.background, 0.4)),
+    panelMuted: hex(c.muted),
+    panelFaint: hex(mix(c.muted, c.background, 0.4)),
     success: hex(c.diffAddText),
     frame: hex(c.frame),
     dimFrame: hex(mix(c.frame, c.background, 0.45)),
