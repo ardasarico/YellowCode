@@ -13,7 +13,7 @@ const transcripts = readdirSync(transcriptsDir, { recursive: true, withFileTypes
   entry.isFile(),
 )
 
-test("all twenty-two recordings are present", () => {
+test("all twenty-four recordings are present", () => {
   expect(files.toSorted()).toEqual(
     [
       "agent-shell",
@@ -24,6 +24,7 @@ test("all twenty-two recordings are present", () => {
       "commands",
       "error",
       "image",
+      "images",
       "long",
       "markdown",
       "mcp-states",
@@ -32,6 +33,7 @@ test("all twenty-two recordings are present", () => {
       "permission-bash",
       "permission",
       "plugins",
+      "read-image",
       "shells",
       "skills",
       "subagent",

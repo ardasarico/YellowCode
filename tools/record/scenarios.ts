@@ -1,4 +1,5 @@
 import { join } from "node:path"
+import { solidPng } from "./png.ts"
 
 export type Turn = {
   text: string
@@ -9,7 +10,7 @@ export type Turn = {
 
 export type Scenario = {
   name: string
-  files?: Record<string, string>
+  files?: Record<string, string | Uint8Array>
   args?: string[]
   initialize?: boolean
   userConfig?: boolean
@@ -133,6 +134,11 @@ export const scenarios: Scenario[] = [
   {
     name: "image",
     turns: [{ text: "What color is the square in this image? Answer in one sentence.", image: true }],
+  },
+  {
+    name: "read-image",
+    files: { "shot.png": solidPng(64, 64, [40, 90, 220]) },
+    turns: [{ text: "Use the Read tool to open shot.png, then say its main colour in one sentence." }],
   },
   {
     name: "long",

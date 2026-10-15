@@ -142,7 +142,7 @@ const letter = (index: number) => String.fromCharCode(97 + index)
 const short = (name: string) => name.slice(name.indexOf(":") + 1)
 const toolPrefix = (server: string) => `mcp__${server.replace(/[^\w-]/g, "_")}__`
 
-export function keptNames(files: Record<string, string> = {}): string[] {
+export function keptNames(files: Record<string, unknown> = {}): string[] {
   return Object.keys(files).flatMap((path) => {
     const match = /^\.claude\/(?:skills\/([^/]+)\/SKILL\.md|(?:commands|agents)\/([^/]+)\.md)$/.exec(path)
     const name = match?.[1] ?? match?.[2]

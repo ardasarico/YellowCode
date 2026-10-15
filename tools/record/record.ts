@@ -158,7 +158,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
 
     for (const turn of scenario.turns) {
       const images = turn.image
-        ? [{ mediaType: "image/png" as const, base64: solidPng(32, [220, 30, 30]).toString("base64") }]
+        ? [{ mediaType: "image/png" as const, base64: solidPng(32, 32, [220, 30, 30]).toString("base64") }]
         : []
       send(userMessage(turn.text, images))
 
