@@ -1,4 +1,4 @@
-import { RGBA, SyntaxStyle } from "@opentui/core"
+import { type NativeResourceOwner, RGBA, SyntaxStyle } from "@opentui/core"
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { claudeColor } from "./brand.ts"
@@ -188,12 +188,24 @@ const painted: ThemeDefinition[] = [dusk, petal, ember]
 export const themes = [{ id: "terminal", name: "Terminal" }, ...painted.map(({ id, name }) => ({ id, name }))]
 
 let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [], background: null, foreground: null }
-const initial = terminalTheme(terminal)
-const [theme, setThemeStore] = createStore<Theme>(initial)
+const [theme, setThemeStore] = createStore<Theme>(terminalTheme(terminal))
 const [themeId, setThemeId] = createSignal("terminal")
-const [syntaxStyle, setSyntaxStyle] = createSignal(SyntaxStyle.fromStyles(syntaxStyles(initial)))
+const [style, setStyle] = createSignal<SyntaxStyle>()
+let owner: NativeResourceOwner | undefined
 
-export { syntaxStyle, theme, themeId }
+export { theme, themeId }
+
+// The style lives in native memory that the renderer owns, so it exists only after startTheme.
+export function syntaxStyle(): SyntaxStyle {
+  const value = style()
+  if (!value) throw new Error("syntaxStyle() before startTheme()")
+  return value
+}
+
+export function startTheme(scene: NativeResourceOwner, id: string): void {
+  owner = scene
+  setTheme(id)
+}
 
 function build(id: string): Theme {
   const definition = painted.find((candidate) => candidate.id === id)
@@ -203,12 +215,12 @@ function build(id: string): Theme {
 
 export function setTheme(id: string): void {
   const next = build(id)
-  const previous = syntaxStyle()
+  const previous = style()
   setThemeId(themes.some((candidate) => candidate.id === id) ? id : "terminal")
   setThemeStore(next)
   // Code blocks bake colors in when they highlight, so a new style object is what makes them re-highlight.
-  setSyntaxStyle(SyntaxStyle.fromStyles(syntaxStyles(next)))
-  setTimeout(() => previous.destroy(), 0)
+  if (owner) setStyle(SyntaxStyle.fromStyles(syntaxStyles(next), owner))
+  if (previous) setTimeout(() => previous.destroy(), 0)
 }
 
 export function setTerminal(next: Terminal): void {

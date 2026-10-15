@@ -69,13 +69,13 @@ function RowView(props: RowProps) {
   return (
     <box
       marginTop={gap()}
-      renderAfter={function (buffer) {
+      renderAfter={function () {
         const id = props.selected
         if (!id || theme.selection !== null) return
-        if (id === props.row.id) invertCells(this, buffer, props.viewport())
+        if (id === props.row.id) invertCells(this, props.viewport())
         else if (id.startsWith(`${props.row.id}/`)) {
           const label = this.findDescendantById(id)
-          if (label) invertCells(label, buffer, props.viewport())
+          if (label) invertCells(label, props.viewport())
         }
       }}
     >

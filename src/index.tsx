@@ -19,8 +19,9 @@ import packageJson from "../package.json"
 import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
-import { setTerminal, setTheme } from "./theme/theme.ts"
+import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
 const USAGE =
@@ -80,6 +81,7 @@ const renderer = await createCliRenderer({
   kittyImageTransport: "file",
 })
 const capabilities = firstCapabilities(renderer)
+renderer.addPostProcessFn(invertQueued)
 
 // The renderer's own handlers console.error to the terminal, so ours replace them.
 process.removeAllListeners("uncaughtException")
@@ -96,7 +98,7 @@ async function applyTerminal(): Promise<void> {
 }
 
 await applyTerminal()
-setTheme(settings.theme)
+startTheme(renderer.nativeScene, settings.theme)
 // OpenTUI clears its palette cache before it reports a light/dark switch, so the same read picks up the new colors.
 renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
 
@@ -110,6 +112,8 @@ async function quit(): Promise<void> {
     await destroyTreeSitterClient()
   } finally {
     renderer.destroy()
+    // The terminal comes back to its normal state asynchronously, and exiting before that leaves it broken.
+    await renderer.closed.catch(() => {})
     process.exit(0)
   }
 }

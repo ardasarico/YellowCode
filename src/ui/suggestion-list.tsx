@@ -96,7 +96,6 @@ export function SuggestionList(props: {
             )
           }}
         </Index>
-        {/* A layer after the rows, because row text is drawn after a row's own renderAfter and would undo the inversion. */}
         <Show when={selectionFill() === null}>
           <box
             position="absolute"
@@ -105,8 +104,8 @@ export function SuggestionList(props: {
             zIndex={1}
             width={props.width}
             height={1}
-            renderAfter={function (buffer) {
-              invertCells(this, buffer, undefined)
+            renderAfter={function () {
+              invertCells(this, undefined)
             }}
           />
         </Show>
