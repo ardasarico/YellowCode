@@ -4,7 +4,7 @@ import { theme } from "../theme/theme.ts"
 import type { ScrollState } from "./chat-view.tsx"
 import { formatUntil } from "./format.ts"
 
-export type Span = { text: string; fg: RGBA }
+export type Span = { text: string; fg: RGBA; bold?: boolean }
 export type Notice = { left: Span[]; right: Span[] }
 
 export type ReplayInfo = {

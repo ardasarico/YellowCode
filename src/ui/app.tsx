@@ -18,12 +18,12 @@ import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { McpDialog } from "./mcp/mcp-dialog.tsx"
 import { noticeFor, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
-import { SettingsDialog } from "./settings/settings-dialog.tsx"
+import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
+import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { useTicker } from "./ticker.ts"
@@ -50,12 +50,16 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat" | "panel" | "shells"
-type DialogName = "settings" | "resume" | "theme" | "mcp" | "skills"
+type DialogName = { name: "settings"; tab: SettingsTab } | { name: "resume" | "theme" | "skills" }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
+  const settingsTab = () => {
+    const open = dialog()
+    return open?.name === "settings" ? open.tab : null
+  }
   const [fill, setFill] = createSignal<{ text: string; seq: number }>()
   const [selected, setSelected] = createSignal<string | null>(null)
   const [agentView, setAgentView] = createSignal<string | null>(null)
@@ -350,11 +354,12 @@ export function App(props: AppProps) {
 
   const submit = ({ text, images, draft }: Submission) => {
     const command = text.trim()
-    if (command === "/settings") setDialog("settings")
-    else if (command === "/resume") setDialog("resume")
-    else if (command === "/theme") setDialog("theme")
-    else if (command === "/mcp") setDialog("mcp")
-    else if (command === "/skills") setDialog("skills")
+    if (command === "/settings") setDialog({ name: "settings", tab: "config" })
+    else if (command === "/resume") setDialog({ name: "resume" })
+    else if (command === "/theme") setDialog({ name: "theme" })
+    else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
+    else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
+    else if (command === "/skills") setDialog({ name: "skills" })
     else {
       if (draft.chips.length > 0) drafts.set(userItems().length, { text, draft })
       props.onSubmit(text, images)
@@ -505,16 +510,27 @@ export function App(props: AppProps) {
           </Show>
         </box>
       </Show>
-      <Show when={dialog() === "settings"}>
-        <SettingsDialog onClose={() => setDialog(null)} />
+      <Show when={settingsTab()}>
+        {(tab) => (
+          <SettingsDialog
+            tab={tab()}
+            info={props.session.info ?? props.firstInfo ?? null}
+            title={title()?.title ?? null}
+            model={settings.model ?? props.model()}
+            version={props.workspace.version}
+            skills={props.provider.skills().length}
+            skillRows={props.provider.skillRows()}
+            pluginHooks={props.provider.pluginHooks()}
+            sources={props.provider.settingsSources()}
+            onTab={(next) => setDialog({ name: "settings", tab: next })}
+            onClose={() => setDialog(null)}
+          />
+        )}
       </Show>
-      <Show when={dialog() === "theme"}>
-        <SettingsDialog only="theme" onClose={() => setDialog(null)} />
+      <Show when={dialog()?.name === "theme"}>
+        <ThemeDialog onClose={() => setDialog(null)} />
       </Show>
-      <Show when={dialog() === "mcp"}>
-        <McpDialog info={props.session.info ?? props.firstInfo ?? null} onClose={() => setDialog(null)} />
-      </Show>
-      <Show when={dialog() === "skills"}>
+      <Show when={dialog()?.name === "skills"}>
         <SkillsDialog
           skills={props.provider.skills()}
           onUse={(command) => {
@@ -524,7 +540,7 @@ export function App(props: AppProps) {
           onClose={() => setDialog(null)}
         />
       </Show>
-      <Show when={dialog() === "resume"}>
+      <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
       </Show>
     </box>

@@ -34,9 +34,9 @@ const RANK: Record<McpState, number> = { failed: 0, "needs-login": 1, connecting
 const TAGS: Record<string, string> = { claudeai: "claude.ai", dynamic: "built-in", enterprise: "managed" }
 
 function placement(origin: string | null): Pick<McpEntry, "group" | "tag" | "where"> {
-  if (origin === "project") return { group: "project", tag: "shared", where: "this project · .mcp.json" }
-  if (origin === "local") return { group: "project", tag: "", where: "this project · only you" }
-  if (origin === "user") return { group: "user", tag: "", where: "all projects" }
+  if (origin === "project") return { group: "project", tag: "shared", where: "This project · shared" }
+  if (origin === "local") return { group: "project", tag: "", where: "This project · only you" }
+  if (origin === "user") return { group: "user", tag: "", where: "All projects" }
   const tag = (origin && TAGS[origin]) ?? origin ?? ""
   return { group: "other", tag, where: tag }
 }

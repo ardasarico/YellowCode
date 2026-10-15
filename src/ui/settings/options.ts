@@ -1,5 +1,7 @@
+import { setSetting, settings } from "../../session/settings.ts"
 import { PERMISSION_MODES, type PermissionMode, type StoredSettings } from "../../session/settings-file.ts"
-import { themes } from "../../theme/theme.ts"
+import { setTheme, themeId, themes } from "../../theme/theme.ts"
+import type { DialogSection } from "../dialog/list.ts"
 
 export type SettingOption<V extends string = string> = { value: V; label: string; note?: string }
 
@@ -45,3 +47,39 @@ export const SETTINGS: SettingDefinition[] = [
     options: PERMISSION_MODES.map((value) => ({ value, label: value, note: NOTES[value] })),
   },
 ]
+
+const LONG = 3
+
+export const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
+export const opensList = (setting: SettingDefinition) => setting.options.length > LONG
+
+export const currentOption = (setting: SettingDefinition) =>
+  setting.options.find((option) => option.value === settings[setting.key]) ?? setting.options[0]
+
+export function step(setting: SettingDefinition, by: 1 | -1) {
+  const count = setting.options.length
+  const index = setting.options.findIndex((option) => option.value === settings[setting.key])
+  const next = setting.options[(index + by + count) % count]
+  if (next) setSetting(setting.key, next.value)
+}
+
+export function choose(setting: SettingDefinition, value: string) {
+  const option = setting.options.find((candidate) => candidate.value === value)
+  if (option) setSetting(setting.key, option.value)
+}
+
+export const optionSections = (setting: SettingDefinition, title = setting.label): DialogSection[] => [
+  {
+    title,
+    rows: setting.options.map((option) => ({
+      id: option.value,
+      label: option.label,
+      value: option.value === settings[setting.key] ? "current" : undefined,
+      note: option.note,
+    })),
+  },
+]
+
+export const preview = (id: string) => {
+  if (id !== themeId()) setTheme(id)
+}
