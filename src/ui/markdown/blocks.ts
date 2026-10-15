@@ -13,6 +13,11 @@ export function is<T extends Token["type"]>(token: { type: string }, type: T): E
   return isType(token, type) ? token : undefined
 }
 
+// While a block streams in, its last line may still be half written.
+export function finishedText(text: string, streaming: boolean): string {
+  return streaming ? text.slice(0, Math.max(0, text.lastIndexOf("\n"))) : text
+}
+
 const SKIPPED = new Set(["space", "def"])
 
 // Reuses the previous Block object for every block whose source did not change,

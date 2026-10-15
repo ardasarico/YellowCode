@@ -4,6 +4,7 @@ import { resolve } from "node:path"
 import { Lexer, type Token } from "marked"
 import { is } from "./blocks.ts"
 import { calloutOf } from "./callout.ts"
+import { columnsOf } from "./columns.ts"
 import { type Entry, groupDetails, isDetails } from "./details.ts"
 import { foldId, foldNumbers } from "./folds.ts"
 
@@ -116,7 +117,8 @@ function inlineChildren(token: Token): readonly Token[] {
   return "tokens" in token && Array.isArray(token.tokens) ? token.tokens : []
 }
 
-// Every reference in reading order, matching the order the chat draws them in. Tables and code stay plain.
+// Every reference in reading order, matching the order the chat draws them in, columns left to right. Tables and
+// code stay plain.
 function collect(entries: readonly Entry[], cwd: string, closed: (entry: Entry) => boolean): Found[] {
   const found: Found[] = []
   const inline = (tokens: readonly Token[], hidden: boolean) => {
@@ -132,7 +134,9 @@ function collect(entries: readonly Entry[], cwd: string, closed: (entry: Entry) 
         continue
       }
       const quote = is(entry, "blockquote")
+      const columns = columnsOf(entry)
       if (quote) blocks(calloutOf(quote)?.tokens ?? quote.tokens, hidden)
+      else if (columns) for (const column of columns) blocks(column, hidden)
       else if (entry.type === "list") blocks(is(entry, "list")?.items.flatMap((item) => item.tokens) ?? [], hidden)
       else if (entry.type === "heading" || entry.type === "paragraph" || entry.type === "text")
         inline("tokens" in entry && entry.tokens ? entry.tokens : [entry], hidden)

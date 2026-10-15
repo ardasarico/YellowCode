@@ -6,10 +6,11 @@ import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
 import { InlineImages } from "../inline-images.tsx"
-import { is, splitBlocks, type Block } from "./blocks.ts"
+import { finishedText, is, splitBlocks, type Block } from "./blocks.ts"
 import { type CalloutKind, calloutOf } from "./callout.ts"
 import { isLineChart, parseChart } from "./chart.ts"
 import { CodeBlock } from "./code-block.tsx"
+import { columnsCode, columnsOf, parseColumns } from "./columns.ts"
 import { drawDiagram } from "./diagram.ts"
 import { ChartBars, DiagramArt, GanttView, LineChartImage, LineChartText, useKittyGraphics } from "./diagram-view.tsx"
 import { type Details, type Entry, groupDetails, isDetails } from "./details.ts"
@@ -19,7 +20,11 @@ import { imageLines } from "./images.ts"
 import { Inline, RefContext } from "./inline.tsx"
 import { toUnicode } from "./math.ts"
 import { refNumbers } from "./refs.ts"
+import { parseStats, statsCode } from "./stats.ts"
+import { StatsView } from "./stats-view.tsx"
 import { Table } from "./table.tsx"
+import { FOLDED_TREE, LONG_TREE, parseTree, treeCode } from "./tree.ts"
+import { TreeView } from "./tree-view.tsx"
 
 type BlockProps = { token: Entry; streaming: boolean; width: number; fg: RGBA; depth: number }
 
@@ -42,6 +47,9 @@ export type MarkdownChat = {
   onOpenRef: (id: string) => void
   onToggle: (id: string) => void
 }
+
+// Headings inside a column are its title; columns inside a column stay code.
+const InColumn = createContext(false)
 
 const FoldContext = createContext<{ chat: () => MarkdownChat | undefined; numbers: () => Map<Entry, number> }>()
 
@@ -103,7 +111,8 @@ function blockMath(entry: Entry): string | undefined {
   return paragraph ? /^\$\$([\s\S]+)\$\$$/.exec(paragraph.text.trim())?.[1] : undefined
 }
 
-function headingStyle(depth: number): { fg: RGBA; bold: true } {
+function headingStyle(depth: number, inColumn: boolean): { fg: RGBA; bold: true } {
+  if (inColumn) return { fg: theme.text, bold: true }
   if (depth === 1) return { fg: theme.accent, bold: true }
   if (depth === 2) return { fg: theme.text, bold: true }
   return { fg: theme.muted, bold: true }
@@ -144,10 +153,11 @@ function List(props: { token: Tokens.List; width: number; fg: RGBA; depth: numbe
 }
 
 function BlockView(props: BlockProps) {
+  const inColumn = useContext(InColumn)
   return (
     <Switch fallback={<text fg={props.fg}>{props.token.raw.trimEnd()}</text>}>
       <Match when={is(props.token, "heading")}>
-        {(token) => <Inline tokens={token().tokens} {...headingStyle(token().depth)} />}
+        {(token) => <Inline tokens={token().tokens} {...headingStyle(token().depth, inColumn)} />}
       </Match>
       <Match when={isDetails(props.token) && props.token}>
         {(entry) => <DetailsView entry={entry()} width={props.width} fg={props.fg} depth={props.depth} />}
@@ -187,6 +197,21 @@ function BlockView(props: BlockProps) {
           </box>
         )}
       </Match>
+      <Match when={statsCode(props.token)}>
+        {(token) => <StatsBlock token={token()} streaming={props.streaming} width={props.width} />}
+      </Match>
+      <Match when={!inColumn && columnsCode(props.token)}>
+        {(token) => (
+          <ColumnsBlock
+            token={token()}
+            streaming={props.streaming}
+            width={props.width}
+            fg={props.fg}
+            depth={props.depth}
+          />
+        )}
+      </Match>
+      <Match when={treeCode(props.token)}>{(token) => <TreeBlock token={token()} streaming={props.streaming} />}</Match>
       <Match when={mermaidOf(props.token)}>
         {(token) => <MermaidBlock token={token()} streaming={props.streaming} width={props.width} />}
       </Match>
@@ -234,12 +259,16 @@ function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: nu
 }
 
 function Code(props: { token: Tokens.Code; streaming: boolean }) {
+  // Inside a column the column rule is enough, so code drops its line numbers and label.
+  const bare = useContext(InColumn)
   return (
     <Show
       when={props.token.text.split("\n").length > LONG_CODE}
-      fallback={<CodeBlock lang={props.token.lang ?? ""} code={props.token.text} streaming={props.streaming} />}
+      fallback={
+        <CodeBlock lang={props.token.lang ?? ""} code={props.token.text} streaming={props.streaming} bare={bare} />
+      }
     >
-      <LongCode token={props.token} streaming={props.streaming} />
+      <LongCode token={props.token} streaming={props.streaming} bare={bare} />
     </Show>
   )
 }
@@ -355,7 +384,19 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
   )
 }
 
-function LongCode(props: { token: Tokens.Code; streaming: boolean }) {
+function MoreLine(props: { fold: Fold; hidden: number }) {
+  return (
+    <FoldLine fold={props.fold}>
+      <Show when={!props.fold.open()}>
+        <span style={{ fg: theme.muted }}>{`+${props.hidden} lines · `}</span>
+      </Show>
+      enter
+      <span style={{ fg: theme.muted }}>{props.fold.open() ? " collapse" : " expand"}</span>
+    </FoldLine>
+  )
+}
+
+function LongCode(props: { token: Tokens.Code; streaming: boolean; bare: boolean }) {
   const fold = useFold(() => props.token)
   const lines = () => props.token.text.split("\n")
   return (
@@ -364,17 +405,125 @@ function LongCode(props: { token: Tokens.Code; streaming: boolean }) {
         lang={props.token.lang ?? ""}
         code={fold.open() ? props.token.text : lines().slice(0, FOLDED_CODE).join("\n")}
         streaming={props.streaming}
+        bare={props.bare}
       />
       <box paddingLeft={2}>
-        <FoldLine fold={fold}>
-          <Show when={!fold.open()}>
-            <span style={{ fg: theme.muted }}>{`+${lines().length - FOLDED_CODE} lines · `}</span>
-          </Show>
-          enter
-          <span style={{ fg: theme.muted }}>{fold.open() ? " collapse" : " expand"}</span>
-        </FoldLine>
+        <MoreLine fold={fold} hidden={lines().length - FOLDED_CODE} />
       </box>
     </box>
+  )
+}
+
+// A block that is still streaming and has no finished line yet shows nothing rather than flashing as code.
+function StatsBlock(props: { token: Tokens.Code; streaming: boolean; width: number }) {
+  const text = () => finishedText(props.token.text, props.streaming)
+  const stats = createMemo(() => parseStats(text()))
+  return (
+    <Switch fallback={<Code token={props.token} streaming={props.streaming} />}>
+      <Match when={stats()}>{(value) => <StatsView stats={value()} width={props.width} />}</Match>
+      <Match when={props.streaming && !text().trim()}>
+        <box />
+      </Match>
+    </Switch>
+  )
+}
+
+function TreeBlock(props: { token: Tokens.Code; streaming: boolean }) {
+  const fold = useFold(() => props.token)
+  const text = () => finishedText(props.token.text, props.streaming)
+  const rows = createMemo(() => parseTree(text()))
+  return (
+    <Switch fallback={<Code token={props.token} streaming={props.streaming} />}>
+      <Match when={rows()}>
+        {(value) => (
+          <Show when={value().length > LONG_TREE} fallback={<TreeView rows={value()} />}>
+            <box flexDirection="column" gap={1}>
+              <TreeView rows={fold.open() ? value() : value().slice(0, FOLDED_TREE)} />
+              <MoreLine fold={fold} hidden={value().length - FOLDED_TREE} />
+            </box>
+          </Show>
+        )}
+      </Match>
+      <Match when={props.streaming && !text().trim()}>
+        <box />
+      </Match>
+    </Switch>
+  )
+}
+
+const MIN_COLUMN = 24
+const MIN_CODE_COLUMN = 40
+
+// Ruled columns side by side; when one gets too narrow they stack with a rule between them.
+function ColumnsBlock(props: { token: Tokens.Code; streaming: boolean; width: number; fg: RGBA; depth: number }) {
+  const columns = createMemo(
+    () => columnsOf(props.token) ?? (props.streaming ? parseColumns(props.token.text, true) : null),
+  )
+  const column = (tokens: Entry[], width: number) => (
+    <InColumn.Provider value={true}>
+      <Blocks tokens={tokens} width={width} fg={props.fg} depth={props.depth + 1} gap={1} />
+    </InColumn.Provider>
+  )
+  return (
+    <Show when={columns()} fallback={<Code token={props.token} streaming={props.streaming} />}>
+      {(value) => {
+        const count = () => value().length
+        const widthOf = (index: number) => {
+          const free = props.width - 3 * (count() - 1)
+          return Math.floor(free / count()) + (index < free % count() ? 1 : 0)
+        }
+        const hasCode = () => value().some((tokens) => tokens.some((entry) => entry.type === "code"))
+        const stacked = () => widthOf(count() - 1) < (hasCode() ? MIN_CODE_COLUMN : MIN_COLUMN)
+        return (
+          <Show
+            when={!stacked()}
+            fallback={
+              <box flexDirection="column" gap={1}>
+                <Index each={value()}>
+                  {(tokens, index) => (
+                    <>
+                      <Show when={index > 0}>
+                        <text fg={theme.frame} wrapMode="none">
+                          {"─".repeat(Math.max(1, props.width))}
+                        </text>
+                      </Show>
+                      {column(tokens(), props.width)}
+                    </>
+                  )}
+                </Index>
+              </box>
+            }
+          >
+            <box flexDirection="row">
+              <Index each={value()}>
+                {(tokens, index) => (
+                  <Show
+                    when={index > 0}
+                    fallback={
+                      <box width={widthOf(index)} flexShrink={0}>
+                        {column(tokens(), widthOf(index))}
+                      </box>
+                    }
+                  >
+                    <box
+                      border={["left"]}
+                      borderStyle="single"
+                      borderColor={theme.frame}
+                      marginLeft={1}
+                      paddingLeft={1}
+                      width={widthOf(index) + 2}
+                      flexShrink={0}
+                    >
+                      {column(tokens(), widthOf(index))}
+                    </box>
+                  </Show>
+                )}
+              </Index>
+            </box>
+          </Show>
+        )
+      }}
+    </Show>
   )
 }
 

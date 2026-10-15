@@ -31,7 +31,7 @@ function splitChunks(chunks: readonly TextChunk[], at: number): [TextChunk[], Te
   return [before, after]
 }
 
-export function CodeBlock(props: { lang: string; code: string; streaming: boolean }) {
+export function CodeBlock(props: { lang: string; code: string; streaming: boolean; bare?: boolean }) {
   let code: CodeRenderable | undefined
   let highlighted: { content: string; chunks: TextChunk[]; style: SyntaxStyle } | undefined
   const initialCode = untrack(() => props.code)
@@ -65,13 +65,15 @@ export function CodeBlock(props: { lang: string; code: string; streaming: boolea
 
   return (
     <box flexDirection="column" paddingLeft={2}>
-      <Show when={props.lang}>
+      <Show when={props.lang && !props.bare}>
         <text fg={theme.muted}>{props.lang}</text>
       </Show>
       <box flexDirection="row">
-        <text fg={theme.frame} width={digits() + 3} flexShrink={0} wrapMode="none">
-          {gutter()}
-        </text>
+        <Show when={!props.bare}>
+          <text fg={theme.frame} width={digits() + 3} flexShrink={0} wrapMode="none">
+            {gutter()}
+          </text>
+        </Show>
         <code
           ref={(element) => (code = element)}
           content={initialCode}

@@ -5,8 +5,11 @@ import { HEAD_LIMIT } from "../diff-view.tsx"
 import { is } from "./blocks.ts"
 import { calloutOf } from "./callout.ts"
 import { hasData, parseChart } from "./chart.ts"
+import { columnsOf } from "./columns.ts"
 import { type Entry, groupDetails, isDetails } from "./details.ts"
 import { parseGantt } from "./gantt.ts"
+import { parseStats, statsCode } from "./stats.ts"
+import { LONG_TREE, parseTree, treeCode } from "./tree.ts"
 
 export const LONG_CODE = 20
 export const FOLDED_CODE = 10
@@ -53,6 +56,12 @@ function foldable(entry: Entry): boolean {
   if (mermaid && drawsMermaid(mermaid.text)) return true
   const diff = diffOf(entry)
   if (diff) return codeDiffRows(diff).length > HEAD_LIMIT
+  if (columnsOf(entry)) return false
+  const stats = statsCode(entry)
+  if (stats && parseStats(stats.text)) return false
+  const tree = treeCode(entry)
+  const rows = tree && parseTree(tree.text)
+  if (rows) return rows.length > LONG_TREE
   const code = is(entry, "code")
   return code !== undefined && code.text.split("\n").length > LONG_CODE
 }
@@ -61,6 +70,8 @@ function children(entry: Entry): readonly Entry[] {
   if (isDetails(entry)) return entry.tokens
   const quote = is(entry, "blockquote")
   if (quote) return calloutOf(quote)?.tokens ?? quote.tokens
+  const columns = columnsOf(entry)
+  if (columns) return columns.flat()
   return is(entry, "list")?.items.flatMap((item) => item.tokens) ?? []
 }
 
