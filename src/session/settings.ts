@@ -22,8 +22,8 @@ export function initSettings(stored: StoredSettings): void {
 
 export function setSetting<K extends keyof StoredSettings>(key: K, value: StoredSettings[K]): void {
   setSettings({ [key]: value })
-  const { theme, sidebar, thinking, sessionTitle, permissionMode } = settings
-  saveSettings({ theme, sidebar, thinking, sessionTitle, permissionMode })
+  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor } = settings
+  saveSettings({ theme, sidebar, thinking, sessionTitle, permissionMode, editor })
 }
 
 export function resetSetting(key: keyof StoredSettings): void {

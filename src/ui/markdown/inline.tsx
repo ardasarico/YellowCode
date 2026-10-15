@@ -1,10 +1,11 @@
-import { RGBA } from "@opentui/core"
+import { RGBA, type TextBufferRenderable } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import type { Token } from "marked"
-import { createMemo, For, Show } from "solid-js"
+import { createContext, createMemo, For, Show, useContext } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { isLocalImage } from "./images.ts"
 import { mathSpans } from "./math.ts"
+import { refId, textParts } from "./refs.ts"
 import { shortcutKeys } from "./shortcut.ts"
 import { swatchColor } from "./swatch.ts"
 
@@ -16,7 +17,17 @@ export type RunStyle = {
   underline?: boolean
   strikethrough?: boolean
 }
-export type Run = { text: string; style: RunStyle; url?: string }
+export type Run = { text: string; style: RunStyle; url?: string; ref?: string }
+
+export type Refs = {
+  itemId: string
+  selection: string | null
+  numbers: Map<Token, number>
+  cwd: string
+  onOpen: (id: string) => void
+}
+
+export const RefContext = createContext<() => Refs | undefined>()
 
 const withoutScheme = (url: string): string => url.replace(/^[a-z]+:\/\//i, "")
 
@@ -24,18 +35,40 @@ function hasChildren(token: Token): token is Token & { tokens: Token[] } {
   return "tokens" in token && Array.isArray(token.tokens)
 }
 
-export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: boolean, url?: string): Run[] {
+export function toRuns(
+  tokens: readonly Token[],
+  style: RunStyle,
+  hyperlinks: boolean,
+  url?: string,
+  refs?: Refs,
+): Run[] {
   const runs: Run[] = []
   const push = (text: string, runStyle: RunStyle, runUrl = url) => {
     if (text) runs.push(runUrl ? { text, style: runStyle, url: runUrl } : { text, style: runStyle })
   }
   const nested = (token: Token, next: RunStyle, nextUrl = url) => {
-    if (hasChildren(token)) runs.push(...toRuns(token.tokens, next, hyperlinks, nextUrl))
+    if (hasChildren(token)) runs.push(...toRuns(token.tokens, next, hyperlinks, nextUrl, refs))
     else push(token.raw, next, nextUrl)
+  }
+  const pushRef = (text: string, runStyle: RunStyle, id: string) => {
+    const selected = refs?.selection === id
+    const look = { ...runStyle, underline: true }
+    const shown = selected ? (theme.selection ? { ...look, bg: theme.selection } : { ...look, reverse: true }) : look
+    if (text) runs.push({ text, style: shown, ref: id })
+  }
+  // The id of a token's nth reference, when the token sits in a chat message.
+  const refAt = (token: Token, nth = 0) => {
+    const first = refs?.numbers.get(token)
+    return refs && first !== undefined ? refId(refs.itemId, first + nth) : undefined
+  }
+  const plain = (text: string, runStyle: RunStyle) => {
+    for (const span of mathSpans(text))
+      push(span.text, span.math ? { ...runStyle, fg: theme.accent, italic: true } : runStyle)
   }
   const keyCap = (key: string) =>
     push(` ${key} `, { ...style, fg: theme.text, bold: true, bg: theme.tile ?? theme.band ?? undefined })
-  const code = (text: string) => {
+  const code = (text: string, ref?: string) => {
+    if (ref) return pushRef(text, { ...style, fg: theme.accent }, ref)
     const keys = shortcutKeys(text)
     if (keys) {
       keys.forEach((key, index) => {
@@ -69,13 +102,18 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
         nested(token, { ...style, strikethrough: true })
         break
       case "codespan":
-        code(String(token.text))
+        code(String(token.text), refAt(token))
         break
       case "image":
       case "link": {
         const href = String(token.href)
         // A local image is drawn under its block instead.
         if (token.type === "image" && isLocalImage(href)) break
+        const ref = token.type === "link" ? refAt(token) : undefined
+        if (ref) {
+          pushRef(String(token.text), { ...style, fg: theme.accent }, ref)
+          break
+        }
         nested(token, { ...style, fg: theme.accent, underline: true }, href)
         if (!hyperlinks && token.text !== href) push(` (${withoutScheme(href)})`, { ...style, fg: theme.muted })
         break
@@ -87,9 +125,17 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
         break
       case "text":
         if (hasChildren(token)) nested(token, style)
-        else
-          for (const span of mathSpans(String(token.text)))
-            push(span.text, span.math ? { ...style, fg: theme.accent, italic: true } : style)
+        else if (refAt(token) === undefined || !refs) plain(String(token.text), style)
+        else {
+          let nth = 0
+          for (const part of textParts(String(token.text), refs.cwd)) {
+            if (!part.target) plain(part.text, style)
+            else {
+              const look = part.target.kind === "image" ? { ...style, fg: theme.accent } : style
+              pushRef(part.text, look, refAt(token, nth++) ?? "")
+            }
+          }
+        }
         break
       case "escape":
         push(String(token.text), style)
@@ -103,12 +149,41 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
 
 export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: boolean }) {
   const renderer = useRenderer()
+  const refs = useContext(RefContext)
   const runs = createMemo(() =>
-    toRuns(props.tokens, { fg: props.fg ?? theme.text, bold: props.bold }, renderer.capabilities?.hyperlinks === true),
+    toRuns(
+      props.tokens,
+      { fg: props.fg ?? theme.text, bold: props.bold },
+      renderer.capabilities?.hyperlinks === true,
+      undefined,
+      refs?.(),
+    ),
   )
+  // Carries the selected reference's id so the chat can scroll it into view.
+  const selected = () => runs().find((run) => run.ref !== undefined && run.ref === refs?.()?.selection)?.ref
+  // The run under a click: the visual row's start column in the text plus the clicked column.
+  const clicked = (text: TextBufferRenderable, x: number, y: number) => {
+    const row = y - text.y
+    let at = (text.lineInfo.lineStartCols[row] ?? -1) + x - text.x
+    if (at < 0) return undefined
+    for (const run of runs()) {
+      at -= Bun.stringWidth(run.text)
+      if (at < 0) return run.ref
+    }
+    return undefined
+  }
   return (
     <Show when={runs().some((run) => run.text.trim())}>
-      <text fg={props.fg ?? theme.text}>
+      <text
+        id={selected()}
+        fg={props.fg ?? theme.text}
+        onMouseDown={function (event) {
+          const id = refs?.() && clicked(this, event.x, event.y)
+          if (!id) return
+          event.preventDefault()
+          refs?.()?.onOpen(id)
+        }}
+      >
         <For each={runs()}>
           {(run) =>
             run.url ? (

@@ -2,6 +2,7 @@ import { setSetting, settings } from "../../session/settings.ts"
 import { PERMISSION_MODES, type PermissionMode, type StoredSettings } from "../../session/settings-file.ts"
 import { setTheme, themeId, themes } from "../../theme/theme.ts"
 import type { DialogSection } from "../dialog/list.ts"
+import { editorChoices, editorName } from "../dialog/open-file.ts"
 
 export type SettingOption<V extends string = string> = { value: V; label: string; note?: string }
 
@@ -45,6 +46,14 @@ export const SETTINGS: SettingDefinition[] = [
     section: "Session",
     label: "Permission mode",
     options: PERMISSION_MODES.map((value) => ({ value, label: value, note: NOTES[value] })),
+  },
+  {
+    key: "editor",
+    section: "Session",
+    label: "Open files in",
+    get options() {
+      return editorChoices(settings.editor).map((value) => ({ value, label: editorName(value) }))
+    },
   },
 ]
 

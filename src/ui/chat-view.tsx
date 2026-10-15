@@ -7,6 +7,7 @@ import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { Markdown } from "./markdown/markdown.tsx"
+import { refTarget } from "./markdown/refs.ts"
 import { ShellEndRow } from "./shell-end-row.tsx"
 import { buildRows, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
@@ -27,6 +28,7 @@ type ChatProps = {
   onToggle: (id: string) => void
   onOpenAgent: (id: string) => void
   onOpenImage: (id: string) => void
+  onOpenRef: (id: string) => void
 }
 
 type ChatViewProps = ChatProps & {
@@ -73,7 +75,8 @@ function RowView(props: RowProps) {
         const id = props.selected
         if (!id || theme.selection !== null) return
         if (id === props.row.id) invertCells(this, props.viewport())
-        else if (id.startsWith(`${props.row.id}/`)) {
+        // A selected reference is reversed in its own text run.
+        else if (id.startsWith(`${props.row.id}/`) && !refTarget(id)) {
           const label = this.findDescendantById(id)
           if (label) invertCells(label, props.viewport())
         }
@@ -132,6 +135,7 @@ function RowView(props: RowProps) {
                   selection: props.selected,
                   expanded: props.expanded,
                   onOpenImage: props.onOpenImage,
+                  onOpenRef: props.onOpenRef,
                   onToggle: props.onToggle,
                 }}
               />

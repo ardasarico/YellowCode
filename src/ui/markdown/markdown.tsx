@@ -16,8 +16,9 @@ import { type Details, type Entry, groupDetails, isDetails } from "./details.ts"
 import { codeDiffRows, diffOf, drawsMermaid, FOLDED_CODE, foldId, foldNumbers, LONG_CODE, mermaidOf } from "./folds.ts"
 import { parseGantt } from "./gantt.ts"
 import { imageLines } from "./images.ts"
-import { Inline } from "./inline.tsx"
+import { Inline, RefContext } from "./inline.tsx"
 import { toUnicode } from "./math.ts"
+import { refNumbers } from "./refs.ts"
 import { Table } from "./table.tsx"
 
 type BlockProps = { token: Entry; streaming: boolean; width: number; fg: RGBA; depth: number }
@@ -38,6 +39,7 @@ export type MarkdownChat = {
   selection: string | null
   expanded: Record<string, boolean>
   onOpenImage: (id: string) => void
+  onOpenRef: (id: string) => void
   onToggle: (id: string) => void
 }
 
@@ -403,6 +405,19 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
   })
   const entries = createMemo(() => groupDetails(blocks().map((block) => block.token)))
   const numbers = createMemo(() => foldNumbers(entries()))
+  const refs = createMemo(() => (props.chat ? refNumbers(entries(), process.cwd()) : new Map()))
+  const refContext = () => {
+    const chat = props.chat
+    return (
+      chat && {
+        itemId: chat.itemId,
+        selection: chat.selection,
+        numbers: refs(),
+        cwd: process.cwd(),
+        onOpen: chat.onOpenRef,
+      }
+    )
+  }
   const lines = createMemo(() => entries().map((entry) => entryImages(entry, process.cwd())))
   const offset = (index: number) =>
     lines()
@@ -410,29 +425,31 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
       .reduce((sum, block) => sum + block.flat().length, 0)
   return (
     <FoldContext.Provider value={{ chat: () => props.chat, numbers }}>
-      <box flexDirection="column" gap={1}>
-        <Index each={entries()}>
-          {(entry, index) => (
-            <box flexDirection="column" gap={1}>
-              <BlockView
-                token={entry()}
-                streaming={props.streaming && index === entries().length - 1}
-                width={props.width}
-                fg={theme.text}
-                depth={0}
-              />
-              <InlineImages
-                itemId={props.chat?.itemId}
-                lines={lines()[index] ?? []}
-                offset={offset(index)}
-                width={props.width}
-                selection={props.chat?.selection}
-                onOpen={props.chat?.onOpenImage}
-              />
-            </box>
-          )}
-        </Index>
-      </box>
+      <RefContext.Provider value={refContext}>
+        <box flexDirection="column" gap={1}>
+          <Index each={entries()}>
+            {(entry, index) => (
+              <box flexDirection="column" gap={1}>
+                <BlockView
+                  token={entry()}
+                  streaming={props.streaming && index === entries().length - 1}
+                  width={props.width}
+                  fg={theme.text}
+                  depth={0}
+                />
+                <InlineImages
+                  itemId={props.chat?.itemId}
+                  lines={lines()[index] ?? []}
+                  offset={offset(index)}
+                  width={props.width}
+                  selection={props.chat?.selection}
+                  onOpen={props.chat?.onOpenImage}
+                />
+              </box>
+            )}
+          </Index>
+        </box>
+      </RefContext.Provider>
     </FoldContext.Provider>
   )
 }

@@ -17,9 +17,11 @@ import { agentTree, isAgentCall, isWorkflowCall } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
+import { CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { itemImages, labelId, labelTarget, loadImage } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
+import { type FileRef, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
@@ -59,6 +61,7 @@ type DialogName =
   | { name: "settings"; tab: SettingsTab }
   | { name: "resume" | "theme" | "skills" }
   | { name: "image"; images: ChatImage[]; index: number }
+  | { name: "code"; refs: FileRef[]; ids: string[]; index: number }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -184,11 +187,58 @@ export function App(props: AppProps) {
       const item = props.session.byId[id]
       const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
       const folds = item?.kind === "text" ? messageFolds(item.markdown, id, expanded) : []
+      const refs = item?.kind === "text" ? messageRefs(item.markdown, id, process.cwd(), expanded) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
         loadImage(image) ? [labelId(id, index)] : [],
       )
-      return [...own, ...folds, ...labels]
+      return [...own, ...folds, ...refs, ...labels]
     })
+
+  // The image a `[Image N]` mention points at: image N of the latest user message before it that has one.
+  const mentionedImages = (itemId: string, n: number) => {
+    const before = props.session.items.slice(0, props.session.items.indexOf(itemId))
+    for (const id of before.toReversed()) {
+      const item = props.session.byId[id]
+      if (item?.kind === "user" && item.images.length >= n) return { images: item.images, index: n - 1 }
+    }
+    return null
+  }
+
+  const openRef = (id: string) => {
+    const target = refTarget(id)
+    const item = target && props.session.byId[target.itemId]
+    if (!target || item?.kind !== "text") return
+    const all = messageTargets(item.markdown, process.cwd())
+    const picked = all[target.index]
+    if (!picked) return
+    setSelected(id)
+    if (picked.kind === "image") {
+      const found = mentionedImages(target.itemId, picked.n)
+      if (found) setDialog({ name: "image", ...found })
+      return
+    }
+    if (isImagePath(picked.ref.path)) {
+      const { path } = picked.ref
+      const name = path.split("/").at(-1) ?? path
+      setDialog({ name: "image", images: [{ name, mediaType: "", data: null, path }], index: 0 })
+      return
+    }
+    const files = all.flatMap((entry, index) =>
+      entry.kind === "file" && !isImagePath(entry.ref.path)
+        ? [{ ref: entry.ref, id: refId(target.itemId, index) }]
+        : [],
+    )
+    setDialog({
+      name: "code",
+      refs: files.map((file) => file.ref),
+      ids: files.map((file) => file.id),
+      index: files.findIndex((file) => file.id === id),
+    })
+  }
+  const codeView = () => {
+    const open = dialog()
+    return open?.name === "code" ? open : null
+  }
 
   const imageView = () => {
     const open = dialog()
@@ -394,6 +444,7 @@ export function App(props: AppProps) {
     else if (key.name === "return") {
       const id = selected()
       if (id && labelTarget(id)) openImage(id)
+      else if (id && refTarget(id)) openRef(id)
       else if (id && isAgentRow(id)) setAgentView(id)
       else if (id) toggle(id)
     }
@@ -523,6 +574,7 @@ export function App(props: AppProps) {
               onToggle={(id) => setExpanded(id, (open) => !open)}
               onOpenAgent={openAgentView}
               onOpenImage={openImage}
+              onOpenRef={openRef}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}
@@ -602,6 +654,19 @@ export function App(props: AppProps) {
             images={view().images}
             index={view().index}
             onIndex={(index) => setDialog({ ...view(), index })}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
+      <Show when={codeView()}>
+        {(view) => (
+          <CodeView
+            refs={view().refs}
+            index={view().index}
+            onIndex={(index) => {
+              setSelected(view().ids[index] ?? null)
+              setDialog({ ...view(), index })
+            }}
             onClose={() => setDialog(null)}
           />
         )}
