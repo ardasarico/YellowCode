@@ -32,6 +32,7 @@ test("all twenty-six recordings are present", () => {
       "mcp-states",
       "mcp",
       "nested-agents",
+      "own-blocks",
       "permission-bash",
       "permission",
       "plugins",
