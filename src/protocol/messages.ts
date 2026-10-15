@@ -25,7 +25,9 @@ const imageBlock = z.looseObject({
 const toolResultBlock = z.looseObject({
   type: z.literal("tool_result"),
   tool_use_id: z.string(),
-  content: z.union([z.string(), z.array(z.looseObject({ type: z.string(), text: z.string().optional() }))]).optional(),
+  content: z
+    .union([z.string(), z.array(withUnknown(z.discriminatedUnion("type", [textBlock, imageBlock]), ["text", "image"]))])
+    .optional(),
   is_error: z.boolean().optional(),
 })
 

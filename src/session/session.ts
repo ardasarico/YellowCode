@@ -1,3 +1,4 @@
+import { basename } from "node:path"
 import { createStore, produce } from "solid-js/store"
 import {
   taskOutput,
@@ -17,8 +18,8 @@ import type {
   SessionInfo,
   Task,
   TaskState,
+  ChatImage,
   ToolCall,
-  UserImage,
   Window,
   WorkflowProgress,
 } from "./types.ts"
@@ -39,21 +40,50 @@ type Cursor = { messageId: string; blocks: Map<number, ItemId>; lastIndex: numbe
 
 const MAIN = "main"
 
-function describeUserContent(content: string | UserBlock[]): { text: string; images: UserImage[] } {
-  if (typeof content === "string") return { text: content, images: [] }
-  const text = content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
-  const images = content.flatMap((block) =>
-    block.type === "image" && block.source.data
-      ? [{ mediaType: block.source.media_type ?? "image/png", data: block.source.data }]
-      : [],
-  )
-  return { text, images }
+type ResultContent = Extract<UserBlock, { type: "tool_result" }>["content"]
+
+function imagesOf(
+  blocks: { type: string; source?: { media_type?: string; data?: string } }[],
+  name: (index: number) => string,
+  path: string | null = null,
+): ChatImage[] {
+  const sources = blocks.flatMap((block) => (block.type === "image" && block.source?.data ? [block.source] : []))
+  return sources.map((source, index) => ({
+    name: name(index),
+    mediaType: source.media_type ?? "image/png",
+    data: source.data ?? null,
+    path,
+  }))
 }
 
-function toolResultText(content: string | { type: string; text?: string }[] | undefined): string {
+const numbered = (index: number) => `Image ${index + 1}`
+
+function describeUserContent(content: string | UserBlock[]): { text: string; images: ChatImage[] } {
+  if (typeof content === "string") return { text: content, images: [] }
+  const text = content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
+  return { text, images: imagesOf(content, numbered) }
+}
+
+function toolResultText(content: ResultContent): string {
   if (content === undefined) return ""
   if (typeof content === "string") return content
-  return content.map((block) => (block.type === "text" ? (block.text ?? "") : `[${block.type}]`)).join("\n")
+  return content
+    .flatMap((block) =>
+      block.type === "text" ? [block.text] : block.type === "image" ? [] : [`[${block.originalType}]`],
+    )
+    .join("\n")
+}
+
+function toolImages(tool: ToolCall, content: ResultContent): ChatImage[] {
+  if (content === undefined || typeof content === "string") return []
+  const path = tool.name === "Read" ? readPath(tool.input) : null
+  return imagesOf(content, path ? () => basename(path) : numbered, path)
+}
+
+function readPath(input: unknown): string | null {
+  return typeof input === "object" && input !== null && "file_path" in input && typeof input.file_path === "string"
+    ? input.file_path
+    : null
 }
 
 function firstSuggestion(suggestions: PermissionUpdate[] | undefined): PermissionUpdate | null {
@@ -234,6 +264,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
           children: [],
           patch: null,
           createdFile: false,
+          images: [],
           unchanged: false,
           agent: null,
           taskId: null,
@@ -375,6 +406,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         if (launched && task) item.status = toolStatus(task.state)
         else item.status = block.is_error ? "error" : "done"
         item.result = toolResultText(block.content)
+        item.images = toolImages(item, block.content)
         if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
         if (fileResult?.type === "create") item.createdFile = true
         if (fileResult?.type === "file_unchanged") item.unchanged = true

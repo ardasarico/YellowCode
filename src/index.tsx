@@ -69,7 +69,13 @@ const provider = replayProvider(recording)
 const session = createSession()
 const { settings: stored, problem } = loadSettings()
 initSettings(stored)
-const renderer = await createCliRenderer({ exitOnCtrlC: false, consoleMode: "disabled", openConsoleOnError: false })
+const renderer = await createCliRenderer({
+  exitOnCtrlC: false,
+  consoleMode: "disabled",
+  openConsoleOnError: false,
+  // OpenTUI sends an image again whenever an image above it scrolls in or out; a file path is cheap to send again.
+  kittyImageTransport: "file",
+})
 
 // The renderer's own handlers console.error to the terminal, so ours replace them.
 process.removeAllListeners("uncaughtException")

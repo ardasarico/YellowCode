@@ -2,8 +2,8 @@ import type { PermissionUpdate } from "../protocol/messages.ts"
 
 export type ItemId = string
 
-export type UserImage = { mediaType: string; data: string }
-export type UserMessage = { kind: "user"; id: ItemId; text: string; images: UserImage[] }
+export type ChatImage = { name: string; mediaType: string; data: string | null; path: string | null }
+export type UserMessage = { kind: "user"; id: ItemId; text: string; images: ChatImage[] }
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
 export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean }
 export type ToolCall = {
@@ -18,6 +18,7 @@ export type ToolCall = {
   children: ItemId[]
   patch: Hunk[] | null
   createdFile: boolean
+  images: ChatImage[]
   unchanged: boolean
   agent: Agent | null
   taskId: string | null

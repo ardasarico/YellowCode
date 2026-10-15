@@ -228,7 +228,20 @@ test("a user image keeps its data", () => {
   const user = items(replay("image")).find((item) => item.kind === "user")
   const images = user?.kind === "user" ? user.images : []
   expect(images.map((image) => image.mediaType)).toEqual(["image/png"])
-  expect(images[0]?.data.length).toBeGreaterThan(0)
+  expect(images[0]?.data?.length).toBeGreaterThan(0)
+})
+
+test("a Read of an image carries the image, named after the file", () => {
+  const read = items(replay("read-image")).find((item) => item.kind === "tool" && item.name === "Read")
+  const images = read?.kind === "tool" ? read.images : []
+  expect(images).toHaveLength(1)
+  expect({ ...images[0] }).toMatchObject({
+    name: "shot.png",
+    mediaType: "image/png",
+    path: "/Users/user/project/shot.png",
+  })
+  expect(images[0]?.data?.length).toBeGreaterThan(0)
+  expect(read).toMatchObject({ result: "" })
 })
 
 test("file edits carry their patch", () => {

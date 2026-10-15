@@ -1,5 +1,5 @@
-import { type ImageRenderable, NativeImage, RGBA } from "@opentui/core"
-import { createSignal, onCleanup } from "solid-js"
+import { type ImageRenderable, NativeImage, type Renderable, RGBA } from "@opentui/core"
+import { createMemo, createSignal, onCleanup } from "solid-js"
 import { theme } from "../theme/theme.ts"
 
 // A dialog's layers wipe the images under them, so while one is open it draws the tracked images again, dimmed, above
@@ -13,6 +13,38 @@ export const blank = () => covered() && !theme.dim
 export function trackImage(element: ImageRenderable): void {
   setTracked((list) => [...list, element])
   onCleanup(() => setTracked((list) => list.filter((item) => item !== element)))
+}
+
+export type Cell = { width: number; height: number }
+
+// One cell's size in pixels. The terminal reports it only after startup, and again after every resize.
+export function cellOf(element: Renderable): Cell | null {
+  const { resolution, terminalWidth, terminalHeight } = element.ctx
+  if (!resolution?.width || !resolution.height || !terminalWidth || !terminalHeight) return null
+  return { width: resolution.width / terminalWidth, height: resolution.height / terminalHeight }
+}
+
+export const sameCell = (a: Cell | null, b: Cell | null) => a?.width === b?.width && a?.height === b?.height
+
+// OpenTUI shrinks an image with 4× the pixels it is shown with on its own, but again whenever its visible part changes,
+// so a scrolled image would be sent to the terminal at every step. Shrunk once here, it is sent once.
+export function createShown(
+  image: () => NativeImage | undefined,
+  cell: () => Cell | null,
+  columns: () => number,
+  rows: () => number,
+): () => NativeImage | undefined {
+  return createMemo(() => {
+    const source = image()
+    const size = cell()
+    if (!source || !size || !columns() || !rows()) return source
+    const width = Math.round(columns() * size.width)
+    const height = Math.round(rows() * size.height)
+    if (source.width * source.height < width * height * 4) return source
+    const shrunk = source.resize({ width, height, kernel: "area" })
+    onCleanup(() => shrunk.dispose())
+    return shrunk
+  })
 }
 
 // The color a dialog lays over the app.

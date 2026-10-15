@@ -1,8 +1,9 @@
 import type { RGBA } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import type { Token } from "marked"
-import { createMemo, For } from "solid-js"
+import { createMemo, For, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
+import { isLocalImage } from "./images.ts"
 
 export type RunStyle = { fg: RGBA; bold?: boolean; italic?: boolean; underline?: boolean; strikethrough?: boolean }
 export type Run = { text: string; style: RunStyle; url?: string }
@@ -36,15 +37,15 @@ export function toRuns(tokens: readonly Token[], style: RunStyle, hyperlinks: bo
       case "codespan":
         push(String(token.text), { ...style, fg: theme.accent })
         break
+      case "image":
       case "link": {
         const href = String(token.href)
+        // A local image is drawn under its block instead.
+        if (token.type === "image" && isLocalImage(href)) break
         nested(token, { ...style, fg: theme.accent, underline: true }, href)
         if (!hyperlinks && token.text !== href) push(` (${withoutScheme(href)})`, { ...style, fg: theme.muted })
         break
       }
-      case "image":
-        push(`[image: ${String(token.text)}]`, { ...style, fg: theme.muted })
-        break
       case "br":
         push("\n", style)
         break
@@ -68,18 +69,20 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
     toRuns(props.tokens, { fg: props.fg ?? theme.text, bold: props.bold }, renderer.capabilities?.hyperlinks === true),
   )
   return (
-    <text fg={props.fg ?? theme.text}>
-      <For each={runs()}>
-        {(run) =>
-          run.url ? (
-            <a href={run.url} style={run.style}>
-              {run.text}
-            </a>
-          ) : (
-            <span style={run.style}>{run.text}</span>
-          )
-        }
-      </For>
-    </text>
+    <Show when={runs().some((run) => run.text.trim())}>
+      <text fg={props.fg ?? theme.text}>
+        <For each={runs()}>
+          {(run) =>
+            run.url ? (
+              <a href={run.url} style={run.style}>
+                {run.text}
+              </a>
+            ) : (
+              <span style={run.style}>{run.text}</span>
+            )
+          }
+        </For>
+      </text>
+    </Show>
   )
 }

@@ -1,9 +1,10 @@
 import type { BorderCharacters, TextRenderable } from "@opentui/core"
-import { createEffect, createSignal, For, Index, onCleanup, onMount, Show } from "solid-js"
+import { createEffect, createSignal, Index, onCleanup, onMount, Show } from "solid-js"
 import type { Command } from "../input/commands.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { labelId } from "./image-label.tsx"
 import { ImageTile } from "./image-tile.tsx"
 
 const COLLAPSED_ROWS = 8
@@ -61,8 +62,10 @@ export function UserMessageRow(props: {
   commands: Command[]
   selected: boolean
   expanded: boolean
+  selection?: string | null
   onOverflow: (id: string, overflowing: boolean) => void
   onToggle: (id: string) => void
+  onOpenImage?: (id: string) => void
 }) {
   let text: TextRenderable | undefined
   const [rows, setRows] = createSignal(0)
@@ -89,9 +92,24 @@ export function UserMessageRow(props: {
     >
       <Show when={props.item.images.length > 0}>
         <box flexDirection="row" flexWrap="wrap" gap={1}>
-          <For each={props.item.images}>
-            {(image, index) => <ImageTile image={image} caption={`Image ${index() + 1}`} />}
-          </For>
+          <Index each={props.item.images}>
+            {(image, index) => {
+              const id = labelId(props.item.id, index)
+              return (
+                <Show when={image().data}>
+                  {(data) => (
+                    <ImageTile
+                      id={id}
+                      image={{ data: data() }}
+                      caption={`Image ${index + 1}`}
+                      selected={props.selection === id}
+                      onOpen={props.onOpenImage && (() => props.onOpenImage?.(id))}
+                    />
+                  )}
+                </Show>
+              )
+            }}
+          </Index>
         </box>
       </Show>
       <text

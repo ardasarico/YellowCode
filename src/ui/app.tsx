@@ -9,7 +9,7 @@ import type { SessionEntry } from "../resume/session-list.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
-import type { Ask, Session, SessionInfo } from "../session/types.ts"
+import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
@@ -17,6 +17,8 @@ import { agentTree, isAgentCall, isWorkflowCall } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
+import { ImageView } from "./dialog/image-view.tsx"
+import { itemImages, labelId, labelTarget, loadImage } from "./image-label.tsx"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
@@ -52,7 +54,10 @@ export type AppProps = {
 }
 
 type Focus = "input" | "chat" | "panel" | "shells"
-type DialogName = { name: "settings"; tab: SettingsTab } | { name: "resume" | "theme" | "skills" }
+type DialogName =
+  | { name: "settings"; tab: SettingsTab }
+  | { name: "resume" | "theme" | "skills" }
+  | { name: "image"; images: ChatImage[]; index: number }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -174,7 +179,30 @@ export function App(props: AppProps) {
   createEffect(() => renderer.setBackgroundColor(theme.canvas))
 
   const selectableIds = () =>
-    props.session.items.filter((id) => props.session.byId[id]?.kind === "tool" || overflowing[id] === true)
+    props.session.items.flatMap((id) => {
+      const item = props.session.byId[id]
+      const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
+      const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
+        loadImage(image) ? [labelId(id, index)] : [],
+      )
+      return [...own, ...labels]
+    })
+
+  const imageView = () => {
+    const open = dialog()
+    return open?.name === "image" ? open : null
+  }
+  const openImage = (id: string) => {
+    const target = labelTarget(id)
+    if (!target) return
+    const all = itemImages(props.session.byId[target.itemId], process.cwd())
+    const label = all[target.index]
+    if (!label || !loadImage(label)) return
+    // A missing file has nothing to show, so the view skips it.
+    const images = all.filter((image) => loadImage(image))
+    setSelected(id)
+    setDialog({ name: "image", images, index: images.indexOf(label) })
+  }
 
   const toggle = (id: string) => {
     setSelected(id)
@@ -363,7 +391,8 @@ export function App(props: AppProps) {
     else if (key.name === "down") moveSelection(1)
     else if (key.name === "return") {
       const id = selected()
-      if (id && isAgentRow(id)) setAgentView(id)
+      if (id && labelTarget(id)) openImage(id)
+      else if (id && isAgentRow(id)) setAgentView(id)
       else if (id) toggle(id)
     }
   })
@@ -491,6 +520,7 @@ export function App(props: AppProps) {
               onOverflow={(id, value) => setOverflowing(id, value)}
               onToggle={(id) => setExpanded(id, (open) => !open)}
               onOpenAgent={openAgentView}
+              onOpenImage={openImage}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}
@@ -563,6 +593,16 @@ export function App(props: AppProps) {
           }}
           onClose={() => setDialog(null)}
         />
+      </Show>
+      <Show when={imageView()}>
+        {(view) => (
+          <ImageView
+            images={view().images}
+            index={view().index}
+            onIndex={(index) => setDialog({ ...view(), index })}
+            onClose={() => setDialog(null)}
+          />
+        )}
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />

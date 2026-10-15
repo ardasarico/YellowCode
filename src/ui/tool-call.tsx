@@ -11,6 +11,7 @@ import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
 import { cut, cutPath, formatDuration, mcpTool } from "./format.ts"
+import { ImageLabels } from "./image-label.tsx"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
@@ -123,7 +124,9 @@ export function ToolCallRow(props: {
   cwd: string
   selected: boolean
   expanded: boolean
+  selection?: string | null
   onOpenShell?: (taskId: string) => void
+  onOpenImage?: (id: string) => void
 }) {
   const [width, setWidth] = createSignal(0)
   const waiting = () => props.ask?.status === "pending"
@@ -154,7 +157,10 @@ export function ToolCallRow(props: {
     const room = width() - Bun.stringWidth(label().server + label().tool) - 4
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
-  const lines = () => toolLines(props.item, props.ask ?? null, shell(), background() ? shellMs() : seconds() * 1000)
+  // An image result has no text, so its labels stand in for the summary line.
+  const imageOnly = () => props.item.images.length > 0 && props.item.status === "done" && !props.item.result.trim()
+  const lines = () =>
+    imageOnly() ? [] : toolLines(props.item, props.ask ?? null, shell(), background() ? shellMs() : seconds() * 1000)
   const lineColor = () => (props.item.status === "done" && !denied() && !background() ? theme.muted : color())
   // The user's answer outranks a replayed result, which may come from a different answer.
   const output = () => (denied() || background() || props.ask?.status === "answered" ? "" : props.item.result)
@@ -197,6 +203,13 @@ export function ToolCallRow(props: {
           </text>
         )}
       </Index>
+      <ImageLabels
+        itemId={props.item.id}
+        images={props.item.images}
+        prefix={(index) => (index === 0 && lines().length === 0 ? RESULT_INDENT : LINE_INDENT)}
+        selection={props.selection}
+        onOpen={props.onOpenImage}
+      />
       <Show
         when={diff()}
         fallback={

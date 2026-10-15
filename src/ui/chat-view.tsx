@@ -26,6 +26,7 @@ type ChatProps = {
   onOverflow: (id: string, overflowing: boolean) => void
   onToggle: (id: string) => void
   onOpenAgent: (id: string) => void
+  onOpenImage: (id: string) => void
 }
 
 type ChatViewProps = ChatProps & {
@@ -69,7 +70,13 @@ function RowView(props: RowProps) {
     <box
       marginTop={gap()}
       renderAfter={function (buffer) {
-        if (props.selected === props.row.id && theme.selection === null) invertCells(this, buffer, props.viewport())
+        const id = props.selected
+        if (!id || theme.selection !== null) return
+        if (id === props.row.id) invertCells(this, buffer, props.viewport())
+        else if (id.startsWith(`${props.row.id}/image/`)) {
+          const label = this.findDescendantById(id)
+          if (label) invertCells(label, buffer, props.viewport())
+        }
       }}
     >
       <Switch>
@@ -80,8 +87,10 @@ function RowView(props: RowProps) {
               commands={props.commands}
               selected={props.selected === user().id}
               expanded={props.expanded[user().id] === true}
+              selection={props.selected}
               onOverflow={props.onOverflow}
               onToggle={props.onToggle}
+              onOpenImage={props.onOpenImage}
             />
           )}
         </Match>
@@ -94,7 +103,9 @@ function RowView(props: RowProps) {
               cwd={props.session.info?.cwd ?? ""}
               selected={props.selected === tool().id}
               expanded={props.expanded[tool().id] === true}
+              selection={props.selected}
               onOpenShell={openShell}
+              onOpenImage={props.onOpenImage}
             />
           )}
         </Match>
@@ -112,7 +123,12 @@ function RowView(props: RowProps) {
         <Match when={item("text")}>
           {(text) => (
             <box>
-              <Markdown markdown={text().markdown} streaming={text().streaming} width={props.width - 2} />
+              <Markdown
+                markdown={text().markdown}
+                streaming={text().streaming}
+                width={props.width - 2}
+                images={{ itemId: text().id, selection: props.selected, onOpen: props.onOpenImage }}
+              />
             </box>
           )}
         </Match>

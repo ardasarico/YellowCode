@@ -20,6 +20,7 @@ const tool: ToolCall = {
   children: [],
   patch: null,
   createdFile: false,
+  images: [],
   unchanged: false,
   agent: null,
   taskId: null,

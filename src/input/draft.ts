@@ -1,6 +1,6 @@
 import { homedir } from "node:os"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
-import type { UserImage } from "../session/types.ts"
+import type { ChatImage } from "../session/types.ts"
 
 export type Chip = { kind: "text"; n: number; content: string } | { kind: "image"; n: number; image: OutgoingImage }
 export type PlacedChip = { start: number; end: number; chip: Chip }
@@ -70,8 +70,8 @@ function mediaType(type: string): OutgoingImage["mediaType"] {
   return MEDIA_TYPES.find((known) => known === type) ?? "image/png"
 }
 
-export function draftFromMessage(text: string, images: UserImage[]): Draft {
-  const outgoing = images.map((image) => ({ mediaType: mediaType(image.mediaType), base64: image.data }))
+export function draftFromMessage(text: string, images: ChatImage[]): Draft {
+  const outgoing = images.map((image) => ({ mediaType: mediaType(image.mediaType), base64: image.data ?? "" }))
   const unlabeled = outgoing.flatMap((_, index) => (text.includes(`[Image ${index + 1}]`) ? [] : [index + 1]))
   const full = unlabeled.map((n) => `[Image ${n}] `).join("") + text
   const chips = outgoing.map((image, index): PlacedChip => {

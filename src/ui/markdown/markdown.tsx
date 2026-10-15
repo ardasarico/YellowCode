@@ -3,7 +3,9 @@ import type { Token, Tokens } from "marked"
 import { createMemo, Index, Match, Switch } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { splitBlocks, type Block } from "./blocks.ts"
+import { InlineImages } from "../inline-images.tsx"
 import { CodeBlock } from "./code-block.tsx"
+import { imageLines } from "./images.ts"
 import { Inline } from "./inline.tsx"
 import { Table } from "./table.tsx"
 
@@ -100,23 +102,41 @@ function Blocks(props: { tokens: readonly Token[]; width: number; fg: RGBA; dept
   )
 }
 
-export function Markdown(props: { markdown: string; streaming: boolean; width: number }) {
+export type MarkdownImages = { itemId: string; selection: string | null; onOpen: (id: string) => void }
+
+// Local images leave their text and follow their block, numbered across the whole message.
+export function Markdown(props: { markdown: string; streaming: boolean; width: number; images?: MarkdownImages }) {
   let previous: Block[] = []
   const blocks = createMemo(() => {
     previous = splitBlocks(props.markdown, previous)
     return previous
   })
+  const lines = createMemo(() => blocks().map((block) => imageLines(block.token, process.cwd())))
+  const offset = (index: number) =>
+    lines()
+      .slice(0, index)
+      .reduce((sum, block) => sum + block.flat().length, 0)
   return (
     <box flexDirection="column" gap={1}>
       <Index each={blocks()}>
         {(block, index) => (
-          <BlockView
-            token={block().token}
-            streaming={props.streaming && index === blocks().length - 1}
-            width={props.width}
-            fg={theme.text}
-            depth={0}
-          />
+          <box flexDirection="column" gap={1}>
+            <BlockView
+              token={block().token}
+              streaming={props.streaming && index === blocks().length - 1}
+              width={props.width}
+              fg={theme.text}
+              depth={0}
+            />
+            <InlineImages
+              itemId={props.images?.itemId}
+              lines={lines()[index] ?? []}
+              offset={offset(index)}
+              width={props.width}
+              selection={props.images?.selection}
+              onOpen={props.images?.onOpen}
+            />
+          </box>
         )}
       </Index>
     </box>
