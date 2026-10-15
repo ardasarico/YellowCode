@@ -122,7 +122,7 @@ const BLACK = RGBA.fromInts(0, 0, 0)
 const brand = (hex: string) => (theme.rgb ? RGBA.fromHex(hex) : yellow(false))
 
 // Three tones per word, light at the top and deep at the bottom; the yellow ones are the cat's own.
-function wordmarkPalette(): Record<string, RGBA> {
+export function wordmarkPalette(): Record<string, RGBA> {
   const text = theme.text
   const plain = text.intent === "default"
   return {

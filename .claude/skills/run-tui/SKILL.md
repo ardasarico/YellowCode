@@ -13,7 +13,7 @@ and read the screen as text.
 ```bash
 S=yellowcode-tui
 tmux kill-session -t $S 2>/dev/null
-tmux new-session -d -s $S -x 120 -y 40 -c "$PWD" 'bun run dev; echo "[exited $?]"; sleep 600'
+tmux new-session -d -s $S -x 120 -y 40 -c "$PWD" 'bun run dev --skip-terminal-check; echo "[exited $?]"; sleep 600'
 ```
 
 The trailing `echo` and `sleep` keep the pane open after the app exits, so a

@@ -21,8 +21,10 @@ import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, setTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
-const USAGE = "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>]"
+const USAGE =
+  "Usage: bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]"
 
 function fail(message: string): never {
   process.stderr.write(`${message}\n`)
@@ -36,6 +38,7 @@ const { values } = parseArgs({
     // Session titles cost a Haiku request per user message, so replays only make them when asked.
     titles: { type: "boolean", default: false },
     sessions: { type: "string" },
+    "skip-terminal-check": { type: "boolean", default: false },
   },
 })
 if (!values.replay) fail(USAGE)
@@ -76,6 +79,7 @@ const renderer = await createCliRenderer({
   // OpenTUI sends an image again whenever an image above it scrolls in or out; a file path is cheap to send again.
   kittyImageTransport: "file",
 })
+const capabilities = firstCapabilities(renderer)
 
 // The renderer's own handlers console.error to the terminal, so ours replace them.
 process.removeAllListeners("uncaughtException")
@@ -168,9 +172,13 @@ const sessions = {
   },
 }
 
-void pump()
-await render(
-  () => (
+const terminal = values["skip-terminal-check"] ? null : terminalProblem(await capabilities)
+if (terminal) log.info("terminal problem", terminal)
+const [checking, setChecking] = createSignal(terminal !== null)
+if (terminal === null) void pump()
+
+function Main() {
+  return (
     <Show
       when={view()}
       keyed
@@ -216,6 +224,23 @@ await render(
           }}
           onSubmit={() => {}}
           onAnswer={() => {}}
+          onQuit={() => void quit()}
+        />
+      )}
+    </Show>
+  )
+}
+
+await render(
+  () => (
+    <Show when={checking() ? terminal : null} fallback={<Main />}>
+      {(found) => (
+        <TerminalCheck
+          problem={found()}
+          onContinue={() => {
+            setChecking(false)
+            void pump()
+          }}
           onQuit={() => void quit()}
         />
       )}
