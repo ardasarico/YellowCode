@@ -1,0 +1,23 @@
+{
+  "bash": [
+    {
+      "prompt": 2,
+      "path": "settings.json",
+      "plus": 6,
+      "minus": 0
+    },
+    {
+      "prompt": 2,
+      "path": "config.json",
+      "plus": 0,
+      "minus": 6
+    },
+    {
+      "prompt": 3,
+      "path": "src/__snapshots__/settings.snap",
+      "plus": 12,
+      "minus": 3
+    }
+  ],
+  "conflicts": ["src/ui/app.tsx"]
+}

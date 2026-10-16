@@ -39,6 +39,7 @@ test("all recordings are present", () => {
       "plugins",
       "read-image",
       "references",
+      "rewind",
       "shells",
       "skills",
       "subagent",
