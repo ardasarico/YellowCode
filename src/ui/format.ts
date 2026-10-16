@@ -11,6 +11,7 @@ export function formatDuration(ms: number): string {
 
 export function cut(text: string, max: number): string {
   if (Bun.stringWidth(text) <= max) return text
+  if (max < 1) return ""
   let result = ""
   for (const char of text) {
     if (Bun.stringWidth(`${result}${char}…`) > max) break
