@@ -36,6 +36,14 @@ function details(open: Token, body: Token[]): Details {
   }
 }
 
+const nested = new WeakMap<readonly Token[], Entry[]>()
+
+// The blocks of a quote or list item, kept so folds and refs find the same entries as the drawing.
+export function nestedEntries(tokens: readonly Token[]): Entry[] {
+  if (!nested.has(tokens)) nested.set(tokens, groupDetails(tokens))
+  return nested.get(tokens) ?? []
+}
+
 // Turns each `<details>` … `</details>` run into one entry; an unclosed one stays as plain tokens.
 export function groupDetails(tokens: readonly Token[]): Entry[] {
   const entries: Entry[] = []

@@ -6,7 +6,7 @@ import { is } from "./blocks.ts"
 import { calloutOf } from "./callout.ts"
 import { columnsOf } from "./columns.ts"
 import { remember } from "./cache.ts"
-import { type Entry, isDetails } from "./details.ts"
+import { type Entry, isDetails, nestedEntries } from "./details.ts"
 import { foldId, foldNumbers, messageEntries } from "./folds.ts"
 
 export type FileRef = { path: string; line?: number; end?: number }
@@ -143,9 +143,10 @@ function collect(entries: readonly Entry[], cwd: string, closed: (entry: Entry) 
       }
       const quote = is(entry, "blockquote")
       const columns = columnsOf(entry)
-      if (quote) blocks(calloutOf(quote)?.tokens ?? quote.tokens, hidden)
+      if (quote) blocks(calloutOf(quote)?.tokens ?? nestedEntries(quote.tokens), hidden)
       else if (columns) for (const column of columns) blocks(column, hidden)
-      else if (entry.type === "list") blocks(is(entry, "list")?.items.flatMap((item) => item.tokens) ?? [], hidden)
+      else if (entry.type === "list")
+        blocks(is(entry, "list")?.items.flatMap((item) => nestedEntries(item.tokens)) ?? [], hidden)
       else if (entry.type === "heading" || entry.type === "paragraph" || entry.type === "text")
         inline("tokens" in entry && entry.tokens ? entry.tokens : [entry], hidden)
     }

@@ -25,7 +25,7 @@ import { CodeBlock } from "./code-block.tsx"
 import { columnsCode, columnsOf, parseColumns } from "./columns.ts"
 import { drawDiagram } from "./diagram.ts"
 import { ChartBars, DiagramArt, GanttView, LineChartImage, LineChartText, useKittyGraphics } from "./diagram-view.tsx"
-import { type Details, type Entry, groupDetails, isDetails } from "./details.ts"
+import { type Details, type Entry, groupDetails, isDetails, nestedEntries } from "./details.ts"
 import { codeDiffRows, diffOf, drawsMermaid, FOLDED_CODE, foldId, foldNumbers, LONG_CODE, mermaidOf } from "./folds.ts"
 import { parseGantt } from "./gantt.ts"
 import { imageLines } from "./images.ts"
@@ -175,7 +175,7 @@ function List(props: { token: Tokens.List; width: number; fg: RGBA; depth: numbe
             </text>
             <box flexDirection="column" flexGrow={1}>
               <Blocks
-                tokens={item().tokens}
+                tokens={nestedEntries(item().tokens)}
                 width={props.width - indent() - markerWidth()}
                 fg={props.fg}
                 depth={props.depth + 1}
@@ -230,7 +230,13 @@ function BlockView(props: BlockProps) {
       <Case when={is(props.token, "blockquote")}>
         {(token) => (
           <box border={["left"]} borderStyle="single" borderColor={theme.frame} paddingLeft={1}>
-            <Blocks tokens={token().tokens} width={props.width - 2} fg={theme.muted} depth={props.depth} gap={1} />
+            <Blocks
+              tokens={nestedEntries(token().tokens)}
+              width={props.width - 2}
+              fg={theme.muted}
+              depth={props.depth}
+              gap={1}
+            />
           </box>
         )}
       </Case>

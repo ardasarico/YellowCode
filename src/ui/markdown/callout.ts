@@ -1,7 +1,8 @@
 import { Lexer, type Token } from "marked"
+import { type Entry, groupDetails } from "./details.ts"
 
 export type CalloutKind = "note" | "tip" | "important" | "warning" | "caution"
-export type Callout = { kind: CalloutKind; tokens: Token[] }
+export type Callout = { kind: CalloutKind; tokens: Entry[] }
 
 const KINDS: CalloutKind[] = ["note", "tip", "important", "warning", "caution"]
 const MARKER = /^\[!(\w+)\][ \t]*(?:\n|$)/
@@ -15,7 +16,7 @@ export function calloutOf(token: Token): Callout | null {
     const match = MARKER.exec(String(token.text))
     const kind = KINDS.find((name) => name === match?.[1]?.toLowerCase())
     const body = String(token.text).slice(match?.[0].length ?? 0)
-    cache.set(token, kind ? { kind, tokens: Lexer.lex(body, { gfm: true }) } : null)
+    cache.set(token, kind ? { kind, tokens: groupDetails(Lexer.lex(body, { gfm: true })) } : null)
   }
   return cache.get(token) ?? null
 }

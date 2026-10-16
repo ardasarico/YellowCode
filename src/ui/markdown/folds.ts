@@ -7,7 +7,7 @@ import { remember } from "./cache.ts"
 import { calloutOf } from "./callout.ts"
 import { hasData, parseChart } from "./chart.ts"
 import { columnsOf } from "./columns.ts"
-import { type Entry, groupDetails, isDetails } from "./details.ts"
+import { type Entry, groupDetails, isDetails, nestedEntries } from "./details.ts"
 import { parseGantt } from "./gantt.ts"
 import { parseStats, statsCode } from "./stats.ts"
 import { LONG_TREE, parseTree, treeCode } from "./tree.ts"
@@ -66,10 +66,10 @@ function foldable(entry: Entry): boolean {
 function children(entry: Entry): readonly Entry[] {
   if (isDetails(entry)) return entry.tokens
   const quote = is(entry, "blockquote")
-  if (quote) return calloutOf(quote)?.tokens ?? quote.tokens
+  if (quote) return calloutOf(quote)?.tokens ?? nestedEntries(quote.tokens)
   const columns = columnsOf(entry)
   if (columns) return columns.flat()
-  return is(entry, "list")?.items.flatMap((item) => item.tokens) ?? []
+  return is(entry, "list")?.items.flatMap((item) => nestedEntries(item.tokens)) ?? []
 }
 
 // Numbers folds in reading order. Folds inside a closed section still count, so numbers never shift.
