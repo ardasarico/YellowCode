@@ -9,3 +9,8 @@ test("columns split on a --- line and keep a fenced code block whole", () => {
   ])
   expect(parseColumns("Only one column")).toBeNull()
 })
+
+test("a --- line inside fenced code does not split columns", () => {
+  const columns = parseColumns("```yaml\nkey: 1\n---\nnext: 2\n```\n---\nright")
+  expect(columns?.map((column) => column.map((entry) => entry.type))).toEqual([["code"], ["paragraph"]])
+})
