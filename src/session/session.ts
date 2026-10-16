@@ -313,6 +313,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     const event = message.event
     switch (event.type) {
       case "message_start":
+        for (const id of cursors.get(key)?.blocks.values() ?? []) stopStreaming(id)
         cursors.set(key, { messageId: event.message.id, blocks: new Map(), lastIndex: -1, finalized: new Set() })
         return
       case "content_block_start": {
@@ -422,9 +423,25 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     }
   }
 
+  // A tool of the ended turn that never got its result no longer runs, unless it goes on as a background task.
+  function settleTurn(): void {
+    for (const id of state.items.toReversed()) {
+      const item = state.byId[id]
+      if (item?.kind === "user") return
+      if (item?.kind !== "tool" || item.status !== "running") continue
+      if (item.taskId && state.tasks[item.taskId]?.state === "running") continue
+      update(id, (tool) => {
+        if (tool.kind !== "tool") return
+        tool.status = "stopped"
+        if (tool.agent?.state === "running") tool.agent.state = "stopped"
+      })
+    }
+  }
+
   function onResult(message: Of<"result">): void {
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
+    settleTurn()
     const error = message.is_error ? (message.result ?? message.errors?.join("\n") ?? message.subtype) : null
     add(
       {

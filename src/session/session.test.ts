@@ -182,6 +182,21 @@ test("a result stops streaming even when the final message never arrived", () =>
   expect(items(session).some((item) => item.kind === "turn-end")).toBe(true)
 })
 
+test("a result settles its tools without a result, but not background work", () => {
+  const session = feed(
+    event({ type: "message_start", message: { id: "m1" } }),
+    event({ type: "content_block_start", index: 0, content_block: { type: "thinking", thinking: "" } }),
+    event({ type: "message_start", message: { id: "m2" } }),
+    assistant("m2", { type: "tool_use", id: "t1", name: "Bash", input: { command: "ls" } }),
+    assistant("m2", { type: "tool_use", id: "t2", name: "Bash", input: { command: "sleep 9" } }),
+    started({ task_id: "b1", tool_use_id: "t2", task_type: "local_bash", is_backgrounded: true }),
+    result,
+  )
+  expect(streaming(session)).toEqual([])
+  expect(session.state.byId["t1"]).toMatchObject({ status: "stopped" })
+  expect(session.state.byId["t2"]).toMatchObject({ status: "running" })
+})
+
 test("ending the session stops anything still streaming", () => {
   const session = streamingText()
   session.end()
