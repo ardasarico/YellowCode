@@ -33,7 +33,7 @@ function AgentEntry(props: { node: TreeNode; indent: number; width: number }) {
       <text wrapMode="none">
         <span style={{ fg: theme.text }}>{` ${name()}`}</span>
         <span style={{ fg: props.node.state === "running" ? theme.accent : theme.muted }}>
-          {tail() ? cut(` · ${tail()}`, Math.max(0, room() - name().length - 1)) : ""}
+          {tail() ? cut(` · ${tail()}`, Math.max(0, room() - Bun.stringWidth(name()) - 1)) : ""}
         </span>
       </text>
     </box>

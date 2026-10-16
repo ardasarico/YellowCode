@@ -44,8 +44,11 @@ export function ShellPage(props: PageProps) {
     <Show when={task()}>
       {(shown) => {
         const head = () => status(shown(), time())
+        // The name gives way first so the state stays, down to a third of the row.
+        const name = () =>
+          cut(props.node.name, Math.max(Math.floor(props.width / 3), props.width - Bun.stringWidth(head()) - 4))
         const right = () =>
-          cut(shown().command, Math.max(0, props.width - Bun.stringWidth(`$ ${props.node.name}  ${head()}`) - 2))
+          cut(shown().command, Math.max(0, props.width - Bun.stringWidth(`$ ${name()}  ${head()}`) - 2))
         const meta = () => [
           "background shell",
           `started by ${shellStartedBy(props.session, shown())}`,
@@ -58,7 +61,7 @@ export function ShellPage(props: PageProps) {
             <box flexDirection="row" height={1} flexShrink={0}>
               <text wrapMode="none" flexGrow={1} flexShrink={1}>
                 <span style={{ fg: shellColor(shown().state) }}>$</span>
-                <span style={{ fg: theme.text, bold: true }}>{` ${props.node.name}`}</span>
+                <span style={{ fg: theme.text, bold: true }}>{` ${name()}`}</span>
                 <span style={{ fg: shellColor(shown().state) }}>{`  ${head()}`}</span>
               </text>
               <text wrapMode="none" flexShrink={0} fg={theme.muted}>

@@ -34,7 +34,10 @@ function stateText(state: TreeNode["state"]): { text: string; color: RGBA } {
 export function PageHeader(props: { node: TreeNode; stats: string; right: string; width: number }) {
   const state = () => stateText(props.node.state)
   const status = () => [state().text, props.stats].filter(Boolean).join(" · ")
-  const right = () => cut(props.right, Math.max(0, props.width - Bun.stringWidth(`${props.node.name}${status()}`) - 6))
+  // The mark and the spaces take five columns. The name gives way first so the state stays, down to a third of the row.
+  const name = () =>
+    cut(props.node.name, Math.max(Math.floor(props.width / 3), props.width - Bun.stringWidth(status()) - 5))
+  const right = () => cut(props.right, Math.max(0, props.width - Bun.stringWidth(`${name()}${status()}`) - 6))
   return (
     <box flexDirection="column" flexShrink={0}>
       <box flexDirection="row" height={1}>
@@ -44,7 +47,7 @@ export function PageHeader(props: { node: TreeNode; stats: string; right: string
           size={props.node.state === "running" ? undefined : "medium"}
         />
         <text wrapMode="none" flexGrow={1} flexShrink={1}>
-          <span style={{ fg: theme.text, bold: true }}>{` ${props.node.name}`}</span>
+          <span style={{ fg: theme.text, bold: true }}>{` ${name()}`}</span>
           <span style={{ fg: state().color }}>{`  ${status()}`}</span>
         </text>
         <text wrapMode="none" flexShrink={0} fg={theme.muted}>
