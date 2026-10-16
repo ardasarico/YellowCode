@@ -12,10 +12,11 @@ const MIN_HEIGHT = 14
 const NOTICE_MS = 4000
 const REPLAY_NOTICE = "On/off comes with the live connection"
 
-const FOOTER: FooterAction[] = [
+// Space types into the search once it has text.
+const footer = (query: string): FooterAction[] => [
   { key: "↑↓", action: "select" },
-  { key: "enter", action: "use" },
-  { key: "space", action: "on/off" },
+  { key: "enter", action: "use", needsRow: true },
+  ...(query ? [] : [{ key: "space", action: "on/off", needsRow: true }]),
   { key: "esc", action: "close" },
 ]
 
@@ -64,7 +65,7 @@ export function SkillsDialog(props: {
       sections={skillSections(props.skills)}
       filter={(_, query) => skillSections(matchSkills(props.skills, query))}
       searchPlaceholder="Search skills"
-      footer={FOOTER}
+      footer={(_, query) => footer(query)}
       footerStyle="keys"
       notice={notice()}
       view="list"
@@ -73,8 +74,8 @@ export function SkillsDialog(props: {
         const skill = skillOf(row)
         if (skill) props.onUse(skill.command)
       }}
-      onKey={(key, row) => {
-        if (key.name !== "space") return false
+      onKey={(key, row, query) => {
+        if (key.name !== "space" || query) return false
         const skill = skillOf(row)
         if (!skill || skill.locked) return true
         if (props.actions) props.actions.setEnabled(skill, !skill.enabled)

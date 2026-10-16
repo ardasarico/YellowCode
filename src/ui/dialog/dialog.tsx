@@ -24,8 +24,8 @@ export type DialogProps = {
   sections: DialogSection[]
   // Lines under the list that stay in view while it scrolls.
   pinned?: DialogText[]
-  // A function follows the selected row.
-  footer: FooterAction[] | ((row: DialogRow | undefined) => FooterAction[])
+  // A function follows the selected row and the search.
+  footer: FooterAction[] | ((row: DialogRow | undefined, query: string) => FooterAction[])
   view: string
   initialSelected?: string
   // Without the search row, typing does nothing.
@@ -41,7 +41,7 @@ export type DialogProps = {
   onEnter: (row: DialogRow) => void
   onSelect?: (row: DialogRow) => void
   // Sees every key first; returning true keeps the dialog from handling it.
-  onKey: (key: KeyEvent, row: DialogRow | undefined) => boolean
+  onKey: (key: KeyEvent, row: DialogRow | undefined, query: string) => boolean
   onEscape: () => void
   empty?: (query: string) => string
 }
@@ -111,7 +111,7 @@ export function Dialog(props: DialogProps) {
   const left = () => Math.floor((dimensions().width - panelWidth()) / 2)
   const top = () => Math.max(0, Math.floor((dimensions().height - Math.min(tallest(), dimensions().height - 2)) / 2))
   const footer = () => {
-    const actions = typeof props.footer === "function" ? props.footer(selectedRow()) : props.footer
+    const actions = typeof props.footer === "function" ? props.footer(selectedRow(), query()) : props.footer
     return actions.filter((item) => !item.needsRow || ids().length > 0)
   }
 
@@ -119,7 +119,7 @@ export function Dialog(props: DialogProps) {
     const row = selectedRow()
     key.stopPropagation()
     key.preventDefault()
-    if (props.onKey(key, row)) return
+    if (props.onKey(key, row, query())) return
     if (key.name === "up" || key.name === "down")
       setChosen(moveSelection(ids(), selectedId(), key.name === "up" ? -1 : 1))
     else if (key.name === "return") {

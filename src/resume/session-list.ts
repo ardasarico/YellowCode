@@ -92,8 +92,13 @@ function parseLines(lines: string[]): Line[] {
   return parsed
 }
 
+// Escape sequences and other control characters would show as stray text in the lists.
 function oneLine(text: string | null): string {
-  return text?.replace(/\s+/g, " ").trim() ?? ""
+  return text
+    ? Bun.stripANSI(text)
+        .replace(/[\s\p{Cc}]+/gu, " ")
+        .trim()
+    : ""
 }
 
 export function displayTitle(fields: TitleFields): string {
