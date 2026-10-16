@@ -28,3 +28,7 @@ test("an xychart reads labels, the y range and every series", () => {
     horizontal: true,
   })
 })
+
+test("an empty data list is no data rather than a zero", () => {
+  expect(parseChart("xychart-beta\n  bar []")).toMatchObject({ series: [] })
+})

@@ -46,7 +46,7 @@ export function parseChart(code: string): Chart | null {
       else if (xAxis) labels = list(xAxis[1] ?? "")
       else if (yAxis) range = [Number(yAxis[1]), Number(yAxis[2])]
       else if (data) {
-        const values = list(data[2] ?? "").map(Number)
+        const values = list(data[2] ?? "").map((item) => (item ? Number(item) : Number.NaN))
         if (values.length > 0 && values.every(Number.isFinite))
           series.push({ kind: data[1] === "line" ? "line" : "bar", values })
       }
