@@ -106,10 +106,33 @@ export function chartSvg(chart: XYChart, size: ChartSize, colors: ChartColors): 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" font-family="${FONT}, monospace">${parts.join("")}</svg>`
 }
 
-export function chartImage(chart: XYChart, size: ChartSize, colors: ChartColors): NativeImage | null {
+let collecting = false
+
+// resvg's pixel buffers live outside the JavaScript heap, so the collector does not notice them piling up while charts
+// redraw, as they all do on every resize.
+function collectSoon(): void {
+  if (collecting) return
+  collecting = true
+  setTimeout(() => {
+    collecting = false
+    Bun.gc(false)
+  })
+}
+
+// A painted theme gives its background, so the chart comes out opaque and terminals do not show their own through it.
+export function chartImage(
+  chart: XYChart,
+  size: ChartSize,
+  colors: ChartColors,
+  background: string | null = null,
+): NativeImage | null {
   try {
     const svg = chartSvg(chart, size, colors)
-    return NativeImage.decode(new Resvg(svg, { font: FONT_OPTIONS }).render().asPng())
+    collectSoon()
+    if (!background) return NativeImage.decode(new Resvg(svg, { font: FONT_OPTIONS }).render().asPng())
+    // resvg's pixels are premultiplied, which equals straight alpha only once every pixel is opaque.
+    const { pixels, width, height } = new Resvg(svg, { font: FONT_OPTIONS, background }).render()
+    return NativeImage.fromPixels(pixels, width, height, { alpha: "opaque" })
   } catch {
     return null
   }

@@ -86,7 +86,9 @@ export function onBackground(image: NativeImage, background: RGBA | null): Nativ
   const pixels = new Uint8Array(width * height * 4)
   const [r, g, b] = background.toInts()
   for (let index = 0; index < pixels.length; index += 4) pixels.set([r, g, b, 255], index)
-  const result = NativeImage.fromRgba(pixels, width, height).composite(image)
+  const base = NativeImage.fromRgba(pixels, width, height)
+  const result = base.composite(image)
+  base.dispose()
   byColor.set(key, result)
   return result
 }

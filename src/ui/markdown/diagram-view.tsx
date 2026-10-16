@@ -1,9 +1,9 @@
 import { RGBA } from "@opentui/core"
-import { useRenderer, useTerminalDimensions } from "@opentui/solid"
+import { useRenderer } from "@opentui/solid"
 import type { Cls, MermaidArt } from "grok-mermaid"
-import { createMemo, For, Index, type JSX, Show } from "solid-js"
+import { createMemo, createSignal, For, Index, type JSX, onCleanup, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
-import { blank, createShown, onBackground, trackImage } from "../images.ts"
+import { blank, type Cell, cellOf, sameCell, trackImage } from "../images.ts"
 import { axisLabels, bar, type Chart, columnCell, columnTop, lineCells } from "./chart.ts"
 import { chartImage, type XYChart } from "./chart-image.ts"
 import { DAY, type Gantt, type GanttTask } from "./gantt.ts"
@@ -214,18 +214,11 @@ export function useKittyGraphics(): () => boolean {
 
 // Drawn at the pixel size of the cells it covers, so its labels come out at about the terminal's own text size.
 export function LineChartImage(props: { chart: XYChart; width: number }) {
-  const renderer = useRenderer()
-  const dimensions = useTerminalDimensions()
-  const cell = createMemo(() => {
-    dimensions()
-    const { resolution, terminalWidth, terminalHeight } = renderer
-    if (!resolution?.width || !terminalWidth || !terminalHeight) return null
-    return { width: resolution.width / terminalWidth, height: resolution.height / terminalHeight }
-  })
+  const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
   const image = createMemo(() => {
     const size = cell()
     if (!size) return null
-    return chartImage(
+    const made = chartImage(
       props.chart,
       {
         width: Math.round(props.width * size.width),
@@ -238,34 +231,30 @@ export function LineChartImage(props: { chart: XYChart; width: number }) {
         zero: hex(theme.muted),
         series: [theme.accent, ...theme.agents].map(hex),
       },
+      theme.background ? hex(theme.background) : null,
     )
+    if (made) onCleanup(() => made.dispose())
+    return made
   })
-  const shown = createShown(
-    () => image() ?? undefined,
-    cell,
-    () => props.width,
-    () => IMAGE_ROWS,
-  )
   // A chart whose axis cannot be drawn stays text.
   return (
-    <Show when={!cell() || image()} fallback={<LineChartText chart={props.chart} width={props.width} />}>
-      <box flexDirection="column">
+    <box
+      flexDirection="column"
+      renderBefore={function () {
+        setCell(cellOf(this))
+      }}
+    >
+      <Show when={!cell() || image()} fallback={<LineChartText chart={props.chart} width={props.width} />}>
         <Title>{props.chart.title}</Title>
-        <Show when={shown()}>
+        <Show when={image()}>
           {(source) => (
             <Show when={!blank()} fallback={<box width={props.width} height={IMAGE_ROWS} />}>
-              <image
-                ref={trackImage}
-                source={onBackground(source(), theme.background)}
-                fit="fit"
-                width={props.width}
-                height={IMAGE_ROWS}
-              />
+              <image ref={trackImage} source={source()} fit="fit" width={props.width} height={IMAGE_ROWS} />
             </Show>
           )}
         </Show>
-      </box>
-    </Show>
+      </Show>
+    </box>
   )
 }
 
