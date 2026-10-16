@@ -17,6 +17,7 @@ import {
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
+import { cut } from "../format.ts"
 import { InlineImages } from "../inline-images.tsx"
 import { finishedText, is, splitBlocks, type Block } from "./blocks.ts"
 import { type CalloutKind, calloutOf } from "./callout.ts"
@@ -117,6 +118,8 @@ function useFold(entry: () => Entry): Fold {
   }
 }
 
+const foldHint = (fold: Fold, hints: [string, string] = ["open", "close"]) => `   ↵ ${hints[fold.open() ? 1 : 0]}`
+
 function FoldLine(props: { fold: Fold; hints?: [string, string]; children: JSX.Element }) {
   return (
     <box
@@ -131,9 +134,7 @@ function FoldLine(props: { fold: Fold; hints?: [string, string]; children: JSX.E
       <text fg={theme.text} wrapMode="none">
         {props.children}
         <Show when={props.fold.selected()}>
-          <span style={{ fg: theme.accent }}>
-            {`   ↵ ${(props.hints ?? ["open", "close"])[props.fold.open() ? 1 : 0]}`}
-          </span>
+          <span style={{ fg: theme.accent }}>{foldHint(props.fold, props.hints)}</span>
         </Show>
       </text>
     </box>
@@ -283,13 +284,19 @@ function Blocks(props: { tokens: readonly Entry[]; width: number; fg: RGBA; dept
 
 function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: number }) {
   const fold = useFold(() => props.entry)
+  const count = () => `  ${props.entry.lines} lines`
+  // A long summary is cut so the line count and the hint stay on the line.
+  const summary = () => {
+    const rest = (fold.open() ? "" : count()) + (fold.selected() ? foldHint(fold) : "")
+    return cut(props.entry.summary, Math.max(1, props.width - 2 - Bun.stringWidth(rest)))
+  }
   return (
     <box flexDirection="column">
       <FoldLine fold={fold}>
         <span style={{ fg: theme.accent }}>{fold.open() ? "▾ " : "▸ "}</span>
-        <span style={{ bold: true }}>{props.entry.summary}</span>
+        <span style={{ bold: true }}>{summary()}</span>
         <Show when={!fold.open()}>
-          <span style={{ fg: theme.muted }}>{`  ${props.entry.lines} lines`}</span>
+          <span style={{ fg: theme.muted }}>{count()}</span>
         </Show>
       </FoldLine>
       <Show when={fold.open()}>
