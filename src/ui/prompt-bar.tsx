@@ -213,6 +213,7 @@ function InfoLine(props: {
   width: number
   agents: boolean
   shells?: Shells
+  asking: boolean
 }) {
   const label = () =>
     props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - contextWidth(props.context)) : ""
@@ -235,6 +236,7 @@ function InfoLine(props: {
     (settings.ultracode ? "  ultracode".length : 0) +
     counterWidth()
   const hint = () => {
+    if (props.asking) return null
     const counter = shells()
     const shellsHint = counter !== null && !counter.selected
     const text = props.agents ? (shellsHint ? BOTH_HINT : AGENTS_HINT) : shellsHint ? SHELLS_HINT : null
@@ -361,6 +363,7 @@ export function PromptBar(props: PromptBarProps) {
         width={inner()}
         agents={props.agents ?? false}
         shells={props.shells}
+        asking={props.ask !== undefined}
       />
     </box>
   )
