@@ -34,7 +34,9 @@ export function summarizeToolInput(input: unknown): string {
     f.matrix?.header ??
     ""
   const line = Bun.stripANSI(value).split("\n")[0] ?? ""
-  return line.length > MAX_LENGTH ? `${line.slice(0, MAX_LENGTH - 1)}…` : line
+  // A path stays whole: the row cuts it from the start, so the file name stays.
+  if (line.length <= MAX_LENGTH || value === f.file_path || value === f.path) return line
+  return `${line.slice(0, MAX_LENGTH - 1)}…`
 }
 
 const agentFields = z.looseObject({
