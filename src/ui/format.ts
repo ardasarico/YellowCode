@@ -19,6 +19,17 @@ export function cut(text: string, max: number): string {
   return `${result}…`
 }
 
+const TITLE_MAX = 200
+
+// The terminal rejects a window title with control characters or of a few KB.
+export function windowTitle(text: string): string {
+  const plain = Bun.stripANSI(text)
+    .replace(/\p{Cc}/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+  return cut(plain, TITLE_MAX)
+}
+
 export function wrapLines(text: string, width: number, max: number): string[] {
   const lines: string[] = []
   for (const word of text.split(/\s+/).filter(Boolean)) {

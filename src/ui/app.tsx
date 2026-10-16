@@ -4,6 +4,7 @@ import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, u
 import { createStore } from "solid-js/store"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
+import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
@@ -21,6 +22,7 @@ import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
 import { CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
+import { windowTitle } from "./format.ts"
 import { itemImages, labelId, labelTarget, loadImage } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import { type FileRef, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
@@ -123,7 +125,14 @@ export function App(props: AppProps) {
         () => props.session,
         () => settings.notifications,
       )
-  createEffect(() => renderer.setTerminalTitle(`${flagged() ? "(!) " : ""}${title()?.title ?? "YellowCode"}`))
+  createEffect(() => {
+    const text = `${flagged() ? "(!) " : ""}${windowTitle(title()?.title ?? "") || "YellowCode"}`
+    try {
+      renderer.setTerminalTitle(text)
+    } catch (error) {
+      log.warn("cannot set the window title", error)
+    }
+  })
   // A drag that starts on the sidebar edge is captured by whatever lies under the pointer at its first step,
   // so the resize follows drags that bubble up to the layout row.
   const [resizing, setResizing] = createSignal(false)
