@@ -392,6 +392,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         finalize(streamedId, block)
         continue
       }
+      // A blank text block would only add an empty row.
+      if (block.type === "text" && !block.text.trim()) continue
       const item = startedItem(block)
       if (!item) continue
       add(item, message.parent_tool_use_id)
