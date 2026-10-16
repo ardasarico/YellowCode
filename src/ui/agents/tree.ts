@@ -81,6 +81,12 @@ function workflowStatus(workflow: WorkflowProgress | null, running: boolean): st
   return ""
 }
 
+// A finished task took at least from its start to its end, so its time never drops below the count-up it showed.
+function finishedMs(task: Task | undefined, reported: number): number {
+  if (!task || task.state === "running" || task.endedAt === null || task.startedAt === null) return reported
+  return Math.max(reported, task.endedAt - task.startedAt)
+}
+
 export function agentNode(
   session: Session,
   tool: ToolCall,
@@ -89,6 +95,7 @@ export function agentNode(
   colorIndex: number,
 ): TreeNode {
   const agent = tool.agent
+  const task = tool.taskId ? session.tasks[tool.taskId] : undefined
   const byId = unwrap(session.byId)
   const tools = tool.children.length === 0 ? 0 : unwrap(tool.children).filter((id) => byId[id]?.kind === "tool").length
   return {
@@ -100,8 +107,8 @@ export function agentNode(
     state: agent?.state ?? toolState(tool.status),
     detail: agent?.activity ?? "",
     toolUses: Math.max(agent?.toolUses ?? 0, tools),
-    durationMs: agent?.durationMs ?? 0,
-    startedAt: (tool.taskId && session.tasks[tool.taskId]?.startedAt) || null,
+    durationMs: finishedMs(task, agent?.durationMs ?? 0),
+    startedAt: task?.startedAt || null,
     colorIndex,
     selectable: true,
   }
@@ -127,7 +134,7 @@ export function workflowNode(
     state,
     detail: workflowStatus(workflow, state === "running"),
     toolUses: agents.length,
-    durationMs: task?.durationMs ?? 0,
+    durationMs: finishedMs(task, task?.durationMs ?? 0),
     startedAt: task?.startedAt ?? null,
     colorIndex,
     selectable: true,
