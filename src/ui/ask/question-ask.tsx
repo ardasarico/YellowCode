@@ -2,11 +2,14 @@ import { type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import type { AskUserQuestionInput } from "../../protocol/messages.ts"
 import { answerQuestions, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
+import { covered } from "../images.ts"
+import { AskPicture, askImage, PICTURE_MIN_WIDTH } from "./ask-picture.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
-import { fitHints, pageLabels } from "./fit.ts"
+import { GalleryPage } from "./gallery-page.tsx"
+import { LETTERS, type Question, type QuestionInput } from "./question.ts"
+import { fitHints, pageWindow } from "./fit.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS: [string, string][] = [
@@ -24,9 +27,12 @@ const SHORT_SUBMIT_HINTS = "←→ · ↓ · enter · esc"
 const EXTRA_HINTS = "↑ back · enter submit · esc cancel"
 const SHORT_TEXT_HINTS = "↑ · enter · esc"
 
-// Only the keys that act here: ←→ needs pages.
-function questionHints(paged: boolean, width: number): string {
-  const keys = HINTS.filter(([key]) => paged || key !== "←→")
+// Only the keys that act here: ←→ needs pages, or moves between designs in a gallery that is the only page;
+// space marks only in a multi-select; z needs a picture.
+function questionHints(paged: boolean, width: number, multi: boolean, pictures: boolean, gallery: boolean): string {
+  const keys = HINTS.filter(([key]) => (paged || gallery || key !== "←→") && (multi || key !== "space"))
+    .map(([key, action]): [string, string] => (key === "←→" && !paged ? [key, "design"] : [key, action]))
+    .flatMap((hint): [string, string][] => (pictures && hint[0] === "n" ? [["z", "enlarge"], hint] : [hint]))
   const full = keys.map((hint) => hint.join(" ")).join(" · ")
   const short = keys.map(([key]) => key).join(" · ")
   return fitHints(full, short, width)
@@ -38,8 +44,6 @@ function printable(key: KeyEvent): boolean {
   const code = key.sequence.charCodeAt(0)
   return code >= 32 && code !== 127
 }
-
-type Question = AskUserQuestionInput["questions"][number]
 
 // `page` runs past the last question to Submit. Per page, `focus` is the cursor row: on a question the options'
 // length is the own-answer row, on Submit 0 is the review and 1 the note row. Per question, `chosen` holds the
@@ -73,7 +77,7 @@ function notesFor(state: QuestionState, index: number): string {
 }
 
 export function answersFrom(
-  input: AskUserQuestionInput,
+  input: QuestionInput,
   state: QuestionState,
 ): { answers: Record<string, string>; notes: Record<string, string> } {
   const answers: Record<string, string> = {}
@@ -86,9 +90,18 @@ export function answersFrom(
   return { answers, notes }
 }
 
-function mark(question: Question, on: boolean): string {
-  if (question.multiSelect) return on ? "■" : "□"
-  return on ? "◉" : "○"
+const hasPictures = (question: Question) => !question.gallery && question.options.some((option) => option.image)
+
+// As tall as the option list beside it, so the ask does not grow for the picture.
+function pictureRows(question: Question): number {
+  const rows = question.options.reduce((sum, option) => sum + 2 + (option.description ? 1 : 0), -1)
+  return Math.max(8, rows)
+}
+
+// A radio shows the cursor before the letter and a ✓ after the label; a multi-select keeps its box.
+function marker(question: Question, index: number, on: boolean, focused: boolean): string {
+  const lead = question.multiSelect ? (on ? "■" : "□") : focused ? "❯" : " "
+  return `${lead} ${LETTERS[index] ?? ""}. `
 }
 
 function Rule(props: { width: number; color: typeof theme.frame }) {
@@ -99,30 +112,38 @@ function Rule(props: { width: number; color: typeof theme.frame }) {
   )
 }
 
-function PageBar(props: { questions: Question[]; page: number; width: number }) {
-  const pages = () =>
-    pageLabels(
+function PageBar(props: { questions: Question[]; page: number; answered: boolean[]; width: number }) {
+  const bar = () =>
+    pageWindow(
       props.questions.map((question) => question.header),
+      props.page,
+      props.answered,
       props.width,
     )
   return (
-    <text wrapMode="none" flexShrink={0}>
-      <span>{"  "}</span>
-      <Index each={pages()}>
-        {(page, index) => (
-          <>
-            <span style={{ fg: theme.frame }}>{index > 0 ? "  │  " : ""}</span>
-            <span style={{ fg: index === props.page ? theme.text : theme.muted, bold: index === props.page }}>
-              {page()}
-            </span>
-          </>
-        )}
-      </Index>
-    </text>
+    <box flexDirection="row" flexShrink={0}>
+      <text wrapMode="none" flexGrow={1}>
+        <span>{"  "}</span>
+        <Index each={bar().tabs}>
+          {(tab, index) => {
+            const current = () => tab().page === props.page
+            return (
+              <>
+                <span style={{ fg: theme.frame }}>{index > 0 ? "  │  " : ""}</span>
+                <span style={{ fg: current() ? theme.text : theme.muted, bold: current() }}>{tab().text}</span>
+              </>
+            )
+          }}
+        </Index>
+      </text>
+      <text wrapMode="none" flexShrink={0} fg={theme.muted}>
+        {bar().indicator}
+      </text>
+    </box>
   )
 }
 
-export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput }) {
+export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
   const questions = () => props.input.questions
   const paged = () => questions().length > 1
   const [state, setState] = createStore<QuestionState>(
@@ -147,6 +168,27 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
     return onOwnRow() ? "own-row" : `option-${focus()}`
   }
   const fromTop = () => !noting() && (!question() || focus() === 0)
+  const narrow = () => props.width < PICTURE_MIN_WIDTH
+  const pictures = () => {
+    const current = question()
+    return current !== undefined && hasPictures(current) && !narrow()
+  }
+  const gallery = () => (question()?.gallery ?? false) && !narrow()
+  const optionsWidth = () => Math.floor((props.width * 2) / 5)
+  const pictureIndex = () => Math.min(focus(), (question()?.options.length ?? 1) - 1)
+  const openPictures = (index: number) => {
+    const options = question()?.options ?? []
+    const shown = options.flatMap((option, at) => {
+      const image = askImage(option.image)
+      return image ? [{ image, at }] : []
+    })
+    const start = shown.findIndex((entry) => entry.at === index)
+    if (start >= 0)
+      props.onOpenImages?.(
+        shown.map((entry) => entry.image),
+        start,
+      )
+  }
 
   // Submit sends nothing while a question has no answer; it opens that question instead.
   const submit = () => {
@@ -202,19 +244,26 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
   // On a text row the focused input takes the keys this handler leaves alone, ←→ included, so they edit the text
   // there. Typing on the Submit review moves to its note row and the key lands in that input.
   useKeyboard((key) => {
-    if (props.answered) return
+    if (props.answered || covered()) return
+    // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {
+      const moving = key.name === "up" || key.name === "down"
       if (key.name === "escape") setNoting(false)
-      else if (key.name === "return") saveNote()
+      else if (key.name === "return" || moving) saveNote()
       else return
-      key.preventDefault()
-      return
+      if (!moving) {
+        key.preventDefault()
+        return
+      }
     }
     const current = question()
     const last = current ? current.options.length : 1
     const onText = onOwnRow() || onExtraRow()
     if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_DECLINED))
-    else if (paged() && !onText && (key.name === "left" || key.name === "right")) {
+    else if (gallery() && !paged() && !onText && (key.name === "left" || key.name === "right")) {
+      const step = key.name === "left" ? -1 : 1
+      setState("focus", state.page, (card) => Math.min(last - 1, Math.max(0, card + step)))
+    } else if (paged() && !onText && (key.name === "left" || key.name === "right")) {
       const step = key.name === "left" ? -1 : 1
       setState("page", (page) => Math.min(questions().length, Math.max(0, page + step)))
     } else if (key.name === "up") setState("focus", state.page, (row) => Math.max(0, row - 1))
@@ -226,7 +275,8 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
       return
     } else if (key.name === "space") choose(focus())
     else if (key.name === "n") openNote()
-    else if (/^[1-9]$/.test(key.name)) pick(Number(key.name) - 1)
+    else if (key.name === "z" && (pictures() || gallery())) openPictures(focus())
+    else if (/^[a-d]$/.test(key.name)) pick(LETTERS.indexOf(key.name.toUpperCase()))
     else return
     key.preventDefault()
   })
@@ -236,7 +286,12 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
     <box flexDirection="column" flexShrink={1}>
       <Rule width={props.width} color={theme.frame} />
       <Show when={paged()}>
-        <PageBar questions={questions()} page={state.page} width={props.width} />
+        <PageBar
+          questions={questions()}
+          page={state.page}
+          answered={questions().map((current, index) => answerFor(current, state, index) !== "")}
+          width={props.width}
+        />
         <Rule width={props.width} color={theme.dimFrame} />
       </Show>
       <AskScroll focus={scrollTarget()} fromTop={fromTop()} scope={state.page}>
@@ -285,64 +340,100 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
               <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="word">
                 {paged() ? `${state.page + 1}. ${current().question}` : current().question}
               </text>
-              <box flexDirection="column" marginTop={1}>
-                <Index each={current().options}>
-                  {(option, index) => {
-                    const focused = () => focus() === index
-                    const on = () => state.chosen[state.page]?.includes(index) ?? false
-                    const markColor = () => (focused() ? theme.accent : on() ? theme.text : theme.muted)
-                    const note = () => state.notes[state.page]?.[index] ?? ""
-                    return (
-                      <box id={`option-${index}`} flexDirection="column" marginBottom={1}>
-                        <box flexDirection="row">
-                          <text fg={markColor()} flexShrink={0}>
-                            {`${mark(current(), on())} `}
-                          </text>
-                          <text
-                            fg={focused() ? theme.accent : theme.text}
-                            attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
-                            wrapMode="word"
-                          >
-                            {option().label}
-                          </text>
-                        </box>
-                        <Show when={option().description}>
-                          <box paddingLeft={2}>
-                            <text fg={theme.muted} wrapMode="word">
-                              {option().description}
-                            </text>
-                          </box>
-                        </Show>
-                        <Show
-                          when={noting() && focused()}
-                          fallback={
-                            <Show when={note()}>
-                              <box paddingLeft={2}>
-                                <text fg={theme.accent} wrapMode="word">
-                                  {note()}
+              <Show when={(hasPictures(current()) || current().gallery) && narrow()}>
+                <text fg={theme.faint} marginTop={1}>
+                  widen the window to see the previews
+                </text>
+              </Show>
+              <Show
+                when={!gallery()}
+                fallback={
+                  <box marginTop={1} marginBottom={1}>
+                    <GalleryPage
+                      question={current()}
+                      width={props.width}
+                      focus={focus()}
+                      chosen={state.chosen[state.page] ?? []}
+                      notes={state.notes[state.page] ?? []}
+                      noting={noting()}
+                      draft={draft()}
+                      onDraft={setDraft}
+                      onPick={(index) => setState("focus", state.page, index)}
+                      onOpen={openPictures}
+                    />
+                  </box>
+                }
+              >
+                <box flexDirection="row" marginTop={1} columnGap={2}>
+                  <box flexDirection="column" width={pictures() ? optionsWidth() : undefined} flexGrow={1}>
+                    <Index each={current().options}>
+                      {(option, index) => {
+                        const focused = () => focus() === index
+                        const on = () => state.chosen[state.page]?.includes(index) ?? false
+                        const markColor = () => (focused() ? theme.accent : on() ? theme.text : theme.muted)
+                        const note = () => state.notes[state.page]?.[index] ?? ""
+                        return (
+                          <box id={`option-${index}`} flexDirection="column" marginBottom={1}>
+                            <box flexDirection="row">
+                              <text fg={markColor()} flexShrink={0}>
+                                {marker(current(), index, on(), focused())}
+                              </text>
+                              <text
+                                fg={focused() ? theme.accent : theme.text}
+                                attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
+                                wrapMode="word"
+                              >
+                                {option().label}
+                                <span style={{ fg: theme.accent }}>{on() && !current().multiSelect ? " ✓" : ""}</span>
+                              </text>
+                            </box>
+                            <Show when={option().description}>
+                              <box paddingLeft={5}>
+                                <text fg={theme.muted} wrapMode="word">
+                                  {option().description}
                                 </text>
                               </box>
                             </Show>
-                          }
-                        >
-                          <box id="note" flexDirection="row" paddingLeft={2}>
-                            <input
-                              focused
-                              flexGrow={1}
-                              value={draft()}
-                              onInput={setDraft}
-                              placeholder="a note for Claude"
-                              placeholderColor={theme.muted}
-                              textColor={theme.accent}
-                              focusedTextColor={theme.accent}
-                            />
+                            <Show
+                              when={noting() && focused()}
+                              fallback={
+                                <Show when={note()}>
+                                  <box paddingLeft={5}>
+                                    <text fg={theme.accent} wrapMode="word">
+                                      {note()}
+                                    </text>
+                                  </box>
+                                </Show>
+                              }
+                            >
+                              <box id="note" flexDirection="row" paddingLeft={5}>
+                                <input
+                                  focused
+                                  flexGrow={1}
+                                  value={draft()}
+                                  onInput={setDraft}
+                                  placeholder="a note for Claude"
+                                  placeholderColor={theme.muted}
+                                  textColor={theme.accent}
+                                  focusedTextColor={theme.accent}
+                                />
+                              </box>
+                            </Show>
                           </box>
-                        </Show>
-                      </box>
-                    )
-                  }}
-                </Index>
-              </box>
+                        )
+                      }}
+                    </Index>
+                  </box>
+                  <Show when={pictures()}>
+                    <AskPicture
+                      image={askImage(current().options[pictureIndex()]?.image)}
+                      width={props.width - optionsWidth() - 2}
+                      height={pictureRows(current())}
+                      onOpen={() => openPictures(pictureIndex())}
+                    />
+                  </Show>
+                </box>
+              </Show>
               <box id="own-row" flexDirection="row">
                 <text fg={onOwnRow() ? theme.accent : theme.muted} flexShrink={0}>
                   {"❯ "}
@@ -371,7 +462,13 @@ export function QuestionAsk(props: AskViewProps & { input: AskUserQuestionInput 
               : onExtraRow()
                 ? fitHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
                 : question()
-                  ? questionHints(paged(), props.width)
+                  ? questionHints(
+                      paged(),
+                      props.width,
+                      question()?.multiSelect ?? false,
+                      pictures() || gallery(),
+                      gallery(),
+                    )
                   : fitHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
         </text>
       </box>

@@ -483,7 +483,14 @@ export function App(props: AppProps) {
       () => {
         const ask = pending()
         if (!ask) return undefined
-        return <AskSurface ask={ask} width={promptInnerWidth(chatWidth(), edgeGap())} onAnswer={props.onAnswer} />
+        return (
+          <AskSurface
+            ask={ask}
+            width={promptInnerWidth(chatWidth(), edgeGap())}
+            onAnswer={props.onAnswer}
+            onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
+          />
+        )
       },
     ),
   )

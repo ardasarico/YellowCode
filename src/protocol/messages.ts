@@ -274,6 +274,32 @@ export const askUserQuestionInput = z.looseObject({
   ),
 })
 
+export const OWN_ASK = "mcp__yellowcode__ask"
+
+const askPage = z
+  .looseObject({
+    question: z.string(),
+    header: z.string(),
+    multiSelect: z.boolean().optional(),
+    gallery: z.boolean().optional(),
+    options: z
+      .array(z.looseObject({ label: z.string(), description: z.string().optional(), image: z.string().optional() }))
+      .min(2)
+      .max(4),
+  })
+  .refine((page) => !page.gallery || page.options.every((option) => option.image))
+
+// Our own ask tool takes either question pages, in stock's shape plus pictures, or one matrix.
+export const ownAskPages = z.looseObject({ questions: z.array(askPage).min(1) })
+export const ownAskMatrix = z.looseObject({
+  matrix: z.looseObject({
+    question: z.string(),
+    header: z.string(),
+    rows: z.array(z.looseObject({ label: z.string() })).min(2),
+    scale: z.array(z.string()).min(2).max(4),
+  }),
+})
+
 const controlRequest = z.looseObject({
   type: z.literal("control_request"),
   request_id: z.string(),
@@ -401,6 +427,7 @@ export type ContentBlock = z.infer<typeof contentBlock>
 export type UserBlock = z.infer<typeof userBlock>
 export type PermissionUpdate = z.infer<typeof permissionUpdate>
 export type AskUserQuestionInput = z.infer<typeof askUserQuestionInput>
+export type AskMatrix = z.infer<typeof ownAskMatrix>["matrix"]
 export type SlashCommand = z.infer<typeof slashCommand>
 export type InitializeResponse = z.infer<typeof initializeResponse>
 export type ModelInfo = z.infer<typeof modelInfo>

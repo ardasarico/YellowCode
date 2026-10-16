@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { testRender } from "@opentui/solid"
+import { OWN_ASK } from "../../protocol/messages.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
 import { alwaysChoice } from "./permission-band.tsx"
@@ -113,5 +114,58 @@ test("arrows on the own-answer row edit the text instead of switching question",
   await setup.renderOnce()
   expect(setup.captureCharFrame()).toContain("Where?")
   expect(setup.captureCharFrame()).toContain("abc")
+  setup.renderer.destroy()
+})
+
+test("Enter in a matrix picks the step and goes to the next open row, then sends", async () => {
+  const matrix = {
+    question: "Keep?",
+    header: "File",
+    rows: [{ label: "A" }, { label: "B" }, { label: "C" }],
+    scale: ["Yes", "No", "Unsure"],
+  }
+  const sent: string[] = []
+  const setup = await testRender(
+    () => (
+      <AskSurface
+        ask={{ ...ask, toolName: OWN_ASK, input: { matrix } }}
+        width={80}
+        onAnswer={(_, line) => sent.push(line)}
+      />
+    ),
+    { width: 80, height: 30 },
+  )
+  setup.mockInput.pressKey("2")
+  setup.mockInput.pressEnter()
+  expect(sent).toHaveLength(0)
+  setup.mockInput.pressKey("n")
+  await setup.mockInput.typeText("later")
+  setup.mockInput.pressEnter()
+  setup.mockInput.pressKey("3")
+  setup.mockInput.pressEnter()
+  expect(sent[0]).toContain('"answers":{"A":"No","B":"No","C":"Unsure"},"annotations":{"C":{"notes":"later"}}')
+  setup.renderer.destroy()
+})
+
+test("a gallery picks a design with ←→ and keeps its note", async () => {
+  const options = ["Dusk", "Petal", "Ember"].map((label) => ({ label, image: `missing/${label}.png` }))
+  const questions = [{ question: "Which theme?", header: "Theme", gallery: true, options }]
+  const sent: string[] = []
+  const setup = await testRender(
+    () => (
+      <AskSurface
+        ask={{ ...ask, toolName: OWN_ASK, input: { questions } }}
+        width={100}
+        onAnswer={(_, line) => sent.push(line)}
+      />
+    ),
+    { width: 100, height: 40 },
+  )
+  setup.mockInput.pressArrow("right")
+  setup.mockInput.pressKey("n")
+  await setup.mockInput.typeText("warm")
+  setup.mockInput.pressEnter()
+  setup.mockInput.pressEnter()
+  expect(sent[0]).toContain('"answers":{"Which theme?":"Petal"},"annotations":{"Which theme?":{"notes":"warm"}}')
   setup.renderer.destroy()
 })

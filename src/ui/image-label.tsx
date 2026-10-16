@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs"
 import { NativeImage, RGBA } from "@opentui/core"
+import { Resvg } from "@resvg/resvg-js"
 import { createMemo, Index, Show } from "solid-js"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -16,7 +17,11 @@ function read(image: ChatImage): LoadedImage {
   let bytes: Uint8Array
   try {
     if (image.data) bytes = Uint8Array.fromBase64(image.data)
-    else if (image.path) bytes = readFileSync(image.path)
+    else if (image.path?.toLowerCase().endsWith(".svg")) {
+      // Loading the system fonts takes most of a second, so only an SVG with text pays for it.
+      const svg = readFileSync(image.path, "utf8")
+      bytes = new Resvg(svg, { font: { loadSystemFonts: /<text[\s>]/.test(svg) } }).render().asPng()
+    } else if (image.path) bytes = readFileSync(image.path)
     else return null
   } catch {
     return null

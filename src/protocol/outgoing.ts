@@ -51,10 +51,20 @@ export function answerQuestions(
     const extra = `Additional note: ${additionalNote}`
     withExtra[last] = withExtra[last] ? `${withExtra[last]}\n${extra}` : extra
   }
+  return allowAnswers(requestId, input, answers, withExtra)
+}
+
+// A matrix answers each row by its label.
+export function allowAnswers(
+  requestId: string,
+  input: object,
+  answers: Record<string, string>,
+  notes: Record<string, string>,
+): string {
   const annotations = Object.fromEntries(
-    Object.entries(withExtra)
+    Object.entries(notes)
       .filter(([, note]) => note !== "")
-      .map(([question, note]) => [question, { notes: note }]),
+      .map(([key, note]) => [key, { notes: note }]),
   )
   const updatedInput = {
     ...input,

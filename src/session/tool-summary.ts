@@ -11,6 +11,7 @@ const fields = z.looseObject({
   description: z.string().optional(),
   prompt: z.string().optional(),
   questions: z.array(z.looseObject({ header: z.string().optional() })).optional(),
+  matrix: z.looseObject({ header: z.string().optional() }).optional(),
 })
 
 const MAX_LENGTH = 120
@@ -30,6 +31,7 @@ export function summarizeToolInput(input: unknown): string {
     f.description ??
     f.prompt ??
     (headers || undefined) ??
+    f.matrix?.header ??
     ""
   const line = value.split("\n")[0] ?? ""
   return line.length > MAX_LENGTH ? `${line.slice(0, MAX_LENGTH - 1)}…` : line

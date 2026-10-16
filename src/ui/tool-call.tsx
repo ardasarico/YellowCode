@@ -1,6 +1,6 @@
 import { RGBA } from "@opentui/core"
 import { createSignal, Index, Show } from "solid-js"
-import { askUserQuestionInput } from "../protocol/messages.ts"
+import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { QUESTION_DECLINED, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
@@ -17,7 +17,8 @@ const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
 const LINE_INDENT = " ".repeat(RESULT_INDENT.length)
 const DEFAULT_DENIALS = new Set([TOOL_DECLINED, QUESTION_DECLINED])
-// Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result.
+// Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result. Our own ask
+// answers a matrix the same way, row by row.
 const ANSWER_IN_RESULT = /"([^"]*)"="([^"]*)"(?: notes: ([\s\S]*?))?(?=, "|\. |\.?$)/g
 
 function count(n: number, noun: string): string {
@@ -69,7 +70,7 @@ export function toolLines(
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
   if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
-  const answers = tool.name === "AskUserQuestion" ? answerLines(tool, ask) : []
+  const answers = tool.name === "AskUserQuestion" || tool.name === OWN_ASK ? answerLines(tool, ask) : []
   return answers.length > 0 ? answers : [resultSummary(tool)]
 }
 
@@ -147,7 +148,9 @@ export function ToolCallRow(props: {
     if (props.item.status === "stopped") return theme.warning
     return props.item.status === "running" ? theme.accent : theme.muted
   }
+  // Our own ask stands in for the stock one, so it reads like it.
   const label = () => {
+    if (props.item.name === OWN_ASK) return { server: "", tool: "AskUserQuestion" }
     const mcp = mcpTool(props.item.name)
     return mcp ? { server: `${mcp.server}/`, tool: mcp.tool } : { server: "", tool: props.item.name }
   }
