@@ -5,14 +5,24 @@ import { theme } from "../theme/theme.ts"
 // A dialog's layers wipe the images under them, so while one is open it draws the tracked images again, dimmed, above
 // its scrim. Without a scrim (no known colors) an image gives way to an empty box of its size instead.
 const [covered, setCovered] = createSignal(false)
-const [tracked, setTracked] = createSignal<ImageRenderable[]>([])
+// Changed in place, since copying the list for every image made mounting thousands of them quadratic.
+const [tracked, setTracked] = createSignal<ImageRenderable[]>([], { equals: false })
 export { covered, setCovered, tracked }
 
 export const blank = () => covered() && !theme.dim
 
 export function trackImage(element: ImageRenderable): void {
-  setTracked((list) => [...list, element])
-  onCleanup(() => setTracked((list) => list.filter((item) => item !== element)))
+  setTracked((list) => {
+    list.push(element)
+    return list
+  })
+  onCleanup(() =>
+    setTracked((list) => {
+      const index = list.indexOf(element)
+      if (index >= 0) list.splice(index, 1)
+      return list
+    }),
+  )
 }
 
 export type Cell = { width: number; height: number }
