@@ -1,3 +1,5 @@
+import { readFileSync, statSync } from "node:fs"
+import { homedir } from "node:os"
 import { basename, extname, resolve } from "node:path"
 import { Lexer, marked, type Token } from "marked"
 import type { ChatImage } from "../../session/types.ts"
@@ -10,13 +12,22 @@ const MEDIA_TYPES: Record<string, string> = {
   ".webp": "image/webp",
 }
 
+const MAX_BYTES = 20 * 1024 * 1024
+
+// Only a regular file of a sane size: /dev/zero or a FIFO would be read forever.
+export function readLocalImage(path: string): Buffer | null {
+  const stat = statSync(path, { throwIfNoEntry: false })
+  return stat?.isFile() && stat.size <= MAX_BYTES ? readFileSync(path) : null
+}
+
 export function isLocalImage(href: string): boolean {
   return !/^[a-z][a-z\d+.-]*:/i.test(href)
 }
 
 function localImage(token: Token, cwd: string): ChatImage | null {
   if (token.type !== "image" || !isLocalImage(String(token.href))) return null
-  const path = resolve(cwd, String(token.href))
+  const href = String(token.href)
+  const path = href.startsWith("~/") ? resolve(homedir(), href.slice(2)) : resolve(cwd, href)
   return { name: basename(path), mediaType: MEDIA_TYPES[extname(path).toLowerCase()] ?? "", data: null, path }
 }
 
