@@ -136,9 +136,11 @@ function PageBar(props: { questions: Question[]; page: number; answered: boolean
           }}
         </Index>
       </text>
-      <text wrapMode="none" flexShrink={0} fg={theme.muted}>
-        {bar().indicator}
-      </text>
+      <Show when={bar().indicator}>
+        <text wrapMode="none" flexShrink={0} fg={theme.muted}>
+          {bar().indicator}
+        </text>
+      </Show>
     </box>
   )
 }

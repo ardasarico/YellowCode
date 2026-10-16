@@ -34,6 +34,8 @@ export function pageWindow(
     { text: "Submit", page: count },
   ]
   let limit = Math.max(...headers.map((header, index) => Bun.stringWidth(`${index + 1}. ${header}`)), 0)
+  // No limit fits when even the shortest labels do not.
+  if (limit > SHORTEST && barWidth(tabsOf(labels(SHORTEST), 0, count - 1), "") > width) limit = SHORTEST
   while (limit > SHORTEST && barWidth(tabsOf(labels(limit), 0, count - 1), "") > width) limit--
   const all = tabsOf(labels(limit), 0, count - 1)
   if (barWidth(all, "") <= width) return { tabs: all, indicator: "" }
