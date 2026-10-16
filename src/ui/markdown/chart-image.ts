@@ -7,6 +7,7 @@ export type XYChart = Extract<Chart, { type: "xy" }>
 export type ChartColors = { muted: string; grid: string; zero: string; series: string[] }
 export type ChartSize = { width: number; height: number; font: number }
 
+const MAX_TICKS = 50
 const FONT = "Menlo"
 const FONT_FILE = "/System/Library/Fonts/Menlo.ttc"
 // Loading every system font takes most of a second per chart; Menlo alone takes a millisecond.
@@ -51,8 +52,12 @@ export function chartSvg(chart: XYChart, size: ChartSize, colors: ChartColors): 
     high = Math.ceil(high / step) * step
   }
   const ticks: number[] = []
-  for (let tick = Math.ceil(low / step) * step; tick <= high + step / 1000; tick += step)
+  for (let tick = Math.ceil(low / step) * step; tick <= high + step / 1000; tick += step) {
+    // At large magnitudes a small step no longer moves the value.
+    if (tick + step === tick || ticks.length > MAX_TICKS) throw new Error("no usable ticks")
     ticks.push(Math.round(tick * 1000) / 1000)
+  }
+  if (!ticks.length) throw new Error("no usable ticks")
   const label = font * 0.85
   const glyph = label * 0.6
   const left = Math.max(...ticks.map((tick) => String(tick).length)) * glyph + font

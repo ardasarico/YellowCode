@@ -246,23 +246,26 @@ export function LineChartImage(props: { chart: XYChart; width: number }) {
     () => props.width,
     () => IMAGE_ROWS,
   )
+  // A chart whose axis cannot be drawn stays text.
   return (
-    <box flexDirection="column">
-      <Title>{props.chart.title}</Title>
-      <Show when={shown()}>
-        {(source) => (
-          <Show when={!blank()} fallback={<box width={props.width} height={IMAGE_ROWS} />}>
-            <image
-              ref={trackImage}
-              source={onBackground(source(), theme.background)}
-              fit="fit"
-              width={props.width}
-              height={IMAGE_ROWS}
-            />
-          </Show>
-        )}
-      </Show>
-    </box>
+    <Show when={!cell() || image()} fallback={<LineChartText chart={props.chart} width={props.width} />}>
+      <box flexDirection="column">
+        <Title>{props.chart.title}</Title>
+        <Show when={shown()}>
+          {(source) => (
+            <Show when={!blank()} fallback={<box width={props.width} height={IMAGE_ROWS} />}>
+              <image
+                ref={trackImage}
+                source={onBackground(source(), theme.background)}
+                fit="fit"
+                width={props.width}
+                height={IMAGE_ROWS}
+              />
+            </Show>
+          )}
+        </Show>
+      </box>
+    </Show>
   )
 }
 
