@@ -37,7 +37,9 @@ export function stepEffort(step: 1 | -1): void {
 }
 
 export function stepModel(step: 1 | -1, current: string | null): void {
-  const index = MODELS.indexOf(settings.model ?? current ?? "")
+  // A dated or suffixed id such as claude-opus-5-5-20261001[1m] steps from its plain model.
+  const plain = (settings.model ?? current ?? "").replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
+  const index = MODELS.indexOf(plain)
   const next = index === -1 ? 0 : (index + step + MODELS.length) % MODELS.length
   setSettings("model", MODELS[next] ?? null)
 }

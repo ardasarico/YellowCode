@@ -230,29 +230,28 @@ function Usage(props: { session: Session; model: string | null; width: number; n
         <Rule width={props.width} />
         <Show when={spent()}>{(text) => <text fg={theme.muted}>{text()}</text>}</Show>
         <Index each={windows()}>
-          {(row, index) => (
-            <box flexDirection="column" marginTop={index === 0 ? 0 : 1}>
-              <box flexDirection="row" justifyContent="space-between">
-                <text fg={theme.text} wrapMode="none">
-                  {row().label}
-                </text>
-                <text fg={levelColor(row().window.utilization)} wrapMode="none">
-                  {`${100 - Math.round(row().window.utilization * 100)}% left`}
+          {(row, index) => {
+            const used = () => Math.min(1, Math.max(0, row().window.utilization))
+            return (
+              <box flexDirection="column" marginTop={index === 0 ? 0 : 1}>
+                <box flexDirection="row" justifyContent="space-between">
+                  <text fg={theme.text} wrapMode="none">
+                    {row().label}
+                  </text>
+                  <text fg={levelColor(used())} wrapMode="none">
+                    {`${100 - Math.round(used() * 100)}% left`}
+                  </text>
+                </box>
+                <ThirdBar fraction={used()} width={props.width} color={levelColor(used())} />
+                <text fg={theme.muted} wrapMode="none">
+                  {cut(
+                    `↻  ${formatUntil(row().window.resetsAt - props.now)} · ${resetTime(row().window.resetsAt, props.now)}`,
+                    props.width,
+                  )}
                 </text>
               </box>
-              <ThirdBar
-                fraction={row().window.utilization}
-                width={props.width}
-                color={levelColor(row().window.utilization)}
-              />
-              <text fg={theme.muted} wrapMode="none">
-                {cut(
-                  `↻  ${formatUntil(row().window.resetsAt - props.now)} · ${resetTime(row().window.resetsAt, props.now)}`,
-                  props.width,
-                )}
-              </text>
-            </box>
-          )}
+            )
+          }}
         </Index>
       </box>
     </Show>

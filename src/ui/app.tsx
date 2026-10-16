@@ -194,7 +194,15 @@ export function App(props: AppProps) {
   )
   createEffect(
     on(
-      () => [settings.theme, settings.sidebar, settings.thinking, settings.sessionTitle, settings.permissionMode],
+      () => [
+        settings.theme,
+        settings.sidebar,
+        settings.thinking,
+        settings.sessionTitle,
+        settings.permissionMode,
+        settings.editor,
+        settings.notifications,
+      ],
       () => setSettingsProblem(null),
       { defer: true },
     ),
@@ -235,6 +243,7 @@ export function App(props: AppProps) {
 
   // The image a `[Image N]` mention points at: image N of the latest user message before it that has one.
   const mentionedImages = (itemId: string, n: number) => {
+    if (n < 1) return null
     const before = props.session.items.slice(0, props.session.items.indexOf(itemId))
     for (const id of before.toReversed()) {
       const item = props.session.byId[id]
