@@ -9,6 +9,7 @@ import {
 } from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
+import type { Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type {
@@ -31,6 +32,8 @@ export type SessionStore = {
   answer(response: string): void
   stopRunning(): void
   end(): void
+  rewind(rewound: Rewound): void
+  redo(): void
 }
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
@@ -208,6 +211,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       limits: { fiveHour: null, week: null, models: {} },
       warning: null,
     },
+    rewound: null,
   })
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
@@ -697,6 +701,13 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
 
   function onOutgoing(message: ProtocolMessage): void {
     if (message.type === "user") {
+      // A message sent after a rewind makes it final: the hidden prompts go for good.
+      const rewound = state.rewound
+      if (rewound) {
+        const cut = state.items.indexOf(rewound.userId)
+        if (cut >= 0) setState("items", state.items.slice(0, cut))
+        setState("rewound", null)
+      }
       const { text, images } = describeUserContent(message.message.content)
       add({ kind: "user", id: newId("user"), text, images }, null)
       interruptSent = false
@@ -751,6 +762,12 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       earlier.stopRunning()
       setState("byId", earlier.state.byId)
       setState("items", (ids) => [...earlier.state.items, ...ids])
+    },
+    rewind(rewound) {
+      setState("rewound", rewound)
+    },
+    redo() {
+      setState("rewound", null)
     },
     answer(response) {
       const parsed = parse(response)

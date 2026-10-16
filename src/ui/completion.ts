@@ -49,10 +49,12 @@ export type CompletionOptions = {
   onListOpen?: (open: boolean) => void
   // Called by ↓ on the last row without history, or on an empty prompt that is not browsing it.
   onLeaveDown?: () => void
-  // Each new `seq` replaces the prompt with `text`.
-  fill?: Accessor<{ text: string; seq: number } | undefined>
+  // Each new `seq` replaces the prompt with `draft`.
+  fill?: Accessor<{ draft: Draft; seq: number } | undefined>
   // Called by Ctrl+C on an empty prompt; Ctrl+C on text clears it.
   onQuit?: () => void
+  // Called by Esc on an empty prompt with no list open.
+  onEscape?: () => void
 }
 
 // The `/` and `@` completion, the argument hint and the token highlight of a textarea.
@@ -259,7 +261,7 @@ export function useCompletion(options: CompletionOptions) {
       fillSeq,
       () => {
         const next = options.fill?.()
-        if (next) restore({ text: next.text, chips: [] })
+        if (next) restore(next.draft)
       },
       { defer: true },
     ),
@@ -331,7 +333,10 @@ export function useCompletion(options: CompletionOptions) {
     const rows = shown()
     const plain = !key.ctrl && !key.meta && !key.shift
     if (rows.length === 0) {
-      if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
+      if (plain && key.name === "escape" && area?.plainText === "") {
+        key.preventDefault()
+        options.onEscape?.()
+      } else if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
       else if (plain && key.name === "down" && options.onLeaveDown && leavesDown()) {
         key.preventDefault()
         options.onLeaveDown()

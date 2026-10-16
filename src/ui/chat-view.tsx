@@ -8,6 +8,7 @@ import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
 import { Markdown } from "./markdown/markdown.tsx"
 import { refTarget } from "./markdown/refs.ts"
+import { RewoundBand } from "./rewind/rewound-band.tsx"
 import { ShellEndRow } from "./shell-end-row.tsx"
 import { buildRows, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
@@ -36,6 +37,7 @@ type ChatViewProps = ChatProps & {
   onReachTop: () => void
   onScrollState: (state: ScrollState) => void
   scrollRef: (scroll: ScrollBoxRenderable) => void
+  onRedo: () => void
 }
 
 function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<Item, { kind: K }> {
@@ -254,6 +256,7 @@ export function ChatView(props: ChatViewProps) {
           </Show>
         )}
       </For>
+      <Show when={props.session.rewound}>{(rewound) => <RewoundBand rewound={rewound()} onRedo={props.onRedo} />}</Show>
     </scrollbox>
   )
 }

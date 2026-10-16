@@ -2,6 +2,7 @@ import { type BoxRenderable, type KeyBinding, TextAttributes } from "@opentui/co
 import { Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import { loadImage } from "../input/image-file.ts"
+import type { Draft } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
@@ -30,7 +31,8 @@ export type InputBlockProps = {
   onSubmit: (submission: Submission) => void
   onLeaveDown?: () => void
   onQuit?: () => void
-  fill?: { text: string; seq: number }
+  onEscape?: () => void
+  fill?: { draft: Draft; seq: number }
 }
 
 export const TILE_PADDING = 3

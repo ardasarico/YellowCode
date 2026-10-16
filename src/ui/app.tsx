@@ -6,6 +6,7 @@ import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
+import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
@@ -27,6 +28,7 @@ import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
+import { RewindDialog } from "./rewind/rewind-dialog.tsx"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { SkillsDialog } from "./skills/skills-dialog.tsx"
@@ -54,12 +56,14 @@ export type AppProps = {
   onSubmit: (text: string, images: OutgoingImage[]) => void
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
+  // Without it the session cannot rewind (a read-only transcript).
+  rewind?: { extras: RewindExtras | null; onRewind: (rewound: Rewound) => void; onRedo: () => void }
 }
 
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab }
-  | { name: "resume" | "theme" | "skills" }
+  | { name: "resume" | "theme" | "skills" | "rewind" }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: FileRef[]; ids: string[]; index: number }
 
@@ -71,7 +75,7 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "settings" ? open.tab : null
   }
-  const [fill, setFill] = createSignal<{ text: string; seq: number }>()
+  const [fill, setFill] = createSignal<{ draft: Draft; seq: number }>()
   const [selected, setSelected] = createSignal<string | null>(null)
   const [agentView, setAgentView] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
@@ -347,6 +351,33 @@ export function App(props: AppProps) {
   }
   onCleanup(() => clearTimeout(disarm))
 
+  // Esc on an empty idle prompt arms the rewind; a second Esc within the window opens it.
+  const [rewindArmed, setRewindArmed] = createSignal(false)
+  let disarmRewind: ReturnType<typeof setTimeout> | undefined
+  const canRewind = () =>
+    props.rewind !== undefined && props.session.status !== "running" && !pending() && userItems().length > 0
+  const openRewind = () => {
+    setRewindArmed(false)
+    if (canRewind()) setDialog({ name: "rewind" })
+  }
+  const pressEscape = () => {
+    if (!canRewind()) return
+    if (rewindArmed()) return openRewind()
+    setRewindArmed(true)
+    clearTimeout(disarmRewind)
+    disarmRewind = setTimeout(() => setRewindArmed(false), QUIT_WINDOW)
+  }
+  onCleanup(() => clearTimeout(disarmRewind))
+  const rewind = (rewound: Rewound) => {
+    const index = userItems().findIndex((item) => item.id === rewound.userId)
+    props.rewind?.onRewind(rewound)
+    const draft = history()[index]
+    if (draft) setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1 }))
+  }
+  const redo = () => {
+    if (props.session.rewound) props.rewind?.onRedo()
+  }
+
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
     if (key.ctrl && key.name === "c") {
@@ -458,6 +489,8 @@ export function App(props: AppProps) {
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills") setDialog({ name: "skills" })
+    else if (command === "/rewind" && props.rewind) openRewind()
+    else if (command === "/redo" && props.rewind) redo()
     else {
       if (draft.chips.length > 0) drafts.set(userItems().length, { text, draft })
       props.onSubmit(text, images)
@@ -473,6 +506,7 @@ export function App(props: AppProps) {
     provider: props.provider,
     onSubmit: submit,
     onQuit: pressQuit,
+    onEscape: pressEscape,
     fill: fill(),
   })
 
@@ -513,6 +547,7 @@ export function App(props: AppProps) {
       settingsProblem: settingsProblem(),
       asking: pending() !== null,
       quitArmed: quitArmed(),
+      rewindArmed: rewindArmed(),
       now: Date.now(),
     })
   }
@@ -583,6 +618,7 @@ export function App(props: AppProps) {
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}
               scrollRef={(element) => (scroll = element)}
+              onRedo={redo}
             />
             <PromptBar
               {...input()}
@@ -646,7 +682,7 @@ export function App(props: AppProps) {
           skills={props.provider.skills()}
           onUse={(command) => {
             setDialog(null)
-            setFill((previous) => ({ text: `/${command} `, seq: (previous?.seq ?? 0) + 1 }))
+            setFill((previous) => ({ draft: { text: `/${command} `, chips: [] }, seq: (previous?.seq ?? 0) + 1 }))
           }}
           onClose={() => setDialog(null)}
         />
@@ -676,6 +712,15 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog()?.name === "rewind" && props.rewind}>
+        {(options) => (
+          <RewindDialog
+            points={rewindPoints(props.session, options().extras)}
+            onRewind={rewind}
+            onClose={() => setDialog(null)}
+          />
+        )}
       </Show>
     </box>
   )

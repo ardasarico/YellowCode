@@ -18,6 +18,7 @@ export function buildRows(session: Session): Row[] {
   let carried: ItemId[] = []
 
   for (const id of session.items) {
+    if (id === session.rewound?.userId) break
     const item = session.byId[id]
     if (!item) continue
 

@@ -138,6 +138,7 @@ function PromptInput(
     onListOpen: (open) => props.onListOpen?.(open),
     onLeaveDown: () => props.onLeaveDown?.(),
     onQuit: () => props.onQuit?.(),
+    onEscape: () => props.onEscape?.(),
     fill: () => props.fill,
   })
   onMount(() => {
@@ -340,6 +341,7 @@ export function PromptBar(props: PromptBarProps) {
             onListOpen={props.onListOpen}
             onLeaveDown={props.onLeaveDown}
             onQuit={props.onQuit}
+            onEscape={props.onEscape}
             fill={props.fill}
           />
         }

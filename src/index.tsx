@@ -16,6 +16,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { initSettings, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
 import packageJson from "../package.json"
+import { loadRewindExtras } from "./session/rewind.ts"
 import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
@@ -69,6 +70,7 @@ const sessionsFolder = values.sessions ?? projectFolder(CLAUDE_PROJECTS, cwd)
 const sessionsCwd = values.sessions ? null : realpathSync(cwd)
 
 const source = createReplaySource(recording, speed)
+const rewindExtras = await loadRewindExtras(values.replay)
 const provider = replayProvider(recording)
 const session = createSession()
 const { settings: stored, problem } = loadSettings()
@@ -208,6 +210,15 @@ function Main() {
             source.send(response)
           }}
           onQuit={() => void quit()}
+          rewind={{
+            extras: rewindExtras,
+            // Restoring files and respawning claude at the prompt wait for the live connection.
+            onRewind: (rewound) => {
+              log.info("rewind", rewound)
+              session.rewind(rewound)
+            },
+            onRedo: () => session.redo(),
+          }}
         />
       }
     >

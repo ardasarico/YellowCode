@@ -1,4 +1,5 @@
 import type { PermissionUpdate } from "../protocol/messages.ts"
+import type { Rewound } from "./rewind.ts"
 
 export type ItemId = string
 
@@ -179,4 +180,5 @@ export type Session = {
   byId: Record<ItemId, Item>
   tasks: Record<string, Task>
   usage: Usage
+  rewound: Rewound | null
 }
