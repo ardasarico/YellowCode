@@ -22,15 +22,18 @@ export function RewindDialog(props: {
   const dimensions = useTerminalDimensions()
   // The dialog's inner width, as the shared frame sizes it.
   const inner = () => (dimensions().width < WIDTH + 6 ? dimensions().width : WIDTH) - PAD_X * 2
-  // The newest prompt is selected first; the points do not change while the dialog is open.
-  const [selected, setSelected] = createSignal(untrack(() => props.points.at(-1)?.userId))
-  const index = () => props.points.findIndex((point) => point.userId === selected())
-  const files = createMemo(() => (index() < 0 ? [] : undone(props.points, index())))
+  // The points do not change while the dialog is open.
+  const points = untrack(() => props.points)
+  const shown = points.filter((point) => !point.hidden)
+  // The newest prompt is selected first.
+  const [selected, setSelected] = createSignal(shown.at(-1)?.userId)
+  const index = () => points.findIndex((point) => point.userId === selected())
+  const files = createMemo(() => (index() < 0 ? [] : undone(points, index())))
 
   const summary = (): DialogText[] => {
     const at = index()
     if (at < 0) return []
-    const prompts = plural(props.points.length - at, "prompt")
+    const prompts = plural(points.length - at, "prompt")
     const changed = files().length > 0 ? plural(files().length, "file") : "no file changes"
     const lines: DialogText[] = [
       { id: "gap", spans: [] },
@@ -53,20 +56,19 @@ export function RewindDialog(props: {
 
   const rewind = (keptFiles: boolean) => {
     const at = index()
-    const point = props.points[at]
+    const point = points[at]
     if (!point) return
-    props.onRewind({ userId: point.userId, prompts: props.points.length - at, files: files().length, keptFiles })
+    props.onRewind({ userId: point.userId, prompts: points.length - at, files: files().length, keptFiles })
     props.onClose()
   }
 
   const sections = () => [
     {
       title: "",
-      rows: props.points
+      rows: shown
         .toReversed()
         .map((point) => ({ id: point.userId, label: cut(flat(point.text) || "(image)", inner() - 2) })),
     },
-    { title: "", rows: summary() },
   ]
 
   return (
@@ -74,6 +76,7 @@ export function RewindDialog(props: {
       title="Rewind"
       width={WIDTH}
       sections={sections()}
+      pinned={summary()}
       footer={[
         { action: "rewind", key: "enter", needsRow: true },
         { action: "keep files", key: "c", needsRow: true },

@@ -13,7 +13,9 @@ export type FileChange = {
   conflict: boolean
 }
 
-export type RewindPoint = { userId: ItemId; text: string; files: FileChange[] }
+// `hidden` marks a prompt an earlier rewind hid: it cannot be picked again, but a rewind to an earlier prompt
+// undoes it too.
+export type RewindPoint = { userId: ItemId; text: string; files: FileChange[]; hidden: boolean }
 
 // What the session has rewound: everything from `userId` on is hidden until a redo or the next send.
 export type Rewound = { userId: ItemId; prompts: number; files: number; keptFiles: boolean }
@@ -68,18 +70,18 @@ export function mergeChanges(changes: FileChange[]): FileChange[] {
 // Each prompt with the files its turn changed, subagents included, oldest first.
 export function rewindPoints(session: Session, extras: RewindExtras | null): RewindPoint[] {
   const cwd = session.info?.cwd ?? ""
-  const points: { userId: ItemId; text: string; changes: FileChange[] }[] = []
+  const points: { userId: ItemId; text: string; changes: FileChange[]; hidden: boolean }[] = []
   const collect = (item: Item | undefined, into: FileChange[]) => {
     if (item?.kind !== "tool") return
     const change = toolChange(item, cwd)
     if (change) into.push(change)
     for (const child of item.children) collect(session.byId[child], into)
   }
+  let hidden = false
   for (const id of session.items) {
-    // Prompts an earlier rewind hid cannot be rewound to again.
-    if (id === session.rewound?.userId) break
+    if (id === session.rewound?.userId) hidden = true
     const item = session.byId[id]
-    if (item?.kind === "user") points.push({ userId: id, text: item.text, changes: [] })
+    if (item?.kind === "user") points.push({ userId: id, text: item.text, changes: [], hidden })
     else {
       const current = points.at(-1)
       if (current) collect(item, current.changes)
@@ -93,7 +95,7 @@ export function rewindPoints(session: Session, extras: RewindExtras | null): Rew
   return points.map((point) => {
     const files = mergeChanges(point.changes)
     for (const file of files) file.conflict = conflicts.has(file.path)
-    return { userId: point.userId, text: point.text, files }
+    return { userId: point.userId, text: point.text, files, hidden: point.hidden }
   })
 }
 

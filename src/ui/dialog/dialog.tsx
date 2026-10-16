@@ -7,6 +7,7 @@ import {
   type DialogLine,
   type DialogRow,
   type DialogSection,
+  type DialogText,
   dialogLines,
   filterSections,
   isRow,
@@ -21,6 +22,8 @@ export type DialogProps = {
   title: string
   width?: number
   sections: DialogSection[]
+  // Lines under the list that stay in view while it scrolls.
+  pinned?: DialogText[]
   // A function follows the selected row.
   footer: FooterAction[] | ((row: DialogRow | undefined) => FooterAction[])
   view: string
@@ -92,12 +95,16 @@ export function Dialog(props: DialogProps) {
     const text = body.length === 0 ? props.empty?.(query()) : undefined
     return text ? [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.panelMuted }] } }] : body
   })
+  const pinned = () => (props.pinned ?? []).map((text): DialogLine => ({ kind: "text", text }))
   const fixedRows = () => FIXED_ROWS + (searching() ? SEARCH_ROWS : 0)
   // The blank row above the footer belongs to the line area, so an empty view adds no rows.
-  const natural = () => fixedRows() + (lines().length > 0 ? lines().length + 1 : 0)
+  const natural = () => fixedRows() + (lines().length > 0 ? lines().length + pinned().length + 1 : 0)
   const height = () => Math.min(Math.max(natural(), props.minHeight ?? 0), dimensions().height - 2)
   const areaRows = () => Math.max(0, height() - fixedRows())
-  const lineRows = () => Math.max(0, areaRows() - (lines().length > 0 ? 1 : 0))
+  const spareRows = () => Math.max(0, areaRows() - (lines().length > 0 ? 1 : 0))
+  // The pinned lines leave the list at least its selected row.
+  const pinnedRows = () => Math.min(pinned().length, Math.max(0, spareRows() - 1))
+  const lineRows = () => spareRows() - pinnedRows()
 
   // The top edge stays where the tallest view put it, so views grow and shrink at the bottom.
   const tallest = createMemo((previous: number) => Math.max(previous, height()), 0)
@@ -143,6 +150,14 @@ export function Dialog(props: DialogProps) {
           selected={selectedId()}
           view={props.view}
           rows={lineRows()}
+          width={inner()}
+        />
+        <ListView
+          sections={[]}
+          lines={pinned()}
+          selected={undefined}
+          view={props.view}
+          rows={pinnedRows()}
           width={inner()}
         />
       </box>
