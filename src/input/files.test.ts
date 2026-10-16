@@ -1,18 +1,19 @@
 import { expect, test } from "bun:test"
-import { searchEntries, withFolders } from "./files.ts"
+import { fileEntries, searchEntries, withFolders } from "./files.ts"
 
-const entries = withFolders([
+const files = [
   "package.json",
   "src/index.tsx",
   "src/ui/ask/ask-row.tsx",
   "src/ui/prompt-bar.tsx",
   "src/ui/probe/bar.ts",
   "docs/p/b/a/r.md",
-])
+]
+const entries = fileEntries(files)
 
 test("withFolders adds every parent folder", () => {
-  expect(entries).toContain("src/ui/ask/")
-  expect(entries).toContain("src/")
+  expect(withFolders(files)).toContain("src/ui/ask/")
+  expect(withFolders(files)).toContain("src/")
 })
 
 test("empty and folder queries list direct children", () => {

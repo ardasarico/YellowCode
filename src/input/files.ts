@@ -1,16 +1,18 @@
 const LIMIT = 15
 
-let cached: string[] | null = null
+export type FileEntry = { path: string; lower: string; lowerSegment: string }
 
-function gitFiles(): string[] {
+let cached: Promise<FileEntry[]> | null = null
+
+async function gitFiles(): Promise<string[]> {
   try {
-    const result = Bun.spawnSync(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
+    const proc = Bun.spawn(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
       cwd: process.cwd(),
       stdout: "pipe",
       stderr: "ignore",
     })
-    if (result.exitCode !== 0) return []
-    return result.stdout.toString().split("\0").filter(Boolean)
+    const [output, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
+    return code === 0 ? output.split("\0").filter(Boolean) : []
   } catch {
     return []
   }
@@ -32,6 +34,13 @@ function lastSegment(entry: string): string {
   return bare.slice(bare.lastIndexOf("/") + 1)
 }
 
+export function fileEntries(files: string[]): FileEntry[] {
+  return withFolders(files).map((path) => {
+    const lower = path.toLowerCase()
+    return { path, lower, lowerSegment: lastSegment(lower) }
+  })
+}
+
 function gaps(text: string, needle: string): number | null {
   if (text.includes(needle)) return 0
   let at = -1
@@ -49,22 +58,22 @@ function isChild(entry: string, folder: string): boolean {
   return entry !== folder && entry.startsWith(folder) && !entry.slice(folder.length, -1).includes("/")
 }
 
-export function searchEntries(entries: string[], query: string): string[] {
-  if (query === "" || (query.endsWith("/") && entries.includes(query))) {
-    return entries.filter((entry) => isChild(entry, query)).slice(0, LIMIT)
+export function searchEntries(entries: FileEntry[], query: string): string[] {
+  if (query === "" || (query.endsWith("/") && entries.some(({ path }) => path === query))) {
+    return entries.flatMap(({ path }) => (isChild(path, query) ? [path] : [])).slice(0, LIMIT)
   }
   const needle = query.toLowerCase()
   const ranked: { entry: string; inSegment: boolean; gaps: number }[] = []
-  for (const entry of entries) {
-    const inSegment = gaps(lastSegment(entry).toLowerCase(), needle)
-    const inPath = inSegment === null ? gaps(entry.toLowerCase(), needle) : inSegment
-    if (inPath !== null) ranked.push({ entry, inSegment: inSegment !== null, gaps: inPath })
+  for (const { path, lower, lowerSegment } of entries) {
+    const inSegment = gaps(lowerSegment, needle)
+    const inPath = inSegment === null ? gaps(lower, needle) : inSegment
+    if (inPath !== null) ranked.push({ entry: path, inSegment: inSegment !== null, gaps: inPath })
   }
   ranked.sort((a, b) => Number(b.inSegment) - Number(a.inSegment) || a.gaps - b.gaps || a.entry.length - b.entry.length)
   return ranked.slice(0, LIMIT).map((item) => item.entry)
 }
 
-export function suggestFiles(query: string): string[] {
-  cached ??= withFolders(gitFiles())
-  return searchEntries(cached, query)
+export async function suggestFiles(query: string): Promise<string[]> {
+  cached ??= gitFiles().then(fileEntries)
+  return searchEntries(await cached, query)
 }

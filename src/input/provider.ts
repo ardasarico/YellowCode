@@ -49,6 +49,6 @@ export function replayProvider(recording: Recording): InputProvider {
     settingsSources: () => sources,
     skillRows: () => (replied ? rows : null),
     pluginHooks: () => hooks,
-    files: (query) => Promise.resolve(suggestFiles(query)),
+    files: suggestFiles,
   }
 }
