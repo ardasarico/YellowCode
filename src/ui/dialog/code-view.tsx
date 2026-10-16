@@ -102,7 +102,7 @@ export function CodeView(props: {
     return shown.end ? `:${shown.line}-${shown.end}` : `:${shown.line}`
   }
   const details = () => {
-    const parts = [language(), `${lineCount()} lines`].filter(Boolean)
+    const parts = [language(), `${lineCount()} ${lineCount() === 1 ? "line" : "lines"}`].filter(Boolean)
     return `${position()} · ${parts.join(" · ")}`
   }
   const several = () => props.refs.length > 1
