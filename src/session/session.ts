@@ -228,6 +228,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   let live = new Set<string>()
   // Our own get_task_output requests: request id → task id.
   const outputRequests = new Map<string, string>()
+  // Shells whose end already has its row; a repeated notification adds no second one.
+  const shellEnds = new Set<string>()
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
@@ -421,7 +423,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         if (fileResult?.type === "create") item.createdFile = true
         if (fileResult?.type === "file_unchanged") item.unchanged = true
         if (item.agent && !launched) {
-          item.agent.state = block.is_error ? "failed" : "completed"
+          // An agent the user stopped ends with an error result, and it stays stopped.
+          if (item.agent.state !== "stopped") item.agent.state = block.is_error ? "failed" : "completed"
           item.agent.report = item.result
         }
       })
@@ -604,6 +607,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       case "task_started":
         return onTaskStarted(message)
       case "task_progress": {
+        // Progress that arrives after the end would replace the final numbers.
+        if (state.tasks[message.task_id]?.state !== "running") return
         const workflow = workflowOf(message.workflow_progress, shift)
         setTask(message.task_id, (task) => {
           task.activity = message.description ?? ""
@@ -659,7 +664,10 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         })
         finishTask(message.task_id, message.status)
         const task = state.tasks[message.task_id]
-        if (task && isShell(task)) add({ kind: "shell-end", id: newId("shell-end"), taskId: task.id }, null)
+        if (task && isShell(task) && !shellEnds.has(task.id)) {
+          shellEnds.add(task.id)
+          add({ kind: "shell-end", id: newId("shell-end"), taskId: task.id }, null)
+        }
         return
       }
     }
