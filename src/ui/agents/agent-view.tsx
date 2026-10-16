@@ -133,6 +133,32 @@ function Footer(props: { notice: boolean; width: number }) {
   )
 }
 
+function sameNode(a: TreeNode, b: TreeNode): boolean {
+  const left: Record<string, unknown> = a
+  const right: Record<string, unknown> = b
+  return Object.keys(left).every((key) =>
+    key === "progress"
+      ? a.progress?.done === b.progress?.done &&
+        a.progress?.failed === b.progress?.failed &&
+        a.progress?.total === b.progress?.total &&
+        a.progress?.tokens === b.progress?.tokens
+      : left[key] === right[key],
+  )
+}
+
+// A node keeps its object while nothing in it changed, so its row and page see no change.
+function keepUnchanged(): (nodes: TreeNode[]) => TreeNode[] {
+  let previous = new Map<string, TreeNode>()
+  return (built) => {
+    const nodes = built.map((node) => {
+      const old = previous.get(node.id)
+      return old && sameNode(old, node) ? old : node
+    })
+    previous = new Map(nodes.map((node) => [node.id, node]))
+    return nodes
+  }
+}
+
 function Page(props: PageProps & { rows: TreeNode[] }) {
   return (
     <Switch>
@@ -161,8 +187,10 @@ export function AgentView(props: {
   height: number
 }) {
   let scroll: ScrollBoxRenderable | undefined
-  const agents = createMemo(() => agentTree(props.session))
-  const shells = createMemo(() => shellNodes(props.session))
+  const keptAgents = keepUnchanged()
+  const keptShells = keepUnchanged()
+  const agents = createMemo(() => keptAgents(agentTree(props.session)))
+  const shells = createMemo(() => keptShells(shellNodes(props.session)))
   const nodes = createMemo(() => [...agents(), ...shells()])
   const byId = createMemo(() => new Map(nodes().map((node) => [node.id, node])))
   const node = () => byId().get(props.selected) ?? nodes().find((entry) => entry.selectable)
