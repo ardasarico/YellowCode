@@ -49,14 +49,18 @@ export function parseTree(text: string): TreeRow[] | null {
     nodes.push(node)
   }
   if (!nodes.length) return null
-  const isLast = (index: number) => {
-    const depth = nodes[index]?.depth ?? 0
-    const next = nodes.slice(index + 1).find((node) => node.depth <= depth)
-    return next === undefined || next.depth < depth
-  }
+  // A node is last unless a sibling follows it before a shallower node does.
+  const isLast = nodes.map(() => true)
+  const latest: number[] = []
+  nodes.forEach((node, index) => {
+    const sibling = latest[node.depth]
+    if (sibling !== undefined) isLast[sibling] = false
+    latest.length = node.depth
+    latest[node.depth] = index
+  })
   const open: boolean[] = []
   return nodes.map((node, index) => {
-    const last = isLast(index)
+    const last = isLast[index] === true
     open.length = Math.max(0, node.depth - 1)
     const prefix = node.depth ? open.map((more) => (more ? "│  " : "   ")).join("") + (last ? "└─ " : "├─ ") : ""
     if (node.depth) open.push(!last)
