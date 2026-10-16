@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch } from "solid-js"
+import { Index, Match, Show, Switch } from "solid-js"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
@@ -85,7 +85,9 @@ export function WorkflowPage(props: PageProps & { rows: TreeNode[] }) {
       />
       <PageScroll scrollRef={props.scrollRef}>
         <box flexDirection="column">
-          <For each={props.rows}>{(row) => <Entry node={row} depth={props.node.depth} width={props.width - 2} />}</For>
+          <Index each={props.rows}>
+            {(row) => <Entry node={row()} depth={props.node.depth} width={props.width - 2} />}
+          </Index>
         </box>
         <Show when={props.node.state === "failed" && task()?.error}>
           {(error) => <text fg={theme.error}>{error()}</text>}

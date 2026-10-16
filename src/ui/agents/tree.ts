@@ -1,5 +1,6 @@
+import { unwrap } from "solid-js/store"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
-import type { Session, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
+import type { Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
 
 export type TreeNode = {
   id: string
@@ -53,13 +54,27 @@ function workflowAgentState(agent: WorkflowAgent, workflowRunning: boolean): Tre
   return workflowRunning ? "running" : "stopped"
 }
 
+// Each progress report replaces the snapshot whole, so its insides are read untracked.
+function snapshot(task: Task | undefined): WorkflowProgress | null {
+  return task?.workflow ? unwrap(task.workflow) : null
+}
+
+function byPhase(workflow: WorkflowProgress): Map<number | null, WorkflowAgent[]> {
+  const groups = new Map<number | null, WorkflowAgent[]>()
+  for (const agent of workflow.agents) {
+    const group = groups.get(agent.phaseIndex)
+    if (group) group.push(agent)
+    else groups.set(agent.phaseIndex, [agent])
+  }
+  return groups
+}
+
 // The latest phase with a started agent, as `Title done/total`; "" before any agent starts.
 function workflowStatus(workflow: WorkflowProgress | null, running: boolean): string {
   if (!workflow) return ""
+  const groups = byPhase(workflow)
   for (const phase of workflow.phases.toReversed()) {
-    const states = workflow.agents
-      .filter((agent) => agent.phaseIndex === phase.index)
-      .map((agent) => workflowAgentState(agent, running))
+    const states = (groups.get(phase.index) ?? []).map((agent) => workflowAgentState(agent, running))
     if (states.some((state) => state !== "queued"))
       return `${phase.title} ${states.filter((state) => state === "completed").length}/${states.length}`
   }
@@ -100,7 +115,8 @@ export function workflowNode(
 ): TreeNode {
   const task = tool.taskId ? session.tasks[tool.taskId] : undefined
   const state = task?.state ?? toolState(tool.status)
-  const agents = task?.workflow?.agents ?? []
+  const workflow = snapshot(task)
+  const agents = workflow?.agents ?? []
   return {
     id: tool.id,
     kind: "workflow",
@@ -108,7 +124,7 @@ export function workflowNode(
     parentId,
     name: task?.workflowName || task?.description || "workflow",
     state,
-    detail: workflowStatus(task?.workflow ?? null, state === "running"),
+    detail: workflowStatus(workflow, state === "running"),
     toolUses: agents.length,
     durationMs: task?.durationMs ?? 0,
     startedAt: task?.startedAt ?? null,
@@ -129,8 +145,9 @@ function lastTool(agent: WorkflowAgent): string {
 }
 
 function workflowChildren(session: Session, tool: ToolCall, parent: TreeNode): TreeNode[] {
-  const workflow = tool.taskId ? session.tasks[tool.taskId]?.workflow : null
+  const workflow = snapshot(tool.taskId ? session.tasks[tool.taskId] : undefined)
   if (!workflow) return []
+  const groups = byPhase(workflow)
   const running = parent.state === "running"
   const agentRow = (agent: WorkflowAgent, depth: number, parentId: string, state: TreeNode["state"]): TreeNode => ({
     id: `${tool.id}:${agent.index}`,
@@ -152,9 +169,10 @@ function workflowChildren(session: Session, tool: ToolCall, parent: TreeNode): T
     .map((agent) => agentRow(agent, parent.depth + 1, parent.id, workflowAgentState(agent, running)))
 
   for (const phase of workflow.phases) {
-    const agents = workflow.agents
-      .filter((agent) => agent.phaseIndex === phase.index)
-      .map((agent) => ({ agent, state: workflowAgentState(agent, running) }))
+    const agents = (groups.get(phase.index) ?? []).map((agent) => ({
+      agent,
+      state: workflowAgentState(agent, running),
+    }))
     const id = `${tool.id}:phase:${phase.index}`
     const count = (state: TreeNode["state"]) => agents.filter((entry) => entry.state === state).length
     const queued = count("queued")
