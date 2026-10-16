@@ -58,7 +58,10 @@ function Tree(props: {
 }) {
   let scroll: ScrollBoxRenderable | undefined
   const withAgents = () => props.agents.length > 0 || props.shells.length === 0
+  // The first run comes before any layout, when nothing can scroll yet, so a layout runs it again.
+  const [layout, setLayout] = createSignal(0)
   createEffect(() => {
+    layout()
     const agent = props.agents.findIndex((node) => node.id === props.selected)
     const shell = props.shells.findIndex((node) => node.id === props.selected)
     const index =
@@ -81,7 +84,14 @@ function Tree(props: {
         width={props.width}
       />
       <scrollbox
-        ref={(element) => (scroll = element)}
+        ref={(element) => {
+          scroll = element
+          const resized = element.content.onSizeChange
+          element.content.onSizeChange = () => {
+            resized?.()
+            setLayout((count) => count + 1)
+          }
+        }}
         flexGrow={1}
         marginTop={1}
         verticalScrollbarOptions={{ visible: false }}
