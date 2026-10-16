@@ -143,7 +143,7 @@ export function Dialog(props: DialogProps) {
         <SearchRow query={query()} placeholder={props.searchPlaceholder} />
         <box height={1} />
       </Show>
-      <box height={areaRows()} flexDirection="column">
+      <box height={areaRows()} flexDirection="column" overflow="hidden">
         <ListView
           sections={props.sections}
           lines={lines()}

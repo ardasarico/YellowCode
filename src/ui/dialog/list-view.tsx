@@ -3,7 +3,15 @@ import { createMemo, Index, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
-import { type DialogLine, type DialogRow, type DialogSection, type DialogText, isRow, scrollWindow } from "./list.ts"
+import {
+  type DialogLine,
+  type DialogRow,
+  type DialogSection,
+  type DialogText,
+  isRow,
+  MORE_MIN_ROWS,
+  scrollWindow,
+} from "./list.ts"
 
 // An action that works on the selected row is hidden while no row matches.
 export type FooterAction = { action: string; key: string; needsRow?: boolean }
@@ -204,11 +212,14 @@ export function ListView(props: ListViewProps) {
     return Math.min(widest + 3, Math.floor(props.width * 0.45))
   })
 
+  // The last row also brings the lines under it into view, as far as they fit.
   const focus = () => {
     const index = props.lines.findIndex((line) => line.kind === "row" && line.row.id === props.selected)
     if (index === -1) return { from: 0, to: 0 }
     const from = props.lines[index - 1]?.kind === "title" ? index - 1 : index
-    return { from, to: props.lines[index + 1]?.kind === "note" ? index + 1 : index }
+    const to = props.lines[index + 1]?.kind === "note" ? index + 1 : index
+    const last = props.lines.findLastIndex((line) => line.kind === "row") === index
+    return { from, to: last ? Math.max(to, Math.min(props.lines.length - 1, from + props.rows - 2)) : to }
   }
   const scroll = createMemo<{ view: string; window: ReturnType<typeof scrollWindow> }>((previous) => {
     const start = previous?.view === props.view ? previous.window.start : 0
@@ -300,7 +311,7 @@ export function ListView(props: ListViewProps) {
 
   return (
     <>
-      <Show when={scroll().window.start > 0}>
+      <Show when={scroll().window.start > 0 && props.rows >= MORE_MIN_ROWS}>
         <Line
           left={{ text: `↑ ${scroll().window.above} more`, fg: theme.panelFaint }}
           width={props.width}
@@ -308,7 +319,7 @@ export function ListView(props: ListViewProps) {
         />
       </Show>
       <Index each={shown()}>{(line) => <>{lineView(line())}</>}</Index>
-      <Show when={scroll().window.end < props.lines.length}>
+      <Show when={scroll().window.end < props.lines.length && props.rows >= MORE_MIN_ROWS}>
         <Line
           left={{ text: `↓ ${scroll().window.below} more`, fg: theme.panelFaint }}
           width={props.width}

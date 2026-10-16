@@ -33,6 +33,14 @@ test("a scrolled list keeps the selection in view and counts the rows its more l
   expect(back.start).toBe(bottom.start)
 })
 
+test("a list too short for its more lines still shows the selected line", () => {
+  const lines = dialogLines([{ title: "", rows: ["a", "b", "c", "d"].map((id) => ({ id, label: id })) }], undefined)
+  for (const rows of [1, 2]) {
+    const window = scrollWindow(lines, rows, 2, 2, 0)
+    expect(window.start <= 2 && 2 < window.end && window.end - window.start <= rows).toBe(true)
+  }
+})
+
 test("a row with search text matches on it instead of its label", () => {
   const rows = [{ id: "a", label: "Fix login", search: "Fix login\nthe token expires early" }]
   expect(selectableIds(filterSections([{ title: "", rows }], "token"))).toEqual(["a"])

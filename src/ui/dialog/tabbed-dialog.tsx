@@ -120,10 +120,10 @@ export function TabbedDialog<Id extends string>(props: {
   // A span's style only ever adds: an unset bg or bold keeps the old one, so each change draws a new span.
   const Strip = () => (
     <box height={1} paddingLeft={PAD_X} paddingRight={PAD_X} flexDirection="row">
-      <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="none">
+      <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="none" flexShrink={0}>
         {props.title}
       </text>
-      <text marginLeft={2} wrapMode="none">
+      <text marginLeft={2} wrapMode="none" flexShrink={1}>
         <For each={props.tabs}>
           {(tab) => () => {
             const active = tab.id === props.tab
@@ -143,7 +143,7 @@ export function TabbedDialog<Id extends string>(props: {
         </For>
       </text>
       <box flexGrow={1} />
-      <text fg={theme.panelMuted} wrapMode="none">
+      <text fg={theme.panelMuted} wrapMode="none" flexShrink={0} marginLeft={1}>
         esc
       </text>
     </box>

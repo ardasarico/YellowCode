@@ -74,12 +74,16 @@ export function dialogLines(sections: DialogSection[], selected: string | undefi
   return lines
 }
 
+// Below this many rows a list has no room for its "N more" lines.
+export const MORE_MIN_ROWS = 3
+
 const counted = (line: DialogLine) => line.kind === "row" || (line.kind === "text" && line.text.spans.length > 0)
 
 // Lines shown at `offset` when `count` lines share `rows`: a hidden part above or below costs one row for its
 // "N more" line.
 function shown(count: number, rows: number, offset: number) {
   if (count <= rows) return { start: 0, end: count }
+  if (rows < MORE_MIN_ROWS) return { start: offset, end: Math.min(count, offset + Math.max(0, rows)) }
   const room = rows - (offset > 0 ? 1 : 0)
   return { start: offset, end: offset + room >= count ? count : Math.max(offset, offset + room - 1) }
 }
@@ -92,7 +96,7 @@ export function scrollWindow(lines: DialogLine[], rows: number, from: number, to
   while (offset > 0 && from < shown(count, rows, offset).start) offset--
   while (offset < last && to >= shown(count, rows, offset).end) offset++
   // An "↑ more" line in place of the first line alone shows nothing more than starting at the top.
-  if (offset === 1) offset = 0
+  if (offset === 1 && rows >= MORE_MIN_ROWS) offset = 0
   const { start, end } = shown(count, rows, offset)
   return {
     start,
