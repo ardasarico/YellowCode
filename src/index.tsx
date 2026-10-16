@@ -113,6 +113,8 @@ async function quit(): Promise<void> {
   try {
     await destroyTreeSitterClient()
   } finally {
+    if (renderer.capabilities?.program_status) renderer.setProgramStatus({ state: "clear" })
+    renderer.setTerminalTitle("")
     renderer.destroy()
     // The terminal comes back to its normal state asynchronously, and exiting before that leaves it broken.
     await renderer.closed.catch(() => {})

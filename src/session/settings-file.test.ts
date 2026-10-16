@@ -22,7 +22,7 @@ test("broken JSON gives the defaults and says so", () => {
 })
 
 test("a bad field is reset and the other fields are kept", () => {
-  const loaded = loadSettings(fileWith('{"theme":"neon","sidebar":"hidden","extra":1}'))
-  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden" })
+  const loaded = loadSettings(fileWith('{"theme":"neon","sidebar":"hidden","notifications":"waiting","extra":1}'))
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", notifications: "waiting" })
   expect(loaded.problem).toBe("settings.json: invalid theme, using the default")
 })

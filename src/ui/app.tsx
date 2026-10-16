@@ -16,6 +16,7 @@ import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
 import { agentTree, isAgentCall, isWorkflowCall } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
+import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import type { Submission } from "./completion.ts"
 import { CodeView } from "./dialog/code-view.tsx"
@@ -115,6 +116,14 @@ export function App(props: AppProps) {
     () => props.titles,
     untrack(() => props.readOnly),
   )
+  const flagged = untrack(() => props.readOnly)
+    ? () => false
+    : useAttention(
+        renderer,
+        () => props.session,
+        () => settings.notifications,
+      )
+  createEffect(() => renderer.setTerminalTitle(`${flagged() ? "(!) " : ""}${title()?.title ?? "YellowCode"}`))
   // A drag that starts on the sidebar edge is captured by whatever lies under the pointer at its first step,
   // so the resize follows drags that bubble up to the layout row.
   const [resizing, setResizing] = createSignal(false)

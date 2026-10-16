@@ -55,6 +55,16 @@ export const SETTINGS: SettingDefinition[] = [
       return editorChoices(settings.editor).map((value) => ({ value, label: editorName(value) }))
     },
   },
+  {
+    key: "notifications",
+    section: "Session",
+    label: "Notifications",
+    options: [
+      { value: "all", label: "All" },
+      { value: "waiting", label: "Only when waiting" },
+      { value: "off", label: "Off" },
+    ],
+  },
 ]
 
 const LONG = 3

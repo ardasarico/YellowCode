@@ -13,6 +13,8 @@ export type ThinkingSetting = "summarized" | "hidden"
 export type TitleSource = "yellowcode" | "claude-code"
 export const EDITORS = ["default", "zed", "vscode", "cursor"] as const
 export type Editor = (typeof EDITORS)[number]
+export const NOTIFICATIONS = ["all", "waiting", "off"] as const
+export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
 export type StoredSettings = {
   theme: string
@@ -21,6 +23,7 @@ export type StoredSettings = {
   sessionTitle: TitleSource
   permissionMode: PermissionMode
   editor: Editor
+  notifications: NotificationSetting
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -30,6 +33,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   sessionTitle: "yellowcode",
   permissionMode: "auto",
   editor: "default",
+  notifications: "all",
 }
 
 const Stored = z.record(z.string(), z.unknown())
@@ -40,6 +44,7 @@ const Thinking = z.enum(["summarized", "hidden"])
 const SessionTitle = z.enum(["yellowcode", "claude-code"])
 const Permission = z.enum(PERMISSION_MODES)
 const EditorSchema = z.enum(EDITORS)
+const Notifications = z.enum(NOTIFICATIONS)
 
 export type LoadedSettings = { settings: StoredSettings; problem: string | null }
 
@@ -72,6 +77,7 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
   read("sessionTitle", SessionTitle)
   read("permissionMode", Permission)
   read("editor", EditorSchema)
+  read("notifications", Notifications)
   return {
     settings,
     problem: invalid.length > 0 ? `settings.json: invalid ${invalid.join(", ")}, using the default` : null,
@@ -79,10 +85,10 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
 }
 
 export function saveSettings(settings: StoredSettings, path = configPath("settings.json")): void {
-  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor } = settings
+  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications } = settings
   try {
     mkdirSync(dirname(path), { recursive: true })
-    const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor }
+    const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications }
     writeFileSync(path, `${JSON.stringify(stored, null, 2)}\n`)
   } catch (error) {
     log.warn("cannot save the settings", error)
