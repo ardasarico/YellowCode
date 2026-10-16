@@ -15,6 +15,7 @@ export function ImageTile(props: {
 }) {
   const [element, setElement] = createSignal<ImageRenderable>()
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
+  const [room, setRoom] = createSignal(0)
   const decoded = createMemo(() => {
     let image: NativeImage
     try {
@@ -29,7 +30,9 @@ export function ImageTile(props: {
     const image = decoded()
     const shape = cell()
     const ratio = shape ? shape.height / shape.width : 2
-    return (image && element()?.getFittedSize(1000, TILE_ROWS, ratio, image.width, image.height).width) ?? 0
+    const width = room() - 2
+    if (!image || width <= 0) return 0
+    return element()?.getFittedSize(width, TILE_ROWS, ratio, image.width, image.height).width ?? 0
   })
   const source = createShown(decoded, cell, imageWidth, () => TILE_ROWS)
   const captionWidth = () => Math.max(props.caption.length, props.onOpen ? OPEN.length : 0)
@@ -42,6 +45,9 @@ export function ImageTile(props: {
       flexDirection="column"
       alignItems="center"
       flexShrink={0}
+      renderBefore={function () {
+        setRoom(this.parent?.width ?? 0)
+      }}
       onMouseDown={(event) => {
         if (!props.onOpen) return
         event.preventDefault()
