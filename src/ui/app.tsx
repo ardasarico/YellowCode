@@ -558,10 +558,7 @@ export function App(props: AppProps) {
             if (!resizing() || event.isDragging) return
             const width = dimensions().width
             const half = Math.floor(width / 2)
-            const max = Math.max(
-              SIDEBAR_MIN_WIDTH,
-              sidebar() === "docked" ? Math.min(half, width - MIN_CHAT_WIDTH) : half,
-            )
+            const max = Math.max(SIDEBAR_MIN_WIDTH, Math.min(half, width - MIN_CHAT_WIDTH))
             setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x)))
           }}
           onMouseUp={() => {
@@ -618,7 +615,6 @@ export function App(props: AppProps) {
               modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
               width={shownWidth()}
-              overlay={sidebar() === "overlay"}
               resizing={resizing()}
               onResizeStart={() => setResizing(true)}
             />

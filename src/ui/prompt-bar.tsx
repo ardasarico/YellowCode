@@ -11,7 +11,7 @@ import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
 import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
-import { formatTokens, modelName } from "./format.ts"
+import { cut, formatTokens, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
 import { type InputBlockProps, PROMPT_KEY_BINDINGS } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
@@ -46,11 +46,17 @@ function Spans(props: { spans: Span[]; shrink: number }) {
   )
 }
 
+const knownContext = (context: Usage["context"]) =>
+  context.window !== null && context.used > 0 ? { used: context.used, window: context.window } : null
+
+// The ring, a space and `18k/1m`.
+function contextWidth(context: Usage["context"]): number {
+  const known = knownContext(context)
+  return known ? 2 + `${formatTokens(known.used)}/${formatTokens(known.window)}`.length : 0
+}
+
 function ContextIndicator(props: { context: Usage["context"] }) {
-  const known = () => {
-    const window = props.context.window
-    return window !== null && props.context.used > 0 ? { used: props.context.used, window } : null
-  }
+  const known = () => knownContext(props.context)
   return (
     <Show when={known()}>
       {(context) => {
@@ -69,11 +75,31 @@ function ContextIndicator(props: { context: Usage["context"] }) {
   )
 }
 
-function NoticeLine(props: { notice: Notice; spaced?: boolean }) {
+const spansWidth = (spans: Span[]) => spans.reduce((sum, span) => sum + Bun.stringWidth(span.text), 0)
+
+// Spans cut to `width`, the last one shown ending in `…`.
+function fitSpans(spans: Span[], width: number): Span[] {
+  const fitted: Span[] = []
+  let left = width
+  for (const span of spans) {
+    if (left <= 0) break
+    const text = cut(span.text, left)
+    fitted.push({ ...span, text })
+    left -= Bun.stringWidth(text)
+  }
+  return fitted
+}
+
+// The right side is left out whole when both sides do not fit.
+function NoticeLine(props: { notice: Notice; width: number; spaced?: boolean }) {
+  const right = () =>
+    spansWidth(props.notice.left) + 2 + spansWidth(props.notice.right) <= props.width ? props.notice.right : []
   return (
     <box flexDirection="row" justifyContent="space-between" height={1} gap={2} marginTop={props.spaced ? 1 : 0}>
-      <Spans spans={props.notice.left} shrink={0} />
-      <Spans spans={props.notice.right} shrink={1} />
+      <Spans spans={fitSpans(props.notice.left, props.width)} shrink={1} />
+      <Show when={right().length > 0}>
+        <Spans spans={right()} shrink={0} />
+      </Show>
     </box>
   )
 }
@@ -193,9 +219,16 @@ function InfoLine(props: {
     if (!counter) return 0
     return SHELLS_GAP.length + shellsLabel(counter.count).length + (counter.selected ? SELECTED_HINT.length : 0)
   }
+  // The effort goes first when the line is too narrow, so the model name is never cut.
+  const effort = () => {
+    const level = settings.effort
+    if (!level) return null
+    const fits = Bun.stringWidth(label()) + `  effort ${level}`.length + 2 + contextWidth(props.context) <= props.width
+    return fits ? level : null
+  }
   const leftWidth = () =>
     Bun.stringWidth(label()) +
-    (settings.effort ? `  effort ${settings.effort}`.length : 0) +
+    (effort() ? `  effort ${effort()}`.length : 0) +
     (settings.ultracode ? "  ultracode".length : 0) +
     counterWidth()
   const hint = () => {
@@ -207,10 +240,10 @@ function InfoLine(props: {
   return (
     <box flexDirection="row" justifyContent="space-between">
       <box flexDirection="row">
-        <text fg={theme.claude} attributes={TextAttributes.BOLD}>
+        <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
           {label()}
         </text>
-        <Show when={settings.effort}>
+        <Show when={effort()}>
           {(level) => (
             <text>
               <span style={{ fg: theme.muted }}>{"  effort "}</span>
@@ -288,7 +321,7 @@ export function PromptBar(props: PromptBarProps) {
       paddingRight={1 + (props.edgeGap ?? 0)}
     >
       <Show when={hasNotice()}>
-        <NoticeLine notice={props.notice} spaced={props.spaced} />
+        <NoticeLine notice={props.notice} width={inner()} spaced={props.spaced} />
       </Show>
       <Show
         when={props.ask}

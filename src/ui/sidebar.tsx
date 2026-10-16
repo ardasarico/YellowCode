@@ -22,7 +22,6 @@ export type SidebarProps = {
   modified?: number
   model: string | null
   width: number
-  overlay: boolean
   resizing: boolean
   onResizeStart: () => void
 }
@@ -275,17 +274,7 @@ export function Sidebar(props: SidebarProps) {
   }
 
   return (
-    <box
-      flexDirection="row"
-      flexShrink={0}
-      width={props.width}
-      backgroundColor={theme.band ?? theme.canvas}
-      position={props.overlay ? "absolute" : "relative"}
-      right={0}
-      top={0}
-      height="100%"
-      zIndex={1}
-    >
+    <box flexDirection="row" flexShrink={0} width={props.width} backgroundColor={theme.band ?? theme.canvas}>
       {/* With a band the edge line takes the fill's color and shows only on hover or while dragging; without a band
           it always marks the edge. */}
       <box
