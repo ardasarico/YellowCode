@@ -161,7 +161,18 @@ export function ChatView(props: ChatViewProps) {
   let leftAtHeight: number | null = null
   let reachedTop = false
   let shifted = false
-  const rows = createMemo(() => buildRows(props.session))
+  // A row keeps its object while it stays the same, so its view does not run again.
+  const rows = createMemo((previous: Row[]) => {
+    const old = new Map(previous.map((row) => [row.id, row]))
+    return buildRows(props.session).map((row) => {
+      const kept = old.get(row.id)
+      if (!kept || kept.kind !== row.kind) return row
+      if (kept.kind !== "end" || row.kind !== "end") return kept
+      const same =
+        kept.turnEnds.length === row.turnEnds.length && kept.turnEnds.every((id, index) => row.turnEnds[index] === id)
+      return same ? kept : row
+    })
+  }, [])
   const rowIds = createMemo(() => rows().map((row) => row.id))
   createEffect(
     on(rowIds, (ids, previous) => {
@@ -241,20 +252,25 @@ export function ChatView(props: ChatViewProps) {
         </box>
       </Show>
       <For each={rowIds()}>
-        {(id) => (
-          <Show when={rowById().get(id)}>
-            {(row) => (
-              <RowView
-                {...props}
-                row={row()}
-                ask={askByTool().get(id) ?? null}
-                previous={previousKind().get(id)}
-                agentIndex={agentIndex().get(id) ?? 0}
-                viewport={() => scroll?.viewport}
-              />
-            )}
-          </Show>
-        )}
+        {(id) => {
+          const ask = createMemo(() => askByTool().get(id) ?? null)
+          const previous = createMemo(() => previousKind().get(id))
+          const index = createMemo(() => agentIndex().get(id) ?? 0)
+          return (
+            <Show when={rowById().get(id)}>
+              {(row) => (
+                <RowView
+                  {...props}
+                  row={row()}
+                  ask={ask()}
+                  previous={previous()}
+                  agentIndex={index()}
+                  viewport={() => scroll?.viewport}
+                />
+              )}
+            </Show>
+          )
+        }}
       </For>
       <Show when={props.session.rewound}>{(rewound) => <RewoundBand rewound={rewound()} onRedo={props.onRedo} />}</Show>
     </scrollbox>
