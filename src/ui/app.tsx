@@ -732,13 +732,11 @@ export function App(props: AppProps) {
         <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "rewind" && props.rewind}>
-        {(options) => (
-          <RewindDialog
-            points={rewindPoints(props.session, options().extras)}
-            onRewind={rewind}
-            onClose={() => setDialog(null)}
-          />
-        )}
+        {(options) => {
+          // Nothing can change the points while the dialog is open, so they are worked out once.
+          const points = untrack(() => rewindPoints(props.session, options().extras))
+          return <RewindDialog points={points} onRewind={rewind} onClose={() => setDialog(null)} />
+        }}
       </Show>
     </box>
   )
