@@ -15,7 +15,7 @@ import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
-import { agentTree, isAgentCall, isWorkflowCall } from "./agents/tree.ts"
+import { isAgentCall, isWorkflowCall, topNodes } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
@@ -323,7 +323,7 @@ export function App(props: AppProps) {
       setAgentView(null)
       return
     }
-    const top = agentTree(props.session).filter((node) => node.depth === 1)
+    const top = topNodes(props.session)
     const target = top.findLast((node) => node.state === "running") ?? top.at(-1)
     if (target) openAgentView(target.id)
     else openShells()
