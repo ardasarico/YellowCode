@@ -90,6 +90,7 @@ export function PermissionBand(props: AskViewProps) {
     const text = target(props.ask)
     return text ? targetRows(text.replaceAll("\t", "    "), Math.max(1, props.width - 8)) : []
   })
+  const hiddenRows = () => rows().length - TARGET_ROWS
   const [cursor, setCursor] = createSignal(untrack(() => (severe(props.ask) ? choices().length - 1 : 0)))
   const [noting, setNoting] = createSignal(false)
 
@@ -159,8 +160,8 @@ export function PermissionBand(props: AskViewProps) {
             <text fg={theme.text} wrapMode="none">
               {rows().slice(0, TARGET_ROWS).join("\n")}
             </text>
-            <Show when={rows().length > TARGET_ROWS}>
-              <text fg={theme.muted}>{`… ${rows().length - TARGET_ROWS} more lines`}</text>
+            <Show when={hiddenRows() > 0}>
+              <text fg={theme.muted}>{`… ${hiddenRows()} more ${hiddenRows() === 1 ? "line" : "lines"}`}</text>
             </Show>
           </box>
         </Show>
@@ -169,17 +170,19 @@ export function PermissionBand(props: AskViewProps) {
             {(choice, index) => {
               const focused = () => !noting() && index === cursor()
               const color = () => (focused() ? colors().tone : theme.text)
+              const attributes = () => (focused() ? TextAttributes.BOLD : TextAttributes.NONE)
               return (
-                <text
-                  id={`choice-${index}`}
-                  wrapMode="word"
-                  attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
-                >
-                  <span style={{ fg: colors().tone }}>{focused() ? "❯ " : "  "}</span>
-                  <span style={{ fg: color() }}>{`${index + 1}. ${choice().before}`}</span>
-                  <span style={{ fg: theme.accent }}>{choice().subject}</span>
-                  <span style={{ fg: color() }}>{choice().after}</span>
-                </text>
+                <box id={`choice-${index}`} flexDirection="row">
+                  <text flexShrink={0} attributes={attributes()}>
+                    <span style={{ fg: colors().tone }}>{focused() ? "❯ " : "  "}</span>
+                    <span style={{ fg: color() }}>{`${index + 1}. `}</span>
+                  </text>
+                  <text wrapMode="word" attributes={attributes()}>
+                    <span style={{ fg: color() }}>{choice().before}</span>
+                    <span style={{ fg: theme.accent }}>{choice().subject}</span>
+                    <span style={{ fg: color() }}>{choice().after}</span>
+                  </text>
+                </box>
               )
             }}
           </Index>

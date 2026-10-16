@@ -5,7 +5,7 @@ import { createStore } from "solid-js/store"
 import { answerQuestions, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
 import { covered } from "../images.ts"
-import { AskPicture, askImage, PICTURE_MIN_WIDTH } from "./ask-picture.tsx"
+import { AskPicture, askImage, PICTURE_MIN_WIDTH, shownPicture } from "./ask-picture.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { GalleryPage } from "./gallery-page.tsx"
 import { LETTERS, type Question, type QuestionInput } from "./question.ts"
@@ -176,12 +176,13 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
     return current !== undefined && hasPictures(current) && !narrow()
   }
   const gallery = () => (question()?.gallery ?? false) && !narrow()
+  const canEnlarge = () => (pictures() || gallery()) && shownPicture(question()?.options[focus()]?.image) !== null
   const optionsWidth = () => Math.floor((props.width * 2) / 5)
   const pictureIndex = () => Math.min(focus(), (question()?.options.length ?? 1) - 1)
   const openPictures = (index: number) => {
     const options = question()?.options ?? []
     const shown = options.flatMap((option, at) => {
-      const image = askImage(option.image)
+      const image = shownPicture(option.image)
       return image ? [{ image, at }] : []
     })
     const start = shown.findIndex((entry) => entry.at === index)
@@ -277,7 +278,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
       return
     } else if (key.name === "space") choose(focus())
     else if (key.name === "n") openNote()
-    else if (key.name === "z" && (pictures() || gallery())) openPictures(focus())
+    else if (key.name === "z" && canEnlarge()) openPictures(focus())
     else if (/^[a-d]$/.test(key.name)) pick(LETTERS.indexOf(key.name.toUpperCase()))
     else return
     key.preventDefault()
@@ -464,13 +465,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
               : onExtraRow()
                 ? fitHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
                 : question()
-                  ? questionHints(
-                      paged(),
-                      props.width,
-                      question()?.multiSelect ?? false,
-                      pictures() || gallery(),
-                      gallery(),
-                    )
+                  ? questionHints(paged(), props.width, question()?.multiSelect ?? false, canEnlarge(), gallery())
                   : fitHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
         </text>
       </box>

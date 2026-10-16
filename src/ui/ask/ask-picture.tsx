@@ -15,8 +15,21 @@ export function askImage(path: string | undefined): ChatImage | null {
   return { name: basename(full), mediaType: "", data: null, path: full }
 }
 
-// A picture fitted into `width`×`height` cells, centred; a muted box when there is nothing to show.
-export function AskPicture(props: { image: ChatImage | null; width: number; height: number; onOpen?: () => void }) {
+// The option's picture when it can be shown, so `z` and the image view skip the rest.
+export function shownPicture(path: string | undefined): ChatImage | null {
+  const image = askImage(path)
+  return image && loadImage(image)?.image ? image : null
+}
+
+// A picture fitted into `width`×`height` cells, centred; a muted box when there is nothing to show, without its
+// border when the caller frames the picture.
+export function AskPicture(props: {
+  image: ChatImage | null
+  width: number
+  height: number
+  framed?: boolean
+  onOpen?: () => void
+}) {
   const decoded = createMemo(() => (props.image ? loadImage(props.image)?.image : null) ?? undefined)
   const [element, setElement] = createSignal<ImageRenderable>()
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
@@ -49,17 +62,21 @@ export function AskPicture(props: { image: ChatImage | null; width: number; heig
       <Show
         when={decoded()}
         fallback={
-          <box
-            width={props.width}
-            height={props.height}
-            border
-            borderStyle="rounded"
-            borderColor={theme.frame}
-            alignItems="center"
-            justifyContent="center"
-          >
+          props.framed ? (
             <text fg={theme.faint}>no preview</text>
-          </box>
+          ) : (
+            <box
+              width={props.width}
+              height={props.height}
+              border
+              borderStyle="rounded"
+              borderColor={theme.frame}
+              alignItems="center"
+              justifyContent="center"
+            >
+              <text fg={theme.faint}>no preview</text>
+            </box>
+          )
         }
       >
         <Show when={!blank()} fallback={<box width={size().width} height={size().height} />}>

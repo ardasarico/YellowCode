@@ -53,6 +53,7 @@ export function GalleryPage(props: {
                   image={askImage(option().image)}
                   width={card() - 2}
                   height={pictureRows()}
+                  framed
                   onOpen={() => props.onOpen(index)}
                 />
               </box>
