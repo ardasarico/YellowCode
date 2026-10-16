@@ -117,6 +117,22 @@ test("arrows on the own-answer row edit the text instead of switching question",
   setup.renderer.destroy()
 })
 
+test("a long option description wraps under its label", async () => {
+  const description = Array.from({ length: 30 }, (_, i) => `w${i}`).join(" ")
+  const input = { questions: [{ question: "Where?", header: "Storage", options: [{ label: "Env", description }] }] }
+  const setup = await testRender(
+    () => (
+      <box flexDirection="column">
+        <AskSurface ask={{ ...ask, toolName: "AskUserQuestion", input }} width={40} onAnswer={() => {}} />
+      </box>
+    ),
+    { width: 40, height: 20 },
+  )
+  await setup.renderOnce()
+  expect(setup.captureCharFrame()).toContain("w29")
+  setup.renderer.destroy()
+})
+
 test("Enter in a matrix picks the step and goes to the next open row, then sends", async () => {
   const matrix = {
     question: "Keep?",

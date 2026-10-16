@@ -37,7 +37,7 @@ export function AskScroll(props: { focus: string | null; fromTop?: boolean; scop
       flexShrink={1}
       flexGrow={0}
       wrapperOptions={{ flexGrow: 0, flexShrink: 1 }}
-      viewportOptions={{ flexGrow: 0, flexShrink: 1, overflow: "scroll" }}
+      viewportOptions={{ flexGrow: 0, flexShrink: 1 }}
       contentOptions={{ minHeight: 0 }}
       verticalScrollbarOptions={{ visible: false }}
     >
