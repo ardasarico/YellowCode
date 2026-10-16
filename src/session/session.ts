@@ -447,7 +447,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
     settleTurn()
-    const error = message.is_error ? (message.result ?? message.errors?.join("\n") ?? message.subtype) : null
+    const error = message.is_error ? message.result || message.errors?.join("\n") || message.subtype : null
     add(
       {
         kind: "turn-end",
