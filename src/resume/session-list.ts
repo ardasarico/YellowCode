@@ -6,6 +6,8 @@ import { projectKey } from "./project-key.ts"
 
 const WHOLE_LIMIT = 128 * 1024
 const PART_SIZE = 64 * 1024
+// A first prompt longer than the head, such as a pasted log or an image, is read up to this size.
+const HEAD_LIMIT = 16 * 1024 * 1024
 const MAX_FILES = 200
 export const CHAIN_TYPES = new Set(["user", "assistant", "attachment", "system"])
 
@@ -53,10 +55,12 @@ const Line = z.looseObject({
 
 type Line = z.infer<typeof Line>
 
-export async function readHeadTail(path: string, size: number): Promise<HeadTail> {
+const readsWhole = (size: number, headSize: number) => size <= Math.max(WHOLE_LIMIT, headSize + PART_SIZE)
+
+export async function readHeadTail(path: string, size: number, headSize = PART_SIZE): Promise<HeadTail> {
   const file = Bun.file(path)
-  if (size <= WHOLE_LIMIT) return { head: (await file.text()).split("\n").filter(Boolean), tail: [] }
-  const head = (await file.slice(0, PART_SIZE).text()).split("\n").slice(0, -1)
+  if (readsWhole(size, headSize)) return { head: (await file.text()).split("\n").filter(Boolean), tail: [] }
+  const head = (await file.slice(0, headSize).text()).split("\n").slice(0, -1)
   const tail = (await file.slice(size - PART_SIZE - 1, size).text()).split("\n").slice(1)
   return { head: head.filter(Boolean), tail: tail.filter(Boolean) }
 }
@@ -141,9 +145,14 @@ export function sessionEntry(path: string, lines: HeadTail, modified: number): S
   }
 }
 
+// A head that gives no entry is read again, four times longer, until it does or holds the whole file.
 async function readEntry(path: string, size: number, modified: number): Promise<SessionEntry | null> {
   try {
-    return sessionEntry(path, await readHeadTail(path, size), modified)
+    for (let headSize = PART_SIZE; ; headSize *= 4) {
+      // oxlint-disable-next-line no-await-in-loop
+      const entry = sessionEntry(path, await readHeadTail(path, size, headSize), modified)
+      if (entry || readsWhole(size, headSize) || headSize >= HEAD_LIMIT) return entry
+    }
   } catch {
     return null
   }

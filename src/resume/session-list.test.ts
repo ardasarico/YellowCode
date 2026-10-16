@@ -61,6 +61,16 @@ test("cwd comes from the tail when the first line is longer than the head", asyn
   expect(sessionEntry(path, lines, 0)).toMatchObject({ cwd: CWD, firstPrompt: "Last prompt" })
 })
 
+test("a first prompt longer than the head still lists the session under it", async () => {
+  const prompt = `Huge ${"x".repeat(300_000)}`
+  const folder = mkdtempSync(join(tmpdir(), "yellowcode-sessions-"))
+  writeFileSync(
+    join(folder, "huge.jsonl"),
+    line({ type: "user", cwd: CWD, message: { role: "user", content: prompt } }) + reply(1000).repeat(100),
+  )
+  expect(await listSessions(folder, CWD)).toMatchObject([{ id: "huge", firstPrompt: prompt }])
+})
+
 test("listSessions keeps this project's main sessions, newest first", async () => {
   const copy = join(mkdtempSync(join(tmpdir(), "yellowcode-sessions-")), "-Users-user-project")
   cpSync(join(import.meta.dir, "..", "..", "fixtures", "transcripts", "-Users-user-project"), copy, { recursive: true })
