@@ -21,6 +21,11 @@ test("broken JSON gives the defaults and says so", () => {
   })
 })
 
+test("a byte order mark is ignored and the protocol's default mode reads as manual", () => {
+  const loaded = loadSettings(fileWith('﻿{"permissionMode":"default"}'))
+  expect(loaded).toEqual({ settings: { ...DEFAULT_SETTINGS, permissionMode: "manual" }, problem: null })
+})
+
 test("a bad field is reset and the other fields are kept", () => {
   const loaded = loadSettings(fileWith('{"theme":"neon","sidebar":"hidden","notifications":"waiting","extra":1}'))
   expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", notifications: "waiting" })

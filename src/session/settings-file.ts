@@ -42,7 +42,8 @@ const Theme = z.string().refine((id) => themes.some((theme) => theme.id === id))
 const Sidebar = z.enum(["auto", "shown", "hidden"])
 const Thinking = z.enum(["summarized", "hidden"])
 const SessionTitle = z.enum(["yellowcode", "claude-code"])
-const Permission = z.enum(PERMISSION_MODES)
+// "default" is the protocol's name for the mode the CLI calls "manual".
+const Permission = z.preprocess((mode) => (mode === "default" ? "manual" : mode), z.enum(PERMISSION_MODES))
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
 
@@ -55,7 +56,7 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
   } catch {
     return { settings: { ...DEFAULT_SETTINGS }, problem: null }
   }
-  const json = parseJson(text)
+  const json = parseJson(text.replace(/^\uFEFF/, ""))
   const parsed = json.ok ? Stored.safeParse(json.value) : null
   if (!parsed?.success)
     return {
