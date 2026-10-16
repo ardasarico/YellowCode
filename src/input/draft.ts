@@ -84,24 +84,24 @@ export function draftFromMessage(text: string, images: ChatImage[]): Draft {
 
 export const graphemes = new Intl.Segmenter()
 
-function width(grapheme: string): number {
-  return grapheme === "\n" ? 1 : Bun.stringWidth(grapheme)
+// A textarea's own measure of text in buffer offsets, `EditBuffer.measureText`: control characters and tabs take
+// cells there that Bun.stringWidth does not count.
+export type Measure = (text: string) => number
+
+const PRINTABLE = /^[\x20-\x7e\n]*$/
+
+export function toBufferOffset(text: string, index: number, measure: Measure): number {
+  return measure(text.slice(0, index))
 }
 
-export function toBufferOffset(text: string, index: number): number {
-  let offset = 0
-  for (const { segment, index: at } of graphemes.segment(text)) {
-    if (at >= index) break
-    offset += width(segment)
-  }
-  return offset
-}
-
-export function toStringIndex(text: string, offset: number): number {
+// Maps buffer offsets of `text` to string indexes, measured in one pass. An offset inside a grapheme maps to its end.
+export function stringIndexes(text: string, measure: Measure): (offset: number) => number {
+  if (PRINTABLE.test(text)) return (offset) => Math.min(offset, text.length)
+  const indexes: number[] = []
   let reached = 0
   for (const { segment, index } of graphemes.segment(text)) {
-    if (reached >= offset) return index
-    reached += width(segment)
+    while (indexes.length <= reached) indexes.push(index)
+    reached += PRINTABLE.test(segment) ? segment.length : measure(segment)
   }
-  return text.length
+  return (offset) => indexes[offset] ?? text.length
 }

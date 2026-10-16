@@ -1,14 +1,16 @@
 import { expect, test } from "bun:test"
+import { measureEditText } from "@opentui/core"
 import {
   collapses,
   type Draft,
   expandDraft,
   imagePath,
   normalizePaste,
+  stringIndexes,
   toBufferOffset,
-  toStringIndex,
 } from "./draft.ts"
 
+const measure = (text: string) => measureEditText(text, { widthMethod: "unicode" })
 const image = { mediaType: "image/png" as const, base64: "AAAA" }
 
 test("expandDraft replaces chips by range and renumbers images", () => {
@@ -34,10 +36,11 @@ test("imagePath accepts one escaped or quoted image path", () => {
   expect(imagePath("/a/notes.txt")).toBeNull()
 })
 
-test("buffer offsets round-trip over wide characters and newlines", () => {
-  const text = "ğ日本\nx"
-  const indexes = [0, 1, 2, 3, 4, 5]
-  const offsets = indexes.map((index) => toBufferOffset(text, index))
-  expect(offsets).toEqual([0, 1, 3, 5, 6, 7])
-  expect(offsets.map((offset) => toStringIndex(text, offset))).toEqual(indexes)
+test("buffer offsets round-trip over wide characters, tabs and newlines", () => {
+  const text = "ğ日\tx\n[Pasted text 1 +3 lines]"
+  const indexes = [0, 1, 2, 3, 4, 5, text.length]
+  const offsets = indexes.map((index) => toBufferOffset(text, index, measure))
+  expect(offsets).toEqual([0, 1, 3, 5, 6, 7, 31])
+  const at = stringIndexes(text, measure)
+  expect(offsets.map(at)).toEqual(indexes)
 })

@@ -9,11 +9,12 @@ import {
   type Draft,
   imagePath,
   type LoadImage,
+  type Measure,
   normalizePaste,
   type PlacedChip,
   type ReadClipboard,
+  stringIndexes,
   toBufferOffset,
-  toStringIndex,
 } from "../input/draft.ts"
 
 export type ChipsOptions = {
@@ -28,6 +29,11 @@ export type ChipsOptions = {
 }
 
 const typeId = (area: TextareaRenderable) => area.extmarks.registerType("paste-chip")
+
+export const measureIn =
+  (area: TextareaRenderable): Measure =>
+  (text) =>
+    area.editBuffer.measureText(text)
 
 // A chip as the textarea holds it: an atomic extmark with buffer offsets.
 type Mark = { id: number; start: number; end: number; chip: Chip }
@@ -53,12 +59,11 @@ export function useChips(options: ChipsOptions) {
     const area = options.area()
     if (!area) return []
     const type = typeId(area)
-    const text = area.plainText
     const found: Mark[] = []
     for (const mark of area.extmarks.getAll()) {
       if (mark.typeId !== type) continue
       const chip = chipOf.get(mark.id)
-      const label = text.slice(toStringIndex(text, mark.start), toStringIndex(text, mark.end))
+      const label = area.editBuffer.getTextRange(mark.start, mark.end)
       if (chip && label === chipLabel(chip)) found.push({ id: mark.id, start: mark.start, end: mark.end, chip })
       else area.extmarks.delete(mark.id)
     }
@@ -66,14 +71,10 @@ export function useChips(options: ChipsOptions) {
   }
 
   const sync = () => {
-    const text = options.area()?.plainText ?? ""
-    setChips(
-      marks().map(({ start, end, chip }) => ({
-        start: toStringIndex(text, start),
-        end: toStringIndex(text, end),
-        chip,
-      })),
-    )
+    const area = options.area()
+    const found = marks()
+    const at = area && found.length > 0 ? stringIndexes(area.plainText, measureIn(area)) : () => 0
+    setChips(found.map(({ start, end, chip }) => ({ start: at(start), end: at(end), chip })))
     options.onChange()
   }
 
@@ -86,8 +87,9 @@ export function useChips(options: ChipsOptions) {
     const area = options.area()
     if (!area) return
     area.replaceText(next.text)
+    const measure = measureIn(area)
     for (const { start, end, chip } of next.chips) {
-      createMark(area, toBufferOffset(next.text, start), toBufferOffset(next.text, end), chip)
+      createMark(area, toBufferOffset(next.text, start, measure), toBufferOffset(next.text, end, measure), chip)
     }
     sync()
   }
@@ -110,8 +112,11 @@ export function useChips(options: ChipsOptions) {
   }
 
   const replacePlaced = (start: number, end: number, text: string) => {
-    const plain = options.area()?.plainText ?? ""
-    options.place(plain.slice(0, toStringIndex(plain, start)) + text + plain.slice(toStringIndex(plain, end)))
+    const area = options.area()
+    if (!area) return
+    const plain = area.plainText
+    const at = stringIndexes(plain, measureIn(area))
+    options.place(plain.slice(0, at(start)) + text + plain.slice(at(end)))
     replace(start, end, text)
   }
 

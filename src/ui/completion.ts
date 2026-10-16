@@ -8,6 +8,7 @@ import {
   graphemes,
   type LoadImage,
   type ReadClipboard,
+  stringIndexes,
   toBufferOffset,
 } from "../input/draft.ts"
 import { historyStep } from "../input/history.ts"
@@ -24,7 +25,7 @@ import {
   slashQuery,
 } from "../input/token.ts"
 import { syntaxStyle } from "../theme/theme.ts"
-import { useChips } from "./chips.ts"
+import { measureIn, useChips } from "./chips.ts"
 import { cut } from "./format.ts"
 import { type Suggestion, suggestionRows } from "./suggestion-list.tsx"
 
@@ -56,6 +57,8 @@ export type CompletionOptions = {
   // Called by Esc on an empty prompt with no list open.
   onEscape?: () => void
 }
+
+const cursorIndex = (area: TextareaRenderable) => stringIndexes(area.plainText, measureIn(area))(area.cursorOffset)
 
 // The `/` and `@` completion, the argument hint and the token highlight of a textarea.
 // Without `history`, ↑↓ on a closed list are left to the textarea.
@@ -101,7 +104,8 @@ export function useCompletion(options: CompletionOptions) {
       const token = syntaxStyle().resolveStyleId("input-token")
       const chip = syntaxStyle().resolveStyleId("input-chip")
       const text = area.plainText
-      const width = (end: number) => Bun.stringWidth(text.slice(0, end).replaceAll("\n", ""))
+      const measure = measureIn(area)
+      const width = (end: number) => measure(text.slice(0, end).replaceAll("\n", ""))
       const labels = chips.chips()
       if (chip !== null) {
         for (const range of labels) {
@@ -145,7 +149,7 @@ export function useCompletion(options: CompletionOptions) {
     if (text === placed) return
     placed = null
     browsing = null
-    const cursor = area.cursorOffset
+    const cursor = cursorIndex(area)
     fileRequest++
     const query = slashQuery(text, cursor)
     if (query !== null) {
@@ -188,11 +192,11 @@ export function useCompletion(options: CompletionOptions) {
     if (!area) return
     // Undo and redo change the text without a content change event.
     if (area.plainText !== seen) queueMicrotask(refresh)
-    if (ghost() && area.cursorOffset !== area.plainText.length) setGhost(null)
+    if (ghost() && cursorIndex(area) !== area.plainText.length) setGhost(null)
     const open = completion()
     if (!open) return
     const text = area.plainText
-    const cursor = area.cursorOffset
+    const cursor = cursorIndex(area)
     const inside =
       open.kind === "command"
         ? slashQuery(text, cursor) !== null
@@ -239,12 +243,13 @@ export function useCompletion(options: CompletionOptions) {
       tail++
     const start = before.slice(0, head).join("").length
     const end = text.length - before.slice(before.length - tail).join("").length
+    const measure = measureIn(area)
     chips.replace(
-      toBufferOffset(text, start),
-      toBufferOffset(text, end),
+      toBufferOffset(text, start, measure),
+      toBufferOffset(text, end, measure),
       after.slice(head, after.length - tail).join(""),
     )
-    area.cursorOffset = toBufferOffset(next.text, next.cursor)
+    area.cursorOffset = toBufferOffset(next.text, next.cursor, measure)
   }
 
   const restore = (draft: Draft) => {
@@ -285,7 +290,7 @@ export function useCompletion(options: CompletionOptions) {
     }
     if (entry.kind === "value") {
       close()
-      const token = argumentToken(text, area.cursorOffset)
+      const token = argumentToken(text, cursorIndex(area))
       if (!token) return
       const next = replaceArgument(text, token, entry.value)
       placed = next.text
@@ -293,7 +298,7 @@ export function useCompletion(options: CompletionOptions) {
       if (enter) submit()
       return
     }
-    const token = atToken(text, area.cursorOffset)
+    const token = atToken(text, cursorIndex(area))
     if (token) edit(replaceToken(text, token, entry.path))
     else close()
   }
@@ -310,7 +315,7 @@ export function useCompletion(options: CompletionOptions) {
     browsing = step.state
     placed = draft.text
     chips.load(draft)
-    area.cursorOffset = toBufferOffset(draft.text, step.cursor)
+    area.cursorOffset = toBufferOffset(draft.text, step.cursor, measureIn(area))
     close()
     return true
   }
