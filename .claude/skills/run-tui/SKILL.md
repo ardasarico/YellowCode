@@ -13,8 +13,10 @@ and read the screen as text.
 ```bash
 S=yellowcode-tui
 tmux kill-session -t $S 2>/dev/null
-tmux new-session -d -s $S -x 120 -y 40 -c "$PWD" 'bun run dev --skip-terminal-check; echo "[exited $?]"; sleep 600'
+tmux new-session -d -s $S -x 120 -y 40 -c "$PWD" 'bun run dev --replay fixtures/sessions/chat.jsonl --skip-terminal-check; echo "[exited $?]"; sleep 600'
 ```
+
+`--replay` is required; any recording in `fixtures/sessions/` works.
 
 The trailing `echo` and `sleep` keep the pane open after the app exits, so a
 crash and its exit code stay readable.
@@ -25,7 +27,7 @@ Never read the screen right after starting or sending keys. Poll for text you
 expect instead:
 
 ```bash
-for i in $(seq 50); do tmux capture-pane -p -t $S | grep -q 'YellowCode' && break; sleep 0.1; done
+for i in $(seq 50); do tmux capture-pane -p -t $S | grep -q 'enter send' && break; sleep 0.1; done
 ```
 
 ## Read the screen
@@ -45,6 +47,9 @@ tmux resize-window -t $S -x 80 -y 24
 ```
 
 After each action, wait for the expected change before reading the screen.
+
+Shift+Enter and the redo keys (Ctrl+Shift+Z, Ctrl+.) cannot be sent through
+tmux; use `C-j` for a newline.
 
 ## Stop
 
