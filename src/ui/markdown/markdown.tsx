@@ -284,7 +284,7 @@ function Blocks(props: { tokens: readonly Entry[]; width: number; fg: RGBA; dept
 
 function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: number }) {
   const fold = useFold(() => props.entry)
-  const count = () => `  ${props.entry.lines} lines`
+  const count = () => `  ${props.entry.lines} ${props.entry.lines === 1 ? "line" : "lines"}`
   // A long summary is cut so the line count and the hint stay on the line.
   const summary = () => {
     const rest = (fold.open() ? "" : count()) + (fold.selected() ? foldHint(fold) : "")
