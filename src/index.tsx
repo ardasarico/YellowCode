@@ -85,11 +85,13 @@ const renderer = await createCliRenderer({
 const capabilities = firstCapabilities(renderer)
 renderer.addPostProcessFn(invertQueued)
 
-// The renderer's own handlers console.error to the terminal, so ours replace them.
+// The renderer's own handlers and Node's warning printer write to the terminal, so ours replace them.
 process.removeAllListeners("uncaughtException")
 process.removeAllListeners("unhandledRejection")
+process.removeAllListeners("warning")
 process.on("uncaughtException", (error) => log.error("uncaught exception", error))
 process.on("unhandledRejection", (reason) => log.error("unhandled rejection", reason))
+process.on("warning", (warning) => log.warn("process warning", warning))
 
 async function applyTerminal(): Promise<void> {
   const look = await readTerminal(renderer)
@@ -126,6 +128,7 @@ const INVALID_LOG_EVERY = 100
 const invalidCounts = new Map<string, number>()
 
 async function pump(): Promise<void> {
+  let yielded = performance.now()
   try {
     for await (const event of source.events) {
       const parsed = parse(event.line)
@@ -137,6 +140,11 @@ async function pump(): Promise<void> {
       }
       if (parsed.kind === "unknown") log.debug(`unknown message ${parsed.key}`)
       session.apply(event.dir, parsed, event.at)
+      // Lines that are already waiting arrive without a macrotask, so a burst would not paint until it ends.
+      if (performance.now() - yielded > 8) {
+        await new Promise((resolve) => setImmediate(resolve))
+        yielded = performance.now()
+      }
     }
   } catch (error) {
     log.error("replay failed", error)
