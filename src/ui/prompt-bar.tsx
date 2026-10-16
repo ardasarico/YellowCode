@@ -214,14 +214,15 @@ function InfoLine(props: {
   agents: boolean
   shells?: Shells
 }) {
-  const label = () => (props.model ? `✻ ${modelName(props.model)}` : "")
+  const label = () =>
+    props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - contextWidth(props.context)) : ""
   const shells = () => (props.shells && props.shells.count > 0 ? props.shells : null)
   const counterWidth = () => {
     const counter = shells()
     if (!counter) return 0
     return SHELLS_GAP.length + shellsLabel(counter.count).length + (counter.selected ? SELECTED_HINT.length : 0)
   }
-  // The effort goes first when the line is too narrow, so the model name is never cut.
+  // The effort goes first when the line is too narrow, so the model name is cut only when it does not fit alone.
   const effort = () => {
     const level = settings.effort
     if (!level) return null

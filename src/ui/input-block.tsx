@@ -8,7 +8,7 @@ import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
 import { type Submission, useCompletion } from "./completion.ts"
-import { modelName } from "./format.ts"
+import { cut, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
 import { filledPadding, SuggestionList } from "./suggestion-list.tsx"
 import { useTicker } from "./ticker.ts"
@@ -57,6 +57,12 @@ export function InputBlock(props: InputBlockProps) {
     onQuit: () => props.onQuit?.(),
     fill: () => props.fill,
   })
+  const modelLabel = () => {
+    if (!props.model) return ""
+    const right =
+      (settings.effort ? `  effort ${settings.effort}`.length : 0) + (settings.ultracode ? "  ultracode".length : 0)
+    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - right)
+  }
 
   return (
     <box ref={(element) => (block = element)} flexDirection="column" flexShrink={0} width={props.width}>
@@ -101,8 +107,8 @@ export function InputBlock(props: InputBlockProps) {
           </box>
           <box height={1} />
           <box flexDirection="row" justifyContent="space-between">
-            <text fg={theme.claude} attributes={TextAttributes.BOLD}>
-              {props.model ? `✻ ${modelName(props.model)}` : ""}
+            <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
+              {modelLabel()}
             </text>
             <box flexDirection="row">
               <Show when={settings.effort}>
