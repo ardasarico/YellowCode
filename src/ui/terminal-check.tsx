@@ -84,7 +84,8 @@ export function TerminalCheck(props: { problem: TerminalProblem; onContinue: () 
       </Show>
       <box
         flexDirection="column"
-        maxWidth={dimensions().width - 4}
+        maxWidth={Math.max(0, dimensions().width - 4)}
+        flexShrink={0}
         paddingX={2}
         paddingY={1}
         backgroundColor={theme.tile ?? theme.band ?? undefined}

@@ -47,15 +47,16 @@ export function UltracodeWord(props: { frame: number }) {
 
 export function InputEdge(props: { width: number; ultracode: boolean; frame: number; glyph?: string }) {
   const glyph = () => props.glyph ?? EDGE
-  const columns = () => Array.from({ length: props.width }, (_, x) => x)
+  const width = () => Math.max(0, props.width)
+  const columns = () => Array.from({ length: width() }, (_, x) => x)
   return (
     <text flexShrink={0} wrapMode="none">
       {props.ultracode ? (
         <Index each={columns()}>
-          {(x) => <span style={{ fg: edgeColor(x(), props.width, props.frame) }}>{glyph()}</span>}
+          {(x) => <span style={{ fg: edgeColor(x(), width(), props.frame) }}>{glyph()}</span>}
         </Index>
       ) : (
-        <span style={{ fg: theme.frame }}>{glyph().repeat(props.width)}</span>
+        <span style={{ fg: theme.frame }}>{glyph().repeat(width())}</span>
       )}
     </text>
   )

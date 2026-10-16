@@ -4,6 +4,7 @@ import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
+import { cut } from "./format.ts"
 import type { Span } from "./notice.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 import { InputBlock, type InputBlockProps } from "./input-block.tsx"
@@ -53,11 +54,31 @@ export function welcomeParts(
   return { cat: logo, wordmark: logo && width >= LOGO_WIDTH, recent: recent > 0 && height >= LOGO_ROWS + 2 + recent }
 }
 
-const blockWidth = (width: number) => Math.min(BLOCK_WIDTH, width - 4)
+const blockWidth = (width: number) => Math.max(0, Math.min(BLOCK_WIDTH, width - 4))
 
 // What the welcome screen shows in a terminal of this size; the bottom row holds the workspace line.
 export function welcomeLayout(width: number, height: number, recent: number) {
   return welcomeParts(blockWidth(width), height - 1, recent)
+}
+
+const BOTTOM_GAP = 2
+const fit = (text: string, room: number) => (room > 0 ? cut(text, room) : "")
+
+// The notice is cut first and kept, centred in the free room; the workspace is cut to what is left, and the
+// version goes when it does not fit.
+function bottomRow(workspace: string, notice: string, version: string, room: number) {
+  const shownNotice = fit(notice, room)
+  const left = room - (shownNotice ? Bun.stringWidth(shownNotice) + BOTTOM_GAP : 0)
+  const versionRoom = Bun.stringWidth(version) + BOTTOM_GAP
+  const withVersion = Bun.stringWidth(workspace) + versionRoom <= left
+  const shownWorkspace = fit(workspace, withVersion ? left - versionRoom : left)
+  const shownVersion = withVersion ? version : ""
+  const free = Math.max(
+    0,
+    room - Bun.stringWidth(shownWorkspace) - Bun.stringWidth(shownNotice) - Bun.stringWidth(shownVersion),
+  )
+  const before = shownNotice && shownVersion ? Math.floor(free / 2) : free
+  return { workspace: shownWorkspace, notice: shownNotice, version: shownVersion, before, after: free - before }
 }
 
 const catImages = new Map<string, NativeImage>()
@@ -145,6 +166,13 @@ export function Welcome(props: {
 }) {
   const width = () => blockWidth(props.width)
   const parts = () => welcomeLayout(props.width, props.height, props.recent.entries.length)
+  const bottom = () =>
+    bottomRow(
+      props.workspace.branch ? `${props.workspace.cwd}  ${props.workspace.branch}` : props.workspace.cwd,
+      props.notice?.text ?? "",
+      `v${props.workspace.version}`,
+      props.width - 4,
+    )
   return (
     <box flexDirection="column" flexGrow={1}>
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
@@ -169,12 +197,14 @@ export function Welcome(props: {
           <RecentList entries={props.recent.entries} selected={props.recent.selected} width={width()} />
         </Show>
       </box>
-      <box flexDirection="row" justifyContent="space-between" paddingX={2} flexShrink={0}>
-        <text fg={theme.muted}>
-          {props.workspace.branch ? `${props.workspace.cwd}  ${props.workspace.branch}` : props.workspace.cwd}
+      <box paddingX={2} height={1} flexShrink={0}>
+        <text wrapMode="none">
+          <span style={{ fg: theme.muted }}>{bottom().workspace}</span>
+          {" ".repeat(bottom().before)}
+          <span style={{ fg: props.notice?.fg }}>{bottom().notice}</span>
+          {" ".repeat(bottom().after)}
+          <span style={{ fg: theme.muted }}>{bottom().version}</span>
         </text>
-        <Show when={props.notice}>{(notice) => <text fg={notice().fg}>{notice().text}</text>}</Show>
-        <text fg={theme.muted}>{`v${props.workspace.version}`}</text>
       </box>
     </box>
   )
