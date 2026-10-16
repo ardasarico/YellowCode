@@ -204,16 +204,27 @@ export function App(props: AppProps) {
 
   createEffect(() => renderer.setBackgroundColor(theme.canvas))
 
+  // A message's folds and references, worked out again only when its text or its open folds change.
+  const messageParts = new Map<string, { markdown: string; open: string; ids: string[] }>()
+  const partsOf = (id: string, markdown: string) => {
+    const open = Object.keys(expanded)
+      .filter((key) => expanded[key] === true && key.startsWith(`${id}/fold/`))
+      .join()
+    const known = messageParts.get(id)
+    if (known?.markdown === markdown && known.open === open) return known.ids
+    const ids = [...messageFolds(markdown, id, expanded), ...messageRefs(markdown, id, process.cwd(), expanded)]
+    messageParts.set(id, { markdown, open, ids })
+    return ids
+  }
   const selectableIds = () =>
     props.session.items.flatMap((id) => {
       const item = props.session.byId[id]
       const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
-      const folds = item?.kind === "text" ? messageFolds(item.markdown, id, expanded) : []
-      const refs = item?.kind === "text" ? messageRefs(item.markdown, id, process.cwd(), expanded) : []
+      const parts = item?.kind === "text" ? partsOf(id, item.markdown) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
         loadImage(image) ? [labelId(id, index)] : [],
       )
-      return [...own, ...folds, ...refs, ...labels]
+      return [...own, ...parts, ...labels]
     })
 
   // The image a `[Image N]` mention points at: image N of the latest user message before it that has one.
@@ -303,7 +314,7 @@ export function App(props: AppProps) {
     else openShells()
   }
 
-  const shellCount = () => runningShellCount(props.session)
+  const shellCount = createMemo(() => runningShellCount(props.session))
   createEffect(() => {
     if (focus() === "shells" && (shellCount() === 0 || pending())) setFocus("input")
   })
