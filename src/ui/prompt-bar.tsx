@@ -149,7 +149,8 @@ function PromptInput(
 
   return (
     <>
-      <box>
+      {/* The list covers the notice line. Without the zIndex a notice line mounted after the input paints over it. */}
+      <box zIndex={1}>
         <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
       </box>
