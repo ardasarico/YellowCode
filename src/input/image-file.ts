@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { NativeImage } from "@opentui/core"
 import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { LoadImage } from "./draft.ts"
@@ -25,6 +26,21 @@ function mediaTypeOf(bytes: Uint8Array): OutgoingImage["mediaType"] | null {
   if (startsWith(bytes, "GIF8")) return "image/gif"
   if (startsWith(bytes, "RIFF") && startsWith(bytes, "WEBP", 8)) return "image/webp"
   return null
+}
+
+// A valid header can hide broken pixel data, which only fails when a frame draws the image.
+function decodes(bytes: Uint8Array): boolean {
+  let image: NativeImage | undefined
+  try {
+    image = NativeImage.decode(bytes)
+    image.raw()
+    return true
+  } catch (error) {
+    log.warn("image could not be decoded", String(error))
+    return false
+  } finally {
+    image?.dispose()
+  }
 }
 
 async function sips(args: string[]): Promise<string | null> {
@@ -70,6 +86,7 @@ export async function fitImage(bytes: Uint8Array): Promise<OutgoingImage | null>
       log.warn("image too large after shrinking", { bytes: fitted.length })
       return null
     }
+    if (!decodes(fitted)) return null
     return { mediaType, base64: Buffer.from(fitted).toString("base64") }
   } catch (error) {
     log.warn("image could not be fitted", String(error))
