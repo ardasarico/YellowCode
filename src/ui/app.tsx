@@ -216,15 +216,21 @@ export function App(props: AppProps) {
     messageParts.set(id, { markdown, open, ids })
     return ids
   }
+  // A rewind hides its prompt and everything after it.
+  const shownItems = () => {
+    const rewound = props.session.rewound
+    const cut = rewound ? props.session.items.indexOf(rewound.userId) : -1
+    return cut === -1 ? props.session.items : props.session.items.slice(0, cut)
+  }
   const selectableIds = () =>
-    props.session.items.flatMap((id) => {
+    shownItems().flatMap((id) => {
       const item = props.session.byId[id]
       const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
       const parts = item?.kind === "text" ? partsOf(id, item.markdown) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
         loadImage(image) ? [labelId(id, index)] : [],
       )
-      return [...own, ...parts, ...labels]
+      return own.concat(parts, labels)
     })
 
   // The image a `[Image N]` mention points at: image N of the latest user message before it that has one.
@@ -384,7 +390,10 @@ export function App(props: AppProps) {
   const [rewindArmed, setRewindArmed] = createSignal(false)
   let disarmRewind: ReturnType<typeof setTimeout> | undefined
   const canRewind = () =>
-    props.rewind !== undefined && props.session.status !== "running" && !pending() && userItems().length > 0
+    props.rewind !== undefined &&
+    props.session.status !== "running" &&
+    !pending() &&
+    shownItems().some((id) => props.session.byId[id]?.kind === "user")
   const openRewind = () => {
     setRewindArmed(false)
     if (canRewind()) setDialog({ name: "rewind" })
