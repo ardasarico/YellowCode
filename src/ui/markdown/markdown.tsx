@@ -162,7 +162,9 @@ function marker(list: Tokens.List, item: Tokens.ListItem, index: number): string
 
 function List(props: { token: Tokens.List; width: number; fg: RGBA; depth: number }) {
   const indent = () => (props.depth === 0 ? 2 : 0)
-  const markerWidth = () => Math.max(...props.token.items.map((item, index) => marker(props.token, item, index).length))
+  const markerWidth = createMemo(() =>
+    Math.max(...props.token.items.map((item, index) => marker(props.token, item, index).length)),
+  )
   return (
     <box flexDirection="column" paddingLeft={indent()}>
       <Index each={props.token.items}>
@@ -603,10 +605,14 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
     )
   }
   const lines = createMemo(() => entries().map((entry) => entryImages(entry, process.cwd())))
-  const offset = (index: number) =>
-    lines()
-      .slice(0, index)
-      .reduce((sum, block) => sum + block.flat().length, 0)
+  const starts = createMemo(() => {
+    let sum = 0
+    return lines().map((block) => {
+      const start = sum
+      sum += block.flat().length
+      return start
+    })
+  })
   return (
     <FoldContext.Provider value={{ chat: () => props.chat, numbers }}>
       <RefContext.Provider value={refContext}>
@@ -615,18 +621,24 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
             {(entry, index) => {
               // A memo, so finished blocks do not re-run their own memos on every delta.
               const streaming = createMemo(() => props.streaming && index === entries().length - 1)
+              const block = () => (
+                <BlockView token={entry()} streaming={streaming()} width={props.width} fg={theme.text} depth={0} />
+              )
+              // Only a block with images gets a box around it, which keeps the chat's node count down.
               return (
-                <box flexDirection="column" gap={1}>
-                  <BlockView token={entry()} streaming={streaming()} width={props.width} fg={theme.text} depth={0} />
-                  <InlineImages
-                    itemId={props.chat?.itemId}
-                    lines={lines()[index] ?? []}
-                    offset={offset(index)}
-                    width={props.width}
-                    selection={props.chat?.selection}
-                    onOpen={props.chat?.onOpenImage}
-                  />
-                </box>
+                <Show when={(lines()[index]?.length ?? 0) > 0} fallback={block()}>
+                  <box flexDirection="column" gap={1}>
+                    {block()}
+                    <InlineImages
+                      itemId={props.chat?.itemId}
+                      lines={lines()[index] ?? []}
+                      offset={starts()[index] ?? 0}
+                      width={props.width}
+                      selection={props.chat?.selection}
+                      onOpen={props.chat?.onOpenImage}
+                    />
+                  </box>
+                </Show>
               )
             }}
           </Index>
