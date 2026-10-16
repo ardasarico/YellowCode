@@ -48,7 +48,7 @@ export type CompletionOptions = {
   loadImage: LoadImage
   history?: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
-  // Called by ↓ on the last row without history, or on an empty prompt that is not browsing it.
+  // Called by ↓ on an empty prompt that is not browsing the history.
   onLeaveDown?: () => void
   // Each new `seq` replaces the prompt with `draft`.
   fill?: Accessor<{ draft: Draft; seq: number } | undefined>
@@ -320,9 +320,7 @@ export function useCompletion(options: CompletionOptions) {
     return true
   }
 
-  const onLastRow = () =>
-    area !== undefined && area.visualCursor.visualRow + area.scrollY === area.editorView.getTotalVirtualLineCount() - 1
-  const leavesDown = () => (options.history ? browsing === null && area?.plainText === "" : onLastRow())
+  const leavesDown = () => browsing === null && area?.plainText === ""
 
   useKeyboard((key) => {
     if (!options.focused()) return
