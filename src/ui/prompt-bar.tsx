@@ -125,7 +125,7 @@ function PromptInput(
   const completion = useCompletion({
     focused,
     provider: () => props.provider,
-    width: () => props.width - 2,
+    width: () => Math.max(0, props.width - 2),
     room: () =>
       dimensions().height -
       3 -

@@ -45,7 +45,7 @@ export function InputBlock(props: InputBlockProps) {
   const completion = useCompletion({
     focused: () => props.focused,
     provider: () => props.provider,
-    width: () => props.width - 2 * TILE_PADDING,
+    width: () => Math.max(0, props.width - 2 * TILE_PADDING),
     room: () => {
       const padding = filledPadding()
       return Math.max(0, (block?.y ?? 0) - padding.top - padding.bottom)
