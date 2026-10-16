@@ -27,9 +27,23 @@ export type Refs = {
   onOpen: (id: string) => void
 }
 
+type OwnRefs = Pick<Refs, "itemId" | "numbers" | "cwd">
+
 export const RefContext = createContext<() => Refs | undefined>()
 
+const sameRefs = (a: OwnRefs | undefined, b: OwnRefs | undefined) =>
+  a === b ||
+  (a !== undefined &&
+    b !== undefined &&
+    a.itemId === b.itemId &&
+    a.cwd === b.cwd &&
+    a.numbers.size === b.numbers.size &&
+    [...a.numbers].every(([token, number]) => b.numbers.get(token) === number))
+
 const withoutScheme = (url: string): string => url.replace(/^[a-z]+:\/\//i, "")
+
+const selectedStyle = (style: RunStyle) =>
+  theme.selection ? { ...style, bg: theme.selection } : { ...style, reverse: true }
 
 function hasChildren(token: Token): token is Token & { tokens: Token[] } {
   return "tokens" in token && Array.isArray(token.tokens)
@@ -40,7 +54,7 @@ export function toRuns(
   style: RunStyle,
   hyperlinks: boolean,
   url?: string,
-  refs?: Refs,
+  refs?: OwnRefs,
 ): Run[] {
   const runs: Run[] = []
   const push = (text: string, runStyle: RunStyle, runUrl = url) => {
@@ -51,10 +65,7 @@ export function toRuns(
     else push(token.raw, next, nextUrl)
   }
   const pushRef = (text: string, runStyle: RunStyle, id: string) => {
-    const selected = refs?.selection === id
-    const look = { ...runStyle, underline: true }
-    const shown = selected ? (theme.selection ? { ...look, bg: theme.selection } : { ...look, reverse: true }) : look
-    if (text) runs.push({ text, style: shown, ref: id })
+    if (text) runs.push({ text, style: { ...runStyle, underline: true }, ref: id })
   }
   // The id of a token's nth reference, when the token sits in a chat message.
   const refAt = (token: Token, nth = 0) => {
@@ -149,18 +160,44 @@ export function toRuns(
 
 export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: boolean }) {
   const renderer = useRenderer()
-  const refs = useContext(RefContext)
-  const runs = createMemo(() =>
+  const context = useContext(RefContext)
+  // Only this text's own reference numbers, so a delta or a selection elsewhere in the message keeps its spans.
+  const refs = createMemo(
+    () => {
+      const value = context?.()
+      if (!value) return undefined
+      const numbers = new Map<Token, number>()
+      const visit = (tokens: readonly Token[]) => {
+        for (const token of tokens) {
+          const number = value.numbers.get(token)
+          if (number !== undefined) numbers.set(token, number)
+          if (hasChildren(token)) visit(token.tokens)
+        }
+      }
+      visit(props.tokens)
+      return { itemId: value.itemId, numbers, cwd: value.cwd }
+    },
+    undefined,
+    { equals: sameRefs },
+  )
+  const unselected = createMemo(() =>
     toRuns(
       props.tokens,
       { fg: props.fg ?? theme.text, bold: props.bold },
       renderer.capabilities?.hyperlinks === true,
       undefined,
-      refs?.(),
+      refs(),
     ),
   )
+  const selection = () => context?.()?.selection
+  const runs = createMemo(() => {
+    const list = unselected()
+    const id = selection()
+    if (!id || !list.some((run) => run.ref === id)) return list
+    return list.map((run) => (run.ref === id ? { text: run.text, style: selectedStyle(run.style), ref: id } : run))
+  })
   // Carries the selected reference's id so the chat can scroll it into view.
-  const selected = () => runs().find((run) => run.ref !== undefined && run.ref === refs?.()?.selection)?.ref
+  const selected = () => runs().find((run) => run.ref !== undefined && run.ref === selection())?.ref
   // The run under a click: the visual row's start column in the text plus the clicked column.
   const clicked = (text: TextBufferRenderable, x: number, y: number) => {
     const row = y - text.y
@@ -178,10 +215,10 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
         id={selected()}
         fg={props.fg ?? theme.text}
         onMouseDown={function (event) {
-          const id = refs?.() && clicked(this, event.x, event.y)
+          const id = context?.() && clicked(this, event.x, event.y)
           if (!id) return
           event.preventDefault()
-          refs?.()?.onOpen(id)
+          context?.()?.onOpen(id)
         }}
       >
         <For each={runs()}>
