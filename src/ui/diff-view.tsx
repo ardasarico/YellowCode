@@ -6,6 +6,8 @@ import type { DiffRow } from "./diff.ts"
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 export const HEAD_LIMIT = 20
 const TAIL_LIMIT = 10
+// Each row is a few renderables, and OpenTUI stops drawing past a fixed number of them.
+const EXPANDED_LIMIT = 2000
 const SIGN = { add: "+", del: "-", ctx: " " } as const
 
 function DiffLine(props: { row: DiffRow; digits: number }) {
@@ -38,21 +40,22 @@ function DiffLine(props: { row: DiffRow; digits: number }) {
 // A new file shows its last lines; an edit shows its first ones.
 export function DiffView(props: { rows: DiffRow[]; tail: boolean; expanded: boolean }) {
   const digits = () => String(Math.max(0, ...props.rows.map((row) => (row.kind === "gap" ? 0 : row.number)))).length
-  const limit = () => (props.tail ? TAIL_LIMIT : HEAD_LIMIT)
-  const hidden = () => (props.expanded ? 0 : Math.max(0, props.rows.length - limit()))
+  const tail = () => props.tail && !props.expanded
+  const limit = () => (props.expanded ? EXPANDED_LIMIT : props.tail ? TAIL_LIMIT : HEAD_LIMIT)
+  const hidden = () => Math.max(0, props.rows.length - limit())
   const shown = () => {
     if (hidden() === 0) return props.rows
-    return props.tail ? props.rows.slice(-limit()) : props.rows.slice(0, limit())
+    return tail() ? props.rows.slice(-limit()) : props.rows.slice(0, limit())
   }
   const note = (text: string) => `${" ".repeat(digits() + 1)}… ${text}`
 
   return (
     <box flexDirection="column" paddingLeft={2}>
-      <Show when={props.tail && hidden() > 0}>
+      <Show when={tail() && hidden() > 0}>
         <text fg={theme.muted}>{note(`${hidden()} lines above`)}</text>
       </Show>
       <Index each={shown()}>{(row) => <DiffLine row={row()} digits={digits()} />}</Index>
-      <Show when={!props.tail && hidden() > 0}>
+      <Show when={!tail() && hidden() > 0}>
         <text fg={theme.muted}>{note(`${hidden()} more lines`)}</text>
       </Show>
     </box>
