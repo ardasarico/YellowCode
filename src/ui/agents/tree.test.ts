@@ -5,15 +5,17 @@ import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { Session } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
-import { agentTree, barSize } from "./tree.ts"
+import { activeGroups, agentTree, barSize, shellNodes } from "./tree.ts"
 
-function replay(name: string): Session {
+function play(name: string) {
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", `${name}.jsonl`)
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
     session.apply(entry.dir, parse(entry.line), entry.t)
-  return session.state
+  return session
 }
+
+const replay = (name: string): Session => play(name).state
 
 test("nested agents nest under the agent that launched them", () => {
   const nodes = agentTree(replay("nested-agents"))
@@ -58,6 +60,21 @@ test("a workflow groups its agents under their phases", () => {
   const failed = { ...session, tasks: { [task.id]: { ...task, workflow: { ...task.workflow, agents: errors } } } }
   const phase = agentTree(failed).find((node) => node.kind === "phase")
   expect([phase?.state, phase?.detail]).toEqual(["failed", "0/2"])
+})
+
+test("agents and shells of rewound prompts leave the tree, the panel and the shell list", () => {
+  const session = play("agent-shell")
+  const counts = () => [
+    agentTree(session.state).length,
+    activeGroups(session.state).length,
+    shellNodes(session.state).length,
+  ]
+  expect(counts()).toEqual([1, 1, 1])
+  const userId = session.state.items.find((id) => session.state.byId[id]?.kind === "user") ?? ""
+  session.rewind({ userId, prompts: 1, files: 0, keptFiles: false })
+  expect(counts()).toEqual([0, 0, 0])
+  session.redo()
+  expect(counts()).toEqual([1, 1, 1])
 })
 
 test("the workflow bar narrows to 12, then 8 columns, then goes away", () => {

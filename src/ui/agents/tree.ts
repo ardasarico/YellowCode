@@ -230,6 +230,7 @@ export function agentTree(session: Session): TreeNode[] {
   const nodes: TreeNode[] = []
   let order = 0
   for (const id of session.items) {
+    if (id === session.rewound?.userId) break
     const item = session.byId[id]
     if (item?.kind !== "tool" || !(isAgentCall(item) || isWorkflowCall(item))) continue
     nodes.push(...subtree(session, item, 1, null, order))
@@ -258,8 +259,10 @@ export function shellNodes(session: Session): TreeNode[] {
 // Top-level agents and workflows that are running or started since the latest user message, each followed by its
 // descendants, in tree order.
 export function activeGroups(session: Session): TreeNode[][] {
-  const lastUser = session.items.findLastIndex((id) => session.byId[id]?.kind === "user")
-  const recent = new Set(session.items.slice(lastUser + 1))
+  const cut = session.rewound ? session.items.indexOf(session.rewound.userId) : -1
+  const shown = cut === -1 ? session.items : session.items.slice(0, cut)
+  const lastUser = shown.findLastIndex((id) => session.byId[id]?.kind === "user")
+  const recent = new Set(shown.slice(lastUser + 1))
   const groups: TreeNode[][] = []
   for (const node of agentTree(session)) {
     if (node.depth === 1) groups.push([node])

@@ -1,12 +1,39 @@
-import type { Session, Task } from "./types.ts"
+import { unwrap } from "solid-js/store"
+import type { ItemId, Session, Task } from "./types.ts"
 
 export function isShell(task: Task): boolean {
   return task.type === "local_bash" && task.background
 }
 
+// The tool calls the chat still shows, subagents' included: none from a rewind's prompt on, none a later send dropped.
+function shownTools(session: Session): Set<ItemId> {
+  const byId = unwrap(session.byId)
+  const shown = new Set<ItemId>()
+  const visit = (id: ItemId) => {
+    const item = byId[id]
+    if (item?.kind !== "tool") return
+    shown.add(id)
+    for (const child of item.children) visit(child)
+  }
+  for (const id of session.items) {
+    if (id === session.rewound?.userId) break
+    visit(id)
+  }
+  return shown
+}
+
+// A shell goes with the prompt that started it; one whose call never arrived stays.
+function shownShells(session: Session): Task[] {
+  const shells = Object.values(session.tasks).filter(isShell)
+  if (shells.length === 0) return shells
+  const shown = shownTools(session)
+  const byId = unwrap(session.byId)
+  return shells.filter((task) => !task.toolUseId || !byId[task.toolUseId] || shown.has(task.toolUseId))
+}
+
 // Running shells newest start first, then finished shells latest end first.
 export function shellTasks(session: Session): Task[] {
-  const shells = Object.values(session.tasks).filter(isShell)
+  const shells = shownShells(session)
   const running = shells
     .filter((task) => task.state === "running")
     .toSorted((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))
@@ -17,7 +44,7 @@ export function shellTasks(session: Session): Task[] {
 }
 
 export function runningShellCount(session: Session): number {
-  return Object.values(session.tasks).filter((task) => isShell(task) && task.state === "running").length
+  return shownShells(session).filter((task) => task.state === "running").length
 }
 
 // The model-written description inside the summary can itself say "exit code N", so only the summary's end counts.
