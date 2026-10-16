@@ -33,7 +33,7 @@ export function summarizeToolInput(input: unknown): string {
     (headers || undefined) ??
     f.matrix?.header ??
     ""
-  const line = value.split("\n")[0] ?? ""
+  const line = Bun.stripANSI(value).split("\n")[0] ?? ""
   return line.length > MAX_LENGTH ? `${line.slice(0, MAX_LENGTH - 1)}…` : line
 }
 
@@ -45,12 +45,19 @@ const agentFields = z.looseObject({
   model: z.string().optional(),
 })
 
+// A name is drawn on one row, so it keeps no escapes, line breaks or tabs.
+const oneLine = (text: string | undefined) =>
+  Bun.stripANSI(text ?? "")
+    .replace(/\p{Cc}/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
 export function agentOf(toolName: string, input: unknown): Agent | null {
   if (toolName !== "Agent") return null
   const parsed = agentFields.safeParse(input)
   if (!parsed.success) return null
   return {
-    name: parsed.data.name ?? parsed.data.subagent_type ?? "agent",
+    name: oneLine(parsed.data.name) || oneLine(parsed.data.subagent_type) || "agent",
     task: parsed.data.description ?? "",
     prompt: parsed.data.prompt ?? "",
     type: parsed.data.subagent_type ?? "",

@@ -69,12 +69,15 @@ function describeUserContent(content: string | UserBlock[]): { text: string; ima
 
 function toolResultText(content: ResultContent): string {
   if (content === undefined) return ""
-  if (typeof content === "string") return content
-  return content
-    .flatMap((block) =>
-      block.type === "text" ? [block.text] : block.type === "image" ? [] : [`[${block.originalType}]`],
-    )
-    .join("\n")
+  const text =
+    typeof content === "string"
+      ? content
+      : content
+          .flatMap((block) =>
+            block.type === "text" ? [block.text] : block.type === "image" ? [] : [`[${block.originalType}]`],
+          )
+          .join("\n")
+  return Bun.stripANSI(text)
 }
 
 function toolImages(tool: ToolCall, content: ResultContent): ChatImage[] {
