@@ -7,6 +7,7 @@ import { allowAnswers, denyTool, QUESTION_DECLINED } from "../../protocol/outgoi
 import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { covered } from "../images.ts"
+import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
 import { fitHints } from "./fit.ts"
 
@@ -128,75 +129,77 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   return (
     <box flexDirection="column" flexShrink={1}>
       <Rule width={props.width} />
-      <box flexDirection="row" marginTop={1}>
-        <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="word" flexGrow={1} flexShrink={1}>
-          {props.matrix.question}
-        </text>
-        <text fg={theme.muted} wrapMode="none" flexShrink={0}>
-          {indicator() ? `  ${indicator()}` : ""}
-        </text>
-      </box>
-      <box flexDirection="column" marginTop={1}>
-        <Index each={shown()}>
-          {(row, offset) => {
-            const index = () => first() + offset
-            const focused = () => index() === state.row
-            const chosen = () => state.answers[index()] ?? -1
-            const note = () => state.notes[index()] ?? ""
-            return (
-              <box flexDirection="row">
-                <text
-                  width={labelWidth()}
-                  flexShrink={0}
-                  wrapMode="none"
-                  fg={focused() ? theme.accent : theme.text}
-                  attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
-                >
-                  {`${focused() ? "❯" : " "} ${cut(row().label, labelWidth() - 4)}`}
-                </text>
-                <text wrapMode="none" flexShrink={0}>
-                  <Index each={scale()}>
-                    {(step, at) => {
-                      const on = () => chosen() === at
-                      const here = () => focused() && state.cursor === at
-                      // The focused row's answer takes the accent; the step under the cursor gets a band.
-                      const color = () =>
-                        here() || (on() && focused()) ? theme.accent : on() ? theme.text : theme.muted
-                      const band = () => (here() ? (theme.selection ?? undefined) : undefined)
-                      return (
-                        <span style={{ fg: color(), bg: band(), bold: on() && focused() }}>
-                          {` ${on() ? "●" : "○"} ${step()} `}
-                        </span>
-                      )
-                    }}
-                  </Index>
-                </text>
-                <Show
-                  when={noting() && focused()}
-                  fallback={
-                    <text fg={theme.accent} wrapMode="none" flexShrink={1}>
-                      {note() ? " ".repeat(NOTE_GAP) + cut(note(), noteWidth()) : ""}
-                    </text>
-                  }
-                >
-                  <input
-                    focused
-                    flexGrow={1}
-                    marginLeft={NOTE_GAP}
-                    value={draft()}
-                    onInput={setDraft}
-                    placeholder="a note for Claude"
-                    placeholderColor={theme.muted}
-                    textColor={theme.accent}
-                    focusedTextColor={theme.accent}
-                  />
-                </Show>
-              </box>
-            )
-          }}
-        </Index>
-        <box height={filler()} />
-      </box>
+      <AskScroll focus={`row-${state.row - first()}`} fromTop={state.row === first()} scope={first()}>
+        <box flexDirection="row" marginTop={1}>
+          <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="word" flexGrow={1} flexShrink={1}>
+            {props.matrix.question}
+          </text>
+          <text fg={theme.muted} wrapMode="none" flexShrink={0}>
+            {indicator() ? `  ${indicator()}` : ""}
+          </text>
+        </box>
+        <box flexDirection="column" marginTop={1}>
+          <Index each={shown()}>
+            {(row, offset) => {
+              const index = () => first() + offset
+              const focused = () => index() === state.row
+              const chosen = () => state.answers[index()] ?? -1
+              const note = () => state.notes[index()] ?? ""
+              return (
+                <box id={`row-${offset}`} flexDirection="row">
+                  <text
+                    width={labelWidth()}
+                    flexShrink={0}
+                    wrapMode="none"
+                    fg={focused() ? theme.accent : theme.text}
+                    attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
+                  >
+                    {`${focused() ? "❯" : " "} ${cut(row().label, labelWidth() - 4)}`}
+                  </text>
+                  <text wrapMode="none" flexShrink={0}>
+                    <Index each={scale()}>
+                      {(step, at) => {
+                        const on = () => chosen() === at
+                        const here = () => focused() && state.cursor === at
+                        // The focused row's answer takes the accent; the step under the cursor gets a band.
+                        const color = () =>
+                          here() || (on() && focused()) ? theme.accent : on() ? theme.text : theme.muted
+                        const band = () => (here() ? (theme.selection ?? undefined) : undefined)
+                        return (
+                          <span style={{ fg: color(), bg: band(), bold: on() && focused() }}>
+                            {` ${on() ? "●" : "○"} ${step()} `}
+                          </span>
+                        )
+                      }}
+                    </Index>
+                  </text>
+                  <Show
+                    when={noting() && focused()}
+                    fallback={
+                      <text fg={theme.accent} wrapMode="none" flexShrink={1}>
+                        {note() ? " ".repeat(NOTE_GAP) + cut(note(), noteWidth()) : ""}
+                      </text>
+                    }
+                  >
+                    <input
+                      focused
+                      flexGrow={1}
+                      marginLeft={NOTE_GAP}
+                      value={draft()}
+                      onInput={setDraft}
+                      placeholder="a note for Claude"
+                      placeholderColor={theme.muted}
+                      textColor={theme.accent}
+                      focusedTextColor={theme.accent}
+                    />
+                  </Show>
+                </box>
+              )
+            }}
+          </Index>
+          <box height={filler()} />
+        </box>
+      </AskScroll>
       <box flexDirection="row" justifyContent="flex-end" flexShrink={0} marginTop={1}>
         <text fg={theme.faint} flexShrink={1}>
           {noting() ? NOTE_HINTS : fitHints(HINTS, SHORT_HINTS, props.width)}
