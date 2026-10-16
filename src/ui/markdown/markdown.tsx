@@ -1,7 +1,19 @@
 import { RGBA } from "@opentui/core"
 import type { Tokens } from "marked"
 import { diagramKind } from "grok-mermaid"
-import { createContext, createMemo, createSignal, Index, Match, type JSX, Show, Switch, useContext } from "solid-js"
+import {
+  type Accessor,
+  createContext,
+  createMemo,
+  createSignal,
+  Index,
+  Match,
+  type JSX,
+  Show,
+  Switch,
+  untrack,
+  useContext,
+} from "solid-js"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
@@ -46,6 +58,29 @@ export type MarkdownChat = {
   onOpenImage: (id: string) => void
   onOpenRef: (id: string) => void
   onToggle: (id: string) => void
+}
+
+// A Match whose child can still read its value after the block changed kind, just before the Switch removes it. Solid
+// throws "Stale read from <Match>" there, which happens while a reply streams; the child then sees its last value.
+function Case<T>(props: {
+  when: T | undefined | null | false
+  children: (value: Accessor<NonNullable<T>>) => JSX.Element
+}) {
+  return (
+    <Match when={props.when}>
+      {(value) => {
+        let last = untrack(value)
+        return props.children(() => {
+          try {
+            last = value()
+          } catch (error) {
+            if (!String(error).includes("Stale read")) throw error
+          }
+          return last
+        })
+      }}
+    </Match>
+  )
 }
 
 // Headings inside a column are its title; columns inside a column stay code.
@@ -156,13 +191,13 @@ function BlockView(props: BlockProps) {
   const inColumn = useContext(InColumn)
   return (
     <Switch fallback={<text fg={props.fg}>{props.token.raw.trimEnd()}</text>}>
-      <Match when={is(props.token, "heading")}>
+      <Case when={is(props.token, "heading")}>
         {(token) => <Inline tokens={token().tokens} {...headingStyle(token().depth, inColumn)} />}
-      </Match>
-      <Match when={isDetails(props.token) && props.token}>
+      </Case>
+      <Case when={isDetails(props.token) && props.token}>
         {(entry) => <DetailsView entry={entry()} width={props.width} fg={props.fg} depth={props.depth} />}
-      </Match>
-      <Match when={blockMath(props.token)}>
+      </Case>
+      <Case when={blockMath(props.token)}>
         {(tex) => (
           <box paddingLeft={4}>
             <text fg={theme.accent}>
@@ -170,14 +205,14 @@ function BlockView(props: BlockProps) {
             </text>
           </box>
         )}
-      </Match>
-      <Match when={is(props.token, "paragraph") ?? is(props.token, "text")}>
+      </Case>
+      <Case when={is(props.token, "paragraph") ?? is(props.token, "text")}>
         {(token) => <Inline tokens={token().tokens ?? [token()]} fg={props.fg} />}
-      </Match>
-      <Match when={is(props.token, "list")}>
+      </Case>
+      <Case when={is(props.token, "list")}>
         {(token) => <List token={token()} width={props.width} fg={props.fg} depth={props.depth} />}
-      </Match>
-      <Match when={calloutOf(props.token)}>
+      </Case>
+      <Case when={calloutOf(props.token)}>
         {(callout) => {
           const look = () => CALLOUTS[callout().kind]
           return (
@@ -189,18 +224,18 @@ function BlockView(props: BlockProps) {
             </box>
           )
         }}
-      </Match>
-      <Match when={is(props.token, "blockquote")}>
+      </Case>
+      <Case when={is(props.token, "blockquote")}>
         {(token) => (
           <box border={["left"]} borderStyle="single" borderColor={theme.frame} paddingLeft={1}>
             <Blocks tokens={token().tokens} width={props.width - 2} fg={theme.muted} depth={props.depth} gap={1} />
           </box>
         )}
-      </Match>
-      <Match when={statsCode(props.token)}>
+      </Case>
+      <Case when={statsCode(props.token)}>
         {(token) => <StatsBlock token={token()} streaming={props.streaming} width={props.width} />}
-      </Match>
-      <Match when={!inColumn && columnsCode(props.token)}>
+      </Case>
+      <Case when={!inColumn && columnsCode(props.token)}>
         {(token) => (
           <ColumnsBlock
             token={token()}
@@ -210,14 +245,14 @@ function BlockView(props: BlockProps) {
             depth={props.depth}
           />
         )}
-      </Match>
-      <Match when={treeCode(props.token)}>{(token) => <TreeBlock token={token()} streaming={props.streaming} />}</Match>
-      <Match when={mermaidOf(props.token)}>
+      </Case>
+      <Case when={treeCode(props.token)}>{(token) => <TreeBlock token={token()} streaming={props.streaming} />}</Case>
+      <Case when={mermaidOf(props.token)}>
         {(token) => <MermaidBlock token={token()} streaming={props.streaming} width={props.width} />}
-      </Match>
-      <Match when={diffOf(props.token)}>{(token) => <DiffBlock token={token()} />}</Match>
-      <Match when={is(props.token, "code")}>{(token) => <Code token={token()} streaming={props.streaming} />}</Match>
-      <Match when={is(props.token, "table")}>{(token) => <Table token={token()} width={props.width} />}</Match>
+      </Case>
+      <Case when={diffOf(props.token)}>{(token) => <DiffBlock token={token()} />}</Case>
+      <Case when={is(props.token, "code")}>{(token) => <Code token={token()} streaming={props.streaming} />}</Case>
+      <Case when={is(props.token, "table")}>{(token) => <Table token={token()} width={props.width} />}</Case>
       <Match when={is(props.token, "hr")}>
         <text fg={theme.frame}>{"─".repeat(Math.max(1, props.width))}</text>
       </Match>
@@ -336,22 +371,22 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
           </box>
           <Switch>
             <Match when={fold.open()}>{source()}</Match>
-            <Match when={wide()}>
+            <Case when={wide()}>
               {(columns) => (
                 <box flexDirection="column">
                   {source()}
                   <Note>{`diagram needs ${columns()} columns`}</Note>
                 </box>
               )}
-            </Match>
-            <Match when={art()}>
+            </Case>
+            <Case when={art()}>
               {(value) => (
                 <box paddingLeft={2}>
                   <DiagramArt art={value()} />
                 </box>
               )}
-            </Match>
-            <Match when={lineChart()}>
+            </Case>
+            <Case when={lineChart()}>
               {(value) => (
                 <box paddingLeft={2}>
                   <Show
@@ -362,21 +397,21 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
                   </Show>
                 </box>
               )}
-            </Match>
-            <Match when={chart()}>
+            </Case>
+            <Case when={chart()}>
               {(value) => (
                 <box paddingLeft={2}>
                   <ChartBars chart={value()} width={props.width - 2} />
                 </box>
               )}
-            </Match>
-            <Match when={gantt()}>
+            </Case>
+            <Case when={gantt()}>
               {(value) => (
                 <box paddingLeft={2}>
                   <GanttView gantt={value()} width={props.width - 2} />
                 </box>
               )}
-            </Match>
+            </Case>
           </Switch>
         </box>
       </Match>
@@ -420,7 +455,7 @@ function StatsBlock(props: { token: Tokens.Code; streaming: boolean; width: numb
   const stats = createMemo(() => parseStats(text()))
   return (
     <Switch fallback={<Code token={props.token} streaming={props.streaming} />}>
-      <Match when={stats()}>{(value) => <StatsView stats={value()} width={props.width} />}</Match>
+      <Case when={stats()}>{(value) => <StatsView stats={value()} width={props.width} />}</Case>
       <Match when={props.streaming && !text().trim()}>
         <box />
       </Match>
@@ -434,7 +469,7 @@ function TreeBlock(props: { token: Tokens.Code; streaming: boolean }) {
   const rows = createMemo(() => parseTree(text()))
   return (
     <Switch fallback={<Code token={props.token} streaming={props.streaming} />}>
-      <Match when={rows()}>
+      <Case when={rows()}>
         {(value) => (
           <Show when={value().length > LONG_TREE} fallback={<TreeView rows={value()} />}>
             <box flexDirection="column" gap={1}>
@@ -443,7 +478,7 @@ function TreeBlock(props: { token: Tokens.Code; streaming: boolean }) {
             </box>
           </Show>
         )}
-      </Match>
+      </Case>
       <Match when={props.streaming && !text().trim()}>
         <box />
       </Match>
@@ -577,25 +612,23 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
       <RefContext.Provider value={refContext}>
         <box flexDirection="column" gap={1}>
           <Index each={entries()}>
-            {(entry, index) => (
-              <box flexDirection="column" gap={1}>
-                <BlockView
-                  token={entry()}
-                  streaming={props.streaming && index === entries().length - 1}
-                  width={props.width}
-                  fg={theme.text}
-                  depth={0}
-                />
-                <InlineImages
-                  itemId={props.chat?.itemId}
-                  lines={lines()[index] ?? []}
-                  offset={offset(index)}
-                  width={props.width}
-                  selection={props.chat?.selection}
-                  onOpen={props.chat?.onOpenImage}
-                />
-              </box>
-            )}
+            {(entry, index) => {
+              // A memo, so finished blocks do not re-run their own memos on every delta.
+              const streaming = createMemo(() => props.streaming && index === entries().length - 1)
+              return (
+                <box flexDirection="column" gap={1}>
+                  <BlockView token={entry()} streaming={streaming()} width={props.width} fg={theme.text} depth={0} />
+                  <InlineImages
+                    itemId={props.chat?.itemId}
+                    lines={lines()[index] ?? []}
+                    offset={offset(index)}
+                    width={props.width}
+                    selection={props.chat?.selection}
+                    onOpen={props.chat?.onOpenImage}
+                  />
+                </box>
+              )
+            }}
           </Index>
         </box>
       </RefContext.Provider>
