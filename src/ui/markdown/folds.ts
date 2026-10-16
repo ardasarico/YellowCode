@@ -3,6 +3,7 @@ import { Lexer, type Tokens } from "marked"
 import { diffRows, type DiffRow, unifiedHunks } from "../diff.ts"
 import { HEAD_LIMIT } from "../diff-view.tsx"
 import { is } from "./blocks.ts"
+import { remember } from "./cache.ts"
 import { calloutOf } from "./callout.ts"
 import { hasData, parseChart } from "./chart.ts"
 import { columnsOf } from "./columns.ts"
@@ -38,16 +39,12 @@ const drawable = new Map<string, boolean>()
 
 // A mermaid block that draws as a diagram or chart, whatever the width. Its fold shows the source.
 export function drawsMermaid(text: string): boolean {
-  let found = drawable.get(text)
-  if (found === undefined) {
+  return remember(drawable, 200, text, () => {
     const chart = parseChart(text)
     const gantt = parseGantt(text)
-    if (chart) found = hasData(chart)
-    else found = gantt ? gantt.tasks.length > 0 : render(text) !== null
-    if (drawable.size > 200) drawable.clear()
-    drawable.set(text, found)
-  }
-  return found
+    if (chart) return hasData(chart)
+    return gantt ? gantt.tasks.length > 0 : render(text) !== null
+  })
 }
 
 function foldable(entry: Entry): boolean {
@@ -106,13 +103,21 @@ export function foldNumbers(entries: readonly Entry[]): Map<Entry, number> {
   return numbers
 }
 
+const lexed = new Map<string, Entry[]>()
+
+// A whole message's blocks, kept for keyboard selection, which looks at every message on each key.
+export function messageEntries(markdown: string): Entry[] {
+  return remember(lexed, 1000, markdown, () =>
+    groupDetails(Lexer.lex(markdown, { gfm: true }).filter((token) => token.type !== "space" && token.type !== "def")),
+  )
+}
+
 // The folds a message shows, in order, for keyboard selection.
 export function messageFolds(markdown: string, itemId: string, expanded: Record<string, boolean>): string[] {
   if (!/<details|```\s*mermaid/i.test(markdown) && markdown.split("\n").length <= LONG_CODE) return []
-  const tokens = Lexer.lex(markdown, { gfm: true }).filter((token) => token.type !== "space" && token.type !== "def")
   const ids: string[] = []
   walkFolds(
-    groupDetails(tokens),
+    messageEntries(markdown),
     (index) => expanded[foldId(itemId, index)] === true,
     (_, index, hidden) => {
       if (!hidden) ids.push(foldId(itemId, index))

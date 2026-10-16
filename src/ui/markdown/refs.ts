@@ -1,12 +1,13 @@
 import { closeSync, openSync, readSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { resolve } from "node:path"
-import { Lexer, type Token } from "marked"
+import type { Token } from "marked"
 import { is } from "./blocks.ts"
 import { calloutOf } from "./callout.ts"
 import { columnsOf } from "./columns.ts"
-import { type Entry, groupDetails, isDetails } from "./details.ts"
-import { foldId, foldNumbers } from "./folds.ts"
+import { remember } from "./cache.ts"
+import { type Entry, isDetails } from "./details.ts"
+import { foldId, foldNumbers, messageEntries } from "./folds.ts"
 
 export type FileRef = { path: string; line?: number; end?: number }
 export type RefTarget = { kind: "file"; ref: FileRef } | { kind: "image"; n: number }
@@ -24,27 +25,23 @@ export function refTarget(id: string): { itemId: string; index: number } | null 
 
 const readable = new Map<string, boolean>()
 
-// A text file small enough to preview: not a folder, not binary.
-function isTextFile(path: string): boolean {
-  let found = readable.get(path)
-  if (found === undefined) {
-    found = false
+// An image, or a text file small enough to preview: not a folder, not binary.
+function isTarget(path: string): boolean {
+  return remember(readable, 5000, path, () => {
     try {
       const stat = statSync(path, { throwIfNoEntry: false })
-      if (stat?.isFile() && stat.size <= MAX_BYTES) {
-        const fd = openSync(path, "r")
-        const head = new Uint8Array(Math.min(SNIFF, stat.size))
-        readSync(fd, head, 0, head.length, 0)
-        closeSync(fd)
-        found = !head.includes(0)
-      }
+      if (!stat?.isFile()) return false
+      if (isImagePath(path)) return true
+      if (stat.size > MAX_BYTES) return false
+      const fd = openSync(path, "r")
+      const head = new Uint8Array(Math.min(SNIFF, stat.size))
+      readSync(fd, head, 0, head.length, 0)
+      closeSync(fd)
+      return !head.includes(0)
     } catch {
-      found = false
+      return false
     }
-    if (readable.size > 2000) readable.clear()
-    readable.set(path, found)
-  }
-  return found
+  })
 }
 
 const IMAGE = /\.(png|jpe?g|gif|webp)$/i
@@ -57,7 +54,7 @@ export function parseRef(text: string, cwd: string): FileRef | null {
   const raw = match?.[1]
   if (!raw || !/\/|\.[a-z0-9]+$/i.test(raw) || /^[a-z][a-z\d+.-]*:/i.test(raw)) return null
   const path = raw.startsWith("~/") ? resolve(homedir(), raw.slice(2)) : resolve(cwd, raw)
-  if (!(isImagePath(path) ? statSync(path, { throwIfNoEntry: false })?.isFile() : isTextFile(path))) return null
+  if (!isTarget(path)) return null
   const line = Number(match?.[2] ?? match?.[4]) || undefined
   const end = Number(match?.[3] ?? match?.[5]) || undefined
   return { path, ...(line ? { line } : {}), ...(line && end && end > line ? { end } : {}) }
@@ -95,7 +92,7 @@ export function textParts(text: string, cwd: string): Part[] {
   return parts
 }
 
-export function tokenTargets(token: Token, cwd: string): RefTarget[] {
+function findTargets(token: Token, cwd: string): RefTarget[] {
   if (token.type === "codespan") {
     const ref = parseRef(String(token.text).trim(), cwd)
     return ref ? [{ kind: "file", ref }] : []
@@ -108,6 +105,17 @@ export function tokenTargets(token: Token, cwd: string): RefTarget[] {
     return textParts(String(token.text), cwd).flatMap((part) => (part.target ? [part.target] : []))
   }
   return []
+}
+
+const targets = new WeakMap<Token, { cwd: string; targets: RefTarget[] }>()
+
+// Found once per token, as keyboard selection and streaming look at a whole message again each time.
+export function tokenTargets(token: Token, cwd: string): RefTarget[] {
+  const found = targets.get(token)
+  if (found?.cwd === cwd) return found.targets
+  const made = findTargets(token, cwd)
+  targets.set(token, { cwd, targets: made })
+  return made
 }
 
 type Found = { token: Token; target: RefTarget; hidden: boolean }
@@ -155,22 +163,8 @@ export function refNumbers(entries: readonly Entry[], cwd: string): Map<Token, n
   return numbers
 }
 
-const lexed = new Map<string, Entry[]>()
-
-function entriesOf(markdown: string): Entry[] {
-  let entries = lexed.get(markdown)
-  if (!entries) {
-    entries = groupDetails(
-      Lexer.lex(markdown, { gfm: true }).filter((token) => token.type !== "space" && token.type !== "def"),
-    )
-    if (lexed.size > 200) lexed.clear()
-    lexed.set(markdown, entries)
-  }
-  return entries
-}
-
 export function messageTargets(markdown: string, cwd: string): RefTarget[] {
-  return collect(entriesOf(markdown), cwd, () => false).map(({ target }) => target)
+  return collect(messageEntries(markdown), cwd, () => false).map(({ target }) => target)
 }
 
 // The references a message shows, in order, for keyboard selection.
@@ -180,7 +174,7 @@ export function messageRefs(
   cwd: string,
   expanded: Record<string, boolean>,
 ): string[] {
-  const entries = entriesOf(markdown)
+  const entries = messageEntries(markdown)
   const folds = foldNumbers(entries)
   const closed = (entry: Entry) => expanded[foldId(itemId, folds.get(entry) ?? -1)] !== true
   return collect(entries, cwd, closed).flatMap(({ hidden }, index) => (hidden ? [] : [refId(itemId, index)]))
