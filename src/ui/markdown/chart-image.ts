@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import { NativeImage } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
 import type { Chart } from "./chart.ts"
@@ -7,6 +8,11 @@ export type ChartColors = { muted: string; grid: string; zero: string; series: s
 export type ChartSize = { width: number; height: number; font: number }
 
 const FONT = "Menlo"
+const FONT_FILE = "/System/Library/Fonts/Menlo.ttc"
+// Loading every system font takes most of a second per chart; Menlo alone takes a millisecond.
+const FONT_OPTIONS = existsSync(FONT_FILE)
+  ? { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }
+  : { loadSystemFonts: true, defaultFontFamily: FONT }
 
 function niceStep(span: number, count: number): number {
   const raw = span / count
@@ -98,9 +104,7 @@ export function chartSvg(chart: XYChart, size: ChartSize, colors: ChartColors): 
 export function chartImage(chart: XYChart, size: ChartSize, colors: ChartColors): NativeImage | null {
   try {
     const svg = chartSvg(chart, size, colors)
-    return NativeImage.decode(
-      new Resvg(svg, { font: { loadSystemFonts: true, defaultFontFamily: FONT } }).render().asPng(),
-    )
+    return NativeImage.decode(new Resvg(svg, { font: FONT_OPTIONS }).render().asPng())
   } catch {
     return null
   }
