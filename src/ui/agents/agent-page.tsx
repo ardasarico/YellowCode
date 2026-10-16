@@ -1,5 +1,6 @@
 import { RGBA, type ScrollBoxRenderable } from "@opentui/core"
-import { For, type JSX, Match, Show, Switch } from "solid-js"
+import { createMemo, For, type JSX, Match, Show, Switch, untrack } from "solid-js"
+import { unwrap } from "solid-js/store"
 import type { Item, Session, ToolCall } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
@@ -159,13 +160,21 @@ export function AgentPage(props: PageProps) {
   const running = () => props.node.state === "running"
   const color = () => agentColor(props.node.colorIndex)
   const inner = () => props.width - 2
+  // Kinds never change once a step is added, so only the step count and each thinking block's streaming are tracked.
   // A finished thinking block leaves nothing to draw.
-  const steps = () =>
-    (tool()?.children ?? []).flatMap((id) => {
-      const item = props.session.byId[id]
-      if (!item || (item.kind !== "tool" && item.kind !== "text" && item.kind !== "thinking")) return []
-      return item.kind === "thinking" && !item.streaming ? [] : [item]
-    })
+  const steps = createMemo(() => {
+    const ids = tool()?.children ?? []
+    if (ids.length === 0) return []
+    const byId = unwrap(props.session.byId)
+    const items = untrack(() =>
+      ids.flatMap((id) => {
+        const kind = byId[id]?.kind
+        const item = props.session.byId[id]
+        return item && (kind === "tool" || kind === "text" || kind === "thinking") ? [item] : []
+      }),
+    )
+    return items.filter((item) => byId[item.id]?.kind !== "thinking" || (item.kind === "thinking" && item.streaming))
+  })
   const prompt = () => agent()?.prompt || task()?.prompt || ""
   // The tool result wraps a foreground agent's report in a hand-back frame; the notification's summary does not.
   const report = () => (task()?.summary || agent()?.report || "").trim()

@@ -1,6 +1,6 @@
 import { unwrap } from "solid-js/store"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
-import type { Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
+import type { ItemId, Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
 
 export type TreeNode = {
   id: string
@@ -89,7 +89,8 @@ export function agentNode(
   colorIndex: number,
 ): TreeNode {
   const agent = tool.agent
-  const tools = tool.children.filter((id) => session.byId[id]?.kind === "tool").length
+  const byId = unwrap(session.byId)
+  const tools = tool.children.length === 0 ? 0 : unwrap(tool.children).filter((id) => byId[id]?.kind === "tool").length
   return {
     id: tool.id,
     kind: "agent",
@@ -235,26 +236,40 @@ function subtree(
   const node = agentNode(session, tool, depth, parentId, colorIndex)
   return [
     node,
-    ...tool.children.flatMap((id) => {
-      const child = session.byId[id]
-      if (child?.kind !== "tool" || !(isAgentCall(child) || isWorkflowCall(child))) return []
-      return subtree(session, child, depth + 1, node.id, colorIndex)
-    }),
+    ...agentCalls(session, tool.children, undefined).flatMap((child) =>
+      subtree(session, child, depth + 1, node.id, colorIndex),
+    ),
   ]
 }
 
+// The agent and workflow calls among `ids`, up to `end`. An item's kind and name never change once it is added, so
+// only how many ids there are is tracked.
+function agentCalls(session: Session, ids: ItemId[], end: ItemId | undefined): ToolCall[] {
+  if (ids.length === 0) return []
+  const byId = unwrap(session.byId)
+  const calls: ToolCall[] = []
+  for (const id of unwrap(ids)) {
+    if (id === end) break
+    const raw = byId[id]
+    if (raw?.kind !== "tool" || !(isAgentCall(raw) || isWorkflowCall(raw))) continue
+    const tool = session.byId[id]
+    if (tool?.kind === "tool") calls.push(tool)
+  }
+  return calls
+}
+
+const topCalls = (session: Session) => agentCalls(session, session.items, session.rewound?.userId)
+
 // Pre-order: every top-level agent or workflow followed by its descendants.
 export function agentTree(session: Session): TreeNode[] {
-  const nodes: TreeNode[] = []
-  let order = 0
-  for (const id of session.items) {
-    if (id === session.rewound?.userId) break
-    const item = session.byId[id]
-    if (item?.kind !== "tool" || !(isAgentCall(item) || isWorkflowCall(item))) continue
-    nodes.push(...subtree(session, item, 1, null, order))
-    order += 1
-  }
-  return nodes
+  return topCalls(session).flatMap((tool, order) => subtree(session, tool, 1, null, order))
+}
+
+// The top-level agents and workflows alone, without their descendants.
+export function topNodes(session: Session): TreeNode[] {
+  return topCalls(session).map((tool, order) =>
+    isWorkflowCall(tool) ? workflowNode(session, tool, 1, null, order) : agentNode(session, tool, 1, null, order),
+  )
 }
 
 export function shellNodes(session: Session): TreeNode[] {
@@ -274,17 +289,14 @@ export function shellNodes(session: Session): TreeNode[] {
   }))
 }
 
-// Top-level agents and workflows that are running or started since the latest user message, each followed by its
-// descendants, in tree order.
-export function activeGroups(session: Session): TreeNode[][] {
-  const cut = session.rewound ? session.items.indexOf(session.rewound.userId) : -1
-  const shown = cut === -1 ? session.items : session.items.slice(0, cut)
-  const lastUser = shown.findLastIndex((id) => session.byId[id]?.kind === "user")
+// Top-level agents and workflows that are running or started since the latest user message, in tree order.
+export function activeNodes(session: Session): TreeNode[] {
+  const nodes = topNodes(session)
+  const items = unwrap(session.items)
+  const byId = unwrap(session.byId)
+  const end = session.rewound ? items.indexOf(session.rewound.userId) : -1
+  const shown = end === -1 ? items : items.slice(0, end)
+  const lastUser = shown.findLastIndex((id) => byId[id]?.kind === "user")
   const recent = new Set(shown.slice(lastUser + 1))
-  const groups: TreeNode[][] = []
-  for (const node of agentTree(session)) {
-    if (node.depth === 1) groups.push([node])
-    else groups.at(-1)?.push(node)
-  }
-  return groups.filter((group) => group[0]?.state === "running" || recent.has(group[0]?.id ?? ""))
+  return nodes.filter((node) => node.state === "running" || recent.has(node.id))
 }

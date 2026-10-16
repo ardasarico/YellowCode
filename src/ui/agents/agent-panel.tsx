@@ -5,7 +5,7 @@ import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
 import { cut, formatDuration } from "../format.ts"
 import { useDuration, WorkflowFields, workflowMark, useWorkflowRow } from "./agent-line.tsx"
-import { activeGroups, type TreeNode } from "./tree.ts"
+import { activeNodes, type TreeNode } from "./tree.ts"
 import { agentColor } from "./tree-rows.tsx"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
@@ -19,9 +19,7 @@ const KEYS = [
 // Top-level agents and workflows that are running or started since the latest user message: running first, then
 // newest first.
 export function panelNodes(session: Session): TreeNode[] {
-  const nodes = activeGroups(session)
-    .flatMap((group) => group.slice(0, 1))
-    .toReversed()
+  const nodes = activeNodes(session).toReversed()
   return [...nodes.filter((node) => node.state === "running"), ...nodes.filter((node) => node.state !== "running")]
 }
 

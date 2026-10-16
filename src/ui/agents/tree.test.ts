@@ -5,7 +5,7 @@ import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { Session } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
-import { activeGroups, agentTree, barSize, shellNodes } from "./tree.ts"
+import { activeNodes, agentTree, barSize, shellNodes } from "./tree.ts"
 
 function play(name: string) {
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -66,7 +66,7 @@ test("agents and shells of rewound prompts leave the tree, the panel and the she
   const session = play("agent-shell")
   const counts = () => [
     agentTree(session.state).length,
-    activeGroups(session.state).length,
+    activeNodes(session.state).length,
     shellNodes(session.state).length,
   ]
   expect(counts()).toEqual([1, 1, 1])
