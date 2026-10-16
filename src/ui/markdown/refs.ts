@@ -84,6 +84,7 @@ export function textParts(text: string, cwd: string): Part[] {
   const parts: Part[] = []
   let at = 0
   for (const match of text.matchAll(MENTION)) {
+    if (Number(match[1]) === 0) continue
     parts.push(...wordParts(text.slice(at, match.index), cwd))
     parts.push({ text: match[0], target: { kind: "image", n: Number(match[1]) } })
     at = match.index + match[0].length

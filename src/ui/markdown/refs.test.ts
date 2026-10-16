@@ -18,4 +18,5 @@ test("textParts keeps punctuation out of refs and finds image mentions", () => {
   const parts = textParts("See src/ui/app.tsx:5. Compare [Image 2].", cwd)
   expect(parts.filter((part) => part.target).map((part) => part.text)).toEqual(["src/ui/app.tsx:5", "[Image 2]"])
   expect(parts.map((part) => part.text).join("")).toBe("See src/ui/app.tsx:5. Compare [Image 2].")
+  expect(textParts("[Image 0]", cwd).some((part) => part.target)).toBe(false)
 })
