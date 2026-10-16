@@ -139,9 +139,11 @@ export function CodeView(props: {
   }
   createEffect(
     on(
-      () => [props.index, text()],
-      () => {
+      () => [props.index, text()] as const,
+      ([, content], previous) => {
         if (!code) return
+        // Another reference in the same file keeps the wrapped rows, so no new ones are coming.
+        if (previous && previous[1] === content) return scrollToTarget()
         code.once("line-info-change", scrollToTarget)
         onCleanup(() => code?.off("line-info-change", scrollToTarget))
       },
