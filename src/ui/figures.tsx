@@ -130,16 +130,29 @@ function Mark(props: { source: NativeImage; size: Size; background: RGBA | null 
   )
 }
 
+// Every running paw steps with one clock, which runs only while some paw does.
+const [toeStep, setToeStep] = createSignal(0)
+let runningPaws = 0
+let clock: ReturnType<typeof setInterval> | undefined
+
+function stepWithClock(): void {
+  runningPaws += 1
+  if (runningPaws === 1) clock = setInterval(() => setToeStep((value) => (value + 1) % 4), TOE_MS)
+  onCleanup(() => {
+    runningPaws -= 1
+    if (runningPaws === 0) clearInterval(clock)
+  })
+}
+
 function Paw(props: { color: RGBA; running: boolean; size?: Size; background?: RGBA | null }) {
-  const [step, setStep] = createSignal(0)
+  // Each paw starts on its first toe, as if it had a clock of its own.
+  const start = toeStep()
   createEffect(() => {
-    if (!props.running) return
-    const timer = setInterval(() => setStep((value) => (value + 1) % 4), TOE_MS)
-    onCleanup(() => clearInterval(timer))
+    if (props.running) stepWithClock()
   })
   return (
     <Mark
-      source={pawFrame(props.color, props.running ? step() : null, props.size)}
+      source={pawFrame(props.color, props.running ? (toeStep() - start + 4) % 4 : null, props.size)}
       size={props.size}
       background={props.background ?? theme.background}
     />
