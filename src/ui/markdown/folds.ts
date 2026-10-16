@@ -114,7 +114,7 @@ export function messageEntries(markdown: string): Entry[] {
 
 // The folds a message shows, in order, for keyboard selection.
 export function messageFolds(markdown: string, itemId: string, expanded: Record<string, boolean>): string[] {
-  if (!/<details|```\s*mermaid/i.test(markdown) && markdown.split("\n").length <= LONG_CODE) return []
+  if (!/<details|(?:```|~~~)\s*mermaid/i.test(markdown) && markdown.split("\n").length <= LONG_CODE) return []
   const ids: string[] = []
   walkFolds(
     messageEntries(markdown),
