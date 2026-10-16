@@ -24,9 +24,13 @@ export function editorChoices(current: Editor): Editor[] {
   ]
 }
 
+// Each path segment is escaped, so a space, "#" or "?" in a name stays part of the path.
+export const editorUrl = (scheme: string, path: string, line?: number) =>
+  `${scheme}://file${path.split("/").map(encodeURIComponent).join("/")}${line ? `:${line}` : ""}`
+
 export async function openFile(path: string, line?: number): Promise<void> {
   const editor = settings.editor
-  const target = editor === "default" ? path : `${APPS[editor].scheme}://file${path}${line ? `:${line}` : ""}`
+  const target = editor === "default" ? path : editorUrl(APPS[editor].scheme, path, line)
   try {
     const child = Bun.spawn(["open", target], { stdout: "ignore", stderr: "pipe" })
     if ((await child.exited) !== 0) log.warn("open failed", await new Response(child.stderr).text())

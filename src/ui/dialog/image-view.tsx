@@ -19,7 +19,7 @@ async function openInPreview(image: ChatImage): Promise<void> {
   try {
     let path = image.path && existsSync(image.path) ? image.path : null
     if (!path && image.data) {
-      path = join(tmpdir(), `yellowcode-image-${++opened}.${image.mediaType.split("/")[1] ?? "png"}`)
+      path = join(tmpdir(), `yellowcode-image-${++opened}.${/^image\/(\w+)/.exec(image.mediaType)?.[1] ?? "png"}`)
       await Bun.write(path, Uint8Array.fromBase64(image.data))
     }
     if (!path) return log.warn("image not found", image.name)
