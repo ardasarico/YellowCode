@@ -62,10 +62,16 @@ function entryOf(image: ChatImage): Entry | null {
   return entry
 }
 
-function decode(bytes: Uint8Array): NativeImage | null {
+// A valid header can hide broken pixels, which would only fail when a frame draws them. Reading the last pixel
+// decodes them all without copying them out.
+export function decodeImage(bytes: Uint8Array): NativeImage | null {
+  let image: NativeImage | undefined
   try {
-    return NativeImage.decode(bytes)
+    image = NativeImage.decode(bytes)
+    image.extract({ left: image.width - 1, top: image.height - 1, width: 1, height: 1 }).dispose()
+    return image
   } catch {
+    image?.dispose()
     return null
   }
 }
@@ -79,7 +85,7 @@ function settle(image: ChatImage, entry: Entry, decoded: NativeImage | null): vo
   entry.size = undefined
   entry.setShrinking(true)
   void shrunkCopy(path, SHOWN_SIDE).then((copy) => {
-    const pixels = copy && decode(copy.bytes)
+    const pixels = copy && decodeImage(copy.bytes)
     if (copy && pixels) {
       if (files.get(keyOf(image)) === entry) cached += copy.bytes.length - entry.bytes.length
       entry.bytes = copy.bytes
@@ -94,7 +100,7 @@ export function loadImage(image: ChatImage): ImageFile {
   const entry = entryOf(image)
   if (!entry) return null
   if (entry.size === undefined && !entry.shrinking()) {
-    const decoded = decode(entry.bytes)
+    const decoded = decodeImage(entry.bytes)
     settle(image, entry, decoded)
     decoded?.dispose()
   }
@@ -112,7 +118,7 @@ export function createDecoded(image: () => ChatImage | null | undefined): () => 
     const shown = image()
     const entry = shown ? entryOf(shown) : null
     if (!shown || !entry || entry.shrinking() || entry.size === null) return undefined
-    const decoded = decode(entry.bytes)
+    const decoded = decodeImage(entry.bytes)
     if (entry.size === undefined || !decoded) settle(shown, entry, decoded)
     if (!decoded) return undefined
     onCleanup(() => decoded.dispose())

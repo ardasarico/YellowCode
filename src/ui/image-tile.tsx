@@ -1,6 +1,7 @@
-import { type ImageRenderable, NativeImage } from "@opentui/core"
+import type { ImageRenderable } from "@opentui/core"
 import { createMemo, createSignal, onCleanup, Show } from "solid-js"
 import { theme } from "../theme/theme.ts"
+import { decodeImage } from "./image-label.tsx"
 import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "./images.ts"
 
 const TILE_ROWS = 6
@@ -17,12 +18,14 @@ export function ImageTile(props: {
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
   const [room, setRoom] = createSignal(0)
   const decoded = createMemo(() => {
-    let image: NativeImage
+    let bytes: Uint8Array
     try {
-      image = NativeImage.decode(Uint8Array.fromBase64(props.image.data))
+      bytes = Uint8Array.fromBase64(props.image.data)
     } catch {
       return undefined
     }
+    const image = decodeImage(bytes)
+    if (!image) return undefined
     onCleanup(() => image.dispose())
     return image
   })
