@@ -25,7 +25,7 @@ import type { Submission } from "./completion.ts"
 import { CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { windowTitle } from "./format.ts"
-import { itemImages, labelId, labelTarget, loadImage } from "./image-label.tsx"
+import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import { type FileRef, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
@@ -239,7 +239,7 @@ export function App(props: AppProps) {
       const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
       const parts = item?.kind === "text" ? partsOf(id, item.markdown) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
-        loadImage(image) ? [labelId(id, index)] : [],
+        hasImage(image) ? [labelId(id, index)] : [],
       )
       return own.concat(parts, labels)
     })
@@ -300,9 +300,9 @@ export function App(props: AppProps) {
     if (!target) return
     const all = itemImages(props.session.byId[target.itemId], process.cwd())
     const label = all[target.index]
-    if (!label || !loadImage(label)) return
+    if (!label || !hasImage(label)) return
     // A missing file has nothing to show, so the view skips it.
-    const images = all.filter((image) => loadImage(image))
+    const images = all.filter(hasImage)
     setSelected(id)
     setDialog({ name: "image", images, index: images.indexOf(label) })
   }

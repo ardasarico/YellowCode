@@ -1,42 +1,97 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
-import { createMemo, Index, Show } from "solid-js"
+import { createMemo, Index, onCleanup, Show } from "solid-js"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { remember } from "./markdown/cache.ts"
 import { markdownImages, readLocalImage } from "./markdown/images.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 
-// null when the file is not there; `image` is null when the bytes do not decode.
-export type LoadedImage = { bytes: Uint8Array; image: NativeImage | null } | null
+const MAX_CACHED = 64 * 1024 * 1024
+const MAX_FILES = 1000
 
-const loaded = new Map<string, LoadedImage>()
+type Size = { width: number; height: number }
+// null when the file is not there; `size` is null when the bytes do not decode.
+export type ImageFile = { bytes: Uint8Array; size: Size | null } | null
 
-function read(image: ChatImage): LoadedImage {
-  let bytes: Uint8Array
+// A decoded photo takes tens of MB, so only the bytes are kept here, and pixels only while shown (`createDecoded`).
+// `size` is undefined until the bytes are first decoded.
+const files = new Map<string, { bytes: Uint8Array; size?: Size | null } | null>()
+let cached = 0
+const found = new Map<string, boolean>()
+
+function read(image: ChatImage): Uint8Array | null {
   try {
     const file = !image.data && image.path ? readLocalImage(image.path) : null
-    if (image.data) bytes = Uint8Array.fromBase64(image.data)
-    else if (!file) return null
-    else if (image.path?.toLowerCase().endsWith(".svg")) {
-      // Loading the system fonts takes most of a second, so only an SVG with text pays for it.
-      const svg = file.toString("utf8")
-      bytes = new Resvg(svg, { font: { loadSystemFonts: /<text[\s>]/.test(svg) } }).render().asPng()
-    } else bytes = file
+    if (image.data) return Uint8Array.fromBase64(image.data)
+    if (!file) return null
+    if (!image.path?.toLowerCase().endsWith(".svg")) return file
+    // Loading the system fonts takes most of a second, so only an SVG with text pays for it.
+    const svg = file.toString("utf8")
+    return new Resvg(svg, { font: { loadSystemFonts: /<text[\s>]/.test(svg) } }).render().asPng()
   } catch {
     return null
   }
+}
+
+const keyOf = (image: ChatImage) => image.data ?? image.path ?? ""
+
+// Past the limits the least recently used files go.
+function entryOf(image: ChatImage) {
+  const key = keyOf(image)
+  let entry = files.get(key)
+  if (entry === undefined) {
+    const bytes = read(image)
+    entry = bytes && { bytes }
+    cached += bytes?.length ?? 0
+  }
+  files.delete(key)
+  files.set(key, entry)
+  for (const [oldest, old] of files) {
+    if (oldest === key || (cached <= MAX_CACHED && files.size <= MAX_FILES)) break
+    files.delete(oldest)
+    cached -= old?.bytes.length ?? 0
+  }
+  return entry
+}
+
+function decode(bytes: Uint8Array): NativeImage | null {
   try {
-    return { bytes, image: NativeImage.decode(bytes) }
+    return NativeImage.decode(bytes)
   } catch {
-    return { bytes, image: null }
+    return null
   }
 }
 
-export function loadImage(image: ChatImage): LoadedImage {
-  const key = image.data ?? image.path ?? ""
-  if (!loaded.has(key)) loaded.set(key, read(image))
-  return loaded.get(key) ?? null
+export function loadImage(image: ChatImage): ImageFile {
+  const entry = entryOf(image)
+  if (!entry) return null
+  if (entry.size === undefined) {
+    const decoded = decode(entry.bytes)
+    entry.size = decoded && { width: decoded.width, height: decoded.height }
+    decoded?.dispose()
+  }
+  return { bytes: entry.bytes, size: entry.size }
+}
+
+// Whether the image is there to select or open; remembered, as the keyboard selection asks on every key.
+export function hasImage(image: ChatImage): boolean {
+  return remember(found, 5000, keyOf(image), () => entryOf(image) !== null)
+}
+
+// The image's pixels while the caller is mounted, freed with it.
+export function createDecoded(image: () => ChatImage | null | undefined): () => NativeImage | undefined {
+  return createMemo(() => {
+    const shown = image()
+    const entry = shown ? entryOf(shown) : null
+    if (!entry || entry.size === null) return undefined
+    const decoded = decode(entry.bytes)
+    entry.size = decoded && { width: decoded.width, height: decoded.height }
+    if (!decoded) return undefined
+    onCleanup(() => decoded.dispose())
+    return decoded
+  })
 }
 
 export const labelId = (itemId: string, index: number) => `${itemId}/image/${index}`
@@ -61,8 +116,8 @@ export function ImageLabel(props: {
 }) {
   const file = createMemo(() => loadImage(props.image))
   const size = () => {
-    const decoded = file()?.image
-    return decoded ? ` · ${decoded.width}×${decoded.height}` : ""
+    const known = file()?.size
+    return known ? ` · ${known.width}×${known.height}` : ""
   }
   return (
     <box

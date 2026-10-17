@@ -7,7 +7,7 @@ import { log } from "../../log/log.ts"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cutPath } from "../format.ts"
-import { loadImage } from "../image-label.tsx"
+import { createDecoded, loadImage } from "../image-label.tsx"
 import { Frame } from "./frame.tsx"
 import { Footer, PAD_X } from "./list-view.tsx"
 
@@ -61,11 +61,12 @@ export function ImageView(props: {
     const shown = image()
     return shown ? loadImage(shown) : null
   }
+  const pixels = createDecoded(image)
   const several = () => props.images.length > 1
   const details = () => {
     const loaded = file()
     if (!loaded) return " not found"
-    const size = loaded.image ? `${loaded.image.width}×${loaded.image.height} · ` : ""
+    const size = loaded.size ? `${loaded.size.width}×${loaded.size.height} · ` : ""
     return ` ${size}${Math.max(1, Math.round(loaded.bytes.length / 1024))} KB`
   }
   const counter = () => (several() ? `${props.index + 1} / ${props.images.length}  esc` : "esc")
@@ -106,7 +107,7 @@ export function ImageView(props: {
       </box>
       <Rule width={inner()} />
       <box flexGrow={1} flexDirection="column" paddingX={PAD_X}>
-        <Show when={file()?.image}>{(decoded) => <image source={decoded()} fit="fit" flexGrow={1} />}</Show>
+        <Show when={pixels()}>{(decoded) => <image source={decoded()} fit="fit" flexGrow={1} />}</Show>
       </box>
       <Rule width={inner()} />
       <box height={1} flexDirection="row" paddingRight={PAD_X}>

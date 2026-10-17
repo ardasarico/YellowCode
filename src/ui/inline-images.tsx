@@ -1,8 +1,8 @@
 import type { ImageRenderable } from "@opentui/core"
-import { createMemo, createSignal, Index, Show } from "solid-js"
+import { createSignal, Index, Show } from "solid-js"
 import type { ChatImage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { ImageLabel, labelId, loadImage } from "./image-label.tsx"
+import { createDecoded, ImageLabel, labelId } from "./image-label.tsx"
 import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "./images.ts"
 
 const MAX_ROWS = 16
@@ -10,25 +10,25 @@ const GAP = 2
 const MIN_SLOT = 20
 
 function InlineImage(props: { id?: string; image: ChatImage; width: number; selected: boolean; onOpen?: () => void }) {
-  const file = createMemo(() => loadImage(props.image))
+  const pixels = createDecoded(() => props.image)
   const [element, setElement] = createSignal<ImageRenderable>()
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
   const size = () => {
-    const decoded = file()?.image
+    const decoded = pixels()
     const shape = cell()
     const ratio = shape ? shape.height / shape.width : 2
     const fitted = decoded && element()?.getFittedSize(props.width, MAX_ROWS, ratio, decoded.width, decoded.height)
     return fitted ?? { width: props.width, height: MAX_ROWS }
   }
   const shown = createShown(
-    () => file()?.image ?? undefined,
+    pixels,
     cell,
     () => size().width,
     () => size().height,
   )
   return (
     <Show
-      when={file()?.image}
+      when={pixels()}
       fallback={
         <ImageLabel id={props.id} image={props.image} prefix="" selected={props.selected} onOpen={props.onOpen} />
       }

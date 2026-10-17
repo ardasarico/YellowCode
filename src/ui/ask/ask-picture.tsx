@@ -1,9 +1,9 @@
 import { basename, resolve } from "node:path"
 import type { ImageRenderable } from "@opentui/core"
-import { createMemo, createSignal, Show } from "solid-js"
+import { createSignal, Show } from "solid-js"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
-import { loadImage } from "../image-label.tsx"
+import { createDecoded, loadImage } from "../image-label.tsx"
 import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "../images.ts"
 
 // Below this many chat cells an ask leaves its pictures out.
@@ -18,7 +18,7 @@ export function askImage(path: string | undefined): ChatImage | null {
 // The option's picture when it can be shown, so `z` and the image view skip the rest.
 export function shownPicture(path: string | undefined): ChatImage | null {
   const image = askImage(path)
-  return image && loadImage(image)?.image ? image : null
+  return image && loadImage(image)?.size ? image : null
 }
 
 // A picture fitted into `width`×`height` cells, centred; a muted box when there is nothing to show, without its
@@ -30,7 +30,7 @@ export function AskPicture(props: {
   framed?: boolean
   onOpen?: () => void
 }) {
-  const decoded = createMemo(() => (props.image ? loadImage(props.image)?.image : null) ?? undefined)
+  const decoded = createDecoded(() => props.image)
   const [element, setElement] = createSignal<ImageRenderable>()
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
   const size = () => {
