@@ -56,6 +56,8 @@ export type MarkdownChat = {
   itemId: string
   selection: string | null
   expanded: Record<string, boolean>
+  // The most images a user message before this one has, for `[Image N]` mentions.
+  images: number
   onOpenImage: (id: string) => void
   onOpenRef: (id: string) => void
   onToggle: (id: string) => void
@@ -604,7 +606,7 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
   })
   const entries = createMemo(() => groupDetails(blocks().map((block) => block.token)))
   const numbers = createMemo(() => foldNumbers(entries()))
-  const refs = createMemo(() => (props.chat ? refNumbers(entries(), process.cwd()) : new Map()))
+  const refs = createMemo(() => (props.chat ? refNumbers(entries(), process.cwd(), props.chat.images) : new Map()))
   const refContext = () => {
     const chat = props.chat
     return (
@@ -613,6 +615,7 @@ export function Markdown(props: { markdown: string; streaming: boolean; width: n
         selection: chat.selection,
         numbers: refs(),
         cwd: process.cwd(),
+        images: chat.images,
         onOpen: chat.onOpenRef,
       }
     )

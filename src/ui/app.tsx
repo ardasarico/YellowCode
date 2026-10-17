@@ -27,7 +27,15 @@ import { ImageView } from "./dialog/image-view.tsx"
 import { windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
-import { type FileRef, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
+import {
+  type FileRef,
+  imagesBefore,
+  isImagePath,
+  messageRefs,
+  messageTargets,
+  refId,
+  refTarget,
+} from "./markdown/refs.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
@@ -216,15 +224,23 @@ export function App(props: AppProps) {
   createEffect(() => renderer.setBackgroundColor(theme.canvas))
 
   // A message's folds and references, worked out again only when its text or its open folds change.
-  const messageParts = new Map<string, { markdown: string; open: string; ids: string[] }>()
+  const imageCounts = createMemo(() =>
+    imagesBefore(props.session.items, (id) => {
+      const item = props.session.byId[id]
+      return item?.kind === "user" ? item.images.length : 0
+    }),
+  )
+  const imagesOf = (id: string) => imageCounts().get(id) ?? 0
+  const messageParts = new Map<string, { markdown: string; open: string; images: number; ids: string[] }>()
   const partsOf = (id: string, markdown: string) => {
     const open = Object.keys(expanded)
       .filter((key) => expanded[key] === true && key.startsWith(`${id}/fold/`))
       .join()
     const known = messageParts.get(id)
-    if (known?.markdown === markdown && known.open === open) return known.ids
-    const ids = [...messageFolds(markdown, id, expanded), ...messageRefs(markdown, id, process.cwd(), expanded)]
-    messageParts.set(id, { markdown, open, ids })
+    const images = imagesOf(id)
+    if (known?.markdown === markdown && known.open === open && known.images === images) return known.ids
+    const ids = [...messageFolds(markdown, id, expanded), ...messageRefs(markdown, id, process.cwd(), images, expanded)]
+    messageParts.set(id, { markdown, open, images, ids })
     return ids
   }
   // A rewind hides its prompt and everything after it.
@@ -259,7 +275,7 @@ export function App(props: AppProps) {
     const target = refTarget(id)
     const item = target && props.session.byId[target.itemId]
     if (!target || item?.kind !== "text") return
-    const all = messageTargets(item.markdown, process.cwd())
+    const all = messageTargets(item.markdown, process.cwd(), imagesOf(target.itemId))
     const picked = all[target.index]
     if (!picked) return
     setSelected(id)
@@ -664,6 +680,7 @@ export function App(props: AppProps) {
               onOpenAgent={openAgentView}
               onOpenImage={openImage}
               onOpenRef={openRef}
+              imagesBefore={imagesOf}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
               onScrollState={setScrollState}

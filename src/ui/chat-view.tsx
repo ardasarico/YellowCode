@@ -30,6 +30,8 @@ type ChatProps = {
   onOpenAgent: (id: string) => void
   onOpenImage: (id: string) => void
   onOpenRef: (id: string) => void
+  // See `imagesBefore` in markdown/refs.ts.
+  imagesBefore: (id: string) => number
 }
 
 type ChatViewProps = ChatProps & {
@@ -136,6 +138,7 @@ function RowView(props: RowProps) {
                   itemId: text().id,
                   selection: props.selected,
                   expanded: props.expanded,
+                  images: props.imagesBefore(text().id),
                   onOpenImage: props.onOpenImage,
                   onOpenRef: props.onOpenRef,
                   onToggle: props.onToggle,

@@ -24,10 +24,11 @@ export type Refs = {
   selection: string | null
   numbers: Map<Token, number>
   cwd: string
+  images: number
   onOpen: (id: string) => void
 }
 
-type OwnRefs = Pick<Refs, "itemId" | "numbers" | "cwd">
+type OwnRefs = Pick<Refs, "itemId" | "numbers" | "cwd" | "images">
 
 export const RefContext = createContext<() => Refs | undefined>()
 
@@ -37,6 +38,7 @@ const sameRefs = (a: OwnRefs | undefined, b: OwnRefs | undefined) =>
     b !== undefined &&
     a.itemId === b.itemId &&
     a.cwd === b.cwd &&
+    a.images === b.images &&
     a.numbers.size === b.numbers.size &&
     [...a.numbers].every(([token, number]) => b.numbers.get(token) === number))
 
@@ -139,7 +141,7 @@ export function toRuns(
         else if (refAt(token) === undefined || !refs) plain(String(token.text), style)
         else {
           let nth = 0
-          for (const part of textParts(String(token.text), refs.cwd)) {
+          for (const part of textParts(String(token.text), refs.cwd, refs.images)) {
             if (!part.target) plain(part.text, style)
             else {
               const look = part.target.kind === "image" ? { ...style, fg: theme.accent } : style
@@ -175,7 +177,7 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
         }
       }
       visit(props.tokens)
-      return { itemId: value.itemId, numbers, cwd: value.cwd }
+      return { itemId: value.itemId, numbers, cwd: value.cwd, images: value.images }
     },
     undefined,
     { equals: sameRefs },

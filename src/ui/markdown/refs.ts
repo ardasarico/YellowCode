@@ -79,21 +79,23 @@ function wordParts(text: string, cwd: string): Part[] {
   return parts
 }
 
-// Plain text split into file references, `[Image N]` mentions and the text between them.
-export function textParts(text: string, cwd: string): Part[] {
+// Plain text split into file references, `[Image N]` mentions and the text between them. A mention is one only when a
+// user message before has an image N: `images` is the most any of them has.
+export function textParts(text: string, cwd: string, images: number): Part[] {
   const parts: Part[] = []
   let at = 0
   for (const match of text.matchAll(MENTION)) {
-    if (Number(match[1]) === 0) continue
+    const n = Number(match[1])
+    if (n < 1 || n > images) continue
     parts.push(...wordParts(text.slice(at, match.index), cwd))
-    parts.push({ text: match[0], target: { kind: "image", n: Number(match[1]) } })
+    parts.push({ text: match[0], target: { kind: "image", n } })
     at = match.index + match[0].length
   }
   parts.push(...wordParts(text.slice(at), cwd))
   return parts
 }
 
-function findTargets(token: Token, cwd: string): RefTarget[] {
+function findTargets(token: Token, cwd: string, images: number): RefTarget[] {
   if (token.type === "codespan") {
     const ref = parseRef(String(token.text).trim(), cwd)
     return ref ? [{ kind: "file", ref }] : []
@@ -103,19 +105,19 @@ function findTargets(token: Token, cwd: string): RefTarget[] {
     return ref ? [{ kind: "file", ref }] : []
   }
   if (token.type === "text" && !("tokens" in token && token.tokens)) {
-    return textParts(String(token.text), cwd).flatMap((part) => (part.target ? [part.target] : []))
+    return textParts(String(token.text), cwd, images).flatMap((part) => (part.target ? [part.target] : []))
   }
   return []
 }
 
-const targets = new WeakMap<Token, { cwd: string; targets: RefTarget[] }>()
+const targets = new WeakMap<Token, { cwd: string; images: number; targets: RefTarget[] }>()
 
 // Found once per token, as keyboard selection and streaming look at a whole message again each time.
-export function tokenTargets(token: Token, cwd: string): RefTarget[] {
+export function tokenTargets(token: Token, cwd: string, images: number): RefTarget[] {
   const found = targets.get(token)
-  if (found?.cwd === cwd) return found.targets
-  const made = findTargets(token, cwd)
-  targets.set(token, { cwd, targets: made })
+  if (found?.cwd === cwd && found.images === images) return found.targets
+  const made = findTargets(token, cwd, images)
+  targets.set(token, { cwd, images, targets: made })
   return made
 }
 
@@ -128,11 +130,11 @@ function inlineChildren(token: Token): readonly Token[] {
 
 // Every reference in reading order, matching the order the chat draws them in, columns left to right. Tables and
 // code stay plain.
-function collect(entries: readonly Entry[], cwd: string, closed: (entry: Entry) => boolean): Found[] {
+function collect(entries: readonly Entry[], cwd: string, images: number, closed: (entry: Entry) => boolean): Found[] {
   const found: Found[] = []
   const inline = (tokens: readonly Token[], hidden: boolean) => {
     for (const token of tokens) {
-      for (const target of tokenTargets(token, cwd)) found.push({ token, target, hidden })
+      for (const target of tokenTargets(token, cwd, images)) found.push({ token, target, hidden })
       inline(inlineChildren(token), hidden)
     }
   }
@@ -157,16 +159,28 @@ function collect(entries: readonly Entry[], cwd: string, closed: (entry: Entry) 
 }
 
 // The index of each token's first reference, for numbering refs while drawing.
-export function refNumbers(entries: readonly Entry[], cwd: string): Map<Token, number> {
+export function refNumbers(entries: readonly Entry[], cwd: string, images: number): Map<Token, number> {
   const numbers = new Map<Token, number>()
-  collect(entries, cwd, () => false).forEach(({ token }, index) => {
+  collect(entries, cwd, images, () => false).forEach(({ token }, index) => {
     if (!numbers.has(token)) numbers.set(token, index)
   })
   return numbers
 }
 
-export function messageTargets(markdown: string, cwd: string): RefTarget[] {
-  return collect(messageEntries(markdown), cwd, () => false).map(({ target }) => target)
+export function messageTargets(markdown: string, cwd: string, images: number): RefTarget[] {
+  return collect(messageEntries(markdown), cwd, images, () => false).map(({ target }) => target)
+}
+
+// The `images` of each item's references: the most images a user message before it has. Drawing, selecting and
+// opening must all use it, or the reference numbers shift.
+export function imagesBefore(items: readonly string[], imageCount: (id: string) => number): Map<string, number> {
+  const counts = new Map<string, number>()
+  let most = 0
+  for (const id of items) {
+    counts.set(id, most)
+    most = Math.max(most, imageCount(id))
+  }
+  return counts
 }
 
 // The references a message shows, in order, for keyboard selection.
@@ -174,10 +188,11 @@ export function messageRefs(
   markdown: string,
   itemId: string,
   cwd: string,
+  images: number,
   expanded: Record<string, boolean>,
 ): string[] {
   const entries = messageEntries(markdown)
   const folds = foldNumbers(entries)
   const closed = (entry: Entry) => expanded[foldId(itemId, folds.get(entry) ?? -1)] !== true
-  return collect(entries, cwd, closed).flatMap(({ hidden }, index) => (hidden ? [] : [refId(itemId, index)]))
+  return collect(entries, cwd, images, closed).flatMap(({ hidden }, index) => (hidden ? [] : [refId(itemId, index)]))
 }
