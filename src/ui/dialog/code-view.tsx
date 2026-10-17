@@ -129,6 +129,9 @@ export function CodeView(props: {
     numbers?.setLineColors(marked().colors)
     numbers?.setLineSigns(marked().signs)
   })
+  createEffect(() => {
+    if (numbers) numbers.showLineNumbers = Boolean(text())
+  })
 
   // Puts the target line about a third down the panel once the wrapped rows are known.
   const scrollToTarget = () => {
