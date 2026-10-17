@@ -51,6 +51,24 @@ async function sips(args: string[]): Promise<string | null> {
   return null
 }
 
+// Tried in order on the image (at most MAX_SIDE) until the JPEG fits: lower quality first, then a shorter long side.
+const STEPS = [
+  { quality: 80, side: MAX_SIDE },
+  { quality: 70, side: MAX_SIDE },
+  { quality: 60, side: MAX_SIDE },
+  { quality: 50, side: MAX_SIDE },
+  { quality: 50, side: 1568 },
+  { quality: 50, side: 1200 },
+  { quality: 50, side: 1000 },
+]
+
+// `bytes` is what the last step still came to.
+export class ImageTooLarge extends Error {
+  constructor(readonly bytes: number) {
+    super(`image too large to attach (${(bytes / 1024 / 1024).toFixed(1)} MB, limit 3.75 MB)`)
+  }
+}
+
 async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"]): Promise<string | null> {
   const info = await sips(["-g", "pixelWidth", "-g", "pixelHeight", file])
   if (info === null) return null
@@ -63,14 +81,19 @@ async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"
     if ((await sips(["-Z", String(MAX_SIDE), ...format, file, "--out", resized])) === null) return null
     file = resized
   }
-  if (Bun.file(file).size > MAX_BYTES) {
-    const jpeg = join(dir, "smaller.jpg")
-    if ((await sips(["-s", "format", "jpeg", "-s", "formatOptions", "80", file, "--out", jpeg])) === null) return null
-    file = jpeg
+  if (Bun.file(file).size <= MAX_BYTES) return file
+  const jpeg = join(dir, "smaller.jpg")
+  for (const step of STEPS) {
+    const resize = step.side < Math.min(side, MAX_SIDE) ? ["-Z", String(step.side)] : []
+    const args = [...resize, "-s", "format", "jpeg", "-s", "formatOptions", String(step.quality), file, "--out", jpeg]
+    // oxlint-disable-next-line no-await-in-loop
+    if ((await sips(args)) === null) return null
+    if (Bun.file(jpeg).size <= MAX_BYTES) break
   }
-  return file
+  return jpeg
 }
 
+// Throws ImageTooLarge when even the smallest step does not fit.
 export async function fitImage(bytes: Uint8Array): Promise<OutgoingImage | null> {
   const type = mediaTypeOf(bytes)
   if (type === null) return null
@@ -82,13 +105,15 @@ export async function fitImage(bytes: Uint8Array): Promise<OutgoingImage | null>
     if (file === null) return null
     const fitted = await Bun.file(file).bytes()
     const mediaType = mediaTypeOf(fitted)
-    if (mediaType === null || fitted.length > MAX_BYTES) {
+    if (mediaType === null) return null
+    if (fitted.length > MAX_BYTES) {
       log.warn("image too large after shrinking", { bytes: fitted.length })
-      return null
+      throw new ImageTooLarge(fitted.length)
     }
     if (!decodes(fitted)) return null
     return { mediaType, base64: Buffer.from(fitted).toString("base64") }
   } catch (error) {
+    if (error instanceof ImageTooLarge) throw error
     log.warn("image could not be fitted", String(error))
     return null
   } finally {

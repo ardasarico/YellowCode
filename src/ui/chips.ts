@@ -16,6 +16,7 @@ import {
   stringIndexes,
   toBufferOffset,
 } from "../input/draft.ts"
+import { ImageTooLarge } from "../input/image-file.ts"
 
 export type ChipsOptions = {
   area: Accessor<TextareaRenderable | undefined>
@@ -26,6 +27,21 @@ export type ChipsOptions = {
   place: (text: string) => void
   // Called whenever the chips are read again, so they can be repainted.
   onChange: () => void
+}
+
+const NOTICE_MS = 4000
+
+const [pasteNotice, setPasteNotice] = createSignal<string | null>(null)
+export { pasteNotice }
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+
+// A too large image is left out, with a notice; a pasted path then stays as text.
+function tooLarge(error: unknown, suffix = ""): null {
+  if (!(error instanceof ImageTooLarge)) throw error
+  clearTimeout(noticeTimer)
+  setPasteNotice(error.message + suffix)
+  noticeTimer = setTimeout(() => setPasteNotice(null), NOTICE_MS)
+  return null
 }
 
 const typeId = (area: TextareaRenderable) => area.extmarks.registerType("paste-chip")
@@ -153,7 +169,7 @@ export function useChips(options: ChipsOptions) {
 
   const attachPath = async (path: string, text: string) => {
     const back = anchor()
-    const image = await options.loadImage(path)
+    const image = await options.loadImage(path).catch((error: unknown) => tooLarge(error, ", kept the path"))
     back()
     if (!image) {
       options.area()?.insertText(text)
@@ -177,7 +193,7 @@ export function useChips(options: ChipsOptions) {
 
   const fromClipboard = async () => {
     const back = anchor()
-    const content = await options.readClipboard()
+    const content = await options.readClipboard().catch((error: unknown) => tooLarge(error))
     back()
     if (content?.kind === "image") insertImage(content.image)
     else if (content?.kind === "path") await attachPath(content.path, content.path)

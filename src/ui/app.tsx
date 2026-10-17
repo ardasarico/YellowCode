@@ -20,6 +20,7 @@ import { isAgentCall, isWorkflowCall, topNodes } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
+import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
 import { CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
@@ -580,7 +581,7 @@ export function App(props: AppProps) {
 
   const welcomeNotice = () => {
     if (quitArmed()) return quitHint()
-    const problem = settingsProblem()
+    const problem = pasteNotice() ?? settingsProblem()
     return problem ? { text: problem, fg: theme.warning } : null
   }
 
@@ -593,7 +594,7 @@ export function App(props: AppProps) {
       replay: props.replay,
       readOnly: props.readOnly?.title ?? null,
       mcpFailure: mcpFailure(),
-      settingsProblem: settingsProblem(),
+      settingsProblem: pasteNotice() ?? settingsProblem(),
       asking: pending() !== null,
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
