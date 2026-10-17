@@ -22,6 +22,7 @@ import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { noteKey } from "./ui/ask/typing.ts"
 import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
@@ -84,6 +85,7 @@ const renderer = await createCliRenderer({
 })
 const capabilities = firstCapabilities(renderer)
 renderer.addPostProcessFn(invertQueued)
+renderer.keyInput.on("keypress", noteKey)
 
 // The renderer's own handlers and Node's warning printer write to the terminal, so ours replace them.
 process.removeAllListeners("uncaughtException")

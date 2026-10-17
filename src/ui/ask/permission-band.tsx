@@ -12,6 +12,7 @@ import { toolLabel } from "../format.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { fitHints } from "./fit.ts"
+import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS = "↑↓ choose · enter confirm · n tell Claude instead · esc no"
@@ -107,7 +108,9 @@ export function PermissionBand(props: AskViewProps) {
     if (text) props.onAnswer(denyTool(props.ask.requestId, text))
   }
 
+  const typing = typingGuard()
   useKeyboard((key) => {
+    if (typing(key)) return key.preventDefault()
     if (props.answered) return
     if (noting()) {
       if (key.name === "escape") setNoting(false)

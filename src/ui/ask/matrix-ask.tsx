@@ -10,6 +10,7 @@ import { covered } from "../images.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
 import { fitHints } from "./fit.ts"
+import { typingGuard } from "./typing.ts"
 
 const MATRIX_PAGE = 5
 const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc cancel"
@@ -93,7 +94,9 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
     setNoting(true)
   }
 
+  const typing = typingGuard()
   useKeyboard((key) => {
+    if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {

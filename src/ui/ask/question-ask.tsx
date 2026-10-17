@@ -10,6 +10,7 @@ import { AskScroll } from "./ask-scroll.tsx"
 import { GalleryPage } from "./gallery-page.tsx"
 import { LETTERS, type Question, type QuestionInput } from "./question.ts"
 import { fitHints, pageWindow } from "./fit.ts"
+import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS: [string, string][] = [
@@ -246,7 +247,9 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
 
   // On a text row the focused input takes the keys this handler leaves alone, ←→ included, so they edit the text
   // there. Typing on the Submit review moves to its note row and the key lands in that input.
+  const typing = typingGuard()
   useKeyboard((key) => {
+    if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {

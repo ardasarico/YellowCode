@@ -1,10 +1,11 @@
-import { expect, test } from "bun:test"
+import { expect, setSystemTime, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import { OWN_ASK } from "../../protocol/messages.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
 import { alwaysChoice } from "./permission-band.tsx"
 import { answersFrom } from "./question-ask.tsx"
+import { noteKey } from "./typing.ts"
 
 const ask: Ask = {
   kind: "ask",
@@ -45,6 +46,24 @@ test("an ask sends only its first response", async () => {
   risky.mockInput.pressKey("1")
   expect(sent).toHaveLength(1)
   risky.renderer.destroy()
+})
+
+test("the first key still typed into the prompt as an ask appears does not answer it", async () => {
+  const sent: string[] = []
+  setSystemTime(new Date(10_000))
+  noteKey()
+  const setup = await testRender(() => <AskSurface ask={ask} width={80} onAnswer={(_, line) => sent.push(line)} />, {
+    width: 80,
+    height: 20,
+  })
+  setSystemTime(new Date(10_400))
+  setup.mockInput.pressKey("1")
+  expect(sent).toHaveLength(0)
+  setSystemTime(new Date(10_600))
+  setup.mockInput.pressKey("1")
+  expect(sent).toHaveLength(1)
+  setSystemTime()
+  setup.renderer.destroy()
 })
 
 test("the always-allow label reads as words and never comes out empty", () => {
