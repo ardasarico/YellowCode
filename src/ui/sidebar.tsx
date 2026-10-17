@@ -38,6 +38,9 @@ function firstUserLine(session: Session): string {
   return ""
 }
 
+// Escape sequences and other control characters would show as stray text.
+const plain = (text: string) => Bun.stripANSI(text).replace(/\p{Cc}/gu, " ")
+
 function serverActivity(session: Session): ServerActivity {
   const items = Object.values(session.byId)
   const tools = items.flatMap((item) => (item.kind === "tool" ? [item] : []))
@@ -107,14 +110,14 @@ function Title(props: {
     return started === null ? "" : formatSpan(props.now - started)
   }
   const description = () => {
-    const text = props.title?.summary || firstUserLine(props.session)
-    return text === props.title?.title ? [] : wrapLines(text, props.width, 2)
+    const text = plain(props.title?.summary || firstUserLine(props.session))
+    return text === plain(props.title?.title ?? "") ? [] : wrapLines(text, props.width, 2)
   }
   return (
     <box flexDirection="column" flexShrink={0}>
       <box flexDirection="row" justifyContent="space-between" gap={2}>
         <text fg={theme.accent} attributes={TextAttributes.BOLD} wrapMode="none" flexShrink={1}>
-          {cut(props.title?.title ?? "Session", Math.max(1, props.width - span().length - 2))}
+          {cut(plain(props.title?.title ?? "Session"), Math.max(1, props.width - span().length - 2))}
         </text>
         <text fg={theme.muted} wrapMode="none" flexShrink={0}>
           {span()}
