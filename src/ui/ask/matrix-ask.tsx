@@ -9,7 +9,7 @@ import { cut } from "../format.ts"
 import { covered } from "../images.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
-import { fitHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
+import { cutStep, fitHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 
 const MATRIX_PAGE = 5
@@ -81,8 +81,8 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   const filler = () => (rows().length > MATRIX_PAGE ? tallestPage() - pageHeight(first()) : 0)
   // The cursor's step shows in full; the others may be cut.
   const stepTexts = createMemo(() => {
-    const { limit, cursorLimit } = columns()
-    return scale().map((step, at) => cut(step, at === state.cursor ? cursorLimit : limit).replace(/\s+…$/, "…"))
+    const { limits, cursorLimit } = columns()
+    return scale().map((step, at) => cutStep(step, at === state.cursor ? cursorLimit : (limits[at] ?? cursorLimit)))
   })
   const stepsWidth = () => stepTexts().reduce((sum, text) => sum + Bun.stringWidth(text) + STEP_EXTRA, 0)
   const noteWidth = () => Math.max(0, props.width - labelWidth() - stepsWidth() - NOTE_GAP)

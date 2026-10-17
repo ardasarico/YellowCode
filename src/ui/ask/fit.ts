@@ -41,15 +41,18 @@ export const STEP_EXTRA = 4
 
 const widest = (texts: string[]) => Math.max(1, ...texts.map((text) => Bun.stringWidth(text)))
 
-// Widths for a matrix: `label` for the label column's text, which wraps longer labels; steps are cut to `limit`,
-// the cursor's step to `cursorLimit`. The label column takes up to 40% of the width and narrows to its longest word
-// to make room for the steps; when even that is not enough, every step but the cursor's is cut. The cursor's step is
-// left room as if it were the widest, so the cuts stay put as the cursor moves.
+// A step cut to `limit` cells, without a space left before the "…".
+export const cutStep = (step: string, limit: number) => cut(step, limit).replace(/\s+…$/, "…")
+
+// Widths for a matrix: `label` for the label column's text, which wraps longer labels; each step is cut to its entry
+// in `limits`, the cursor's step to `cursorLimit`. The label column takes up to 40% of the width and narrows to its
+// longest word to make room for the steps; when even that is not enough, every step but the cursor's is cut. The
+// cursor's step is left room as if it were the one cut the most, so the cuts stay put as the cursor moves.
 export function matrixColumns(
   labels: string[],
   scale: string[],
   width: number,
-): { label: number; limit: number; cursorLimit: number } {
+): { label: number; limits: number[]; cursorLimit: number } {
   const preferred = Math.min(Math.floor(width * LABEL_SHARE), widest(labels))
   const narrowest = Math.min(preferred, Math.max(LABEL_FLOOR, widest(labels.flatMap((label) => label.split(/\s+/)))))
   const steps = scale.map((step) => Bun.stringWidth(step))
@@ -57,13 +60,39 @@ export function matrixColumns(
   const stepsWidth = (limit: number) => steps.reduce((sum, step) => sum + Math.min(step, limit) + STEP_EXTRA, 0)
   const full = stepsWidth(Infinity)
   if (narrowest + full <= room) {
-    return { label: Math.min(preferred, room - full), limit: Infinity, cursorLimit: Infinity }
+    return { label: Math.min(preferred, room - full), limits: steps.map(() => Infinity), cursorLimit: Infinity }
   }
   const top = Math.max(...steps)
   const others = (limit: number) => stepsWidth(limit) - Math.min(top, limit)
   let limit = top
   while (limit > 1 && narrowest + others(limit) + top > room) limit--
-  return { label: narrowest, limit, cursorLimit: Math.max(1, Math.min(top, room - narrowest - others(limit))) }
+  const cursorLimit = Math.max(1, Math.min(top, room - narrowest - others(limit)))
+  if (cursorLimit < top) return { label: narrowest, limits: steps.map(() => limit), cursorLimit }
+  // The cells left over, and those freed where a cut drops the space before "…", go to the cut steps one at a time.
+  const entries = scale.map((step) => ({
+    step,
+    full: Bun.stringWidth(step),
+    limit,
+    shown: Bun.stringWidth(cutStep(step, limit)),
+  }))
+  const fits = () =>
+    narrowest +
+      entries.reduce((sum, entry) => sum + entry.shown + STEP_EXTRA, 0) +
+      Math.max(...entries.map((entry) => entry.full - entry.shown)) <=
+    room
+  for (let grew = true; grew;) {
+    grew = false
+    for (const entry of entries) {
+      if (entry.limit >= entry.full) continue
+      const before = entry.shown
+      entry.shown = Bun.stringWidth(cutStep(entry.step, entry.limit + 1))
+      if (fits()) {
+        entry.limit++
+        grew = true
+      } else entry.shown = before
+    }
+  }
+  return { label: narrowest, limits: entries.map((entry) => entry.limit), cursorLimit }
 }
 
 // `page` is null on a fold marker; Submit's page is the number of questions.

@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test"
-import { cut } from "../format.ts"
-import { LABEL_EXTRA, matrixColumns, pageWindow, STEP_EXTRA, wrapRows } from "./fit.ts"
+import { cutStep, LABEL_EXTRA, matrixColumns, pageWindow, STEP_EXTRA, wrapRows } from "./fit.ts"
 
 const bar = (headers: string[], current: number, width: number) => {
   const { tabs, indicator } = pageWindow(headers, current, [], width)
@@ -29,16 +28,24 @@ test("wrapped rows stop at the cap with an ellipsis and break words wider than a
 test("a matrix fits its width: labels keep 16 cells (less when shorter), then all steps but the cursor's are cut", () => {
   expect(matrixColumns(["Theme", "Effort"], ["Yes", "No"], 80)).toEqual({
     label: 6,
-    limit: Infinity,
+    limits: [Infinity, Infinity],
     cursorLimit: Infinity,
   })
   const scale = ["Definitely yes", "Probably yes", "Probably not", "Definitely not"]
-  const { label, limit, cursorLimit } = matrixColumns(["Dark mode", "Offline sync"], scale, 70)
+  const { label, limits, cursorLimit } = matrixColumns(["Dark mode", "Offline sync"], scale, 70)
   expect(label).toBe(12)
   for (const cursor of [0, 1, 2, 3]) {
-    const steps = scale.map((step, at) => cut(step, at === cursor ? cursorLimit : limit))
+    const steps = scale.map((step, at) => cutStep(step, at === cursor ? cursorLimit : (limits[at] ?? 0)))
     expect(steps[cursor]).toBe(scale[cursor])
     const width = steps.reduce((sum, step) => sum + Bun.stringWidth(step) + STEP_EXTRA, LABEL_EXTRA + label)
     expect(width).toBeLessThanOrEqual(70)
   }
+  const rows = Array.from({ length: 60 }, (_, index) => `Row number ${index + 1}`)
+  const wide = matrixColumns(rows, scale, 78).limits
+  expect(scale.map((step, at) => cutStep(step, wide[at] ?? 0))).toEqual([
+    "Definitely…",
+    "Probably y…",
+    "Probably…",
+    "Definitely…",
+  ])
 })
