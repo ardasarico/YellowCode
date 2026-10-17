@@ -69,10 +69,38 @@ export class ImageTooLarge extends Error {
   }
 }
 
-async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"]): Promise<string | null> {
+async function pixelSize(file: string): Promise<{ width: number; height: number } | null> {
   const info = await sips(["-g", "pixelWidth", "-g", "pixelHeight", file])
-  if (info === null) return null
-  const side = Math.max(...[...info.matchAll(/pixel(?:Width|Height): (\d+)/g)].map((match) => Number(match[1])))
+  const width = Number(/pixelWidth: (\d+)/.exec(info ?? "")?.[1])
+  const height = Number(/pixelHeight: (\d+)/.exec(info ?? "")?.[1])
+  return width && height ? { width, height } : null
+}
+
+// A PNG copy at most `side` pixels long, for a picture too large to decode. The size is the original's.
+export async function shrunkCopy(
+  path: string,
+  side: number,
+): Promise<{ bytes: Uint8Array; width: number; height: number } | null> {
+  const dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))
+  try {
+    const size = await pixelSize(path)
+    const copy = join(dir, "copy.png")
+    if (!size) return null
+    const longest = Math.min(side, Math.max(size.width, size.height))
+    if ((await sips(["-Z", String(longest), "-s", "format", "png", path, "--out", copy])) === null) return null
+    return { bytes: await Bun.file(copy).bytes(), ...size }
+  } catch (error) {
+    log.warn("image could not be shrunk", String(error))
+    return null
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+
+async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"]): Promise<string | null> {
+  const size = await pixelSize(file)
+  if (!size) return null
+  const side = Math.max(size.width, size.height)
   if (side > MAX_SIDE) {
     // sips reads WebP but cannot write it.
     const extension = type === "image/webp" ? "png" : EXTENSIONS[type]

@@ -1,8 +1,8 @@
-import type { ImageRenderable } from "@opentui/core"
+import type { ImageRenderable, NativeImage } from "@opentui/core"
 import { createSignal, Index, Show } from "solid-js"
 import type { ChatImage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { createDecoded, ImageLabel, labelId } from "./image-label.tsx"
+import { createDecoded, ImageLabel, labelId, loadImage } from "./image-label.tsx"
 import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "./images.ts"
 
 const MAX_ROWS = 16
@@ -26,6 +26,11 @@ function InlineImage(props: { id?: string; image: ChatImage; width: number; sele
     () => size().width,
     () => size().height,
   )
+  // A picture too large to decode shows a smaller copy, captioned with its own size.
+  const caption = (decoded: NativeImage) => {
+    const { width, height } = loadImage(props.image)?.size ?? decoded
+    return `${props.image.name} · ${width}×${height}`
+  }
   return (
     <Show
       when={pixels()}
@@ -61,7 +66,7 @@ function InlineImage(props: { id?: string; image: ChatImage; width: number; sele
             />
           </Show>
           <text wrapMode="none" fg={theme.muted} bg={props.selected ? (theme.selection ?? undefined) : undefined}>
-            {`${props.image.name} · ${decoded().width}×${decoded().height}`}
+            {caption(decoded())}
             <Show when={props.selected && props.onOpen}>
               <span style={{ fg: theme.accent }}>{"   ↵ enlarge"}</span>
             </Show>

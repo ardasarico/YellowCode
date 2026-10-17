@@ -1,6 +1,7 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
-import { createMemo, Index, onCleanup, Show } from "solid-js"
+import { type Accessor, createMemo, createSignal, Index, onCleanup, type Setter, Show } from "solid-js"
+import { shrunkCopy } from "../input/image-file.ts"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { remember } from "./markdown/cache.ts"
@@ -10,14 +11,18 @@ const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 
 const MAX_CACHED = 64 * 1024 * 1024
 const MAX_FILES = 1000
+// The long side of the copy shown for a picture too large to decode.
+const SHOWN_SIDE = 4096
 
 type Size = { width: number; height: number }
-// null when the file is not there; `size` is null when the bytes do not decode.
+// null when the file is not there; `size` is null when the bytes do not decode, or not yet.
 export type ImageFile = { bytes: Uint8Array; size: Size | null } | null
 
-// A decoded photo takes tens of MB, so only the bytes are kept here, and pixels only while shown (`createDecoded`).
 // `size` is undefined until the bytes are first decoded.
-const files = new Map<string, { bytes: Uint8Array; size?: Size | null } | null>()
+type Entry = { bytes: Uint8Array; size?: Size | null; shrinking: Accessor<boolean>; setShrinking: Setter<boolean> }
+
+// A decoded photo takes tens of MB, so only the bytes are kept here, and pixels only while shown (`createDecoded`).
+const files = new Map<string, Entry | null>()
 let cached = 0
 const found = new Map<string, boolean>()
 
@@ -38,12 +43,13 @@ function read(image: ChatImage): Uint8Array | null {
 const keyOf = (image: ChatImage) => image.data ?? image.path ?? ""
 
 // Past the limits the least recently used files go.
-function entryOf(image: ChatImage) {
+function entryOf(image: ChatImage): Entry | null {
   const key = keyOf(image)
   let entry = files.get(key)
   if (entry === undefined) {
     const bytes = read(image)
-    entry = bytes && { bytes }
+    const [shrinking, setShrinking] = createSignal(false)
+    entry = bytes && { bytes, shrinking, setShrinking }
     cached += bytes?.length ?? 0
   }
   files.delete(key)
@@ -64,15 +70,35 @@ function decode(bytes: Uint8Array): NativeImage | null {
   }
 }
 
+// Notes what decoding gave. A local picture the decoder refuses (over ~25 MP) is shrunk in the background and then
+// shows like any other, with its own size.
+function settle(image: ChatImage, entry: Entry, decoded: NativeImage | null): void {
+  entry.size = decoded && { width: decoded.width, height: decoded.height }
+  const path = image.data ? null : image.path
+  if (decoded || !path || path.toLowerCase().endsWith(".svg")) return
+  entry.size = undefined
+  entry.setShrinking(true)
+  void shrunkCopy(path, SHOWN_SIDE).then((copy) => {
+    const pixels = copy && decode(copy.bytes)
+    if (copy && pixels) {
+      if (files.get(keyOf(image)) === entry) cached += copy.bytes.length - entry.bytes.length
+      entry.bytes = copy.bytes
+      entry.size = { width: copy.width, height: copy.height }
+    } else entry.size = null
+    pixels?.dispose()
+    entry.setShrinking(false)
+  })
+}
+
 export function loadImage(image: ChatImage): ImageFile {
   const entry = entryOf(image)
   if (!entry) return null
-  if (entry.size === undefined) {
+  if (entry.size === undefined && !entry.shrinking()) {
     const decoded = decode(entry.bytes)
-    entry.size = decoded && { width: decoded.width, height: decoded.height }
+    settle(image, entry, decoded)
     decoded?.dispose()
   }
-  return { bytes: entry.bytes, size: entry.size }
+  return { bytes: entry.bytes, size: entry.shrinking() ? null : (entry.size ?? null) }
 }
 
 // Whether the image is there to select or open; remembered, as the keyboard selection asks on every key.
@@ -85,9 +111,9 @@ export function createDecoded(image: () => ChatImage | null | undefined): () => 
   return createMemo(() => {
     const shown = image()
     const entry = shown ? entryOf(shown) : null
-    if (!entry || entry.size === null) return undefined
+    if (!shown || !entry || entry.shrinking() || entry.size === null) return undefined
     const decoded = decode(entry.bytes)
-    entry.size = decoded && { width: decoded.width, height: decoded.height }
+    if (entry.size === undefined || !decoded) settle(shown, entry, decoded)
     if (!decoded) return undefined
     onCleanup(() => decoded.dispose())
     return decoded
