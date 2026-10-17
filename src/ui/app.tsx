@@ -9,6 +9,7 @@ import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
 import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
+import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
@@ -207,6 +208,7 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
+  createEffect(on(failedSaves, () => setSettingsProblem(SAVE_PROBLEM), { defer: true }))
 
   createEffect(on(() => settings.theme, setTheme, { defer: true }))
 

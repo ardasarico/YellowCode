@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
+import { createSignal } from "solid-js"
 import { z } from "zod"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
@@ -49,6 +50,11 @@ const Notifications = z.enum(NOTIFICATIONS)
 
 export type LoadedSettings = { settings: StoredSettings; problem: string | null }
 
+export const SAVE_PROBLEM = "cannot save settings.json, changes last until you quit"
+// Counts failed saves, so every failure can show the notice again after it was cleared.
+const [failedSaves, setFailedSaves] = createSignal(0)
+export { failedSaves }
+
 export function loadSettings(path = configPath("settings.json")): LoadedSettings {
   let text: string
   try {
@@ -93,5 +99,6 @@ export function saveSettings(settings: StoredSettings, path = configPath("settin
     writeFileSync(path, `${JSON.stringify(stored, null, 2)}\n`)
   } catch (error) {
     log.warn("cannot save the settings", error)
+    setFailedSaves((count) => count + 1)
   }
 }
