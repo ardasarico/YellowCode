@@ -4,6 +4,34 @@ export function fitHints(full: string, short: string, width: number): string {
   return Bun.stringWidth(full) <= width ? full : short
 }
 
+// Word-wrapped rows of `text` in `width` cells, the first row `lead` cells shorter. A word wider than its row is
+// broken. Past `max` rows the last row is cut with "…".
+export function wrapRows(text: string, width: number, max = Infinity, lead = 0): string[] {
+  const rows: string[] = []
+  let row = ""
+  const room = () => Math.max(1, width - (rows.length === 0 ? lead : 0))
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const joined = row ? `${row} ${word}` : word
+    if (Bun.stringWidth(joined) <= room()) {
+      row = joined
+      continue
+    }
+    if (row) rows.push(row)
+    row = ""
+    for (const char of word) {
+      if (row && Bun.stringWidth(row + char) > room()) {
+        rows.push(row)
+        row = ""
+      }
+      row += char
+    }
+  }
+  rows.push(row)
+  if (rows.length <= max) return rows
+  const last = cut(rows.slice(max - 1).join(" "), Math.max(1, width - (max === 1 ? lead : 0)))
+  return [...rows.slice(0, max - 1), last.replace(/\s+…$/, "…")]
+}
+
 // `page` is null on a fold marker; Submit's page is the number of questions.
 export type PageTab = { text: string; page: number | null }
 

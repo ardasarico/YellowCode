@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { pageWindow } from "./fit.ts"
+import { pageWindow, wrapRows } from "./fit.ts"
 
 const bar = (headers: string[], current: number, width: number) => {
   const { tabs, indicator } = pageWindow(headers, current, [], width)
@@ -17,4 +17,10 @@ test("the page bar cuts long headers first and folds pages only when that is not
     expect(width + (indicator ? indicator.length + 2 : 0)).toBeLessThanOrEqual(70)
     expect(tabs.some((tab) => tab.page === current)).toBe(true)
   }
+})
+
+test("wrapped rows stop at the cap with an ellipsis and break words wider than a row", () => {
+  expect(wrapRows("one two three four five", 9, 2)).toEqual(["one two", "three fo…"])
+  expect(wrapRows("one two", 9, 2, 6)).toEqual(["one", "two"])
+  expect(wrapRows("abcdefghij", 4)).toEqual(["abcd", "efgh", "ij"])
 })

@@ -8,10 +8,10 @@ import { severe } from "../../session/ask.ts"
 import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
-import { toolLabel } from "../format.ts"
+import { cut, toolLabel } from "../format.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
-import { fitHints } from "./fit.ts"
+import { fitHints, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
@@ -19,6 +19,9 @@ const HINTS = "↑↓ choose · enter confirm · n tell Claude instead · esc no
 const SHORT_HINTS = "↑↓ · enter · n · esc"
 const NOTE_HINTS = "enter send · esc back"
 const TARGET_ROWS = 6
+const TEXT_ROWS = 3
+// Below this many cells beside the title, the description starts on the next row.
+const INLINE_ROOM = 10
 const MODE_WORDS: Record<string, string> = { acceptEdits: "edits" }
 
 type Choice = { kind: "yes" | "always" | "no"; before: string; subject: string; after: string }
@@ -92,6 +95,20 @@ export function PermissionBand(props: AskViewProps) {
     return text ? targetRows(text.replaceAll("\t", "    "), Math.max(1, props.width - 8)) : []
   })
   const hiddenRows = () => rows().length - TARGET_ROWS
+  // The title and every choice stay in view, so the description and reason get three rows each and the
+  // always-allow rule one.
+  const inner = () => Math.max(1, props.width - 4)
+  const title = () => cut(`! ${props.ask.displayName}`, inner())
+  const description = createMemo(() => {
+    if (!props.ask.description) return ""
+    const lead = Bun.stringWidth(title()) + 2
+    const inline = inner() - lead >= INLINE_ROOM
+    const lines = wrapRows(props.ask.description, inner(), TEXT_ROWS, inline ? lead : 0)
+    return (inline ? "  " : "\n") + lines.join("\n")
+  })
+  const reason = createMemo(() => wrapRows(props.ask.reason, inner(), TEXT_ROWS).join("\n"))
+  const subject = (choice: Choice) =>
+    cut(choice.subject, inner() - 5 - Bun.stringWidth(choice.before) - Bun.stringWidth(choice.after))
   const [cursor, setCursor] = createSignal(untrack(() => (severe(props.ask) ? choices().length - 1 : 0)))
   const [noting, setNoting] = createSignal(false)
 
@@ -145,69 +162,71 @@ export function PermissionBand(props: AskViewProps) {
       border={["left"]}
       borderColor={colors().tone}
       customBorderChars={barChars}
+      overflow="hidden"
     >
-      <AskScroll focus={noting() ? "note" : `choice-${cursor()}`}>
-        <text wrapMode="word">
-          <span style={{ fg: colors().tone, bold: true }}>{`! ${props.ask.displayName}`}</span>
-          <span style={{ fg: theme.text, bold: true }}>
-            {props.ask.description ? `  ${props.ask.description}` : ""}
-          </span>
-        </text>
-        <Show when={props.ask.reason}>
-          <text fg={theme.muted} wrapMode="word">
-            {props.ask.reason}
+      <text wrapMode="none" flexShrink={1} minHeight={1}>
+        <span style={{ fg: colors().tone, bold: true }}>{title()}</span>
+        <span style={{ fg: theme.text, bold: true }}>{description()}</span>
+      </text>
+      {/* The middle gives way long before the title does. */}
+      <box flexDirection="column" flexShrink={100} minHeight={0}>
+        <AskScroll focus={null}>
+          <Show when={props.ask.reason}>
+            <text fg={theme.muted} wrapMode="none">
+              {reason()}
+            </text>
+          </Show>
+          <Show when={rows().length > 0}>
+            <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
+              <text fg={theme.text} wrapMode="none">
+                {rows().slice(0, TARGET_ROWS).join("\n")}
+              </text>
+              <Show when={hiddenRows() > 0}>
+                <text fg={theme.muted}>{`… ${hiddenRows()} more ${hiddenRows() === 1 ? "line" : "lines"}`}</text>
+              </Show>
+            </box>
+          </Show>
+        </AskScroll>
+      </box>
+      <box flexDirection="column" marginTop={1} flexShrink={0}>
+        <Index each={choices()}>
+          {(choice, index) => {
+            const focused = () => !noting() && index === cursor()
+            const color = () => (focused() ? colors().tone : theme.text)
+            const attributes = () => (focused() ? TextAttributes.BOLD : TextAttributes.NONE)
+            return (
+              <box flexDirection="row">
+                <text flexShrink={0} attributes={attributes()}>
+                  <span style={{ fg: colors().tone }}>{focused() ? "❯ " : "  "}</span>
+                  <span style={{ fg: color() }}>{`${index + 1}. `}</span>
+                </text>
+                <text wrapMode="word" attributes={attributes()}>
+                  <span style={{ fg: color() }}>{choice().before}</span>
+                  <span style={{ fg: theme.accent }}>{subject(choice())}</span>
+                  <span style={{ fg: color() }}>{choice().after}</span>
+                </text>
+              </box>
+            )
+          }}
+        </Index>
+      </box>
+      <Show when={noting()}>
+        <box flexDirection="row" flexShrink={0}>
+          <text fg={theme.accent} flexShrink={0}>
+            {"  › "}
           </text>
-        </Show>
-        <Show when={rows().length > 0}>
-          <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
-            <text fg={theme.text} wrapMode="none">
-              {rows().slice(0, TARGET_ROWS).join("\n")}
-            </text>
-            <Show when={hiddenRows() > 0}>
-              <text fg={theme.muted}>{`… ${hiddenRows()} more ${hiddenRows() === 1 ? "line" : "lines"}`}</text>
-            </Show>
-          </box>
-        </Show>
-        <box flexDirection="column" marginTop={1}>
-          <Index each={choices()}>
-            {(choice, index) => {
-              const focused = () => !noting() && index === cursor()
-              const color = () => (focused() ? colors().tone : theme.text)
-              const attributes = () => (focused() ? TextAttributes.BOLD : TextAttributes.NONE)
-              return (
-                <box id={`choice-${index}`} flexDirection="row">
-                  <text flexShrink={0} attributes={attributes()}>
-                    <span style={{ fg: colors().tone }}>{focused() ? "❯ " : "  "}</span>
-                    <span style={{ fg: color() }}>{`${index + 1}. `}</span>
-                  </text>
-                  <text wrapMode="word" attributes={attributes()}>
-                    <span style={{ fg: color() }}>{choice().before}</span>
-                    <span style={{ fg: theme.accent }}>{choice().subject}</span>
-                    <span style={{ fg: color() }}>{choice().after}</span>
-                  </text>
-                </box>
-              )
-            }}
-          </Index>
+          <input
+            focused
+            flexGrow={1}
+            placeholder="tell Claude what to do instead"
+            placeholderColor={theme.muted}
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            ref={(element: InputRenderable) => (field = element)}
+            onSubmit={() => sendNote(field?.value ?? "")}
+          />
         </box>
-        <Show when={noting()}>
-          <box id="note" flexDirection="row">
-            <text fg={theme.accent} flexShrink={0}>
-              {"  › "}
-            </text>
-            <input
-              focused
-              flexGrow={1}
-              placeholder="tell Claude what to do instead"
-              placeholderColor={theme.muted}
-              textColor={theme.text}
-              focusedTextColor={theme.text}
-              ref={(element: InputRenderable) => (field = element)}
-              onSubmit={() => sendNote(field?.value ?? "")}
-            />
-          </box>
-        </Show>
-      </AskScroll>
+      </Show>
       <box flexDirection="row" justifyContent="flex-end" flexShrink={0}>
         <text fg={theme.faint} flexShrink={1}>
           {noting() ? NOTE_HINTS : fitHints(HINTS, SHORT_HINTS, props.width - 4)}
