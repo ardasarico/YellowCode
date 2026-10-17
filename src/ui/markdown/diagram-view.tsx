@@ -15,6 +15,8 @@ const BAR_COLUMNS = 40
 const COLUMN_ROWS = 8
 const LABEL_COLUMNS = 24
 const GANTT_COLUMNS = 56
+const GUIDE_GAP = 6
+const MONTH = 30.44 * DAY
 const TONE = 0.18
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -277,12 +279,49 @@ function ganttRow(label: JSX.Element, body: JSX.Element) {
   )
 }
 
+type Guide = { time: number; label: string }
+
+const monthLabel = (time: number) => {
+  const day = new Date(time)
+  return `${MONTHS[day.getUTCMonth()]} '${String(day.getUTCFullYear()).slice(-2)}`
+}
+
+// The fewest months between guides that keeps them GUIDE_GAP columns apart: 1, 3 or 6 months, then 1, 2 or 5 years
+// times a power of ten.
+function monthStep(span: number, columns: number): number {
+  const fits = (months: number) => (span / (months * MONTH)) * GUIDE_GAP <= columns
+  for (const months of [1, 3, 6]) if (fits(months)) return months
+  for (let years = 12; ; years *= 10) for (const factor of [1, 2, 5]) if (fits(factor * years)) return factor * years
+}
+
+// Weekly guides count from the first day; month and year guides sit on the calendar, so a 5-year step lands on 2005.
+export function ganttGuides(first: number, last: number, columns: number): Guide[] {
+  const span = last - first
+  if (!Number.isFinite(span)) return []
+  const guides: Guide[] = []
+  const days = [7, 14].find((step) => (span / (step * DAY)) * GUIDE_GAP <= columns)
+  if (days) {
+    for (let time = first; time <= last; time += days * DAY) guides.push({ time, label: dayName(time) })
+    return guides
+  }
+  const step = monthStep(span, columns)
+  const start = new Date(first)
+  let month = start.getUTCFullYear() * 12 + start.getUTCMonth()
+  if (Date.UTC(start.getUTCFullYear(), start.getUTCMonth()) < first) month++
+  month = Math.ceil(month / step) * step
+  for (; ; month += step) {
+    const time = Date.UTC(Math.floor(month / 12), month % 12)
+    if (time > last) return guides
+    guides.push({ time, label: step < 12 ? monthLabel(time) : String(Math.floor(month / 12)) })
+  }
+}
+
 const lasting = (task: GanttTask) => {
   const days = Math.round((task.end - task.start) / DAY)
   return days > 0 && days % 7 === 0 ? `${days / 7}w` : `${days}d`
 }
 
-// Sections and their tasks against a dated axis, with dotted guides at each week.
+// Sections and their tasks against a dated axis, with dotted guides at weeks, months or years.
 export function GanttView(props: { gantt: Gantt; width: number }) {
   const tasks = () => props.gantt.tasks
   const labelWidth = () => Math.min(LABEL_COLUMNS + 2, Math.max(...tasks().map((task) => task.name.length)) + 4)
@@ -290,18 +329,14 @@ export function GanttView(props: { gantt: Gantt; width: number }) {
   const last = () => Math.max(...tasks().map((task) => task.end))
   const columns = () => Math.max(10, Math.min(GANTT_COLUMNS, props.width - labelWidth() - 8))
   const at = (time: number) => Math.round(((time - first()) / (last() - first() || 1)) * columns())
-  const weeks = createMemo(() => {
-    const list: number[] = []
-    for (let time = first(); time <= last(); time += 7 * DAY) list.push(time)
-    return list
-  })
-  const guides = createMemo(() => new Set(weeks().map(at)))
+  const steps = createMemo(() => ganttGuides(first(), last(), columns()))
+  const guides = createMemo(() => new Set(steps().map((step) => at(step.time))))
   const axis = () => {
     const cells = Array.from({ length: columns() + 8 }, () => " ")
     let free = 0
-    for (const week of weeks()) {
-      const column = at(week)
-      const name = dayName(week)
+    for (const step of steps()) {
+      const column = at(step.time)
+      const name = step.label
       if (column < free) continue
       for (let offset = 0; offset < name.length; offset++) cells[column + offset] = name[offset] ?? " "
       free = column + name.length + 2
