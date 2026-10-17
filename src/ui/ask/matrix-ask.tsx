@@ -1,6 +1,6 @@
 import { TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
-import { createSignal, Index, Show, untrack } from "solid-js"
+import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AskMatrix } from "../../protocol/messages.ts"
 import { allowAnswers, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
@@ -9,7 +9,7 @@ import { cut } from "../format.ts"
 import { covered } from "../images.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
-import { fitHints } from "./fit.ts"
+import { fitHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 
 const MATRIX_PAGE = 5
@@ -57,14 +57,34 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   const [draft, setDraft] = createSignal("")
   const first = () => Math.floor(state.row / MATRIX_PAGE) * MATRIX_PAGE
   const shown = () => rows().slice(first(), first() + MATRIX_PAGE)
-  // A short last page keeps the height of a full one, so the ask does not jump.
-  const filler = () => (rows().length > MATRIX_PAGE ? MATRIX_PAGE - shown().length : 0)
   const indicator = () =>
     rows().length > MATRIX_PAGE ? `${first() + 1}–${first() + shown().length} of ${rows().length}` : ""
-  const labelWidth = () =>
-    Math.min(Math.floor(props.width * 0.4), Math.max(...rows().map((row) => Bun.stringWidth(row.label)))) + 4
-  // Each step is ` ○ Yes `: one cell of padding each side, so the cursor band does not cut at the text.
-  const stepsWidth = () => scale().reduce((sum, step) => sum + Bun.stringWidth(step) + 4, 0)
+  const columns = createMemo(() =>
+    matrixColumns(
+      rows().map((row) => row.label),
+      scale(),
+      props.width,
+    ),
+  )
+  const labelWidth = () => columns().label + LABEL_EXTRA
+  const labelRows = createMemo(() => rows().map((row) => wrapRows(row.label, columns().label)))
+  // Every page takes the height of the tallest, so the ask does not jump.
+  const pageHeight = (from: number) =>
+    labelRows()
+      .slice(from, from + MATRIX_PAGE)
+      .reduce((sum, lines) => sum + lines.length, 0)
+  const tallestPage = createMemo(() => {
+    let tallest = 0
+    for (let from = 0; from < rows().length; from += MATRIX_PAGE) tallest = Math.max(tallest, pageHeight(from))
+    return tallest
+  })
+  const filler = () => (rows().length > MATRIX_PAGE ? tallestPage() - pageHeight(first()) : 0)
+  // The cursor's step shows in full; the others may be cut.
+  const stepTexts = createMemo(() => {
+    const { limit, cursorLimit } = columns()
+    return scale().map((step, at) => cut(step, at === state.cursor ? cursorLimit : limit).replace(/\s+…$/, "…"))
+  })
+  const stepsWidth = () => stepTexts().reduce((sum, text) => sum + Bun.stringWidth(text) + STEP_EXTRA, 0)
   const noteWidth = () => Math.max(0, props.width - labelWidth() - stepsWidth() - NOTE_GAP)
 
   const answer = (step: number) => {
@@ -157,7 +177,9 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
                     fg={focused() ? theme.accent : theme.text}
                     attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
                   >
-                    {`${focused() ? "❯" : " "} ${cut(row().label, labelWidth() - 4)}`}
+                    {(labelRows()[index()] ?? [])
+                      .map((line, at) => `${focused() && at === 0 ? "❯" : " "} ${line}`)
+                      .join("\n")}
                   </text>
                   <text wrapMode="none" flexShrink={0}>
                     <Index each={scale()}>
@@ -170,7 +192,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
                         const band = () => (here() ? (theme.selection ?? undefined) : undefined)
                         return (
                           <span style={{ fg: color(), bg: band(), bold: on() && focused() }}>
-                            {` ${on() ? "●" : "○"} ${step()} `}
+                            {` ${on() ? "●" : "○"} ${stepTexts()[at] ?? ""} `}
                           </span>
                         )
                       }}
