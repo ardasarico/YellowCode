@@ -1,5 +1,5 @@
 import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
-import { createEffect, createMemo, createSignal, For, Match, on, Show, Switch } from "solid-js"
+import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
 import type { Command } from "../input/commands.ts"
 import { shellNodeId } from "../session/shells.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
@@ -164,8 +164,6 @@ export function ChatView(props: ChatViewProps) {
   let leftAtHeight: number | null = null
   let reachedTop = false
   let shifted = false
-  // Shown once the rows overflow, and then it takes a column from them.
-  const [scrollbar, setScrollbar] = createSignal(false)
   // A row keeps its object while it stays the same, so its view does not run again.
   const rows = createMemo((previous: Row[]) => {
     const old = new Map(previous.map((row) => [row.id, row]))
@@ -241,7 +239,6 @@ export function ChatView(props: ChatViewProps) {
         const atBottom = this.scrollTop >= this.scrollHeight - this.viewport.height
         leftAtHeight = atBottom ? null : (leftAtHeight ?? this.scrollHeight)
         props.onScrollState({ atBottom, newLines: this.scrollHeight - (leftAtHeight ?? this.scrollHeight) })
-        setScrollbar(this.verticalScrollBar.visible)
         shifted = false
       }}
       flexGrow={1}
@@ -267,7 +264,8 @@ export function ChatView(props: ChatViewProps) {
               {(row) => (
                 <RowView
                   {...props}
-                  width={props.width - (scrollbar() ? 1 : 0)}
+                  // The scrollbar column stays free even before the scrollbar shows, so the rows never lay out again for it.
+                  width={props.width - 1}
                   row={row()}
                   ask={ask()}
                   previous={previous()}
