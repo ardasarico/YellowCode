@@ -1,5 +1,6 @@
 import { basename } from "node:path"
 import { createStore, produce } from "solid-js/store"
+import { log } from "../log/log.ts"
 import {
   taskOutput,
   type ContentBlock,
@@ -450,7 +451,16 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
     settleTurn()
-    const error = message.is_error ? message.result || message.errors?.join("\n") || message.subtype : null
+    const errors = message.errors ?? []
+    // claude's own diagnostic for a turn that stopped mid-way says nothing the user can act on.
+    const stopped =
+      message.subtype === "error_during_execution" &&
+      !message.result &&
+      errors.length > 0 &&
+      errors.every((line) => line.startsWith("[ede_diagnostic]"))
+    if (stopped) log.info("turn stopped during execution", errors.join("\n"))
+    const reason = stopped ? "stopped during execution" : message.result || errors.join("\n") || message.subtype
+    const error = message.is_error ? reason : null
     add(
       {
         kind: "turn-end",
