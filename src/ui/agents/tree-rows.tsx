@@ -9,6 +9,7 @@ import type { TreeNode } from "./tree.ts"
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 // The selection bar sits in the first column, so rows keep a two-column margin on each side.
 const MARGIN = 2
+const MIN_NAME = 8
 
 export const agentColor = (index: number) => theme.agents[index % theme.agents.length] ?? theme.accent
 
@@ -27,7 +28,6 @@ type RowsProps = {
 function Row(props: Omit<RowsProps, "selected"> & { node: TreeNode; selected: boolean }) {
   const duration = useDuration(() => props.node)
   const background = () => (props.selected ? theme.selection : null)
-  const indent = () => " ".repeat(Math.max(0, props.node.depth - 1) * 2)
   const hasMark = () => props.node.kind !== "phase"
   const right = () => {
     if (props.node.kind === "phase") return props.node.detail
@@ -35,8 +35,14 @@ function Row(props: Omit<RowsProps, "selected"> & { node: TreeNode; selected: bo
     return formatDuration(duration())
   }
   const rightColor = () => (props.node.state === "running" && props.node.kind !== "phase" ? theme.accent : theme.muted)
-  const room = () =>
-    props.width - MARGIN * 2 - indent().length - (hasMark() ? 2 : 0) - (right() ? Bun.stringWidth(right()) + 1 : 0)
+  const fixed = () => MARGIN * 2 + (hasMark() ? 2 : 0) + (right() ? Bun.stringWidth(right()) + 1 : 0)
+  // Two columns per level down to the fifth, one per level below, and never past what leaves the name its room.
+  const indent = () => {
+    const levels = Math.max(0, props.node.depth - 1)
+    const wanted = Math.min(levels, 4) * 2 + Math.max(0, levels - 4)
+    return " ".repeat(Math.max(0, Math.min(wanted, props.width - fixed() - MIN_NAME)))
+  }
+  const room = () => props.width - fixed() - indent().length
   const nameColor = () => (props.node.kind === "queued" ? theme.faint : theme.text)
   return (
     <box
