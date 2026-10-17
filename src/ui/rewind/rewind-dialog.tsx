@@ -5,12 +5,12 @@ import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import { PAD_X } from "../dialog/list-view.tsx"
 import type { DialogText } from "../dialog/list.ts"
-import { cut } from "../format.ts"
+import { cut, printable } from "../format.ts"
 
 const WIDTH = 72
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`
-const flat = (text: string) => text.replace(/\s+/g, " ").trim()
+const flat = (text: string) => printable(text).replace(/\s+/g, " ").trim()
 
 // The prompts newest first; under them, one line on what rewinding to the selected one undoes, and one for files
 // changed after Claude. Enter rewinds the code and the conversation, `c` only the conversation.

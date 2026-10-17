@@ -20,6 +20,11 @@ export function cut(text: string, max: number): string {
   return `${result}…`
 }
 
+// Pasted terminal output carries escape sequences and control characters that would show as stray text.
+export function printable(text: string): string {
+  return Bun.stripANSI(text).replace(/(?![\n\t])\p{Cc}/gu, "")
+}
+
 const TITLE_MAX = 200
 
 // The terminal rejects a window title with control characters or of a few KB.

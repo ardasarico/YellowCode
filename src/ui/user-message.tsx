@@ -4,6 +4,7 @@ import type { Command } from "../input/commands.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { printable } from "./format.ts"
 import { labelId } from "./image-label.tsx"
 import { ImageTile } from "./image-tile.tsx"
 
@@ -118,7 +119,7 @@ export function UserMessageRow(props: {
         wrapMode="word"
         height={collapsed() ? COLLAPSED_ROWS : "auto"}
       >
-        <MessageText text={props.item.text} commands={props.commands} />
+        <MessageText text={printable(props.item.text)} commands={props.commands} />
       </text>
       <Show when={overflowing()}>
         <text
