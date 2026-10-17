@@ -18,7 +18,6 @@ const FOOTER = [
   { key: "x", word: "stop" },
   { key: "esc", word: "chat" },
 ]
-const FOOTER_WIDTH = Bun.stringWidth(FOOTER.map((entry) => `${entry.key} ${entry.word}`).join(" · "))
 
 const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40, Math.floor(width * 0.26))))
 
@@ -121,24 +120,26 @@ function Footer(props: { notice: boolean; width: number }) {
       <text fg={theme.frame} wrapMode="none">
         {"─".repeat(Math.max(0, props.width))}
       </text>
-      <box flexDirection="row" justifyContent="space-between" height={1}>
-        <text wrapMode="none" flexShrink={0}>
-          <Index each={FOOTER}>
-            {(entry, index) => (
-              <>
-                <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
-                <span style={{ fg: theme.text }}>{entry().key}</span>
-                <span style={{ fg: theme.muted }}>{` ${entry().word}`}</span>
-              </>
-            )}
-          </Index>
-        </text>
-        <Show when={props.notice}>
-          <text wrapMode="none" fg={theme.warning} flexShrink={1}>
-            {cut(STOP_NOTICE, Math.max(0, props.width - FOOTER_WIDTH - 2))}
+      <Show
+        when={props.notice}
+        fallback={
+          <text wrapMode="none">
+            <Index each={FOOTER}>
+              {(entry, index) => (
+                <>
+                  <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
+                  <span style={{ fg: theme.text }}>{entry().key}</span>
+                  <span style={{ fg: theme.muted }}>{` ${entry().word}`}</span>
+                </>
+              )}
+            </Index>
           </text>
-        </Show>
-      </box>
+        }
+      >
+        <text wrapMode="none" fg={theme.warning}>
+          {cut(STOP_NOTICE, props.width)}
+        </text>
+      </Show>
     </box>
   )
 }
