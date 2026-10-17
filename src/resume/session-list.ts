@@ -79,7 +79,10 @@ function promptOf(line: Line): string | null {
   if (typeof content === "string") return commandPrompt(content)
   if (!content || content.some((block) => block.type === "tool_result")) return null
   const text = content.find((block) => block.type === "text")?.text
-  return text === undefined ? null : commandPrompt(text)
+  if (text?.trim()) return commandPrompt(text)
+  const images = content.filter((block) => block.type === "image")
+  if (images.length > 0) return images.map((_, index) => `[Image ${index + 1}]`).join(" ")
+  return text ?? null
 }
 
 function parseLines(lines: string[]): Line[] {
@@ -100,6 +103,9 @@ function oneLine(text: string | null): string {
         .trim()
     : ""
 }
+
+// Shown in place of a title when a session has no words to name it by.
+export const NO_PROMPT = "(no prompt)"
 
 export function displayTitle(fields: TitleFields): string {
   const { customTitle, aiTitle, summary, firstPrompt, lastPrompt } = fields

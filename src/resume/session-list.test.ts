@@ -71,6 +71,12 @@ test("a first prompt longer than the head still lists the session under it", asy
   expect(await listSessions(folder, CWD)).toMatchObject([{ id: "huge", firstPrompt: prompt }])
 })
 
+test("a session that starts with only an image is listed by its image label", () => {
+  const image = { type: "image", source: { type: "base64", media_type: "image/png", data: "iVBORw0KGgo=" } }
+  const head = [JSON.stringify({ type: "user", cwd: CWD, message: { role: "user", content: [image] } })]
+  expect(sessionEntry("image.jsonl", { head, tail: [] }, 0)).toMatchObject({ title: "[Image 1]" })
+})
+
 test("listSessions keeps this project's main sessions, newest first", async () => {
   const copy = join(mkdtempSync(join(tmpdir(), "yellowcode-sessions-")), "-Users-user-project")
   cpSync(join(import.meta.dir, "..", "..", "fixtures", "transcripts", "-Users-user-project"), copy, { recursive: true })

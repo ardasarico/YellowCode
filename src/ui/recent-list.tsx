@@ -1,5 +1,5 @@
 import { Index, Show } from "solid-js"
-import type { SessionEntry } from "../resume/session-list.ts"
+import { NO_PROMPT, type SessionEntry } from "../resume/session-list.ts"
 import { theme } from "../theme/theme.ts"
 import { cut, formatAgo } from "./format.ts"
 import { TILE_PADDING } from "./input-block.tsx"
@@ -15,9 +15,9 @@ export function RecentList(props: { entries: SessionEntry[]; selected: number | 
     return props.entries.map((entry, index) => {
       const ago = formatAgo(entry.modified, now)
       const room = inner() - Bun.stringWidth(ago)
-      const title = cut(entry.title, Math.max(0, room - 2))
+      const title = cut(entry.title || NO_PROMPT, Math.max(0, room - 2))
       const gap = " ".repeat(Math.max(1, room - Bun.stringWidth(title)))
-      return { selected: props.selected === index, title, gap, ago }
+      return { selected: props.selected === index, title, color: entry.title ? theme.text : theme.muted, gap, ago }
     })
   }
   return (
@@ -28,7 +28,7 @@ export function RecentList(props: { entries: SessionEntry[]; selected: number | 
           <text wrapMode="none">
             <span style={{ fg: theme.accent }}>{gutter(row().selected)}</span>
             {/* A span never drops bold once set, so the selected title is its own span. */}
-            <Show when={row().selected} fallback={<span style={{ fg: theme.text }}>{row().title}</span>}>
+            <Show when={row().selected} fallback={<span style={{ fg: row().color }}>{row().title}</span>}>
               <span style={{ fg: theme.accent, bold: true }}>{row().title}</span>
             </Show>
             {row().gap}

@@ -1,5 +1,6 @@
 import { createSignal, onMount } from "solid-js"
-import type { SessionEntry } from "../../resume/session-list.ts"
+import { NO_PROMPT, type SessionEntry } from "../../resume/session-list.ts"
+import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import { formatAgo } from "../format.ts"
 
@@ -21,7 +22,8 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
         title: "",
         rows: (entries() ?? []).map((entry) => ({
           id: entry.id,
-          label: entry.title,
+          label: entry.title || NO_PROMPT,
+          labelColor: entry.title ? undefined : theme.panelMuted,
           value: formatAgo(entry.modified, now),
           search: `${entry.title}\n${entry.firstPrompt}`,
         })),
