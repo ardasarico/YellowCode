@@ -12,6 +12,7 @@ import { userMessage } from "./protocol/outgoing.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
+import { ownAskRejection } from "./session/ask.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
 import { initSettings, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
@@ -142,6 +143,12 @@ async function pump(): Promise<void> {
       }
       if (parsed.kind === "unknown") log.debug(`unknown message ${parsed.key}`)
       session.apply(event.dir, parsed, event.at)
+      const rejection = event.dir === "in" && parsed.kind === "message" ? ownAskRejection(parsed.message) : null
+      if (rejection) {
+        log.info("rejected own ask", rejection)
+        session.answer(rejection)
+        source.send(rejection)
+      }
       // Lines that are already waiting arrive without a macrotask, so a burst would not paint until it ends.
       if (performance.now() - yielded > 8) {
         await new Promise((resolve) => setImmediate(resolve))

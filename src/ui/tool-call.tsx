@@ -2,7 +2,7 @@ import { RGBA } from "@opentui/core"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { QUESTION_DECLINED, TOOL_DECLINED } from "../protocol/outgoing.ts"
-import { severe } from "../session/ask.ts"
+import { ownAskProblem, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
@@ -82,6 +82,8 @@ function shellColor(shell: Task | null) {
 }
 
 export function deniedLine(ask: Ask): string {
+  const problem = ownAskProblem(ask)
+  if (problem) return `rejected · ${problem}`
   const note = ask.denial.trim().replaceAll("\n", " ")
   return note && !DEFAULT_DENIALS.has(note) ? `denied · ${note}` : "denied"
 }

@@ -1,5 +1,6 @@
 import { createMemo, createSignal, Match, Switch } from "solid-js"
 import { type AskMatrix, askUserQuestionInput, OWN_ASK, ownAskMatrix, ownAskPages } from "../../protocol/messages.ts"
+import { ownAskProblem } from "../../session/ask.ts"
 import type { Ask, ChatImage, Session } from "../../session/types.ts"
 import { MatrixAsk } from "./matrix-ask.tsx"
 import { PermissionBand } from "./permission-band.tsx"
@@ -21,10 +22,11 @@ export type AskSurfaceProps = Omit<AskViewProps, "onAnswer" | "answered"> & {
   onAnswer: (ask: Ask, response: string) => void
 }
 
+// A broken own ask is never shown: it goes straight back to Claude.
 export function pendingAsk(session: Session): Ask | null {
   for (const id of session.items) {
     const item = session.byId[id]
-    if (item?.kind === "ask" && item.status === "pending") return item
+    if (item?.kind === "ask" && item.status === "pending" && ownAskProblem(item) === null) return item
   }
   return null
 }

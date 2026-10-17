@@ -1,6 +1,7 @@
 import { expect, setSystemTime, test } from "bun:test"
 import { testRender } from "@opentui/solid"
 import { OWN_ASK } from "../../protocol/messages.ts"
+import { ownAskRejection } from "../../session/ask.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
 import { alwaysChoice } from "./permission-band.tsx"
@@ -64,6 +65,27 @@ test("the first key still typed into the prompt as an ask appears does not answe
   expect(sent).toHaveLength(1)
   setSystemTime()
   setup.renderer.destroy()
+})
+
+const ownAsk = (tool_name: string, input: unknown) => ({
+  type: "control_request" as const,
+  request_id: "request-1",
+  request: { subtype: "can_use_tool" as const, tool_name, tool_use_id: "tool-1", input },
+})
+const numbered = (count: number) => Array.from({ length: count }, (_, i) => ({ label: `Option ${i + 1}` }))
+
+test("our own ask goes back to Claude with what to fix; stock asks are left alone", () => {
+  const five = { questions: [{ question: "Which?", header: "Pick", options: numbered(5) }] }
+  expect(ownAskRejection(ownAsk(OWN_ASK, five))).toContain('"behavior":"deny","message":"Not shown to the user')
+  expect(ownAskRejection(ownAsk(OWN_ASK, five))).toContain("at most 4 options per question")
+  expect(ownAskRejection(ownAsk("AskUserQuestion", five))).toBeNull()
+  const twice = { questions: [0, 1].map(() => ({ question: "Same?", header: "Pick", options: numbered(2) })) }
+  expect(ownAskRejection(ownAsk(OWN_ASK, twice))).toContain("questions must be unique")
+  const rows = [{ label: "A" }, { label: "A" }]
+  const matrix = { matrix: { question: "Keep?", header: "File", rows, scale: ["Yes", "No"] } }
+  expect(ownAskRejection(ownAsk(OWN_ASK, matrix))).toContain("row labels must be unique")
+  const fine = { questions: [{ question: "Which?", header: "Pick", options: numbered(4) }] }
+  expect(ownAskRejection(ownAsk(OWN_ASK, fine))).toBeNull()
 })
 
 test("the always-allow label reads as words and never comes out empty", () => {

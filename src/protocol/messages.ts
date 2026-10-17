@@ -276,27 +276,25 @@ export const askUserQuestionInput = z.looseObject({
 
 export const OWN_ASK = "mcp__yellowcode__ask"
 
-const askPage = z
-  .looseObject({
-    question: z.string(),
-    header: z.string(),
-    multiSelect: z.boolean().optional(),
-    gallery: z.boolean().optional(),
-    options: z
-      .array(z.looseObject({ label: z.string(), description: z.string().optional(), image: z.string().optional() }))
-      .min(2)
-      .max(4),
-  })
-  .refine((page) => !page.gallery || page.options.every((option) => option.image))
+const askPage = z.looseObject({
+  question: z.string(),
+  header: z.string(),
+  multiSelect: z.boolean().optional(),
+  gallery: z.boolean().optional(),
+  options: z.array(
+    z.looseObject({ label: z.string(), description: z.string().optional(), image: z.string().optional() }),
+  ),
+})
 
-// Our own ask tool takes either question pages, in stock's shape plus pictures, or one matrix.
-export const ownAskPages = z.looseObject({ questions: z.array(askPage).min(1) })
+// Our own ask tool takes either question pages, in stock's shape plus pictures, or one matrix. Counts and repeats
+// are checked by ownAskProblem, so Claude learns what to fix.
+export const ownAskPages = z.looseObject({ questions: z.array(askPage) })
 export const ownAskMatrix = z.looseObject({
   matrix: z.looseObject({
     question: z.string(),
     header: z.string(),
-    rows: z.array(z.looseObject({ label: z.string() })).min(2),
-    scale: z.array(z.string()).min(2).max(4),
+    rows: z.array(z.looseObject({ label: z.string() })),
+    scale: z.array(z.string()),
   }),
 })
 
