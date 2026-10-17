@@ -172,6 +172,8 @@ function PromptInput(
           placeholderColor={theme.muted}
           textColor={theme.text}
           focusedTextColor={theme.text}
+          selectionBg={theme.selection ?? theme.frame}
+          selectionFg={theme.text}
           syntaxStyle={syntaxStyle()}
           minHeight={1}
           maxHeight={6}

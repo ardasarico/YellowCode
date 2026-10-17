@@ -88,6 +88,9 @@ export function InputBlock(props: InputBlockProps) {
               focusedTextColor={theme.text}
               backgroundColor={theme.tile ?? undefined}
               focusedBackgroundColor={theme.tile ?? undefined}
+              // The themes' selection colour is their tile colour, so a selection on the tile takes the frame colour.
+              selectionBg={theme.frame}
+              selectionFg={theme.text}
               syntaxStyle={syntaxStyle()}
               minHeight={1}
               maxHeight={6}
