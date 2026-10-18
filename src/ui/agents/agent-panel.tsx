@@ -23,7 +23,12 @@ export function panelNodes(session: Session): TreeNode[] {
   return [...nodes.filter((node) => node.state === "running"), ...nodes.filter((node) => node.state !== "running")]
 }
 
-export const shownNodes = (nodes: TreeNode[]) => nodes.slice(0, MAX_ROWS)
+// The first rows; a selected node that sorts past them takes the last one, so the selection stays on it.
+export function shownNodes(nodes: TreeNode[], selected: string | null): TreeNode[] {
+  const shown = nodes.slice(0, MAX_ROWS)
+  const kept = shown.some((node) => node.id === selected) ? undefined : nodes.find((node) => node.id === selected)
+  return kept ? [...shown.slice(0, -1), kept] : shown
+}
 
 function status(node: TreeNode): { text: string; color: RGBA } {
   if (node.state === "failed") return { text: "failed", color: theme.error }
@@ -103,10 +108,10 @@ export function AgentPanel(props: {
   width: number
   onOpen: (id: string) => void
 }) {
-  const hidden = () => props.nodes.length - shownNodes(props.nodes).length
+  const hidden = () => props.nodes.length - shownNodes(props.nodes, props.selected).length
   return (
     <box flexDirection="column" flexShrink={0} marginTop={1}>
-      <Index each={shownNodes(props.nodes)}>
+      <Index each={shownNodes(props.nodes, props.selected)}>
         {(node) => (
           <Row node={node()} selected={props.selected === node().id} width={props.width} onOpen={props.onOpen} />
         )}

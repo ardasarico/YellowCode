@@ -367,7 +367,7 @@ export function App(props: AppProps) {
 
   const panel = createMemo(() => (pending() ? [] : panelNodes(props.session)))
   const [panelPick, setPanelPick] = createSignal<string | null>(null)
-  const panelIds = () => shownNodes(panel()).map((node) => node.id)
+  const panelIds = () => shownNodes(panel(), focus() === "panel" ? panelPick() : null).map((node) => node.id)
   const panelSelected = () => {
     if (focus() !== "panel") return null
     const ids = panelIds()
