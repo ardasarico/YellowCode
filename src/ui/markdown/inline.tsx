@@ -91,7 +91,13 @@ export function toRuns(
       return
     }
     const color = swatchColor(text)
-    if (color) push("■ ", { ...style, fg: RGBA.fromInts(...color, 255) })
+    if (color) {
+      const behind = (style.bg ?? theme.canvas).toInts()
+      // A swatch in the colour behind it would show as a blank gap, so it gets a frame.
+      const hidden = color.every((channel, index) => Math.abs(channel - (behind[index] ?? 0)) < 32)
+      push("■", { ...style, fg: RGBA.fromInts(...color, 255), ...(hidden && { bg: theme.frame }) })
+      push(" ", style)
+    }
     push(text, { ...style, fg: theme.accent })
   }
   let inKbd = false
