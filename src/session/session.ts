@@ -122,6 +122,13 @@ function toolStatus(state: TaskState): ToolCall["status"] {
   return state
 }
 
+// Claude words a Bash step as "Running " plus its description or command, and a description starts with a verb.
+function activityOf(message: System<"task_progress">): string {
+  const text = message.description ?? ""
+  if (message.last_tool_name !== "Bash" || text === "Running command") return text
+  return text.replace(/^Running /, "")
+}
+
 function workflowOf(items: System<"task_progress">["workflow_progress"], shift: number): WorkflowProgress | null {
   if (!items) return null
   const progress: WorkflowProgress = { phases: [], agents: [] }
@@ -656,7 +663,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         if (state.tasks[message.task_id]?.state !== "running") return
         const workflow = workflowOf(message.workflow_progress, shift)
         setTask(message.task_id, (task) => {
-          task.activity = message.description ?? ""
+          task.activity = activityOf(message)
           task.lastTool = message.last_tool_name ?? null
           task.toolUses = message.usage.tool_uses
           task.durationMs = message.usage.duration_ms
@@ -665,7 +672,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         })
         updateTool(state.tasks[message.task_id], (tool) => {
           if (!tool.agent) return
-          tool.agent.activity = message.description ?? ""
+          tool.agent.activity = activityOf(message)
           tool.agent.toolUses = message.usage.tool_uses
           tool.agent.durationMs = message.usage.duration_ms
           tool.agent.tokens = message.usage.total_tokens ?? tool.agent.tokens
