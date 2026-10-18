@@ -46,6 +46,25 @@ const MAIN = "main"
 
 type ResultContent = Extract<UserBlock, { type: "tool_result" }>["content"]
 
+const MARKERS = ["`", "**", "__", "*", "_"]
+
+// A reply cut off inside `**bold` or a code span would show its opening marker as text.
+export function withoutOpenMarkers(markdown: string): string {
+  let text = markdown.trimEnd()
+  const start = text.lastIndexOf("\n") + 1
+  if (/^\s*(```|~~~)/.test(text.slice(start))) return text
+  for (const marker of MARKERS) {
+    const line = text.slice(start)
+    const at = line.lastIndexOf(marker)
+    if (at === -1 || line.split(marker).length % 2 === 1) continue
+    const before = line[at - 1] ?? " "
+    const after = line[at + marker.length] ?? "x"
+    const opens = marker === "`" || (!/\s/.test(after) && !(marker.startsWith("_") && /\w/.test(before)))
+    if (opens) text = text.slice(0, start + at) + line.slice(at + marker.length)
+  }
+  return text.trimEnd()
+}
+
 function imagesOf(
   blocks: { type: string; source?: { media_type?: string; data?: string } }[],
   name: (index: number) => string,
@@ -450,10 +469,23 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     }
   }
 
+  function cutLastText(): void {
+    const id = state.items.at(-1)
+    const item = id ? state.byId[id] : undefined
+    if (!id || item?.kind !== "text") return
+    const markdown = withoutOpenMarkers(item.markdown)
+    if (!markdown) setState("items", state.items.slice(0, -1))
+    else
+      update(id, (text) => {
+        if (text.kind === "text") text.markdown = markdown
+      })
+  }
+
   function onResult(message: Of<"result">): void {
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
     settleTurn()
+    if (interruptSent) cutLastText()
     const errors = message.errors ?? []
     // claude's own diagnostic for a turn that stopped mid-way says nothing the user can act on.
     const stopped =

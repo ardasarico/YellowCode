@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
-import { createSession } from "./session.ts"
+import { createSession, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndText, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
@@ -279,6 +279,15 @@ test("an Agent call carries the agent's name and task", () => {
 test("an interrupted turn ends interrupted", () => {
   const ends = items(replay("error")).filter((item) => item.kind === "turn-end")
   expect(ends.map((item) => item.kind === "turn-end" && item.interrupted)).toEqual([false, true])
+})
+
+test("an interrupted reply drops the marker it stopped after", () => {
+  const { items: ids, byId } = replay("error").state
+  expect(ids.slice(-2).map((id) => byId[id]?.kind)).toEqual(["thinking", "turn-end"])
+  expect(withoutOpenMarkers("Once upon a **ti")).toBe("Once upon a ti")
+  expect(withoutOpenMarkers("run `bun te")).toBe("run bun te")
+  expect(withoutOpenMarkers("a **b** and *c")).toBe("a **b** and c")
+  expect(withoutOpenMarkers("2 * 3 in my_var")).toBe("2 * 3 in my_var")
 })
 
 test("an API error reply leaves the text and the context size to the turn end", () => {
