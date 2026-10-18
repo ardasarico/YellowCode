@@ -69,7 +69,7 @@ function RowView(props: RowProps) {
   const openShell = (taskId: string) => props.onOpenAgent(shellNodeId(taskId))
   const gap = () => {
     if (props.row.kind === "thinking" && !item("thinking")?.streaming) return 0
-    return props.previous === "end" ? 2 : 1
+    return props.previous === "end" && props.row.kind === "user" ? 2 : 1
   }
 
   return (
