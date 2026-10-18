@@ -1,4 +1,4 @@
-import { RGBA, type Renderable, type ScrollBoxRenderable } from "@opentui/core"
+import type { Renderable, ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
 import type { Command } from "../input/commands.ts"
 import { shellNodeId } from "../session/shells.ts"
@@ -245,9 +245,7 @@ export function ChatView(props: ChatViewProps) {
       stickyScroll
       stickyStart="bottom"
       paddingX={1}
-      verticalScrollbarOptions={{
-        trackOptions: { foregroundColor: theme.muted, backgroundColor: RGBA.fromValues(0, 0, 0, 0) },
-      }}
+      verticalScrollbarOptions={{ visible: false }}
     >
       <Show when={props.earlier}>
         <box marginTop={1}>
@@ -264,7 +262,7 @@ export function ChatView(props: ChatViewProps) {
               {(row) => (
                 <RowView
                   {...props}
-                  // The scrollbar column stays free even before the scrollbar shows, so the rows never lay out again for it.
+                  // The rows keep one free cell at the right edge.
                   width={props.width - 1}
                   row={row()}
                   ask={ask()}
