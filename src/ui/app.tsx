@@ -394,7 +394,6 @@ export function App(props: AppProps) {
       if (at <= 0) setFocus(shellCount() > 0 ? "shells" : "input")
       else setPanelPick(ids[at - 1] ?? null)
     } else if (name === "down") setPanelPick(ids[Math.min(at + 1, ids.length - 1)] ?? null)
-    else if (name === "escape") setFocus("input")
     else if (name === "return") {
       const id = panelSelected()
       if (id) openFromPanel(id)
@@ -488,12 +487,22 @@ export function App(props: AppProps) {
       return
     }
     if (pending()) return
+    // An Esc read together with the next sequence (a second Esc, a focus or mouse report) parses as one meta key.
+    if (
+      (focus() === "panel" || focus() === "shells") &&
+      (key.name === "escape" || key.sequence.startsWith("\x1b\x1b"))
+    ) {
+      key.preventDefault()
+      key.stopPropagation()
+      setFocus("input")
+      return
+    }
     if (
       focus() === "panel" &&
       !key.ctrl &&
       !key.meta &&
       !key.shift &&
-      (key.name === "up" || key.name === "down" || key.name === "escape" || key.name === "return")
+      (key.name === "up" || key.name === "down" || key.name === "return")
     ) {
       key.preventDefault()
       key.stopPropagation()
@@ -505,7 +514,7 @@ export function App(props: AppProps) {
       !key.ctrl &&
       !key.meta &&
       !key.shift &&
-      (key.name === "up" || key.name === "down" || key.name === "escape" || key.name === "return")
+      (key.name === "up" || key.name === "down" || key.name === "return")
     ) {
       key.preventDefault()
       key.stopPropagation()
