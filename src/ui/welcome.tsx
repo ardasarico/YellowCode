@@ -4,7 +4,7 @@ import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
-import { cut } from "./format.ts"
+import { cut, cutPath } from "./format.ts"
 import type { Span } from "./notice.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 import { InputBlock, type InputBlockProps } from "./input-block.tsx"
@@ -34,11 +34,21 @@ const HINTS: [string, string][] = [
   ["ctrl+c", "quit"],
 ]
 
-const hintParts = (recent: boolean) =>
-  HINTS.filter(([key]) => recent || key !== "↓").flatMap(([key, label], index) => [
-    { text: `${index === 0 ? "" : "   "}${key}`, isKey: true },
+const HINT_GAP = "   "
+
+// The hints stay on one row; the ones that do not fit drop from the end.
+function hintParts(recent: boolean, room: number) {
+  const hints = HINTS.filter(([key]) => recent || key !== "↓")
+  const width = (count: number) =>
+    hints.slice(0, count).reduce((sum, [key, label]) => sum + Bun.stringWidth(`${key} ${label}`), 0) +
+    HINT_GAP.length * Math.max(0, count - 1)
+  let count = hints.length
+  while (count > 0 && width(count) > room) count--
+  return hints.slice(0, count).flatMap(([key, label], index) => [
+    { text: `${index === 0 ? "" : HINT_GAP}${key}`, isKey: true },
     { text: ` ${label}`, isKey: false },
   ])
+}
 
 const LOGO_ROWS = CAT_ROWS + 2 + BLOCK_ROWS + 1 + 1
 const LOGO_WIDTH = CAT_COLS + LOGO_GAP + (WORDMARK[0]?.length ?? 0)
@@ -64,14 +74,18 @@ export function welcomeLayout(width: number, height: number, recent: number) {
 const BOTTOM_GAP = 2
 const fit = (text: string, room: number) => (room > 0 ? cut(text, room) : "")
 
-// The notice is cut first and kept, centred in the free room; the workspace is cut to what is left, and the
-// version goes when it does not fit.
-function bottomRow(workspace: string, notice: string, version: string, room: number) {
+// The notice is cut first and kept, centred in the free room; the path is cut from its start to what is left,
+// and the version goes once the path would lose its last folder.
+function bottomRow(workspace: Workspace, notice: string, room: number) {
+  const version = `v${workspace.version}`
+  const branch = workspace.branch ? `${" ".repeat(BOTTOM_GAP)}${workspace.branch}` : ""
   const shownNotice = fit(notice, room)
   const left = room - (shownNotice ? Bun.stringWidth(shownNotice) + BOTTOM_GAP : 0)
   const versionRoom = Bun.stringWidth(version) + BOTTOM_GAP
-  const withVersion = Bun.stringWidth(workspace) + versionRoom <= left
-  const shownWorkspace = fit(workspace, withVersion ? left - versionRoom : left)
+  const shortest = Math.min(Bun.stringWidth(workspace.cwd), Bun.stringWidth(`…/${workspace.cwd.split("/").pop()}`))
+  const withVersion = shortest + Bun.stringWidth(branch) + versionRoom <= left
+  const pathRoom = (withVersion ? left - versionRoom : left) - Bun.stringWidth(branch)
+  const shownWorkspace = pathRoom > 0 ? cutPath(workspace.cwd, pathRoom) + branch : cutPath(workspace.cwd, left)
   const shownVersion = withVersion ? version : ""
   const free = Math.max(
     0,
@@ -127,10 +141,10 @@ function Cat() {
   )
 }
 
-function Hints(props: { recent: boolean }) {
+function Hints(props: { recent: boolean; width: number }) {
   return (
-    <text>
-      <Index each={hintParts(props.recent)}>
+    <text wrapMode="none">
+      <Index each={hintParts(props.recent, props.width)}>
         {(part) => <span style={{ fg: part().isKey ? theme.text : theme.muted }}>{part().text}</span>}
       </Index>
     </text>
@@ -166,13 +180,7 @@ export function Welcome(props: {
 }) {
   const width = () => blockWidth(props.width)
   const parts = () => welcomeLayout(props.width, props.height, props.recent.entries.length)
-  const bottom = () =>
-    bottomRow(
-      props.workspace.branch ? `${props.workspace.cwd}  ${props.workspace.branch}` : props.workspace.cwd,
-      props.notice?.text ?? "",
-      `v${props.workspace.version}`,
-      props.width - 4,
-    )
+  const bottom = () => bottomRow(props.workspace, props.notice?.text ?? "", props.width - 4)
   return (
     <box flexDirection="column" flexGrow={1}>
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
@@ -190,7 +198,7 @@ export function Welcome(props: {
         <InputBlock {...props.input} width={width()} />
         <box height={1} />
         <box width={width()} flexDirection="row" justifyContent="center">
-          <Hints recent={parts().recent} />
+          <Hints recent={parts().recent} width={width()} />
         </box>
         <Show when={parts().recent}>
           <box height={1} />
