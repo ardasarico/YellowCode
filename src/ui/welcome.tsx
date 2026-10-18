@@ -209,7 +209,7 @@ export function Welcome(props: {
         <text wrapMode="none">
           <span style={{ fg: theme.muted }}>{bottom().workspace}</span>
           {" ".repeat(bottom().before)}
-          <span style={{ fg: props.notice?.fg }}>{bottom().notice}</span>
+          <span style={{ fg: props.notice?.fg, bold: props.notice?.bold }}>{bottom().notice}</span>
           {" ".repeat(bottom().after)}
           <span style={{ fg: theme.muted }}>{bottom().version}</span>
         </text>

@@ -37,7 +37,7 @@ import {
   refTarget,
 } from "./markdown/refs.ts"
 import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { noticeFor, quitHint, type ReplayInfo } from "./notice.ts"
+import { noticeFor, problemNotice, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
@@ -613,7 +613,7 @@ export function App(props: AppProps) {
   const welcomeNotice = () => {
     if (quitArmed()) return quitHint()
     const problem = pasteNotice() ?? settingsProblem()
-    return problem ? { text: problem, fg: theme.warning } : null
+    return problem ? problemNotice(problem) : null
   }
 
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)

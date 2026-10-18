@@ -34,6 +34,7 @@ const STATUS_TEXT = {
 
 export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: theme.muted })
 export const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
+export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
 
 const HINTS = "F3 sidebar · F4 ultracode"
 
@@ -67,7 +68,7 @@ function leftSpans(state: NoticeState): Span[] {
   if (state.quitArmed) return [quitHint()]
   if (state.rewindArmed) return [rewindHint()]
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
-  if (state.settingsProblem) return [{ text: state.settingsProblem, fg: theme.warning }]
+  if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []

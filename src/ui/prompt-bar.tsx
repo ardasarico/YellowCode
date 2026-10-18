@@ -41,7 +41,9 @@ type Shells = { count: number; selected: boolean; onOpen: () => void }
 function Spans(props: { spans: Span[]; shrink: number }) {
   return (
     <text wrapMode="none" flexShrink={props.shrink}>
-      <Index each={props.spans}>{(span) => <span style={{ fg: span().fg }}>{span().text}</span>}</Index>
+      <Index each={props.spans}>
+        {(span) => <span style={{ fg: span().fg, bold: span().bold }}>{span().text}</span>}
+      </Index>
     </text>
   )
 }
