@@ -108,7 +108,7 @@ const barWidth = (tabs: PageTab[], indicator: string) =>
   (indicator ? Bun.stringWidth(indicator) + 2 : 0)
 
 // Every page on one row, cutting the longest headers first. When even short labels do not fit, the current page and
-// the neighbours that fit stay, the rest fold into `‹ +N` / `+N ›`, and `N of M` goes on the right.
+// the neighbours that fit stay, the rest fold into `‹ +N` / `+N ›`, and `N of M` goes on the right if it fits.
 export function pageWindow(
   headers: string[],
   current: number,
@@ -132,9 +132,10 @@ export function pageWindow(
   if (barWidth(all, "") <= width) return { tabs: all, indicator: "" }
 
   const texts = labels(LONGEST)
-  const indicator = current < count ? `${current + 1} of ${count}` : ""
   let from = Math.min(current, count - 1)
   let to = from
+  const counter = current < count ? `${current + 1} of ${count}` : ""
+  const indicator = barWidth(tabsOf(texts, from, to), counter) <= width ? counter : ""
   for (let grew = true; grew;) {
     grew = false
     if (to < count - 1 && barWidth(tabsOf(texts, from, to + 1), indicator) <= width) {
