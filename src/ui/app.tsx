@@ -90,6 +90,12 @@ export function App(props: AppProps) {
   }
   const [fill, setFill] = createSignal<{ draft: Draft; seq: number }>()
   const [selected, setSelected] = createSignal<string | null>(null)
+  // The chat shows its selection only while it has the keys, so coming back starts from the newest item again.
+  createEffect(
+    on(focus, (now) => {
+      if (now !== "chat") setSelected(null)
+    }),
+  )
   const [agentView, setAgentView] = createSignal<string | null>(null)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
   const [overflowing, setOverflowing] = createStore<Record<string, boolean>>({})
