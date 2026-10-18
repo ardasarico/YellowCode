@@ -63,14 +63,15 @@ export function toolLines(
   shell: Pick<Task, "state"> | null,
   elapsedMs: number,
 ): string[] {
-  if (ask?.status === "pending") return ["waiting for your approval"]
+  const question = tool.name === "AskUserQuestion" || tool.name === OWN_ASK
+  if (ask?.status === "pending") return [question ? "waiting for your answer" : "waiting for your approval"]
   if (ask?.status === "denied") return [deniedLine(ask)]
   if (isBackgroundShell(tool)) {
     if (!shell) return ["in background"]
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
   if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
-  const answers = tool.name === "AskUserQuestion" || tool.name === OWN_ASK ? answerLines(tool, ask) : []
+  const answers = question ? answerLines(tool, ask) : []
   return answers.length > 0 ? answers : [resultSummary(tool)]
 }
 
