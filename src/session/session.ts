@@ -361,9 +361,12 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   }
 
   function onAssistant(message: Of<"assistant">): void {
+    // claude repeats an API error as a reply of its own, and the turn's end already shows it.
+    if (message.is_api_error_message) return
     const key = message.parent_tool_use_id ?? MAIN
     const usage = message.message.usage
-    if (usage && !message.parent_tool_use_id) {
+    // A reply claude makes up itself, such as `/context`, carries no usage.
+    if (usage && !message.parent_tool_use_id && message.message.model !== "<synthetic>") {
       setState(
         "usage",
         "context",

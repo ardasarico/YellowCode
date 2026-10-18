@@ -209,6 +209,7 @@ const assistant = z.looseObject({
       })
       .optional(),
   }),
+  is_api_error_message: z.boolean().optional(),
 })
 
 const hunk = z.looseObject({

@@ -281,6 +281,25 @@ test("an interrupted turn ends interrupted", () => {
   expect(ends.map((item) => item.kind === "turn-end" && item.interrupted)).toEqual([false, true])
 })
 
+test("an API error reply leaves the text and the context size to the turn end", () => {
+  const usage = { input_tokens: 1200 }
+  const session = feed(
+    { type: "assistant", message: { id: "a", model: "claude-opus-5-5", content: [], usage } },
+    {
+      type: "assistant",
+      is_api_error_message: true,
+      message: {
+        id: "b",
+        model: "<synthetic>",
+        content: [{ type: "text", text: "API Error: 400" }],
+        usage: { input_tokens: 0 },
+      },
+    },
+  )
+  expect(items(session)).toEqual([])
+  expect(session.state.usage.context.used).toBe(1200)
+})
+
 test("thinking text fills from the stream", () => {
   const thinking = items(replay("thinking")).filter((item) => item.kind === "thinking")
   expect(thinking.length).toBeGreaterThan(0)
