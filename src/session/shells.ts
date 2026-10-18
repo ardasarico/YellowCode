@@ -77,13 +77,12 @@ export function stoppedByTimeLimit(task: Task): boolean {
   return task.state === "stopped" && task.summary.includes("reaching its background time limit")
 }
 
-export function shellEndText(task: Task): string {
-  const head = `Background command "${task.description || task.command}"`
+export function shellEndStatus(task: Task): string {
   const code = exitCode(task)
-  if (task.state === "stopped") return `${head} was stopped${stoppedByTimeLimit(task) ? " (time limit)" : ""}`
-  if (task.state === "failed") return code === null ? `${head} failed` : `${head} failed with exit code ${code}`
-  if (task.state === "completed") return code === null ? `${head} completed` : `${head} completed (exit code ${code})`
-  return `${head} is running`
+  if (task.state === "stopped") return ` was stopped${stoppedByTimeLimit(task) ? " (time limit)" : ""}`
+  if (task.state === "failed") return code === null ? " failed" : ` failed with exit code ${code}`
+  if (task.state === "completed") return code === null ? " completed" : ` completed (exit code ${code})`
+  return " is running"
 }
 
 export function shellNodeId(taskId: string): string {

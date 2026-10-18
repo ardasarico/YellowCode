@@ -1,8 +1,17 @@
 import { createSignal, Show } from "solid-js"
-import { shellEndText } from "../session/shells.ts"
+import { shellEndStatus } from "../session/shells.ts"
 import type { Session, ShellEnd, Task } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { cut } from "./format.ts"
+
+// The status and exit code always show; the command's description is cut to make room for them.
+function endText(task: Task, width: number): string {
+  const status = shellEndStatus(task)
+  const room = width - Bun.stringWidth(`● Background command ""${status}`)
+  const label = task.description || task.command
+  if (room < 2) return cut(`● Background command "${label}"${status}`, width)
+  return `● Background command "${cut(label, room)}"${status}`
+}
 
 function endColor(task: Task) {
   if (task.state === "failed") return theme.error
@@ -28,7 +37,7 @@ export function ShellEndRow(props: { session: Session; item: ShellEnd; onOpen: (
       <Show when={task()}>
         {(shell) => (
           <text wrapMode="none" fg={endColor(shell())}>
-            {cut(`● ${shellEndText(shell())}`, width())}
+            {endText(shell(), width())}
           </text>
         )}
       </Show>

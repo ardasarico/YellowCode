@@ -5,7 +5,7 @@ import { answerQuestions, denyTool, QUESTION_DECLINED } from "../protocol/outgoi
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession, withoutOpenMarkers } from "./session.ts"
-import { exitCode, runningShellCount, shellEndText, shellStartedBy } from "./shells.ts"
+import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
 // With `until`, stops before the first line that contains it.
@@ -416,7 +416,7 @@ test("shells keep their command, outcome, exit code and output", () => {
     ...wait,
     summary: `Background command "x" was stopped after reaching its background time limit`,
   }
-  expect(limited && shellEndText(limited)).toEndWith("was stopped (time limit)")
+  expect(limited && shellEndStatus(limited)).toEndWith("was stopped (time limit)")
 
   const ends = session.state.items.flatMap((id) => {
     const item = session.state.byId[id]
