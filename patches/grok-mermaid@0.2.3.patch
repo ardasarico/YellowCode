@@ -1,0 +1,375 @@
+diff --git a/node_modules/grok-mermaid/.bun-tag-85c3e3fec9934dbc b/.bun-tag-85c3e3fec9934dbc
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/layout.js b/dist/layout.js
+index 209e4fca03ded2893b4e0a6229323990e9d85142..5229156fd72e94f5e2e7d3e8833754abb5c1ff40 100644
+--- a/dist/layout.js
++++ b/dist/layout.js
+@@ -248,16 +248,14 @@ export function assignTracks(spans) {
+     return { assigned, count: tracks.length };
+ }
+ /** Edges from rank `r` to `r + 1` that must jog sideways, so need a bus row. */
+-function busSpans(graph, ranks, centers, r, exact) {
++function busSpans(graph, ranks, stem, centers, r) {
+     const out = [];
+     graph.edges.forEach((e, i) => {
+-        const jogs = exact
+-            ? centers[e.from] !== centers[e.to]
+-            : Math.abs(centers[e.from] - centers[e.to]) > 1;
++        const jogs = stem[e.from] !== centers[e.to];
+         if (e.from !== e.to && ranks[e.from] === r && ranks[e.to] === r + 1 && jogs) {
+             out.push([
+-                Math.min(centers[e.from], centers[e.to]),
+-                Math.max(centers[e.from], centers[e.to]),
++                Math.min(stem[e.from], centers[e.to]),
++                Math.max(stem[e.from], centers[e.to]),
+                 e.from,
+                 e.to,
+                 i,
+@@ -267,10 +265,10 @@ function busSpans(graph, ranks, centers, r, exact) {
+     return out;
+ }
+ /** Edges skipping a rank or running backwards; these go around in a lane. */
+-function laneSpans(graph, ranks, placed, vertical) {
++function laneSpans(graph, ranks, placed, vertical, sides, near) {
+     const out = [];
+     graph.edges.forEach((e, i) => {
+-        if (e.from === e.to || ranks[e.to] === ranks[e.from] + 1)
++        if (e.from === e.to || ranks[e.to] === ranks[e.from] + 1 || sides[i] !== near)
+             return;
+         const pf = placed[e.from];
+         const pt = placed[e.to];
+@@ -280,13 +278,65 @@ function laneSpans(graph, ranks, placed, vertical) {
+     });
+     return out;
+ }
++/**
++ * Where each node's downward edges leave it, top-down. A child within one
++ * column of the centre pulls the stem over to line up with it (a jog of one
++ * column reads as a kink), and the other children jog from there, so a
++ * fan-out still leaves through a single stem.
++ */
++function stems(graph, ranks, centers) {
++    const stem = [...centers];
++    for (const e of graph.edges) {
++        if (e.from !== e.to &&
++            ranks[e.to] === ranks[e.from] + 1 &&
++            Math.abs(centers[e.from] - centers[e.to]) <= 1) {
++            stem[e.from] = centers[e.to];
++        }
++    }
++    return stem;
++}
++/**
++ * Which side each skip or back edge goes around on: `false` for the far side
++ * (right, or below for `LR`), `true` for the near one. The near side is taken
++ * when the far route would cut through another box of the same rank, or would
++ * meet an edge running the other way at the same side of a node.
++ */
++function laneSides(graph, ranks, byRank) {
++    const outermost = (v, near) => {
++        const row = byRank[ranks[v]];
++        return row[near ? 0 : row.length - 1] === v;
++    };
++    const use = new Map();
++    const open = (e, near) => outermost(e.from, near) &&
++        outermost(e.to, near) &&
++        use.get(`${e.from}:${near}`) !== 'in' &&
++        use.get(`${e.to}:${near}`) !== 'out';
++    return graph.edges.map((e) => {
++        if (e.from === e.to || ranks[e.to] === ranks[e.from] + 1)
++            return false;
++        const near = !open(e, false) && open(e, true);
++        use.set(`${e.from}:${near}`, 'out');
++        use.set(`${e.to}:${near}`, 'in');
++        return near;
++    });
++}
++/** Pack lanes into tracks, writing each edge's track into `edgeLane`. */
++function packLanes(lanes, edgeLane) {
++    if (lanes.length === 0)
++        return 0;
++    const { assigned, count } = assignTracks(lanes);
++    for (const [idx, slot] of assigned)
++        edgeLane[idx] = slot;
++    return count;
++}
+ // ----------------------------------------------------------------- placement
+ function placeTd(ranks, maxRank, byRank, sizes, graph, placed) {
+     const centers = assignPositions(byRank, sizes.layW, GAP_X, graph.edges, ranks);
++    const stem = stems(graph, ranks, centers);
+     const edgeBus = new Array(graph.edges.length).fill(0);
+     const busTracks = new Array(maxRank + 1).fill(0);
+     for (let r = 0; r < maxRank; r++) {
+-        const spans = busSpans(graph, ranks, centers, r, false);
++        const spans = busSpans(graph, ranks, stem, centers, r);
+         if (spans.length === 0)
+             continue;
+         const { assigned, count } = assignTracks(spans);
+@@ -316,9 +366,22 @@ function placeTd(ranks, maxRank, byRank, sizes, graph, placed) {
+             }
+         }
+     });
++    // Lanes on the left push the diagram right, past them and their labels.
++    const edgeSide = laneSides(graph, ranks, byRank);
++    const edgeLane = new Array(graph.edges.length).fill(0);
++    const nearCount = packLanes(laneSpans(graph, ranks, placed, true, edgeSide, true), edgeLane);
++    const nearLabels = graph.edges
++        .filter((e, i) => edgeSide[i] && e.label !== null)
++        .map((e) => Math.min(stringWidth(e.label), MAX_LABEL) + 1);
++    const shift = nearCount === 0 ? 0 : nearCount + 1 + Math.max(0, ...nearLabels);
++    for (const p of placed) {
++        p.x += shift;
++        p.cx += shift;
++    }
++    diagramW += shift;
+     let contentW = diagramW;
+-    for (const e of graph.edges) {
+-        if (e.from === e.to || e.label === null)
++    for (const [i, e] of graph.edges.entries()) {
++        if (e.from === e.to || e.label === null || edgeSide[i])
+             continue;
+         const lw = Math.min(stringWidth(e.label), MAX_LABEL);
+         contentW =
+@@ -326,8 +389,7 @@ function placeTd(ranks, maxRank, byRank, sizes, graph, placed) {
+                 ? Math.max(contentW, placed[e.to].cx + 2 + lw)
+                 : Math.max(contentW, diagramW + lw + 1);
+     }
+-    const edgeLane = new Array(graph.edges.length).fill(0);
+-    const lanes = laneSpans(graph, ranks, placed, true);
++    const lanes = laneSpans(graph, ranks, placed, true, edgeSide, false);
+     let canvasW = contentW;
+     let laneBase = 0;
+     if (lanes.length > 0) {
+@@ -337,23 +399,34 @@ function placeTd(ranks, maxRank, byRank, sizes, graph, placed) {
+         canvasW = contentW + 1 + count;
+         laneBase = contentW + 1;
+     }
+-    return { canvasW, canvasH, bandEnd, edgeBus, laneBase, edgeLane };
++    return {
++        canvasW,
++        canvasH,
++        bandEnd,
++        edgeBus,
++        laneBase,
++        edgeLane,
++        edgeSide,
++        nearBase: nearCount - 1,
++        stem: stem.map((x) => x + shift),
++    };
+ }
+ function placeLr(ranks, maxRank, byRank, sizes, graph, placed) {
+     const colW = byRank.map((row) => row.length === 0 ? 0 : Math.max(...row.map((i) => sizes.boxW[i])));
+-    // Left-to-right edge labels sit in the gap between columns, so the gap has
+-    // to be wide enough for the widest of them.
+-    const labelWidths = graph.edges
+-        .filter((e) => e.from === e.to || ranks[e.to] === ranks[e.from] + 1)
+-        .filter((e) => e.label !== null)
+-        .map((e) => Math.min(stringWidth(e.label), MAX_LABEL));
+-    const maxLabel = labelWidths.length === 0 ? 0 : Math.max(...labelWidths);
+-    const baseGap = Math.max(GAP_X + 1, maxLabel + 3);
++    // Left-to-right edge labels sit in the gap after their source's column, so
++    // each gap has to be wide enough for the widest label in it.
++    const labelW = new Array(maxRank + 1).fill(0);
++    for (const e of graph.edges) {
++        if (e.label === null || (e.from !== e.to && ranks[e.to] !== ranks[e.from] + 1))
++            continue;
++        const r = ranks[e.from];
++        labelW[r] = Math.max(labelW[r], Math.min(stringWidth(e.label), MAX_LABEL));
++    }
+     const centers = assignPositions(byRank, sizes.layH, 1, graph.edges, ranks);
+     const edgeBus = new Array(graph.edges.length).fill(0);
+     const busTracks = new Array(maxRank + 1).fill(0);
+     for (let r = 0; r < maxRank; r++) {
+-        const spans = busSpans(graph, ranks, centers, r, true);
++        const spans = busSpans(graph, ranks, centers, centers, r);
+         if (spans.length === 0)
+             continue;
+         const { assigned, count } = assignTracks(spans);
+@@ -363,7 +436,8 @@ function placeLr(ranks, maxRank, byRank, sizes, graph, placed) {
+     }
+     const rankX = new Array(maxRank + 1).fill(0);
+     for (let r = 1; r <= maxRank; r++) {
+-        rankX[r] = rankX[r - 1] + colW[r - 1] + Math.max(baseGap, busTracks[r - 1] + 1);
++        const gap = Math.max(GAP_X + 1, labelW[r - 1] + 3);
++        rankX[r] = rankX[r - 1] + colW[r - 1] + Math.max(gap, busTracks[r - 1] + 1);
+     }
+     const selfTails = byRank[maxRank]
+         .filter((i) => sizes.extraH[i] > 0 && sizes.selfLabelW[i] > 0)
+@@ -382,8 +456,17 @@ function placeLr(ranks, maxRank, byRank, sizes, graph, placed) {
+             diagramH = Math.max(diagramH, y + h + sizes.extraH[idx]);
+         }
+     });
++    // Lanes above push the diagram down, past them and the row of labels under them.
++    const edgeSide = laneSides(graph, ranks, byRank);
+     const edgeLane = new Array(graph.edges.length).fill(0);
+-    const lanes = laneSpans(graph, ranks, placed, false);
++    const nearCount = packLanes(laneSpans(graph, ranks, placed, false, edgeSide, true), edgeLane);
++    const shift = nearCount === 0 ? 0 : nearCount + 1;
++    for (const p of placed) {
++        p.y += shift;
++        p.cy += shift;
++    }
++    diagramH += shift;
++    const lanes = laneSpans(graph, ranks, placed, false, edgeSide, false);
+     let canvasH = diagramH;
+     let laneBase = 0;
+     if (lanes.length > 0) {
+@@ -393,9 +476,37 @@ function placeLr(ranks, maxRank, byRank, sizes, graph, placed) {
+         canvasH = diagramH + 1 + count;
+         laneBase = diagramH + 1;
+     }
+-    return { canvasW, canvasH, bandEnd, edgeBus, laneBase, edgeLane };
++    return { canvasW, canvasH, bandEnd, edgeBus, laneBase, edgeLane, edgeSide, nearBase: nearCount - 1 };
+ }
+ // -------------------------------------------------------------------- canvas
++/**
++ * A skip or back edge runs around the outside of the diagram, so both its ends
++ * must be the first, or both the last, box of their ranks; otherwise its way
++ * out cuts through a neighbour. Move ends outward until they are.
++ */
++function freeLaneEnds(byRank, edges, ranks) {
++    const at = (v, near) => {
++        const row = byRank[ranks[v]];
++        return row[near ? 0 : row.length - 1] === v;
++    };
++    for (const e of edges) {
++        if (e.from === e.to || ranks[e.to] === ranks[e.from] + 1)
++            continue;
++        if ((at(e.from, false) && at(e.to, false)) || (at(e.from, true) && at(e.to, true)))
++            continue;
++        const near = !at(e.from, false) && !at(e.to, false) && (at(e.from, true) || at(e.to, true));
++        for (const v of [e.from, e.to]) {
++            if (at(v, near))
++                continue;
++            const row = byRank[ranks[v]];
++            row.splice(row.indexOf(v), 1);
++            if (near)
++                row.unshift(v);
++            else
++                row.push(v);
++        }
++    }
++}
+ /** Rank, place, draw and route a graph onto a fresh canvas. */
+ export function layoutCanvas(graph, extras) {
+     const n = graph.nodes.length;
+@@ -407,6 +518,7 @@ export function layoutCanvas(graph, extras) {
+     for (let idx = 0; idx < ranks.length; idx++)
+         byRank[ranks[idx]].push(idx);
+     orderRanks(byRank, graph.edges, ranks);
++    freeLaneEnds(byRank, graph.edges, ranks);
+     const wrapped = graph.nodes.map((node) => wrapLabel(node.label, WRAP_WIDTH, MAX_LINES));
+     const widest = (lines) => Math.max(1, lines.length === 0 ? 1 : Math.max(...lines.map(stringWidth)));
+     const boxW = extras.map((extra, i) => {
+@@ -484,18 +596,19 @@ export function layoutCanvas(graph, extras) {
+         const to = placed[edge.to];
+         const adjacent = to.rank === from.rank + 1;
+         const bus = plan.bandEnd[from.rank] + plan.edgeBus[i];
+-        const lane = plan.laneBase + plan.edgeLane[i];
++        const near = plan.edgeSide[i];
++        const lane = near ? plan.nearBase - plan.edgeLane[i] : plan.laneBase + plan.edgeLane[i];
+         if (vertical) {
+             if (adjacent)
+-                routeForward(canvas, from, to, edge, bus);
++                routeForward(canvas, from, to, edge, bus, plan.stem[edge.from]);
+             else
+-                routeBack(canvas, from, to, edge, lane);
++                routeBack(canvas, from, to, edge, lane, near);
+         }
+         else if (adjacent) {
+             routeForwardLr(canvas, from, to, edge, bus);
+         }
+         else {
+-            routeBackLr(canvas, from, to, edge, lane);
++            routeBackLr(canvas, from, to, edge, lane, near);
+         }
+     });
+     canvas.finalizeMask();
+@@ -744,10 +857,8 @@ function headGlyph(head, arrow) {
+     }
+ }
+ /** Adjacent ranks, top-down: drop, jog along the bus row, drop into the head. */
+-function routeForward(canvas, from, to, edge, bus) {
++function routeForward(canvas, from, to, edge, bus, bx) {
+     const tx = to.cx;
+-    // A jog of one column reads as a kink; snap straight instead.
+-    const bx = Math.abs(from.cx - tx) <= 1 ? tx : from.cx;
+     const by = from.y + from.h - 1;
+     const headRow = to.y - 1;
+     canvas.junction(bx, by, D);
+@@ -790,24 +901,27 @@ function routeSelf(canvas, p, edge) {
+     if (edge.label !== null)
+         placeLabel(canvas, edge.label, bottom + 1, p.x + p.w + 1);
+ }
+-/** Skip or back edge, top-down: out the right side, up a lane, back in. */
+-function routeBack(canvas, from, to, edge, laneX) {
+-    const sx = from.x + from.w - 1;
++/** Skip or back edge, top-down: out one side, along a lane, back in the same side. */
++function routeBack(canvas, from, to, edge, laneX, near) {
++    const sx = near ? from.x : from.x + from.w - 1;
+     const sy = from.cy;
+-    const tx = to.x + to.w - 1;
++    const hx = near ? to.x - 1 : to.x + to.w;
+     const tyc = to.cy;
+-    canvas.junction(sx, sy, R);
++    const side = near ? L : R;
++    const arrow = near ? '▶' : '◄';
++    canvas.junction(sx, sy, side);
+     canvas.segH(sy, sx, laneX);
+     canvas.segV(laneX, sy, tyc);
+-    canvas.segH(tyc, tx + 1, laneX);
++    canvas.segH(tyc, hx, laneX);
+     if (edge.headTo === 'none')
+-        canvas.addBits(tx + 1, tyc, R);
++        canvas.addBits(hx, tyc, side);
+     else
+-        canvas.set(tx + 1, tyc, headGlyph(edge.headTo, '◄'), 'edge');
++        canvas.set(hx, tyc, headGlyph(edge.headTo, arrow), 'edge');
+     if (edge.headFrom !== 'none')
+-        canvas.set(sx, sy, headGlyph(edge.headFrom, '◄'), 'edge');
++        canvas.set(sx, sy, headGlyph(edge.headFrom, arrow), 'edge');
+     if (edge.label !== null) {
+-        placeLabel(canvas, edge.label, sat(tyc, 1), sat(laneX, stringWidth(edge.label) + 1));
++        const lx = near ? laneX + 2 : sat(laneX, stringWidth(edge.label) + 1);
++        placeLabel(canvas, edge.label, sat(tyc, 1), lx);
+     }
+ }
+ /** Adjacent ranks, left-to-right: out the right side, jog on the bus column. */
+@@ -834,24 +948,26 @@ function routeForwardLr(canvas, from, to, edge, bus) {
+     if (edge.label !== null)
+         placeLabel(canvas, edge.label, sat(ly, 1), bus + 1);
+ }
+-/** Skip or back edge, left-to-right: down out the bottom, along a lane, back up. */
+-function routeBackLr(canvas, from, to, edge, laneY) {
++/** Skip or back edge, left-to-right: out the top or bottom, along a lane, back in the same side. */
++function routeBackLr(canvas, from, to, edge, laneY, near) {
+     const sx = from.cx;
+-    const sy = from.y + from.h - 1;
++    const sy = near ? from.y : from.y + from.h - 1;
+     const tx = to.cx;
+-    const ty = to.y + to.h - 1;
+-    canvas.junction(sx, sy, D);
++    const hy = near ? to.y - 1 : to.y + to.h;
++    const side = near ? U : D;
++    const arrow = near ? '▼' : '▲';
++    canvas.junction(sx, sy, side);
+     canvas.segV(sx, sy, laneY);
+     canvas.segH(laneY, sx, tx);
+-    canvas.segV(tx, laneY, ty + 1);
++    canvas.segV(tx, laneY, hy);
+     if (edge.headTo === 'none')
+-        canvas.addBits(tx, ty + 1, D);
++        canvas.addBits(tx, hy, side);
+     else
+-        canvas.set(tx, ty + 1, headGlyph(edge.headTo, '▲'), 'edge');
++        canvas.set(tx, hy, headGlyph(edge.headTo, arrow), 'edge');
+     if (edge.headFrom !== 'none')
+-        canvas.set(sx, sy, headGlyph(edge.headFrom, '▲'), 'edge');
++        canvas.set(sx, sy, headGlyph(edge.headFrom, arrow), 'edge');
+     if (edge.label !== null)
+-        placeLabel(canvas, edge.label, sat(laneY, 1), half(sx + tx));
++        placeLabel(canvas, edge.label, near ? laneY + 1 : sat(laneY, 1), half(sx + tx));
+ }
+ /** Write an edge label, stopping at the first cell already occupied. */
+ function placeLabel(canvas, label, row, startX) {
