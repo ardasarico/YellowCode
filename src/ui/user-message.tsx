@@ -47,7 +47,7 @@ function messageParts(text: string, commands: Command[]): Part[] {
 }
 
 function partColor(kind: Part["kind"]) {
-  return kind === "image" ? theme.accent : kind === "token" ? theme.dimAccent : theme.text
+  return kind === "plain" ? theme.text : theme.accent
 }
 
 function MessageText(props: { text: string; commands: Command[] }) {
