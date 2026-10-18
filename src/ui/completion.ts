@@ -50,7 +50,7 @@ export type CompletionOptions = {
   onListOpen?: (open: boolean) => void
   // Called by ↓ on an empty prompt that is not browsing the history.
   onLeaveDown?: () => void
-  // Each new `seq` replaces the prompt with `draft`.
+  // Each new `seq` replaces the prompt with `draft`. A `/` typed right after it starts a command in its place.
   fill?: Accessor<{ draft: Draft; seq: number } | undefined>
   // Called by Ctrl+C on an empty prompt; Ctrl+C on text clears it.
   onQuit?: () => void
@@ -68,6 +68,8 @@ export function useCompletion(options: CompletionOptions) {
   // Its content change arrives a microtask later, so it is recognised by its text: set `placed` before putting it in.
   let placed: string | null = null
   let browsing: number | null = null
+  // The text of the last fill while it is still untouched.
+  let filled: string | null = null
 
   const [completion, setCompletion] = createSignal<Completion | null>(null)
   const [selected, setSelected] = createSignal(0)
@@ -149,6 +151,12 @@ export function useCompletion(options: CompletionOptions) {
     if (text === placed) return
     placed = null
     browsing = null
+    const slash = filled !== null && text === `${filled}/`
+    filled = null
+    if (slash) {
+      edit({ text: "/", cursor: 1 })
+      return
+    }
     const cursor = cursorIndex(area)
     fileRequest++
     const query = slashQuery(text, cursor)
@@ -266,7 +274,9 @@ export function useCompletion(options: CompletionOptions) {
       fillSeq,
       () => {
         const next = options.fill?.()
-        if (next) restore(next.draft)
+        if (!next) return
+        restore(next.draft)
+        filled = next.draft.text || null
       },
       { defer: true },
     ),
