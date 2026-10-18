@@ -68,7 +68,10 @@ export function Dialog(props: DialogProps) {
   )
 
   const searching = () => props.search ?? true
-  const visible = createMemo(() => (props.filter ?? filterSections)(props.sections, query()))
+  // A single group has nothing to be told apart from, so its label is left out.
+  const sections = () =>
+    props.sections.length === 1 ? props.sections.map((section) => ({ ...section, title: "" })) : props.sections
+  const visible = createMemo(() => (props.filter ?? filterSections)(sections(), query()))
   const ids = createMemo(() => selectableIds(visible()))
   const selectedId = () =>
     [chosen(), props.initialSelected].find((id) => id !== undefined && ids().includes(id)) ?? ids()[0]
