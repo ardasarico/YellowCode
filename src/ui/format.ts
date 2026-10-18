@@ -52,7 +52,16 @@ export function cutPath(path: string, max: number): string {
   if (Bun.stringWidth(path) <= max) return path
   const parts = path.split("/")
   while (parts.length > 1 && Bun.stringWidth(`…/${parts.join("/")}`) > max) parts.shift()
-  return parts.length > 1 ? `…/${parts.join("/")}` : cut(path, max)
+  const short = `…/${parts.join("/")}`
+  if (Bun.stringWidth(short) <= max) return short
+  if (!path.includes("/")) return cut(path, max)
+  if (max < 1) return ""
+  let end = ""
+  for (const char of Array.from(path).toReversed()) {
+    if (Bun.stringWidth(`…${char}${end}`) > max) break
+    end = char + end
+  }
+  return `…${end}`
 }
 
 export function modelName(id: string): string {
