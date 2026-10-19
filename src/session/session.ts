@@ -21,6 +21,7 @@ import type {
   Task,
   TaskState,
   ChatImage,
+  Thinking,
   ToolCall,
   Window,
   WorkflowProgress,
@@ -260,6 +261,8 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   // The live API retry row; it goes once a reply starts or the turn ends.
   let retryId: ItemId | null = null
   let retryAttempt = 0
+  // When each streaming thinking block started, so its end can give it a duration.
+  const thinkingSince = new Map<ItemId, number>()
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
@@ -319,7 +322,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       case "text":
         return { kind: "text", id: newId("text"), markdown: block.text, streaming: true }
       case "thinking":
-        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true }
+        return { kind: "thinking", id: newId("thinking"), text: block.thinking, streaming: true, durationMs: null }
       case "tool_use":
         return {
           kind: "tool",
@@ -352,7 +355,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         item.streaming = false
       } else if (item.kind === "thinking" && block.type === "thinking") {
         if (block.thinking) item.text = block.thinking
-        item.streaming = false
+        endThinking(item)
       } else if (item.kind === "tool" && block.type === "tool_use") {
         item.input = block.input
         item.inputText = JSON.stringify(block.input)
@@ -367,9 +370,17 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     if (tool?.kind === "tool" && tool.taskId && command) setTask(tool.taskId, (task) => (task.command ||= command))
   }
 
+  function endThinking(item: Thinking): void {
+    const since = thinkingSince.get(item.id)
+    if (item.streaming && since !== undefined) item.durationMs = now - since
+    thinkingSince.delete(item.id)
+    item.streaming = false
+  }
+
   function stopStreaming(id: ItemId): void {
     update(id, (item) => {
-      if (item.kind === "text" || item.kind === "thinking") item.streaming = false
+      if (item.kind === "text") item.streaming = false
+      else if (item.kind === "thinking") endThinking(item)
     })
   }
 
@@ -388,6 +399,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         if (!cursor || !item) return
         cursor.blocks.set(event.index, item.id)
         cursor.lastIndex = event.index
+        if (item.kind === "thinking") thinkingSince.set(item.id, now)
         add(item, message.parent_tool_use_id)
         return
       }

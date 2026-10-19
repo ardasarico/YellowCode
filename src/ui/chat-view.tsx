@@ -68,10 +68,7 @@ function RowView(props: RowProps) {
         })
       : null
   const openShell = (taskId: string) => props.onOpenAgent(shellNodeId(taskId))
-  const gap = () => {
-    if (props.row.kind === "thinking" && !item("thinking")?.streaming) return 0
-    return props.previous === "end" && props.row.kind === "user" ? 2 : 1
-  }
+  const gap = () => (props.previous === "end" && props.row.kind === "user" ? 2 : 1)
 
   return (
     <box
@@ -149,7 +146,16 @@ function RowView(props: RowProps) {
           )}
         </Match>
         <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
-        <Match when={item("thinking")}>{(thinking) => <ThinkingRow item={thinking()} />}</Match>
+        <Match when={item("thinking")}>
+          {(thinking) => (
+            <ThinkingRow
+              item={thinking()}
+              selected={props.selected === thinking().id}
+              expanded={props.expanded[thinking().id] === true}
+              onToggle={props.onToggle}
+            />
+          )}
+        </Match>
         <Match when={item("shell-end")}>
           {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
         </Match>

@@ -47,6 +47,7 @@ import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
+import { hasThinkingText } from "./thinking.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
@@ -263,7 +264,10 @@ export function App(props: AppProps) {
   const selectableIds = () =>
     shownItems().flatMap((id) => {
       const item = props.session.byId[id]
-      const own = item?.kind === "tool" || overflowing[id] === true ? [id] : []
+      const own =
+        item?.kind === "tool" || (item?.kind === "thinking" && hasThinkingText(item)) || overflowing[id] === true
+          ? [id]
+          : []
       const parts = item?.kind === "text" ? partsOf(id, item.markdown) : []
       const labels = itemImages(item, process.cwd()).flatMap((image, index) =>
         hasImage(image) ? [labelId(id, index)] : [],

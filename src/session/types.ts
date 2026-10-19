@@ -6,7 +6,8 @@ export type ItemId = string
 export type ChatImage = { name: string; mediaType: string; data: string | null; path: string | null }
 export type UserMessage = { kind: "user"; id: ItemId; text: string; images: ChatImage[] }
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
-export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean }
+// `durationMs` is null when the block did not stream, as in a resumed session.
+export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number | null }
 export type ToolCall = {
   kind: "tool"
   id: ItemId
