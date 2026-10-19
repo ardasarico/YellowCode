@@ -5,6 +5,9 @@ export type SidebarMode = "docked" | "hidden"
 
 export const MIN_CHAT_WIDTH = 60
 export const SIDEBAR_MIN_WIDTH = 30
+// The empty cells between content and the window or sidebar edge, the same on both sides of the chat, the prompt and
+// the sidebar.
+export const EDGE_GAP = 2
 
 // The sidebar takes at most half the terminal. It narrows down to its minimum to dock beside a 60-column chat; when
 // opened in a terminal narrower than that it squeezes the chat instead of covering it.

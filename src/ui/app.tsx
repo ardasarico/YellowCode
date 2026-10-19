@@ -37,7 +37,7 @@ import {
   refId,
   refTarget,
 } from "./markdown/refs.ts"
-import { MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
+import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, problemNotice, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -160,7 +160,6 @@ export function App(props: AppProps) {
   const shownWidth = () => layout().width
   const sidebar = () => layout().mode
   const chatWidth = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
-  const edgeGap = () => (sidebar() === "docked" ? 2 : 0)
   const pending = createMemo(() => pendingAsk(props.session))
   createEffect(
     on(
@@ -604,7 +603,7 @@ export function App(props: AppProps) {
         return (
           <AskSurface
             ask={ask}
-            width={promptInnerWidth(chatWidth(), edgeGap())}
+            width={promptInnerWidth(chatWidth())}
             onAnswer={props.onAnswer}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
           />
@@ -714,7 +713,6 @@ export function App(props: AppProps) {
             <PromptBar
               {...input()}
               spaced
-              edgeGap={edgeGap()}
               width={chatWidth()}
               notice={notice()}
               context={props.session.usage.context}
@@ -726,12 +724,15 @@ export function App(props: AppProps) {
               shells={{ count: shellCount(), selected: focus() === "shells", onOpen: openShells }}
             />
             <Show when={panel().length > 0}>
-              <AgentPanel
-                nodes={panel()}
-                selected={panelSelected()}
-                width={chatWidth() - 1 - edgeGap()}
-                onOpen={openFromPanel}
-              />
+              {/* The selection bar sits in the last gap cell, so the marks line up with the prompt. */}
+              <box paddingLeft={EDGE_GAP - 1}>
+                <AgentPanel
+                  nodes={panel()}
+                  selected={panelSelected()}
+                  width={chatWidth() - 2 * EDGE_GAP + 1}
+                  onOpen={openFromPanel}
+                />
+              </box>
             </Show>
           </box>
           <Show when={sidebar() !== "hidden"}>

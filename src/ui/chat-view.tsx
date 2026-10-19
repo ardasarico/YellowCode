@@ -6,6 +6,7 @@ import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
 import { invertCells } from "./invert.ts"
+import { EDGE_GAP } from "./layout.ts"
 import { Markdown } from "./markdown/markdown.tsx"
 import { refTarget } from "./markdown/refs.ts"
 import { RewoundBand } from "./rewind/rewound-band.tsx"
@@ -133,7 +134,7 @@ function RowView(props: RowProps) {
               <Markdown
                 markdown={text().markdown}
                 streaming={text().streaming}
-                width={props.width - 2}
+                width={props.width}
                 chat={{
                   itemId: text().id,
                   selection: props.selected,
@@ -244,7 +245,7 @@ export function ChatView(props: ChatViewProps) {
       flexGrow={1}
       stickyScroll
       stickyStart="bottom"
-      paddingX={1}
+      paddingX={EDGE_GAP}
       verticalScrollbarOptions={{ visible: false }}
     >
       <Show when={props.earlier}>
@@ -262,8 +263,7 @@ export function ChatView(props: ChatViewProps) {
               {(row) => (
                 <RowView
                   {...props}
-                  // The rows keep one free cell at the right edge.
-                  width={props.width - 1}
+                  width={props.width - 2 * EDGE_GAP}
                   row={row()}
                   ask={ask()}
                   previous={previous()}

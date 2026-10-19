@@ -18,17 +18,16 @@ import { levelColor } from "./meters.tsx"
 import type { Notice, Span } from "./notice.ts"
 import { SuggestionList } from "./suggestion-list.tsx"
 import { useTicker } from "./ticker.ts"
+import { EDGE_GAP } from "./layout.ts"
 import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
 // `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
-// `edgeGap` adds room on the right, so the context indicator does not touch a docked sidebar.
 // `ask` takes the place of the rules and the input. `agents` shows the agents hint.
 // `shells` draws the running-shells counter, which ↓ can select.
 export type PromptBarProps = InputBlockProps & {
   notice: Notice
   context: Usage["context"]
   spaced?: boolean
-  edgeGap?: number
   ask?: JSX.Element
   history: Accessor<Draft[]>
   onListOpen?: (open: boolean) => void
@@ -331,13 +330,13 @@ function InfoLine(props: {
 const CHAT_MIN_ROWS = 6
 const ASK_MIN_ROWS = 7
 
-export function promptInnerWidth(width: number, edgeGap: number): number {
-  return Math.max(0, width - 2 - edgeGap)
+export function promptInnerWidth(width: number): number {
+  return Math.max(0, width - 2 * EDGE_GAP)
 }
 
 export function PromptBar(props: PromptBarProps) {
   const frame = useTicker(() => settings.ultracode, 60)
-  const inner = () => promptInnerWidth(props.width, props.edgeGap ?? 0)
+  const inner = () => promptInnerWidth(props.width)
   const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
   const dimensions = useTerminalDimensions()
   let draft: Draft = { text: "", chips: [] }
@@ -351,13 +350,7 @@ export function PromptBar(props: PromptBarProps) {
   }
 
   return (
-    <box
-      flexDirection="column"
-      flexShrink={0}
-      width={props.width}
-      paddingLeft={1}
-      paddingRight={1 + (props.edgeGap ?? 0)}
-    >
+    <box flexDirection="column" flexShrink={0} width={props.width} paddingX={EDGE_GAP}>
       <Show when={hasNotice()}>
         <NoticeLine notice={props.notice} width={inner()} spaced={props.spaced} />
       </Show>
