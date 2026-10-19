@@ -2,14 +2,14 @@ import { type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { answerQuestions, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
+import { answerQuestions, denyTool, QUESTION_TO_CHAT } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
 import { covered } from "../images.ts"
 import { AskPicture, askImage, PICTURE_MIN_WIDTH, shownPicture } from "./ask-picture.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { GalleryPage } from "./gallery-page.tsx"
 import { LETTERS, type Question, type QuestionInput } from "./question.ts"
-import { fitHints, pageWindow } from "./fit.ts"
+import { fitKeyHints, pageWindow } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
@@ -19,13 +19,13 @@ const HINTS: [string, string][] = [
   ["space", "pick"],
   ["enter", "select"],
   ["n", "note"],
-  ["esc", "cancel"],
+  ["esc", "back to chat"],
 ]
 const NOTE_HINTS = "enter save · esc drop"
-const OWN_HINTS = "↑ back · enter select · esc cancel"
-const SUBMIT_HINTS = "←→ question · ↓ note · enter submit · esc cancel"
+const OWN_HINTS = "↑ back · enter select · esc back to chat"
+const SUBMIT_HINTS = "←→ question · ↓ note · enter submit · esc back to chat"
 const SHORT_SUBMIT_HINTS = "←→ · ↓ · enter · esc"
-const EXTRA_HINTS = "↑ back · enter submit · esc cancel"
+const EXTRA_HINTS = "↑ back · enter submit · esc back to chat"
 const SHORT_TEXT_HINTS = "↑ · enter · esc"
 
 // Only the keys that act here: ←→ needs pages, or moves between designs in a gallery that is the only page;
@@ -36,7 +36,7 @@ function questionHints(paged: boolean, width: number, multi: boolean, pictures: 
     .flatMap((hint): [string, string][] => (pictures && hint[0] === "n" ? [["z", "enlarge"], hint] : [hint]))
   const full = keys.map((hint) => hint.join(" ")).join(" · ")
   const short = keys.map(([key]) => key).join(" · ")
-  return fitHints(full, short, width)
+  return fitKeyHints(full, short, width)
 }
 
 // A key the input would type as text.
@@ -265,7 +265,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
     const current = question()
     const last = current ? current.options.length : 1
     const onText = onOwnRow() || onExtraRow()
-    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_DECLINED))
+    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_TO_CHAT))
     else if (gallery() && !paged() && !onText && (key.name === "left" || key.name === "right")) {
       const step = key.name === "left" ? -1 : 1
       setState("focus", state.page, (card) => Math.min(last - 1, Math.max(0, card + step)))
@@ -464,12 +464,12 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
           {noting()
             ? NOTE_HINTS
             : onOwnRow()
-              ? fitHints(OWN_HINTS, SHORT_TEXT_HINTS, props.width)
+              ? fitKeyHints(OWN_HINTS, SHORT_TEXT_HINTS, props.width)
               : onExtraRow()
-                ? fitHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
+                ? fitKeyHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
                 : question()
                   ? questionHints(paged(), props.width, question()?.multiSelect ?? false, canEnlarge(), gallery())
-                  : fitHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
+                  : fitKeyHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
         </text>
       </box>
       <Rule width={props.width} color={theme.frame} />

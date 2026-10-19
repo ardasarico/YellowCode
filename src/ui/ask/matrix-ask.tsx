@@ -3,17 +3,17 @@ import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AskMatrix } from "../../protocol/messages.ts"
-import { allowAnswers, denyTool, QUESTION_DECLINED } from "../../protocol/outgoing.ts"
+import { allowAnswers, denyTool, QUESTION_TO_CHAT } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { covered } from "../images.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
-import { cutStep, fitHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
+import { cutStep, fitKeyHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 
 const MATRIX_PAGE = 5
-const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc cancel"
+const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc back to chat"
 const SHORT_HINTS = "↑↓ · ←→ · space · enter · n · esc"
 const NOTE_HINTS = "enter save · esc drop"
 const NOTE_GAP = 2
@@ -130,7 +130,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
       }
     }
     const last = rows().length - 1
-    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_DECLINED))
+    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_TO_CHAT))
     else if (key.name === "up") setState("row", Math.max(0, state.row - 1))
     else if (key.name === "down") setState("row", Math.min(last, state.row + 1))
     else if (key.name === "left" || key.name === "right") {
@@ -227,7 +227,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
       </AskScroll>
       <box flexDirection="row" justifyContent="flex-end" flexShrink={0} marginTop={1}>
         <text fg={theme.faint} flexShrink={1}>
-          {noting() ? NOTE_HINTS : fitHints(HINTS, SHORT_HINTS, props.width)}
+          {noting() ? NOTE_HINTS : fitKeyHints(HINTS, SHORT_HINTS, props.width)}
         </text>
       </box>
       <Rule width={props.width} />

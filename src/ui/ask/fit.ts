@@ -4,6 +4,15 @@ export function fitHints(full: string, short: string, width: number): string {
   return Bun.stringWidth(full) <= width ? full : short
 }
 
+// Arrows explain themselves, so before falling back to bare keys the hints drop only the arrows' labels.
+export function fitKeyHints(full: string, short: string, width: number): string {
+  const middle = full
+    .split(" · ")
+    .map((hint) => (/^[←→↑↓]/.test(hint) ? (hint.split(" ")[0] ?? hint) : hint))
+    .join(" · ")
+  return fitHints(full, fitHints(middle, short, width), width)
+}
+
 // Word-wrapped rows of `text` in `width` cells, the first row `lead` cells shorter. A word wider than its row is
 // broken. Past `max` rows the last row is cut with "…".
 export function wrapRows(text: string, width: number, max = Infinity, lead = 0): string[] {

@@ -1,7 +1,7 @@
 import { RGBA } from "@opentui/core"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
-import { QUESTION_DECLINED, TOOL_DECLINED } from "../protocol/outgoing.ts"
+import { QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { ownAskProblem, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -16,7 +16,6 @@ import { ImageLabels } from "./image-label.tsx"
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
 const LINE_INDENT = " ".repeat(RESULT_INDENT.length)
-const DEFAULT_DENIALS = new Set([TOOL_DECLINED, QUESTION_DECLINED])
 // Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result. Our own ask
 // answers a matrix the same way, row by row.
 const ANSWER_IN_RESULT = /"([^"]*)"="([^"]*)"(?: notes: ([\s\S]*?))?(?=, "|\. |\.?$)/g
@@ -82,11 +81,16 @@ function shellColor(shell: Task | null) {
   return theme.muted
 }
 
+function backToChat(ask: Ask): boolean {
+  return ask.status === "denied" && ask.denial === QUESTION_TO_CHAT
+}
+
 export function deniedLine(ask: Ask): string {
   const problem = ownAskProblem(ask)
   if (problem) return `rejected · ${problem}`
+  if (backToChat(ask)) return "back to chat"
   const note = ask.denial.trim().replaceAll("\n", " ")
-  return note && !DEFAULT_DENIALS.has(note) ? `denied · ${note}` : "denied"
+  return note && note !== TOOL_DECLINED ? `denied · ${note}` : "denied"
 }
 
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
@@ -145,6 +149,7 @@ export function ToolCallRow(props: {
     startedAt: shell()?.startedAt ?? null,
   }))
   const color = () => {
+    if (props.ask && backToChat(props.ask)) return theme.muted
     if (background() && !waiting() && !denied()) return shellColor(shell())
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error

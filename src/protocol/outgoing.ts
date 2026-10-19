@@ -20,7 +20,8 @@ export function userMessage(text: string, images: OutgoingImage[] = []): string 
 }
 
 export const TOOL_DECLINED = "The user declined this tool call."
-export const QUESTION_DECLINED = "The user declined to answer."
+export const QUESTION_TO_CHAT =
+  "The user wants to talk this over in the chat instead of answering. Stop and wait for their message."
 
 function permissionResponse(requestId: string, response: unknown): string {
   return JSON.stringify({
