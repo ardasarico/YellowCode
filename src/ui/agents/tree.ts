@@ -269,6 +269,13 @@ function agentCalls(session: Session, ids: ItemId[], end: ItemId | undefined): T
   return calls
 }
 
+// An agent's inner agents and workflows at every depth, in tree order, with the agent itself at depth 1.
+export function innerNodes(session: Session, tool: ToolCall, colorIndex: number): TreeNode[] {
+  return subtree(session, tool, 1, null, colorIndex)
+    .slice(1)
+    .filter((node) => node.kind === "agent" || node.kind === "workflow")
+}
+
 const topCalls = (session: Session) => agentCalls(session, session.items, session.rewound?.userId)
 
 // Pre-order: every top-level agent or workflow followed by its descendants.

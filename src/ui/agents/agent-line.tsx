@@ -94,13 +94,23 @@ export function AgentLine(props: {
   color: RGBA
   width: number
   background?: RGBA | null
+  inner?: TreeNode[]
 }) {
   const node = createMemo(() => agentNode(props.session, props.tool, 0, null, 0))
   const duration = useDuration(node)
-  const detail = () => (node().state === "running" ? node().detail : "")
+  // Running inner agents have their own rows, which say what is going on better than the agent's activity.
+  const inner = () => props.inner ?? []
+  const waiting = () => inner().some((child) => child.state === "running")
+  const detail = () => (node().state === "running" && !waiting() ? node().detail : "")
   // The mark, the space and ` · ` before the stats, and the more sign after them.
   const room = () => props.width - MARK_WIDTH - 1 - Bun.stringWidth(node().name) - 3 - MORE.length
-  const stats = () => outcome(node(), `${count(node().toolUses, "tool")} · ${formatDuration(duration())}`, room())
+  const tools = () => Math.max(0, node().toolUses - inner().filter((child) => child.depth === 2).length)
+  const work = () => {
+    const agents = inner().length > 0 ? count(inner().length, "agent") : ""
+    const own = tools() > 0 || !agents ? count(tools(), "tool") : ""
+    return [agents, own].filter(Boolean).join(" · ")
+  }
+  const stats = () => outcome(node(), `${work()} · ${formatDuration(duration())}`, room())
   return (
     <Line
       node={node()}

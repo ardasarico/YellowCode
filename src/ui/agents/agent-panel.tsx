@@ -37,7 +37,7 @@ function status(node: TreeNode, room: number): { text: string; color: RGBA } {
   return { text: node.detail || "running", color: theme.text }
 }
 
-function Row(props: { node: TreeNode; selected: boolean; width: number; onOpen: (id: string) => void }) {
+export function NodeRow(props: { node: TreeNode; selected: boolean; width: number; onOpen: (id: string) => void }) {
   const duration = useDuration(() => props.node)
   const [hovered, setHovered] = createSignal(false)
   const background = () => (props.selected ? theme.selection : hovered() ? theme.band : null)
@@ -113,7 +113,7 @@ export function AgentPanel(props: {
     <box flexDirection="column" flexShrink={0} marginTop={1}>
       <Index each={shownNodes(props.nodes, props.selected)}>
         {(node) => (
-          <Row node={node()} selected={props.selected === node().id} width={props.width} onOpen={props.onOpen} />
+          <NodeRow node={node()} selected={props.selected === node().id} width={props.width} onOpen={props.onOpen} />
         )}
       </Index>
       <Show when={hidden() > 0}>
