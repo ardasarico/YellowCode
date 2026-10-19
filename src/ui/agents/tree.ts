@@ -17,6 +17,8 @@ export type TreeNode = {
   colorIndex: number
   selectable: boolean
   progress?: WorkflowBar
+  // A failed agent's error, from its task or its error result.
+  error?: string
 }
 
 type WorkflowBar = { done: number; failed: number; total: number; tokens: number }
@@ -111,6 +113,7 @@ export function agentNode(
     startedAt: task?.startedAt || null,
     colorIndex,
     selectable: true,
+    error: agent?.error || task?.error || (agent?.state === "failed" ? agent.report : "") || undefined,
   }
 }
 

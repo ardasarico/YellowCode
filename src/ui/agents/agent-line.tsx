@@ -67,8 +67,24 @@ function Line(props: {
   )
 }
 
-function outcome(node: TreeNode, rest: string): string {
-  if (node.state === "failed" || node.state === "stopped") return `${node.state} · ${rest}`
+// `API 500` for an API error, else the error's first sentence without claude's "Agent terminated early" opening.
+export function shortError(error: string): string {
+  const status = /API Error: (\d{3})/.exec(error)?.[1]
+  if (status) return `API ${status}`
+  const text = error.replace(/^Agent terminated early due to [^:]*:\s*/, "").trim()
+  return text.split(/(?<=[.!?])\s/)[0] ?? text
+}
+
+// `failed: <short error>` cut to `room` columns, or the bare state when there is no error or no room for it.
+export function failure(node: TreeNode, room: number): string {
+  const reasonRoom = room - "failed: ".length
+  if (node.state !== "failed" || !node.error || reasonRoom < 4) return node.state
+  return `failed: ${cut(shortError(node.error), reasonRoom)}`
+}
+
+function outcome(node: TreeNode, rest: string, room: number): string {
+  if (node.state === "failed" || node.state === "stopped")
+    return `${failure(node, room - Bun.stringWidth(rest) - 3)} · ${rest}`
   return rest
 }
 
@@ -82,7 +98,9 @@ export function AgentLine(props: {
   const node = createMemo(() => agentNode(props.session, props.tool, 0, null, 0))
   const duration = useDuration(node)
   const detail = () => (node().state === "running" ? node().detail : "")
-  const stats = () => outcome(node(), `${count(node().toolUses, "tool")} · ${formatDuration(duration())}`)
+  // The mark, the space and ` · ` before the stats, and the more sign after them.
+  const room = () => props.width - MARK_WIDTH - 1 - Bun.stringWidth(node().name) - 3 - MORE.length
+  const stats = () => outcome(node(), `${count(node().toolUses, "tool")} · ${formatDuration(duration())}`, room())
   return (
     <Line
       node={node()}

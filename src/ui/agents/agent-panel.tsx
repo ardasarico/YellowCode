@@ -4,7 +4,7 @@ import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
 import { cut, formatDuration } from "../format.ts"
-import { useDuration, WorkflowFields, workflowMark, useWorkflowRow } from "./agent-line.tsx"
+import { failure, useDuration, WorkflowFields, workflowMark, useWorkflowRow } from "./agent-line.tsx"
 import { activeNodes, type TreeNode } from "./tree.ts"
 import { agentColor } from "./tree-rows.tsx"
 
@@ -30,8 +30,8 @@ export function shownNodes(nodes: TreeNode[], selected: string | null): TreeNode
   return kept ? [...shown.slice(0, -1), kept] : shown
 }
 
-function status(node: TreeNode): { text: string; color: RGBA } {
-  if (node.state === "failed") return { text: "failed", color: theme.error }
+function status(node: TreeNode, room: number): { text: string; color: RGBA } {
+  if (node.state === "failed") return { text: failure(node, room), color: theme.error }
   if (node.state === "stopped") return { text: "stopped", color: theme.warning }
   if (node.state !== "running") return { text: "done", color: theme.muted }
   return { text: node.detail || "running", color: theme.text }
@@ -47,7 +47,7 @@ function Row(props: { node: TreeNode; selected: boolean; width: number; onOpen: 
   const name = () => cut(props.node.name, Math.max(1, room() - Bun.stringWidth(time())))
   const detailRoom = () => room() - Bun.stringWidth(name()) - Bun.stringWidth(time()) - 3
   const detail = () => {
-    const { text, color } = status(props.node)
+    const { text, color } = status(props.node, detailRoom())
     return { text: detailRoom() >= 4 ? cut(text, detailRoom()) : "", color }
   }
   const workflow = () => props.node.kind === "workflow"
