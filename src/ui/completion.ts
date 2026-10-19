@@ -164,11 +164,13 @@ export function useCompletion(options: CompletionOptions) {
       const rows = matchCommands(options.provider().commands(), query)
       show({
         kind: "command",
-        entries: rows.map(({ name, description, argumentHint }) => ({
+        entries: rows.map(({ name, description, argumentHint, match, alias }) => ({
           kind: "command",
           name,
           description,
           argumentHint,
+          match,
+          alias,
         })),
       })
       return
@@ -287,14 +289,15 @@ export function useCompletion(options: CompletionOptions) {
     const text = area.plainText
     if (entry.kind === "command") {
       close()
+      const name = entry.alias ?? entry.name
       if (enter) {
-        edit({ text: commandLine(text, entry.name), cursor: 0 })
+        edit({ text: commandLine(text, name), cursor: 0 })
         submit()
       } else {
-        const next = completeCommand(text, entry.name)
+        const next = completeCommand(text, name)
         edit(next)
         const hint = entry.argumentHint.replace(/\s+/g, " ").trim()
-        if (hint && next.text === `/${entry.name} `) setGhost({ text: next.text, hint })
+        if (hint && next.text === `/${name} `) setGhost({ text: next.text, hint })
       }
       return
     }

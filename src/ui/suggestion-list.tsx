@@ -5,7 +5,14 @@ import { cut } from "./format.ts"
 import { invertCells } from "./invert.ts"
 
 export type Suggestion =
-  | { kind: "command"; name: string; description: string; argumentHint: string }
+  | {
+      kind: "command"
+      name: string
+      description: string
+      argumentHint: string
+      match: { start: number; end: number }
+      alias?: string
+    }
   | { kind: "file"; path: string }
   | { kind: "value"; value: string; note: string }
 
@@ -17,18 +24,41 @@ export function suggestionRows(count: number, room: number): number {
   return Math.max(0, Math.min(MAX_SUGGESTION_ROWS, count, room))
 }
 
-function labelParts(label: string, note: string, width: number) {
-  const name = cut(label, width)
+type Part = { text: string; fg: RGBA; strong?: boolean }
+
+// The label is cut as one string, then split back at the pieces' offsets so a cut keeps each piece's look.
+function labelParts(pieces: Part[], note: string, width: number): Part[] {
+  const name = cut(pieces.map((piece) => piece.text).join(""), width)
   const room = width - Bun.stringWidth(name) - 2
   const flat = note.replace(/\s+/g, " ").trim()
   const description = flat && room > 0 ? cut(flat, room) : ""
+  let start = 0
+  const parts = pieces.map((piece) => {
+    const text = name.slice(start, start + piece.text.length)
+    start += piece.text.length
+    return { ...piece, text }
+  })
+  return [...parts, { text: description ? `  ${description}` : "", fg: theme.muted }]
+}
+
+function commandPieces(entry: Extract<Suggestion, { kind: "command" }>): Part[] {
+  const { start, end } = entry.match
+  if (entry.alias === undefined) {
+    return [
+      { text: `/${entry.name.slice(0, start)}`, fg: theme.text },
+      { text: entry.name.slice(start, end), fg: theme.text, strong: true },
+      { text: entry.name.slice(end), fg: theme.text },
+    ]
+  }
   return [
-    { text: name, fg: theme.text },
-    { text: description ? `  ${description}` : "", fg: theme.muted },
+    { text: `/${entry.name} `, fg: theme.text },
+    { text: `(${entry.alias.slice(0, start)}`, fg: theme.muted },
+    { text: entry.alias.slice(start, end), fg: theme.text, strong: true },
+    { text: `${entry.alias.slice(end)})`, fg: theme.muted },
   ]
 }
 
-function fileParts(path: string, width: number) {
+function fileParts(path: string, width: number): Part[] {
   const bare = path.endsWith("/") ? path.slice(0, -1) : path
   const split = bare.lastIndexOf("/") + 1
   const name = cut(path.slice(split), width)
@@ -81,15 +111,25 @@ export function SuggestionList(props: {
             const onAccent = () => (selected() && shade() ? (theme.background ?? shade()) : null)
             const parts = () => {
               const value = entry()
-              if (value.kind === "command") return labelParts(`/${value.name}`, value.description, textWidth())
-              if (value.kind === "value") return labelParts(value.value, value.note, textWidth())
+              if (value.kind === "command") return labelParts(commandPieces(value), value.description, textWidth())
+              if (value.kind === "value")
+                return labelParts([{ text: value.value, fg: theme.text }], value.note, textWidth())
               return fileParts(value.path, textWidth())
             }
             return (
               <box height={1} paddingLeft={indent()} backgroundColor={(selected() ? selectionFill() : null) ?? CLEAR}>
                 <text wrapMode="none" attributes={onAccent() ? TextAttributes.BOLD : TextAttributes.NONE}>
                   <Index each={parts()}>
-                    {(part) => <span style={{ fg: onAccent() ?? part().fg }}>{part().text}</span>}
+                    {(part) => (
+                      <span
+                        style={{
+                          fg: onAccent() ?? part().fg,
+                          bold: part().strong,
+                        }}
+                      >
+                        {part().text}
+                      </span>
+                    )}
                   </Index>
                 </text>
               </box>

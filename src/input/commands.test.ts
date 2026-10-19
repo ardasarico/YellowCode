@@ -27,14 +27,25 @@ test("an empty query lists every name alphabetically", () => {
 })
 
 test("name prefixes come before word prefixes before aliases", () => {
-  expect(matchCommands(commands, "co").map((row) => row.name)).toEqual(["compact", "context", "review-code", "cost"])
-  expect(matchCommands(commands, "c").map((row) => row.name)).toEqual(["compact", "context", "review-code", "cost"])
+  const shown = (query: string) => matchCommands(commands, query).map((row) => row.alias ?? row.name)
+  expect(shown("c")).toEqual(["compact", "context", "review-code", "cost"])
   expect(matchCommands(commands, "dir").map((row) => row.name)).toEqual(["add-dir"])
 })
 
-test("an alias row carries the command's one-line description and is skipped when the name matched", () => {
-  expect(matchCommands(commands, "cost")).toEqual([{ name: "cost", description: "Show usage", argumentHint: "" }])
-  expect(matchCommands([command("usage", ["us"])], "us").map((row) => row.name)).toEqual(["usage"])
+test("an alias row keeps the command's name and one-line description and is skipped when the name matched", () => {
+  expect(matchCommands(commands, "cos")).toEqual([
+    { name: "usage", alias: "cost", description: "Show usage", argumentHint: "", match: { start: 0, end: 3 } },
+  ])
+  expect(matchCommands([command("usage", ["us"])], "us").map((row) => row.alias)).toEqual([undefined])
+})
+
+test("the match is the typed run in the name, the word or the alias", () => {
+  expect(matchCommands(commands, "co").map((row) => [row.alias ?? row.name, row.match])).toEqual([
+    ["compact", { start: 0, end: 2 }],
+    ["context", { start: 0, end: 2 }],
+    ["review-code", { start: 7, end: 9 }],
+    ["cost", { start: 0, end: 2 }],
+  ])
 })
 
 test("hint values are the first group's top-level alternatives", () => {

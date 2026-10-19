@@ -1,6 +1,10 @@
 export type Command = { name: string; description: string; argumentHint: string; aliases: string[] }
 
-export type CommandRow = Pick<Command, "name" | "description" | "argumentHint">
+// `match` is the typed run inside the shown text: the name, or the alias on an alias row.
+export type CommandRow = Pick<Command, "name" | "description" | "argumentHint"> & {
+  match: { start: number; end: number }
+  alias?: string
+}
 
 export const OWN_COMMANDS: Command[] = [
   { name: "settings", description: "Open YellowCode settings", argumentHint: "", aliases: [] },
@@ -29,7 +33,18 @@ function flatten(text: string): string {
 }
 
 function byName(a: CommandRow, b: CommandRow): number {
-  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+  const left = a.alias ?? a.name
+  const right = b.alias ?? b.name
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function wordStart(name: string, needle: string): number {
+  let start = 0
+  for (const word of name.split(/[-_:]/)) {
+    if (word.startsWith(needle)) return start
+    start += word.length + 1
+  }
+  return -1
 }
 
 export function matchCommands(commands: Command[], query: string): CommandRow[] {
@@ -38,11 +53,13 @@ export function matchCommands(commands: Command[], query: string): CommandRow[] 
   for (const command of commands) {
     const row = { name: command.name, description: flatten(command.description), argumentHint: command.argumentHint }
     const name = command.name.toLowerCase()
-    if (name.startsWith(needle)) groups[0]?.push(row)
-    else if (name.split(/[-_:]/).some((word) => word.startsWith(needle))) groups[1]?.push(row)
+    const word = wordStart(name, needle)
+    if (name.startsWith(needle)) groups[0]?.push({ ...row, match: { start: 0, end: needle.length } })
+    else if (word >= 0) groups[1]?.push({ ...row, match: { start: word, end: word + needle.length } })
     else {
       for (const alias of command.aliases) {
-        if (alias.toLowerCase().startsWith(needle)) groups[2]?.push({ ...row, name: alias })
+        if (alias.toLowerCase().startsWith(needle))
+          groups[2]?.push({ ...row, alias, match: { start: 0, end: needle.length } })
       }
     }
   }
