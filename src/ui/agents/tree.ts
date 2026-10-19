@@ -1,6 +1,7 @@
 import { unwrap } from "solid-js/store"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
 import type { ItemId, Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
+import { workflowPlan } from "../../session/workflow-script.ts"
 
 export type TreeNode = {
   id: string
@@ -133,7 +134,7 @@ export function workflowNode(
     kind: "workflow",
     depth,
     parentId,
-    name: task?.workflowName || task?.description || "workflow",
+    name: task?.workflowName || task?.description || workflowPlan(tool.input)?.name || "workflow",
     state,
     detail: workflowStatus(workflow, state === "running"),
     toolUses: agents.length,

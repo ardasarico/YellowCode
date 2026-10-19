@@ -53,6 +53,9 @@ function readText(path: string): string | null {
   }
 }
 
+// `text` shows content that has no file, such as a script from a tool input; `path` then only names it.
+export type CodeRef = FileRef & { text?: string }
+
 function Rule(props: { width: number }) {
   return (
     <box height={1} paddingLeft={PAD_X} flexShrink={0}>
@@ -64,7 +67,7 @@ function Rule(props: { width: number }) {
 }
 
 export function CodeView(props: {
-  refs: FileRef[]
+  refs: CodeRef[]
   index: number
   onIndex: (index: number) => void
   onClose: () => void
@@ -83,7 +86,8 @@ export function CodeView(props: {
   const ref = () => props.refs[props.index] ?? props.refs[0]
   const text = createMemo(() => {
     const shown = ref()
-    return shown ? readText(shown.path) : null
+    if (!shown) return null
+    return shown.text === undefined ? readText(shown.path) : shown.text.replace(/\n$/, "")
   })
   const lineCount = () => text()?.split("\n").length ?? 0
   const filetype = () => infoStringToFiletype(extname(ref()?.path ?? "").slice(1))
@@ -110,7 +114,9 @@ export function CodeView(props: {
   const actions = () => [
     { key: "↑↓", action: "scroll" },
     ...(several() ? [{ key: "←→", action: "other references" }] : []),
-    { key: "o", action: settings.editor === "default" ? "open" : "open in editor" },
+    ...(ref()?.text === undefined
+      ? [{ key: "o", action: settings.editor === "default" ? "open" : "open in editor" }]
+      : []),
     { key: "esc", action: "close" },
   ]
   const marked = createMemo(() => {
@@ -167,7 +173,7 @@ export function CodeView(props: {
     else if (key.name === "right") props.onIndex(Math.min(props.refs.length - 1, props.index + 1))
     else if (key.name === "o") {
       const shown = ref()
-      if (shown) void openFile(shown.path, shown.line)
+      if (shown && shown.text === undefined) void openFile(shown.path, shown.line)
     } else if (key.name === "escape") props.onClose()
   })
 

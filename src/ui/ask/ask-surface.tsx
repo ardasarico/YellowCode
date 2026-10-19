@@ -16,6 +16,7 @@ export type AskViewProps = {
   answered: boolean
   onAnswer: (response: string) => void
   onOpenImages?: (images: ChatImage[], index: number) => void
+  onOpenScript?: (name: string, script: string) => void
 }
 
 export type AskSurfaceProps = Omit<AskViewProps, "onAnswer" | "answered"> & {
@@ -52,7 +53,17 @@ export function AskSurface(props: AskSurfaceProps) {
     return matrix ? { matrix } : null
   })
   return (
-    <Switch fallback={<PermissionBand ask={props.ask} width={props.width} answered={answered()} onAnswer={answer} />}>
+    <Switch
+      fallback={
+        <PermissionBand
+          ask={props.ask}
+          width={props.width}
+          answered={answered()}
+          onAnswer={answer}
+          onOpenScript={props.onOpenScript}
+        />
+      }
+    >
       <Match when={view()?.matrix}>
         {(matrix) => (
           <MatrixAsk ask={props.ask} matrix={matrix()} width={props.width} answered={answered()} onAnswer={answer} />

@@ -22,21 +22,13 @@ import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
-import { CodeView } from "./dialog/code-view.tsx"
+import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { openFile } from "./dialog/open-file.ts"
 import { windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
-import {
-  type FileRef,
-  imagesBefore,
-  isImagePath,
-  messageRefs,
-  messageTargets,
-  refId,
-  refTarget,
-} from "./markdown/refs.ts"
+import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, problemNotice, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
@@ -82,7 +74,7 @@ type DialogName =
   | { name: "settings"; tab: SettingsTab }
   | { name: "resume" | "theme" | "skills" | "rewind" }
   | { name: "image"; images: ChatImage[]; index: number }
-  | { name: "code"; refs: FileRef[]; ids: string[]; index: number }
+  | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -623,6 +615,9 @@ export function App(props: AppProps) {
             width={promptInnerWidth(chatWidth())}
             onAnswer={props.onAnswer}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
+            onOpenScript={(name, script) =>
+              setDialog({ name: "code", refs: [{ path: `${name}.js`, text: script }], ids: [], index: 0 })
+            }
           />
         )
       },
@@ -819,7 +814,8 @@ export function App(props: AppProps) {
             refs={view().refs}
             index={view().index}
             onIndex={(index) => {
-              setSelected(view().ids[index] ?? null)
+              const id = view().ids[index]
+              if (id) setSelected(id)
               setDialog({ ...view(), index })
             }}
             onClose={() => setDialog(null)}

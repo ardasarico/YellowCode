@@ -7,8 +7,10 @@ import { allowTool, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
 import { severe } from "../../session/ask.ts"
 import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
+import { type WorkflowPlan, workflowPlan } from "../../session/workflow-script.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut, mcpTool, toolLabel } from "../format.ts"
+import { covered } from "../images.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { fitHints, wrapRows } from "./fit.ts"
@@ -17,12 +19,32 @@ import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS = "↑↓ choose · enter confirm · n tell Claude instead · esc no"
 const SHORT_HINTS = "↑↓ · enter · n · esc"
+const SCRIPT_HINTS = "↑↓ choose · enter confirm · v script · esc no"
+const SHORT_SCRIPT_HINTS = "↑↓ · enter · v · esc"
 const NOTE_HINTS = "enter send · esc back"
 const TARGET_ROWS = 6
 const TEXT_ROWS = 3
+const PLAN_ROWS = 8
 // Below this many cells beside the title, the description starts on the next row.
 const INLINE_ROOM = 10
 const MODE_WORDS: Record<string, string> = { acceptEdits: "edits" }
+
+type PlanRow = { lead: string; name: string; text: string }
+
+function agentRows(agents: WorkflowPlan["loose"], lead: string): PlanRow[] {
+  return agents.map((agent) => ({ lead, name: agent.label ? `${agent.label}  ` : "", text: agent.prompt }))
+}
+
+// Each phase with its detail, then the prompts of the agents the script starts in it.
+function planRows(plan: WorkflowPlan): PlanRow[] {
+  return [
+    ...plan.phases.flatMap((phase, index) => [
+      { lead: `${index + 1}. `, name: phase.title, text: phase.detail ? `  ${phase.detail}` : "" },
+      ...agentRows(phase.agents, "   · "),
+    ]),
+    ...agentRows(plan.loose, "· "),
+  ]
+}
 
 type Choice = { kind: "yes" | "always" | "no"; before: string; subject: string; after: string }
 
@@ -104,6 +126,12 @@ export function PermissionBand(props: AskViewProps) {
     return text ? targetRows(text.replaceAll("\t", "    "), Math.max(1, props.width - 8)) : []
   })
   const hiddenRows = () => rows().length - TARGET_ROWS
+  const plan = createMemo(() => (props.ask.toolName === "Workflow" ? workflowPlan(props.ask.input) : null))
+  const plans = createMemo(() => {
+    const shown = plan()
+    return shown ? planRows(shown) : []
+  })
+  const hiddenPlans = () => plans().length - PLAN_ROWS
   // The title and every choice stay in view, so the description and reason get three rows each and the
   // always-allow rule one.
   const inner = () => Math.max(1, props.width - 4)
@@ -141,7 +169,7 @@ export function PermissionBand(props: AskViewProps) {
   const typing = typingGuard()
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
-    if (props.answered) return
+    if (props.answered || covered()) return
     if (noting()) {
       if (key.name === "escape") setNoting(false)
       return
@@ -154,7 +182,11 @@ export function PermissionBand(props: AskViewProps) {
       if (choice) respond(choice)
     } else if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, TOOL_DECLINED))
     else if (key.ctrl || key.meta) return
-    else if (key.name === "n") {
+    else if (key.name === "v" && plan()) {
+      key.preventDefault()
+      const shown = plan()
+      if (shown) props.onOpenScript?.(shown.name || "workflow", shown.script)
+    } else if (key.name === "n" && !plan()) {
       key.preventDefault()
       setNoting(true)
     } else if (!props.ask.defaultToNo && /^[1-9]$/.test(key.name)) {
@@ -197,6 +229,24 @@ export function PermissionBand(props: AskViewProps) {
               </text>
               <Show when={hiddenRows() > 0}>
                 <text fg={theme.muted}>{`… ${hiddenRows()} more ${hiddenRows() === 1 ? "line" : "lines"}`}</text>
+              </Show>
+            </box>
+          </Show>
+          <Show when={plans().length > 0}>
+            <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
+              <Index each={plans().slice(0, PLAN_ROWS)}>
+                {(row) => (
+                  <text wrapMode="none">
+                    <span style={{ fg: theme.faint }}>{row().lead}</span>
+                    <span style={{ fg: theme.text }}>{row().name}</span>
+                    <span style={{ fg: theme.muted }}>
+                      {cut(row().text, inner() - 4 - Bun.stringWidth(row().lead + row().name))}
+                    </span>
+                  </text>
+                )}
+              </Index>
+              <Show when={hiddenPlans() > 0}>
+                <text fg={theme.muted}>{`… ${hiddenPlans()} more`}</text>
               </Show>
             </box>
           </Show>
@@ -243,7 +293,11 @@ export function PermissionBand(props: AskViewProps) {
       </Show>
       <box flexDirection="row" justifyContent="flex-end" flexShrink={0}>
         <text fg={theme.faint} flexShrink={1}>
-          {noting() ? NOTE_HINTS : fitHints(HINTS, SHORT_HINTS, props.width - 4)}
+          {noting()
+            ? NOTE_HINTS
+            : plan()
+              ? fitHints(SCRIPT_HINTS, SHORT_SCRIPT_HINTS, props.width - 4)
+              : fitHints(HINTS, SHORT_HINTS, props.width - 4)}
         </text>
       </box>
     </box>
