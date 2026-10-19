@@ -1,7 +1,7 @@
 import type { SidebarSetting } from "../session/settings-file.ts"
 
 export type SidebarOverride = "open" | "closed" | null
-export type SidebarMode = "docked" | "hidden"
+export type SidebarMode = "docked" | "overlay" | "hidden"
 
 export const MIN_CHAT_WIDTH = 60
 export const SIDEBAR_MIN_WIDTH = 30
@@ -9,19 +9,19 @@ export const SIDEBAR_MIN_WIDTH = 30
 // the sidebar.
 export const EDGE_GAP = 2
 
-// The sidebar takes at most half the terminal. It narrows down to its minimum to dock beside a 60-column chat; when
-// opened in a terminal narrower than that it squeezes the chat instead of covering it.
+// The sidebar takes at most half the terminal. It narrows down to its minimum to dock beside a 60-column chat; in a
+// terminal narrower than that it never docks, and F3 lays it over the right side of the chat instead.
 export function sidebarShown(
   width: number,
   preferred: number,
   override: SidebarOverride,
+  overlay: boolean,
 ): { mode: SidebarMode; width: number } {
   const capped = Math.min(preferred, Math.max(SIDEBAR_MIN_WIDTH, Math.floor(width / 2)))
   const room = width - MIN_CHAT_WIDTH
+  if (room < SIDEBAR_MIN_WIDTH) return { mode: overlay ? "overlay" : "hidden", width: capped }
   if (override === "closed") return { mode: "hidden", width: capped }
-  if (room >= SIDEBAR_MIN_WIDTH) return { mode: "docked", width: Math.min(capped, room) }
-  if (override === "open") return { mode: "docked", width: Math.min(SIDEBAR_MIN_WIDTH, Math.floor(width / 2)) }
-  return { mode: "hidden", width: capped }
+  return { mode: "docked", width: Math.min(capped, room) }
 }
 
 export function overrideFor(setting: SidebarSetting): SidebarOverride {

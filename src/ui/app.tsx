@@ -156,7 +156,10 @@ export function App(props: AppProps) {
   // so the resize follows drags that bubble up to the layout row.
   const [resizing, setResizing] = createSignal(false)
   // A width saved in a wider terminal still has to fit in half of this one.
-  const layout = () => sidebarShown(dimensions().width, sidebarWidth(), override())
+  const narrow = () => dimensions().width < MIN_CHAT_WIDTH + SIDEBAR_MIN_WIDTH
+  const [overlay, setOverlay] = createSignal(false)
+  createEffect(on(narrow, () => setOverlay(false), { defer: true }))
+  const layout = () => sidebarShown(dimensions().width, sidebarWidth(), override(), overlay())
   const shownWidth = () => layout().width
   const sidebar = () => layout().mode
   const chatWidth = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
@@ -485,7 +488,15 @@ export function App(props: AppProps) {
     }
     if (key.name === "f3") {
       key.stopPropagation()
-      if (!welcome()) setOverride(sidebar() === "hidden" ? "open" : "closed")
+      if (welcome()) return
+      if (narrow()) setOverlay(!overlay())
+      else setOverride(sidebar() === "hidden" ? "open" : "closed")
+      return
+    }
+    if (sidebar() === "overlay" && (key.name === "escape" || key.sequence.startsWith("\x1b\x1b"))) {
+      key.preventDefault()
+      key.stopPropagation()
+      setOverlay(false)
       return
     }
     if (pending()) return
@@ -743,6 +754,7 @@ export function App(props: AppProps) {
               modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
               width={shownWidth()}
+              overlay={sidebar() === "overlay"}
               resizing={resizing()}
               onResizeStart={() => setResizing(true)}
             />
