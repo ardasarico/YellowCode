@@ -1,5 +1,5 @@
 import { NativeImage, RGBA } from "@opentui/core"
-import { Index, Show } from "solid-js"
+import { Index, Match, Show, Switch } from "solid-js"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
@@ -50,31 +50,44 @@ function hintParts(recent: boolean, room: number) {
   ])
 }
 
-const LOGO_ROWS = CAT_ROWS + 2 + BLOCK_ROWS + 1 + 1
-const LOGO_WIDTH = CAT_COLS + LOGO_GAP + (WORDMARK[0]?.length ?? 0)
+export type LogoStep = "full" | "cat" | "none"
 
-// The cat and the wordmark sit side by side: a short terminal drops both, a narrow one drops the wordmark.
-// The recent sessions need their heading and a blank row too, and go before the logo does.
+const SMALL_COLS = 5
+const SMALL_ROWS = 2
+const BASE_ROWS = BLOCK_ROWS + 1 + 1
+
+// Each step counts its blank rows under the logo too.
+const LOGO_STEPS: { step: LogoStep; rows: number; width: number }[] = [
+  { step: "full", rows: CAT_ROWS + 2, width: CAT_COLS + LOGO_GAP + (WORDMARK[0]?.length ?? 0) },
+  { step: "cat", rows: SMALL_ROWS + 1, width: SMALL_COLS },
+]
+
+// The recent sessions (a blank row, their heading and the rows) are placed first, and the logo takes the largest step
+// that fits what is left. Once there is no room for them even without a logo, the logo stays off as well.
 export function welcomeParts(
   width: number,
   height: number,
   recent: number,
-): { cat: boolean; wordmark: boolean; recent: boolean } {
-  const logo = height >= LOGO_ROWS
-  return { cat: logo, wordmark: logo && width >= LOGO_WIDTH, recent: recent > 0 && height >= LOGO_ROWS + 2 + recent }
+): { logo: LogoStep; rows: number; recent: boolean } {
+  const recentRows = recent > 0 ? 2 + recent : 0
+  const left = height - BASE_ROWS - recentRows
+  if (left < 0 && recent > 0) return { logo: "none", rows: 0, recent: false }
+  const found = LOGO_STEPS.find((step) => step.rows <= left && step.width <= width)
+  return { logo: found?.step ?? "none", rows: found?.rows ?? 0, recent: recent > 0 }
 }
 
 const blockWidth = (width: number) => Math.max(0, Math.min(BLOCK_WIDTH, width - 4))
 
-// What the welcome screen shows in a terminal of this size; the bottom row holds the workspace line.
+// What the welcome screen shows in a terminal of this size; the bottom row holds the workspace line, with a blank row
+// above it.
 export function welcomeLayout(width: number, height: number, recent: number) {
-  return welcomeParts(blockWidth(width), height - 1, recent)
+  return welcomeParts(blockWidth(width), height - 2, recent)
 }
 
 const BOTTOM_GAP = 2
 const fit = (text: string, room: number) => (room > 0 ? cut(text, room) : "")
 
-// The notice is cut first and kept, centred in the free room; the path is cut from its start to what is left,
+// The notice is cut first and kept, on the right before the version; the path is cut from its start to what is left,
 // and the version goes once the path would lose its last folder.
 function bottomRow(workspace: Workspace, notice: string, room: number) {
   const version = `v${workspace.version}`
@@ -87,12 +100,12 @@ function bottomRow(workspace: Workspace, notice: string, room: number) {
   const pathRoom = (withVersion ? left - versionRoom : left) - Bun.stringWidth(branch)
   const shownWorkspace = pathRoom > 0 ? cutPath(workspace.cwd, pathRoom) + branch : cutPath(workspace.cwd, left)
   const shownVersion = withVersion ? version : ""
-  const free = Math.max(
+  const after = shownNotice && shownVersion ? BOTTOM_GAP : 0
+  const before = Math.max(
     0,
-    room - Bun.stringWidth(shownWorkspace) - Bun.stringWidth(shownNotice) - Bun.stringWidth(shownVersion),
+    room - Bun.stringWidth(shownWorkspace) - Bun.stringWidth(shownNotice) - after - Bun.stringWidth(shownVersion),
   )
-  const before = shownNotice && shownVersion ? Math.floor(free / 2) : free
-  return { workspace: shownWorkspace, notice: shownNotice, version: shownVersion, before, after: free - before }
+  return { workspace: shownWorkspace, notice: shownNotice, version: shownVersion, before, after }
 }
 
 const catImages = new Map<string, NativeImage>()
@@ -123,7 +136,7 @@ function catImage(blink: boolean, sway: boolean): NativeImage {
 }
 
 // The cat is an image so the original pixel art can be drawn smaller than one pixel per half cell.
-function Cat() {
+function Cat(props: { width: number; height: number }) {
   const tick = useTicker(() => true, TICK_MS)
   const source = () => {
     const t = tick() * TICK_MS
@@ -133,11 +146,19 @@ function Cat() {
     <image
       ref={trackImage}
       source={onBackground(source(), theme.background)}
-      width={CAT_COLS}
-      height={CAT_ROWS}
+      width={props.width}
+      height={props.height}
       fit="fit"
       flexShrink={0}
     />
+  )
+}
+
+function CatOrBlank(props: { width: number; height: number }) {
+  return (
+    <Show when={!blank()} fallback={<box width={props.width} height={props.height} flexShrink={0} />}>
+      <Cat width={props.width} height={props.height} />
+    </Show>
   )
 }
 
@@ -174,6 +195,7 @@ export function Welcome(props: {
   input: Omit<InputBlockProps, "width">
   workspace: Workspace
   notice: Span | null
+  onNotice?: (() => void) | undefined
   recent: { entries: SessionEntry[]; selected: number | null }
   width: number
   height: number
@@ -184,17 +206,19 @@ export function Welcome(props: {
   return (
     <box flexDirection="column" flexGrow={1}>
       <box flexDirection="column" flexGrow={1} alignItems="center" justifyContent="center">
-        <Show when={parts().cat}>
-          <box flexDirection="row" alignItems="center" gap={LOGO_GAP}>
-            <Show when={!blank()} fallback={<box width={CAT_COLS} height={CAT_ROWS} flexShrink={0} />}>
-              <Cat />
-            </Show>
-            <Show when={parts().wordmark}>
+        <Switch>
+          <Match when={parts().logo === "full"}>
+            <box flexDirection="row" alignItems="center" gap={LOGO_GAP}>
+              <CatOrBlank width={CAT_COLS} height={CAT_ROWS} />
               <PixelArt art={WORDMARK} palette={wordmarkPalette()} />
-            </Show>
-          </box>
-          <box height={2} />
-        </Show>
+            </box>
+            <box height={2} />
+          </Match>
+          <Match when={parts().logo === "cat"}>
+            <CatOrBlank width={SMALL_COLS} height={SMALL_ROWS} />
+            <box height={1} />
+          </Match>
+        </Switch>
         <InputBlock {...props.input} width={width()} />
         <box height={1} />
         <box width={width()} flexDirection="row" justifyContent="center">
@@ -205,7 +229,16 @@ export function Welcome(props: {
           <RecentList entries={props.recent.entries} selected={props.recent.selected} width={width()} />
         </Show>
       </box>
-      <box paddingX={2} height={1} flexShrink={0}>
+      <box height={1} flexShrink={0} />
+      <box
+        paddingX={2}
+        height={1}
+        flexShrink={0}
+        onMouseDown={(event) => {
+          const start = 2 + Bun.stringWidth(bottom().workspace) + bottom().before
+          if (props.onNotice && event.x >= start && event.x < start + Bun.stringWidth(bottom().notice)) props.onNotice()
+        }}
+      >
         <text wrapMode="none">
           <span style={{ fg: theme.muted }}>{bottom().workspace}</span>
           {" ".repeat(bottom().before)}
