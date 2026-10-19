@@ -179,6 +179,13 @@ function syntaxStyles(t: Theme) {
     number: { fg: t.syntax.number },
     function: { fg: t.syntax.function },
     type: { fg: t.syntax.type },
+    "variable.member": { fg: t.syntax.number },
+    property: { fg: t.syntax.number },
+    constant: { fg: t.syntax.number },
+    boolean: { fg: t.syntax.number },
+    "variable.builtin": { fg: t.syntax.type },
+    operator: { fg: t.muted },
+    punctuation: { fg: t.muted },
     "input-token": { fg: t.accent },
     "input-chip": t.chip ? { fg: t.accent, bg: t.chip } : { fg: t.accent, bold: true },
   }

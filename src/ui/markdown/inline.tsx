@@ -98,7 +98,7 @@ export function toRuns(
       push("■", { ...style, fg: RGBA.fromInts(...color, 255), ...(hidden && { bg: theme.frame }) })
       push(" ", style)
     }
-    push(text, { ...style, fg: theme.accent })
+    push(text, { ...style, fg: theme.syntax.string })
   }
   let inKbd = false
   for (const token of tokens) {
@@ -166,7 +166,7 @@ export function toRuns(
   return runs
 }
 
-export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: boolean }) {
+export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: boolean; underline?: boolean }) {
   const renderer = useRenderer()
   const context = useContext(RefContext)
   // Only this text's own reference numbers, so a delta or a selection elsewhere in the message keeps its spans.
@@ -191,7 +191,7 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
   const unselected = createMemo(() =>
     toRuns(
       props.tokens,
-      { fg: props.fg ?? theme.text, bold: props.bold },
+      { fg: props.fg ?? theme.text, bold: props.bold, underline: props.underline },
       renderer.capabilities?.hyperlinks === true,
       undefined,
       refs(),

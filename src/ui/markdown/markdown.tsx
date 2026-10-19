@@ -149,11 +149,11 @@ function blockMath(entry: Entry): string | undefined {
   return paragraph ? /^\$\$([\s\S]+)\$\$$/.exec(paragraph.text.trim())?.[1] : undefined
 }
 
-function headingStyle(depth: number, inColumn: boolean): { fg: RGBA; bold: true } {
+function headingStyle(depth: number, inColumn: boolean): { fg: RGBA; bold: true; underline?: boolean } {
   if (inColumn) return { fg: theme.text, bold: true }
-  if (depth === 1) return { fg: theme.accent, bold: true }
-  if (depth === 2) return { fg: theme.text, bold: true }
-  return { fg: theme.muted, bold: true }
+  if (depth === 1) return { fg: theme.syntax.keyword, bold: true, underline: true }
+  if (depth === 2) return { fg: theme.syntax.keyword, bold: true }
+  return { fg: theme.text, bold: true }
 }
 
 function marker(list: Tokens.List, item: Tokens.ListItem, index: number): string {
@@ -173,7 +173,7 @@ function List(props: { token: Tokens.List; width: number; fg: RGBA; depth: numbe
       <Index each={props.token.items}>
         {(item, index) => (
           <box flexDirection="row">
-            <text fg={theme.muted} width={markerWidth()} flexShrink={0}>
+            <text fg={item().task ? theme.muted : theme.syntax.number} width={markerWidth()} flexShrink={0}>
               {marker(props.token, item(), index)}
             </text>
             <box flexDirection="column" flexGrow={1}>
