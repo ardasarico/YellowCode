@@ -71,7 +71,7 @@ test("agents and shells of rewound prompts leave the tree, the panel and the she
   ]
   expect(counts()).toEqual([1, 1, 1])
   const userId = session.state.items.find((id) => session.state.byId[id]?.kind === "user") ?? ""
-  session.rewind({ userId, prompts: 1, files: 0, keptFiles: false })
+  session.rewind({ userId, prompts: 1, files: [], keptFiles: false })
   expect(counts()).toEqual([0, 0, 0])
   session.redo()
   expect(counts()).toEqual([1, 1, 1])

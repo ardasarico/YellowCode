@@ -18,7 +18,7 @@ export type FileChange = {
 export type RewindPoint = { userId: ItemId; text: string; files: FileChange[]; hidden: boolean }
 
 // What the session has rewound: everything from `userId` on is hidden until a redo or the next send.
-export type Rewound = { userId: ItemId; prompts: number; files: number; keptFiles: boolean }
+export type Rewound = { userId: ItemId; prompts: number; files: FileChange[]; keptFiles: boolean }
 
 // Files the replay cannot know about: Bash changes and conflicts, read from a fixture's sidecar until live snapshots.
 export type RewindExtras = {

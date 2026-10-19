@@ -58,7 +58,7 @@ export function RewindDialog(props: {
     const at = index()
     const point = points[at]
     if (!point) return
-    props.onRewind({ userId: point.userId, prompts: points.length - at, files: files().length, keptFiles })
+    props.onRewind({ userId: point.userId, prompts: points.length - at, files: files(), keptFiles })
     props.onClose()
   }
 

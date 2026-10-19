@@ -1,28 +1,33 @@
 import { TextAttributes } from "@opentui/core"
 import type { Rewound } from "../../session/rewind.ts"
-import { createSignal, Show } from "solid-js"
+import { createSignal, For, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
+import { cut } from "../format.ts"
 
 const HINT = "/redo to bring back"
+// A longer list shows this many files and a "+N more" line.
+const MAX_FILES = 6
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`
 
-// Closes the chat while prompts are rewound; a click brings them back, like /redo.
+// Closes the chat while prompts are rewound, with the files that went back; a click brings them back, like /redo.
 export function RewoundBand(props: { rewound: Rewound; onRedo: () => void }) {
+  const restored = () => (props.rewound.keptFiles ? [] : props.rewound.files)
   const files = () =>
     props.rewound.keptFiles
       ? "files kept"
-      : props.rewound.files > 0
-        ? `${plural(props.rewound.files, "file")} restored`
+      : restored().length > 0
+        ? `${plural(restored().length, "file")} restored`
         : "no files changed"
   const [width, setWidth] = createSignal(0)
   const text = () => `↶ ${plural(props.rewound.prompts, "prompt")} rewound · ${files()}`
   // The hint goes first when the band is too narrow for both.
   const hint = () => Bun.stringWidth(text()) + HINT.length + 2 <= width()
+  const shown = () => (restored().length > MAX_FILES ? restored().slice(0, MAX_FILES - 1) : restored())
+  const column = () =>
+    Math.min(Math.max(0, ...shown().map((file) => Bun.stringWidth(file.path))), Math.max(0, width() - 20))
   return (
     <box
-      flexDirection="row"
-      justifyContent="space-between"
       marginTop={1}
       paddingX={1}
       onSizeChange={function () {
@@ -34,16 +39,39 @@ export function RewoundBand(props: { rewound: Rewound; onRedo: () => void }) {
         props.onRedo()
       }}
     >
-      <text wrapMode="none" flexShrink={1}>
-        <span style={{ fg: theme.accent }}>{"↶ "}</span>
-        <span style={{ fg: theme.text, attributes: TextAttributes.BOLD }}>
-          {`${plural(props.rewound.prompts, "prompt")} rewound`}
-        </span>
-        <span style={{ fg: theme.muted }}>{` · ${files()}`}</span>
-      </text>
-      <Show when={hint()}>
-        <text wrapMode="none" flexShrink={0} fg={theme.faint}>
-          {HINT}
+      <box flexDirection="row" justifyContent="space-between">
+        <text wrapMode="none" flexShrink={1}>
+          <span style={{ fg: theme.accent }}>{"↶ "}</span>
+          <span style={{ fg: theme.text, attributes: TextAttributes.BOLD }}>
+            {`${plural(props.rewound.prompts, "prompt")} rewound`}
+          </span>
+          <span style={{ fg: theme.muted }}>{` · ${files()}`}</span>
+        </text>
+        <Show when={hint()}>
+          <text wrapMode="none" flexShrink={0} fg={theme.faint}>
+            {HINT}
+          </text>
+        </Show>
+      </box>
+      <For each={shown()}>
+        {(file) => (
+          <text wrapMode="none">
+            <span style={{ fg: theme.muted }}>{`  ${cut(file.path, column()).padEnd(column())}  `}</span>
+            <Show when={file.plus > 0}>
+              <span style={{ fg: theme.diffAddText }}>{`+${file.plus} `}</span>
+            </Show>
+            <Show when={file.minus > 0}>
+              <span style={{ fg: theme.diffDelText }}>{`−${file.minus} `}</span>
+            </Show>
+            <Show when={file.bash}>
+              <span style={{ fg: theme.faint }}>bash</span>
+            </Show>
+          </text>
+        )}
+      </For>
+      <Show when={restored().length > shown().length}>
+        <text wrapMode="none" fg={theme.faint}>
+          {`  +${restored().length - shown().length} more`}
         </text>
       </Show>
     </box>

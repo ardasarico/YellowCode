@@ -475,10 +475,10 @@ test("a message sent after a rewind drops the rewound prompts, and a redo before
   const session = replay("rewind", "Rename the config file to settings.json, but")
   const users = session.state.items.filter((id) => session.state.byId[id]?.kind === "user")
   const third = users[2] ?? ""
-  session.rewind({ userId: third, prompts: 3, files: 0, keptFiles: false })
+  session.rewind({ userId: third, prompts: 3, files: [], keptFiles: false })
   session.redo()
   expect(session.state.items.includes(third)).toBe(true)
-  session.rewind({ userId: third, prompts: 3, files: 0, keptFiles: false })
+  session.rewind({ userId: third, prompts: 3, files: [], keptFiles: false })
   const message = { type: "user", message: { role: "user", content: "Rename it, with a fallback" } }
   session.apply("out", parse(JSON.stringify(message)), 0)
   const shown = session.state.items.filter((id) => session.state.byId[id]?.kind === "user")
