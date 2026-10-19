@@ -8,7 +8,7 @@ import { severe } from "../../session/ask.ts"
 import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
-import { cut, toolLabel } from "../format.ts"
+import { cut, mcpTool, toolLabel } from "../format.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { fitHints, wrapRows } from "./fit.ts"
@@ -28,7 +28,16 @@ type Choice = { kind: "yes" | "always" | "no"; before: string; subject: string; 
 
 const bashInput = z.looseObject({ command: z.string() })
 
+// An MCP tool has no known fields, so every argument gets its own row.
+function mcpArguments(input: unknown): string {
+  if (typeof input !== "object" || input === null) return ""
+  return Object.entries(input)
+    .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+    .join("\n")
+}
+
 function target(ask: Ask): string {
+  if (mcpTool(ask.toolName)) return mcpArguments(ask.input)
   const bash = ask.toolName === "Bash" ? bashInput.safeParse(ask.input) : null
   return bash?.success ? bash.data.command : summarizeToolInput(ask.input)
 }
@@ -99,6 +108,10 @@ export function PermissionBand(props: AskViewProps) {
   // always-allow rule one.
   const inner = () => Math.max(1, props.width - 4)
   const title = () => cut(`! ${props.ask.displayName}`, inner())
+  const server = () => {
+    const mcp = mcpTool(props.ask.toolName)
+    return mcp && !props.ask.description ? cut(`  ${mcp.server} MCP server`, inner() - Bun.stringWidth(title())) : ""
+  }
   const description = createMemo(() => {
     if (!props.ask.description) return ""
     const lead = Bun.stringWidth(title()) + 2
@@ -166,6 +179,7 @@ export function PermissionBand(props: AskViewProps) {
     >
       <text wrapMode="none" flexShrink={1} minHeight={1}>
         <span style={{ fg: colors().tone, bold: true }}>{title()}</span>
+        <span style={{ fg: theme.muted }}>{server()}</span>
         <span style={{ fg: theme.text, bold: true }}>{description()}</span>
       </text>
       {/* The middle gives way long before the title does. */}
