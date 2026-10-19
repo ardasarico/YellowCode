@@ -1,7 +1,6 @@
 import type { RGBA } from "@opentui/core"
 import type { Usage, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import type { ScrollState } from "./chat-view.tsx"
 import { formatUntil } from "./format.ts"
 
 export type Span = { text: string; fg: RGBA; bold?: boolean }
@@ -15,7 +14,6 @@ export type ReplayInfo = {
 
 export type NoticeState = {
   usage: Usage
-  scroll: ScrollState
   replay: ReplayInfo | null
   readOnly: string | null
   mcpFailure: string | null
@@ -72,13 +70,6 @@ function leftSpans(state: NoticeState): Span[] {
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []
-  const lines = state.scroll.newLines
-  if (!state.scroll.atBottom && lines > 0) {
-    return [
-      { text: `↓ ${lines} new ${lines === 1 ? "line" : "lines"}`, fg: theme.accent },
-      { text: " · End to jump down", fg: theme.muted },
-    ]
-  }
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
   const replay = state.replay
   if (replay === null) return []

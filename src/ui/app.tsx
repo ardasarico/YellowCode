@@ -409,6 +409,8 @@ export function App(props: AppProps) {
     }
   }
 
+  const jumpDown = () => scroll?.scrollTo(scroll.scrollHeight)
+
   const moveSelection = (step: 1 | -1) => {
     const ids = selectableIds()
     if (ids.length === 0) return
@@ -556,7 +558,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "end" && !welcome() && !scrollState().atBottom) {
       key.preventDefault()
-      scroll?.scrollTo(scroll.scrollHeight)
+      jumpDown()
       return
     }
     if (key.name === "tab") {
@@ -639,11 +641,16 @@ export function App(props: AppProps) {
   }
 
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
+  // Armed quit and rewind hints sit on the notice row, so the pill gives way to them.
+  const newLines = () => {
+    const { atBottom, newLines: lines } = scrollState()
+    if (atBottom || lines === 0 || quitArmed() || rewindArmed()) return undefined
+    return { lines, onClick: jumpDown }
+  }
   const notice = () => {
     clock()
     return noticeFor({
       usage: props.session.usage,
-      scroll: scrollState(),
       replay: props.replay,
       readOnly: props.readOnly?.title ?? null,
       mcpFailure: mcpFailure(),
@@ -730,6 +737,7 @@ export function App(props: AppProps) {
               spaced
               width={chatWidth()}
               notice={notice()}
+              newLines={newLines()}
               context={props.session.usage.context}
               ask={askView()}
               history={history}

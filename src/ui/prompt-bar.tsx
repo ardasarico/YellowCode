@@ -15,6 +15,7 @@ import { cut, formatTokens, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
 import { type InputBlockProps, PROMPT_KEY_BINDINGS, UNFOLD_HINT, UnfoldHint } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
+import { type NewLines, NewLinesPill } from "./new-lines-pill.tsx"
 import type { Notice, Span } from "./notice.ts"
 import { SuggestionList } from "./suggestion-list.tsx"
 import { useTicker } from "./ticker.ts"
@@ -24,6 +25,7 @@ import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 // `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
 // `ask` takes the place of the rules and the input. `agents` shows the agents hint.
 // `shells` draws the running-shells counter, which ↓ can select.
+// `newLines` draws the pill on the row above the top rule; it covers the notice line, whose text then hides.
 export type PromptBarProps = InputBlockProps & {
   notice: Notice
   context: Usage["context"]
@@ -33,6 +35,7 @@ export type PromptBarProps = InputBlockProps & {
   onListOpen?: (open: boolean) => void
   agents?: boolean
   shells?: Shells
+  newLines?: NewLines
 }
 
 type Shells = { count: number; selected: boolean; onOpen: () => void }
@@ -92,13 +95,13 @@ function fitSpans(spans: Span[], width: number): Span[] {
 }
 
 // The right side is left out whole when both sides do not fit.
-function NoticeLine(props: { notice: Notice; width: number; spaced?: boolean }) {
+function NoticeLine(props: { notice: Notice; width: number; spaced?: boolean; covered: boolean }) {
   const right = () =>
     spansWidth(props.notice.left) + 2 + spansWidth(props.notice.right) <= props.width ? props.notice.right : []
   return (
     <box flexDirection="row" justifyContent="space-between" height={1} gap={2} marginTop={props.spaced ? 1 : 0}>
-      <Spans spans={fitSpans(props.notice.left, props.width)} shrink={1} />
-      <Show when={right().length > 0}>
+      <Spans spans={props.covered ? [] : fitSpans(props.notice.left, props.width)} shrink={1} />
+      <Show when={!props.covered && right().length > 0}>
         <Spans spans={right()} shrink={0} />
       </Show>
     </box>
@@ -352,7 +355,17 @@ export function PromptBar(props: PromptBarProps) {
   return (
     <box flexDirection="column" flexShrink={0} width={props.width} paddingX={EDGE_GAP}>
       <Show when={hasNotice()}>
-        <NoticeLine notice={props.notice} width={inner()} spaced={props.spaced} />
+        <NoticeLine
+          notice={props.notice}
+          width={inner()}
+          spaced={props.spaced}
+          covered={props.newLines !== undefined}
+        />
+      </Show>
+      <Show when={props.newLines}>
+        {(newLines) => (
+          <NewLinesPill {...newLines()} width={props.width} top={hasNotice() ? (props.spaced ? 1 : 0) : askGap() - 1} />
+        )}
       </Show>
       <Show
         when={props.ask}
