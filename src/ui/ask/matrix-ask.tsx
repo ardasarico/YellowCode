@@ -9,10 +9,14 @@ import { cut } from "../format.ts"
 import { covered } from "../images.ts"
 import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
-import { cutStep, fitKeyHints, LABEL_EXTRA, matrixColumns, STEP_EXTRA, wrapRows } from "./fit.ts"
+import { cutStep, fitKeyHints, LABEL_EXTRA, matrixColumns, stackSteps, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 
 const MATRIX_PAGE = 5
+// When a step would be cut beside the labels, each row's steps go in full on the rows under its label, four rows
+// to a page.
+const STACKED_PAGE = 4
+const STEPS_INDENT = 4
 const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc back to chat"
 const SHORT_HINTS = "↑↓ · ←→ · space · enter · n · esc"
 const NOTE_HINTS = "enter save · esc drop"
@@ -41,7 +45,23 @@ function Rule(props: { width: number }) {
   )
 }
 
-// Rows answered on one shared scale, five to a page; ↓ past the last row of a page opens the next one.
+// The focused row's answer takes the accent; the step under the cursor gets a band.
+function Step(props: { text: string; on: boolean; here: boolean; focused: boolean }) {
+  const color = () => (props.here || (props.on && props.focused) ? theme.accent : props.on ? theme.text : theme.muted)
+  return (
+    <span
+      style={{
+        fg: color(),
+        bg: props.here ? (theme.selection ?? undefined) : undefined,
+        bold: props.on && props.focused,
+      }}
+    >
+      {` ${props.on ? "●" : "○"} ${props.text} `}
+    </span>
+  )
+}
+
+// Rows answered on one shared scale, five to a page or four stacked; ↓ past a page's last row opens the next one.
 export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   const rows = () => props.matrix.rows
   const scale = () => props.matrix.scale
@@ -55,10 +75,6 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   )
   const [noting, setNoting] = createSignal(false)
   const [draft, setDraft] = createSignal("")
-  const first = () => Math.floor(state.row / MATRIX_PAGE) * MATRIX_PAGE
-  const shown = () => rows().slice(first(), first() + MATRIX_PAGE)
-  const indicator = () =>
-    rows().length > MATRIX_PAGE ? `${first() + 1}–${first() + shown().length} of ${rows().length}` : ""
   const columns = createMemo(() =>
     matrixColumns(
       rows().map((row) => row.label),
@@ -67,18 +83,29 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
     ),
   )
   const labelWidth = () => columns().label + LABEL_EXTRA
-  const labelRows = createMemo(() => rows().map((row) => wrapRows(row.label, columns().label)))
+  const stacked = () => columns().limits.some((limit) => limit < Infinity)
+  const pageSize = () => (stacked() ? STACKED_PAGE : MATRIX_PAGE)
+  const first = () => Math.floor(state.row / pageSize()) * pageSize()
+  const shown = () => rows().slice(first(), first() + pageSize())
+  const indicator = () =>
+    rows().length > pageSize() ? `${first() + 1}–${first() + shown().length} of ${rows().length}` : ""
+  const labelRows = createMemo(() =>
+    rows().map((row) => wrapRows(row.label, stacked() ? props.width - 2 : columns().label)),
+  )
+  const stepRows = createMemo(() => stackSteps(scale(), props.width - STEPS_INDENT + 1))
   // Every page takes the height of the tallest, so the ask does not jump.
-  const pageHeight = (from: number) =>
-    labelRows()
-      .slice(from, from + MATRIX_PAGE)
-      .reduce((sum, lines) => sum + lines.length, 0)
+  const pageHeight = (from: number) => {
+    const steps = stacked() ? stepRows().length : 0
+    return labelRows()
+      .slice(from, from + pageSize())
+      .reduce((sum, lines) => sum + lines.length + steps, 0)
+  }
   const tallestPage = createMemo(() => {
     let tallest = 0
-    for (let from = 0; from < rows().length; from += MATRIX_PAGE) tallest = Math.max(tallest, pageHeight(from))
+    for (let from = 0; from < rows().length; from += pageSize()) tallest = Math.max(tallest, pageHeight(from))
     return tallest
   })
-  const filler = () => (rows().length > MATRIX_PAGE ? tallestPage() - pageHeight(first()) : 0)
+  const filler = () => (rows().length > pageSize() ? tallestPage() - pageHeight(first()) : 0)
   // The cursor's step shows in full; the others may be cut.
   const stepTexts = createMemo(() => {
     const { limits, cursorLimit } = columns()
@@ -113,6 +140,19 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
     setDraft(state.notes[state.row] ?? "")
     setNoting(true)
   }
+
+  const noteInput = () => (
+    <input
+      focused
+      flexGrow={1}
+      value={draft()}
+      onInput={setDraft}
+      placeholder="a note for Claude"
+      placeholderColor={theme.muted}
+      textColor={theme.accent}
+      focusedTextColor={theme.accent}
+    />
+  )
 
   const typing = typingGuard()
   useKeyboard((key) => {
@@ -168,57 +208,93 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
               const focused = () => index() === state.row
               const chosen = () => state.answers[index()] ?? -1
               const note = () => state.notes[index()] ?? ""
+              const label = () =>
+                (labelRows()[index()] ?? [])
+                  .map((line, at) => `${focused() && at === 0 ? "❯" : " "} ${line}`)
+                  .join("\n")
+              const labelColor = () => (focused() ? theme.accent : theme.text)
+              const labelAttributes = () => (focused() ? TextAttributes.BOLD : TextAttributes.NONE)
               return (
-                <box id={`row-${offset}`} flexDirection="row">
-                  <text
-                    width={labelWidth()}
-                    flexShrink={0}
-                    wrapMode="none"
-                    fg={focused() ? theme.accent : theme.text}
-                    attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}
-                  >
-                    {(labelRows()[index()] ?? [])
-                      .map((line, at) => `${focused() && at === 0 ? "❯" : " "} ${line}`)
-                      .join("\n")}
-                  </text>
-                  <text wrapMode="none" flexShrink={0}>
-                    <Index each={scale()}>
-                      {(step, at) => {
-                        const on = () => chosen() === at
-                        const here = () => focused() && state.cursor === at
-                        // The focused row's answer takes the accent; the step under the cursor gets a band.
-                        const color = () =>
-                          here() || (on() && focused()) ? theme.accent : on() ? theme.text : theme.muted
-                        const band = () => (here() ? (theme.selection ?? undefined) : undefined)
-                        return (
-                          <span style={{ fg: color(), bg: band(), bold: on() && focused() }}>
-                            {` ${on() ? "●" : "○"} ${stepTexts()[at] ?? ""} `}
-                          </span>
-                        )
-                      }}
-                    </Index>
-                  </text>
-                  <Show
-                    when={noting() && focused()}
-                    fallback={
-                      <text fg={theme.accent} wrapMode="none" flexShrink={1}>
-                        {note() ? " ".repeat(NOTE_GAP) + cut(note(), noteWidth()) : ""}
+                <Show
+                  when={stacked()}
+                  fallback={
+                    <box id={`row-${offset}`} flexDirection="row">
+                      <text
+                        width={labelWidth()}
+                        flexShrink={0}
+                        wrapMode="none"
+                        fg={labelColor()}
+                        attributes={labelAttributes()}
+                      >
+                        {label()}
                       </text>
-                    }
-                  >
-                    <input
-                      focused
-                      flexGrow={1}
-                      marginLeft={NOTE_GAP}
-                      value={draft()}
-                      onInput={setDraft}
-                      placeholder="a note for Claude"
-                      placeholderColor={theme.muted}
-                      textColor={theme.accent}
-                      focusedTextColor={theme.accent}
-                    />
-                  </Show>
-                </box>
+                      <text wrapMode="none" flexShrink={0}>
+                        <Index each={scale()}>
+                          {(_, at) => (
+                            <Step
+                              text={stepTexts()[at] ?? ""}
+                              on={chosen() === at}
+                              here={focused() && state.cursor === at}
+                              focused={focused()}
+                            />
+                          )}
+                        </Index>
+                      </text>
+                      <Show
+                        when={noting() && focused()}
+                        fallback={
+                          <text fg={theme.accent} wrapMode="none" flexShrink={1}>
+                            {note() ? " ".repeat(NOTE_GAP) + cut(note(), noteWidth()) : ""}
+                          </text>
+                        }
+                      >
+                        <box flexDirection="row" flexGrow={1} marginLeft={NOTE_GAP}>
+                          {noteInput()}
+                        </box>
+                      </Show>
+                    </box>
+                  }
+                >
+                  <box id={`row-${offset}`} flexDirection="column">
+                    <text wrapMode="none" fg={labelColor()} attributes={labelAttributes()}>
+                      {label()}
+                    </text>
+                    <box flexDirection="column" paddingLeft={STEPS_INDENT - 1}>
+                      <Index each={stepRows()}>
+                        {(line) => (
+                          <text wrapMode="none">
+                            <Index each={line()}>
+                              {(entry) => (
+                                <Step
+                                  text={entry().text}
+                                  on={chosen() === entry().at}
+                                  here={focused() && state.cursor === entry().at}
+                                  focused={focused()}
+                                />
+                              )}
+                            </Index>
+                          </text>
+                        )}
+                      </Index>
+                    </box>
+                    <Show
+                      when={noting() && focused()}
+                      fallback={
+                        <Show when={note()}>
+                          <box paddingLeft={STEPS_INDENT}>
+                            <text fg={theme.accent} wrapMode="word">
+                              {note()}
+                            </text>
+                          </box>
+                        </Show>
+                      }
+                    >
+                      <box flexDirection="row" paddingLeft={STEPS_INDENT}>
+                        {noteInput()}
+                      </box>
+                    </Show>
+                  </box>
+                </Show>
               )
             }}
           </Index>

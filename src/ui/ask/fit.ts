@@ -104,6 +104,26 @@ export function matrixColumns(
   return { label: narrowest, limits: entries.map((entry) => entry.limit), cursorLimit }
 }
 
+// A stacked matrix's steps in full, packed onto as few rows of `width` cells as they fit; a step wider than a row
+// alone is cut.
+export function stackSteps(scale: string[], width: number): { at: number; text: string }[][] {
+  const rows: { at: number; text: string }[][] = []
+  let used = 0
+  scale.forEach((step, at) => {
+    const text = cutStep(step, Math.max(1, width - STEP_EXTRA))
+    const cells = Bun.stringWidth(text) + STEP_EXTRA
+    const row = rows.at(-1)
+    if (row && used + cells <= width) {
+      row.push({ at, text })
+      used += cells
+    } else {
+      rows.push([{ at, text }])
+      used = cells
+    }
+  })
+  return rows
+}
+
 // `page` is null on a fold marker; Submit's page is the number of questions.
 export type PageTab = { text: string; page: number | null }
 
