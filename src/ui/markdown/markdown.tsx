@@ -17,6 +17,7 @@ import {
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
+import { FoldHint, foldHintWidth } from "../fold-hint.tsx"
 import { cut } from "../format.ts"
 import { InlineImages } from "../inline-images.tsx"
 import { finishedText, is, splitBlocks, type Block } from "./blocks.ts"
@@ -120,9 +121,13 @@ function useFold(entry: () => Entry): Fold {
   }
 }
 
-const foldHint = (fold: Fold, hints: [string, string] = ["open", "close"]) => `   ↵ ${hints[fold.open() ? 1 : 0]}`
-
-function FoldLine(props: { fold: Fold; hints?: [string, string]; children: JSX.Element }) {
+function FoldLine(props: {
+  fold: Fold
+  hidden?: number
+  verbs?: [string, string]
+  gap?: string
+  children?: JSX.Element
+}) {
   return (
     <box
       id={props.fold.id()}
@@ -135,9 +140,13 @@ function FoldLine(props: { fold: Fold; hints?: [string, string]; children: JSX.E
     >
       <text fg={theme.text} wrapMode="none">
         {props.children}
-        <Show when={props.fold.selected()}>
-          <span style={{ fg: theme.accent }}>{foldHint(props.fold, props.hints)}</span>
-        </Show>
+        <FoldHint
+          open={props.fold.open()}
+          selected={props.fold.selected()}
+          hidden={props.hidden}
+          verbs={props.verbs}
+          gap={props.gap}
+        />
       </text>
     </box>
   )
@@ -286,20 +295,16 @@ function Blocks(props: { tokens: readonly Entry[]; width: number; fg: RGBA; dept
 
 function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: number }) {
   const fold = useFold(() => props.entry)
-  const count = () => `  ${props.entry.lines} ${props.entry.lines === 1 ? "line" : "lines"}`
-  // A long summary is cut so the line count and the hint stay on the line.
+  // A long summary is cut so the hint stays on the line.
   const summary = () => {
-    const rest = (fold.open() ? "" : count()) + (fold.selected() ? foldHint(fold) : "")
-    return cut(props.entry.summary, Math.max(1, props.width - 2 - Bun.stringWidth(rest)))
+    const hint = foldHintWidth({ open: fold.open(), selected: fold.selected(), hidden: props.entry.lines, gap: "  " })
+    return cut(props.entry.summary, Math.max(1, props.width - 2 - hint))
   }
   return (
     <box flexDirection="column">
-      <FoldLine fold={fold}>
+      <FoldLine fold={fold} hidden={props.entry.lines} gap="  ">
         <span style={{ fg: theme.accent }}>{fold.open() ? "▾ " : "▸ "}</span>
         <span style={{ bold: true }}>{summary()}</span>
-        <Show when={!fold.open()}>
-          <span style={{ fg: theme.muted }}>{count()}</span>
-        </Show>
       </FoldLine>
       <Show when={fold.open()}>
         <box border={["left"]} borderStyle="single" borderColor={theme.frame} paddingLeft={1}>
@@ -382,7 +387,7 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
       <Match when={drawsMermaid(text())}>
         <box flexDirection="column">
           <box paddingLeft={2}>
-            <FoldLine fold={fold} hints={wide() === undefined ? ["source", "diagram"] : undefined}>
+            <FoldLine fold={fold} verbs={wide() === undefined ? ["source", "diagram"] : undefined} gap="  ">
               <span style={{ fg: theme.muted }}>{kind()}</span>
             </FoldLine>
           </box>
@@ -437,15 +442,7 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
 }
 
 function MoreLine(props: { fold: Fold; hidden: number }) {
-  return (
-    <FoldLine fold={props.fold}>
-      <Show when={!props.fold.open()}>
-        <span style={{ fg: theme.muted }}>{`+${props.hidden} lines · `}</span>
-      </Show>
-      enter
-      <span style={{ fg: theme.muted }}>{props.fold.open() ? " collapse" : " expand"}</span>
-    </FoldLine>
-  )
+  return <FoldLine fold={props.fold} hidden={props.hidden} />
 }
 
 function LongCode(props: { token: Tokens.Code; streaming: boolean; bare: boolean }) {
@@ -585,7 +582,7 @@ function DiffBlock(props: { token: Tokens.Code }) {
   const count = (kind: "add" | "del") => rows().filter((row) => row.kind === kind).length
   return (
     <box flexDirection="column" paddingLeft={2}>
-      <FoldLine fold={fold}>
+      <FoldLine fold={fold} gap="  ">
         <span style={{ fg: theme.muted }}>{`diff · +${count("add")} −${count("del")}`}</span>
       </FoldLine>
       <DiffView rows={rows()} tail={false} expanded={rows().length <= HEAD_LIMIT || fold.open()} />

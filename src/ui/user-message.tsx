@@ -4,6 +4,7 @@ import type { Command } from "../input/commands.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { FoldHint } from "./fold-hint.tsx"
 import { printable } from "./format.ts"
 import { labelId } from "./image-label.tsx"
 import { ImageTile } from "./image-tile.tsx"
@@ -129,7 +130,7 @@ export function UserMessageRow(props: {
             props.onToggle(props.item.id)
           }}
         >
-          {collapsed() ? `+${rows() - COLLAPSED_ROWS} lines` : "collapse"}
+          <FoldHint open={!collapsed()} selected={props.selected} hidden={rows() - COLLAPSED_ROWS} />
         </text>
       </Show>
     </box>
