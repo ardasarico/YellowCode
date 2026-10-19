@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
 import { createSignal } from "solid-js"
 import { z } from "zod"
@@ -48,34 +48,46 @@ const Permission = z.preprocess((mode) => (mode === "default" ? "manual" : mode)
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
 
-export type LoadedSettings = { settings: StoredSettings; problem: string | null }
+export type LoadedSettings = {
+  settings: StoredSettings
+  problem: string | null
+  backup: string | null
+}
 
 export const SAVE_PROBLEM = "cannot save settings.json, changes last until you quit"
 // Counts failed saves, so every failure can show the notice again after it was cleared.
 const [failedSaves, setFailedSaves] = createSignal(0)
 export { failedSaves }
 
-export function loadSettings(path = configPath("settings.json")): LoadedSettings {
-  let text: string
+function asStored(value: unknown): Record<string, unknown> | null {
+  const parsed = Stored.safeParse(value)
+  return parsed.success ? parsed.data : null
+}
+
+function parseJsonc(text: string): unknown {
   try {
-    text = readFileSync(path, "utf8")
+    return Bun.JSONC.parse(text)
   } catch {
-    return { settings: { ...DEFAULT_SETTINGS }, problem: null }
+    return null
   }
-  const json = parseJson(text.replace(/^\uFEFF/, ""))
-  const parsed = json.ok ? Stored.safeParse(json.value) : null
-  if (!parsed?.success)
-    return {
-      settings: { ...DEFAULT_SETTINGS },
-      problem: "settings.json is not valid JSON, using defaults",
-    }
-  const stored = parsed.data
-  const settings = { ...DEFAULT_SETTINGS }
+}
+
+function salvage(text: string): Record<string, unknown> {
+  const stored: Record<string, unknown> = {}
+  for (const key of Object.keys(DEFAULT_SETTINGS)) {
+    const match = new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*)"`).exec(text)
+    if (match) stored[key] = match[1]
+  }
+  return stored
+}
+
+function readStored(stored: Record<string, unknown>) {
+  const found: Partial<StoredSettings> = {}
   const invalid: string[] = []
   function read<K extends keyof StoredSettings>(key: K, schema: z.ZodType<StoredSettings[K]>) {
     if (!(key in stored)) return
     const field = schema.safeParse(stored[key])
-    if (field.success) settings[key] = field.data
+    if (field.success) found[key] = field.data
     else invalid.push(key)
   }
   read("theme", Theme)
@@ -85,20 +97,48 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
   read("permissionMode", Permission)
   read("editor", EditorSchema)
   read("notifications", Notifications)
-  return {
-    settings,
-    problem: invalid.length > 0 ? `settings.json: invalid ${invalid.join(", ")}, using the default` : null,
-  }
+  return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 
-export function saveSettings(settings: StoredSettings, path = configPath("settings.json")): void {
+export function loadSettings(path = configPath("settings.json")): LoadedSettings {
+  let text: string
+  try {
+    text = readFileSync(path, "utf8")
+  } catch {
+    return { settings: { ...DEFAULT_SETTINGS }, problem: null, backup: null }
+  }
+  text = text.replace(/^\uFEFF/, "")
+  const parsed = parseJson(text)
+  const json = parsed.ok ? asStored(parsed.value) : null
+  if (json) {
+    const { settings, invalid } = readStored(json)
+    const problem = invalid.length > 0 ? `settings.json: invalid ${invalid.join(", ")}, using the default` : null
+    return { settings, problem, backup: null }
+  }
+  const { settings, found } = readStored(asStored(parseJsonc(text)) ?? salvage(text))
+  const backup = `${path}.bak`
+  let fixed = false
+  try {
+    copyFileSync(path, backup)
+    fixed = saveSettings(found, path)
+  } catch (error) {
+    log.warn("cannot archive the settings", error)
+  }
+  return fixed
+    ? { settings, problem: "settings.json repaired", backup }
+    : { settings, problem: "settings.json is broken, cannot repair it", backup: null }
+}
+
+export function saveSettings(settings: Partial<StoredSettings>, path = configPath("settings.json")): boolean {
   const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications } = settings
   try {
     mkdirSync(dirname(path), { recursive: true })
     const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications }
     writeFileSync(path, `${JSON.stringify(stored, null, 2)}\n`)
+    return true
   } catch (error) {
     log.warn("cannot save the settings", error)
     setFailedSaves((count) => count + 1)
+    return false
   }
 }

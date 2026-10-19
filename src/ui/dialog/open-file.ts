@@ -28,13 +28,20 @@ export function editorChoices(current: Editor): Editor[] {
 export const editorUrl = (scheme: string, path: string, line?: number) =>
   `${scheme}://file${path.split("/").map(encodeURIComponent).join("/")}${line ? `:${line}` : ""}`
 
-export async function openFile(path: string, line?: number): Promise<void> {
-  const editor = settings.editor
-  const target = editor === "default" ? path : editorUrl(APPS[editor].scheme, path, line)
+async function open(args: string[]): Promise<boolean> {
   try {
-    const child = Bun.spawn(["open", target], { stdout: "ignore", stderr: "pipe" })
-    if ((await child.exited) !== 0) log.warn("open failed", await new Response(child.stderr).text())
+    const child = Bun.spawn(["open", ...args], { stdout: "ignore", stderr: "pipe" })
+    if ((await child.exited) === 0) return true
+    log.warn("open failed", await new Response(child.stderr).text())
   } catch (error) {
     log.warn("open failed", error)
   }
+  return false
+}
+
+export async function openFile(path: string, line?: number): Promise<void> {
+  const editor = settings.editor
+  if (editor !== "default") await open([editorUrl(APPS[editor].scheme, path, line)])
+  // A file no app claims, such as settings.json.bak, opens in the default text editor.
+  else if (!(await open([path]))) await open(["-t", path])
 }

@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { parseJson } from "../protocol/json.ts"
 import { DEFAULT_SETTINGS, loadSettings } from "./settings-file.ts"
 
 function fileWith(content: string | null): string {
@@ -11,23 +12,38 @@ function fileWith(content: string | null): string {
 }
 
 test("a missing file gives the defaults and no problem", () => {
-  expect(loadSettings(fileWith(null))).toEqual({ settings: DEFAULT_SETTINGS, problem: null })
+  expect(loadSettings(fileWith(null))).toEqual({ settings: DEFAULT_SETTINGS, problem: null, backup: null })
 })
 
-test("broken JSON gives the defaults and says so", () => {
-  expect(loadSettings(fileWith("{"))).toEqual({
-    settings: DEFAULT_SETTINGS,
-    problem: "settings.json is not valid JSON, using defaults",
-  })
+const TRUNCATED = '{"theme": "dusk", "sidebar": "auto",'
+
+test("a truncated file keeps the keys it can read, archives the old bytes and writes a valid file", () => {
+  const path = fileWith(TRUNCATED)
+  const loaded = loadSettings(path)
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, theme: "dusk" })
+  expect(loaded.problem).toBe("settings.json repaired")
+  expect(loaded.backup).toBe(`${path}.bak`)
+  expect(readFileSync(`${path}.bak`, "utf8")).toBe(TRUNCATED)
+  expect(parseJson(readFileSync(path, "utf8"))).toEqual({ ok: true, value: { theme: "dusk", sidebar: "auto" } })
+})
+
+test("a file with comments and trailing commas is read and replaced", () => {
+  const loaded = loadSettings(fileWith('{\n  // mine\n  "sidebar": "hidden",\n  "editor": "zed",\n}'))
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", editor: "zed" })
+  expect(loaded.problem).toBe("settings.json repaired")
 })
 
 test("a byte order mark is ignored and the protocol's default mode reads as manual", () => {
   const loaded = loadSettings(fileWith('﻿{"permissionMode":"default"}'))
-  expect(loaded).toEqual({ settings: { ...DEFAULT_SETTINGS, permissionMode: "manual" }, problem: null })
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, permissionMode: "manual" })
+  expect(loaded.problem).toBeNull()
 })
 
-test("a bad field is reset and the other fields are kept", () => {
-  const loaded = loadSettings(fileWith('{"theme":"neon","sidebar":"hidden","notifications":"waiting","extra":1}'))
+test("a bad field is reset, the other fields are kept and the file is not archived", () => {
+  const path = fileWith('{"theme":"neon","sidebar":"hidden","notifications":"waiting","extra":1}')
+  const loaded = loadSettings(path)
   expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", notifications: "waiting" })
   expect(loaded.problem).toBe("settings.json: invalid theme, using the default")
+  expect(loaded.backup).toBeNull()
+  expect(existsSync(`${path}.bak`)).toBe(false)
 })

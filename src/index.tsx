@@ -75,7 +75,7 @@ const source = createReplaySource(recording, speed)
 const rewindExtras = await loadRewindExtras(values.replay)
 const provider = replayProvider(recording)
 const session = createSession()
-const { settings: stored, problem } = loadSettings()
+const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
@@ -220,6 +220,7 @@ function Main() {
           }}
           titles={values.titles}
           settingsProblem={problem}
+          settingsBackup={backup}
           provider={provider}
           sessions={sessions}
           onSubmit={(text, images) => source.send(text.trim() || images.length > 0 ? userMessage(text, images) : "")}

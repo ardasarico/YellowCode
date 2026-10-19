@@ -24,6 +24,7 @@ import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
 import { CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
+import { openFile } from "./dialog/open-file.ts"
 import { windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
@@ -62,6 +63,8 @@ export type AppProps = {
   readOnly?: SessionTitle & { modified: number }
   titles: boolean
   settingsProblem: string | null
+  // The archived copy of a broken settings file, opened by a click on the notice.
+  settingsBackup?: string | null
   provider: InputProvider
   sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
   earlier?: boolean
@@ -615,6 +618,11 @@ export function App(props: AppProps) {
     const problem = pasteNotice() ?? settingsProblem()
     return problem ? problemNotice(problem) : null
   }
+  const openBackup = () => {
+    const backup = props.settingsBackup
+    if (!backup || quitArmed() || pasteNotice() || settingsProblem() !== props.settingsProblem) return undefined
+    return () => void openFile(backup)
+  }
 
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
   const notice = () => {
@@ -647,6 +655,7 @@ export function App(props: AppProps) {
             }}
             workspace={props.workspace}
             notice={welcomeNotice()}
+            onNotice={openBackup()}
             recent={{ entries: recents(), selected: recent() }}
             width={dimensions().width}
             height={dimensions().height}

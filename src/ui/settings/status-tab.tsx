@@ -1,7 +1,10 @@
+import { homedir } from "node:os"
 import { createMemo, createSignal, untrack } from "solid-js"
+import { configPath } from "../../config-path.ts"
 import { theme } from "../../theme/theme.ts"
 import { type DialogItem, dialogLines, moveSelection, selectableIds } from "../dialog/list.ts"
 import { type FooterAction, ListView } from "../dialog/list-view.tsx"
+import { openFile } from "../dialog/open-file.ts"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import type { SettingsTab } from "./settings-dialog.tsx"
 
@@ -37,6 +40,17 @@ const fact = (label: string, value: string | number | null): DialogItem => ({
 
 const blank = (id: string): DialogItem => ({ id, spans: [] })
 
+const home = (path: string) => (path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path)
+
+const settingsFile = (): DialogItem => ({
+  id: "settings-file",
+  label: "Settings file",
+  detail: home(configPath("settings.json")),
+  selectedValue: "enter open",
+  labelColor: theme.panelMuted,
+  valueColor: theme.text,
+})
+
 const jump = (id: "mcp" | "plugins", label: string, count: number | null): DialogItem => ({
   id,
   label,
@@ -69,6 +83,8 @@ export function StatusTab(props: { api: TabApi<SettingsTab>; facts: StatusFacts 
           fact("Tools", facts.tools),
           blank("gap-counts"),
           fact("Setting sources", facts.sources.join(", ")),
+          blank("gap-sources"),
+          settingsFile(),
         ],
       },
     ]
@@ -90,6 +106,7 @@ export function StatusTab(props: { api: TabApi<SettingsTab>; facts: StatusFacts 
       } else if (key.name === "down") setChosen(moveSelection(ids(), id, 1))
       else if (key.name === "return") {
         if (id === "mcp" || id === "plugins") props.api.open(id)
+        if (id === "settings-file") void openFile(configPath("settings.json"))
       } else return key.name !== "escape"
       return true
     },
