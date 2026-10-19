@@ -1,4 +1,5 @@
-import { RGBA } from "@opentui/core"
+import { infoStringToFiletype, RGBA } from "@opentui/core"
+import { extname } from "node:path"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
@@ -10,12 +11,16 @@ import { useDuration } from "./agents/agent-line.tsx"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
+import { FoldHint } from "./fold-hint.tsx"
 import { cut, cutPath, formatDuration, mcpTool } from "./format.ts"
 import { ImageLabels } from "./image-label.tsx"
+import { CodeBlock } from "./markdown/code-block.tsx"
+import { FOLDED_CODE, LONG_CODE } from "./markdown/folds.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
 const LINE_INDENT = " ".repeat(RESULT_INDENT.length)
+const TAIL_LINES = 3
 // Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result. Our own ask
 // answers a matrix the same way, row by row.
 const ANSWER_IN_RESULT = /"([^"]*)"="([^"]*)"(?: notes: ([\s\S]*?))?(?=, "|\. |\.?$)/g
@@ -168,21 +173,46 @@ export function ToolCallRow(props: {
     const room = width() - Bun.stringWidth(label().server + label().tool) - 4
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
+  // While a command runs, Claude's description of it says what it is waiting for.
+  const description = () => {
+    const input = props.item.input
+    if (!running() || props.item.name !== "Bash" || typeof input !== "object" || input === null) return ""
+    const text = "description" in input && typeof input.description === "string" ? input.description : ""
+    const room = width() - Bun.stringWidth(label().server + label().tool + target()) - 6
+    return text ? cut(text, room) : ""
+  }
   // An image result has no text, so its labels stand in for the summary line.
   const imageOnly = () => props.item.images.length > 0 && props.item.status === "done" && !props.item.result.trim()
   const lines = () =>
     imageOnly() ? [] : toolLines(props.item, props.ask ?? null, shell(), background() ? shellMs() : seconds() * 1000)
+  // A long command output shows its last lines, which usually hold the outcome.
+  const tail = () => {
+    const tool = props.item
+    if (tool.name !== "Bash" || tool.status !== "done" || denied() || background() || waiting()) return null
+    const shown = tool.result.trimEnd().split("\n")
+    return shown.length > TAIL_LINES + 1 ? { hidden: shown.length - TAIL_LINES, last: shown.slice(-TAIL_LINES) } : null
+  }
   const lineColor = () => (props.item.status === "done" && !denied() && !background() ? theme.muted : color())
   // The user's answer outranks a replayed result, which may come from a different answer.
   const output = () => (denied() || background() || props.ask?.status === "answered" ? "" : props.item.result)
   const diff = () => {
     const tool = props.item
     if (tool.status !== "done" || denied()) return null
-    if (tool.createdFile) {
-      const content = writtenContent(tool.input)
-      return content === null ? null : { rows: addedRows(content), tail: true }
+    return !tool.createdFile && tool.patch && tool.patch.length > 0 ? { rows: diffRows(tool.patch), tail: false } : null
+  }
+
+  // A new file reads as code from its first line; a long one folds after a few.
+  const created = () => {
+    const tool = props.item
+    const content = tool.status === "done" && !denied() && tool.createdFile ? writtenContent(tool.input) : null
+    if (content === null) return null
+    const all = content.replace(/\n$/, "").split("\n")
+    const hidden = all.length > LONG_CODE && !props.expanded ? all.length - FOLDED_CODE : 0
+    return {
+      code: hidden > 0 ? all.slice(0, FOLDED_CODE).join("\n") : all.join("\n"),
+      hidden,
+      long: all.length > LONG_CODE,
     }
-    return tool.patch && tool.patch.length > 0 ? { rows: diffRows(tool.patch), tail: false } : null
   }
 
   return (
@@ -205,15 +235,46 @@ export function ToolCallRow(props: {
         <span style={{ fg: theme.muted }}>{` ${label().server}`}</span>
         <span style={{ fg: theme.text, bold: true }}>{label().tool}</span>
         <span style={{ fg: theme.text }}>{`(${target()})`}</span>
+        <span style={{ fg: theme.muted }}>{description() ? `  ${description()}` : ""}</span>
       </text>
-      <Index each={lines()}>
-        {(line, index) => (
-          <text wrapMode="none">
-            <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
-            <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
-          </text>
+      <Show
+        when={tail()}
+        fallback={
+          <Index each={lines()}>
+            {(line, index) => (
+              <text wrapMode="none">
+                <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
+                <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+              </text>
+            )}
+          </Index>
+        }
+      >
+        {(shown) => (
+          <>
+            <text wrapMode="none">
+              <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
+              <span style={{ fg: theme.muted }}>{props.expanded ? resultSummary(props.item) : ""}</span>
+              <FoldHint
+                open={props.expanded}
+                selected={props.selected}
+                hidden={shown().hidden}
+                gap={props.expanded ? " · " : undefined}
+              />
+            </text>
+            <Show when={!props.expanded}>
+              <Index each={shown().last}>
+                {(line) => (
+                  <text wrapMode="none">
+                    <span style={{ fg: theme.frame }}>{LINE_INDENT}</span>
+                    <span style={{ fg: theme.muted }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                  </text>
+                )}
+              </Index>
+            </Show>
+          </>
         )}
-      </Index>
+      </Show>
       <ImageLabels
         itemId={props.item.id}
         images={props.item.images}
@@ -221,17 +282,38 @@ export function ToolCallRow(props: {
         selection={props.selection}
         onOpen={props.onOpenImage}
       />
+      <Show when={created()}>
+        {(file) => (
+          <box flexDirection="column" gap={1}>
+            <CodeBlock lang={extname(props.item.summary).slice(1)} code={file().code} streaming={false} unlabeled />
+            <Show when={file().long}>
+              <box paddingLeft={2}>
+                <text fg={theme.muted}>
+                  <FoldHint open={props.expanded} selected={props.selected} hidden={file().hidden} />
+                </text>
+              </box>
+            </Show>
+          </box>
+        )}
+      </Show>
       <Show
         when={diff()}
         fallback={
-          <Show when={props.expanded && output()}>
+          <Show when={props.expanded && output() && !created()}>
             <box paddingLeft={RESULT_INDENT.length}>
               <text fg={theme.text}>{output().trimEnd()}</text>
             </box>
           </Show>
         }
       >
-        {(shown) => <DiffView rows={shown().rows} tail={shown().tail} expanded={props.expanded} />}
+        {(shown) => (
+          <DiffView
+            rows={shown().rows}
+            tail={shown().tail}
+            expanded={props.expanded}
+            filetype={infoStringToFiletype(extname(props.item.summary).slice(1))}
+          />
+        )}
       </Show>
     </box>
   )
