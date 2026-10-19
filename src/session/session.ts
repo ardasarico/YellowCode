@@ -257,6 +257,9 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   const outputRequests = new Map<string, string>()
   // Shells whose end already has its row; a repeated notification adds no second one.
   const shellEnds = new Set<string>()
+  // The live API retry row; it goes once a reply starts or the turn ends.
+  let retryId: ItemId | null = null
+  let retryAttempt = 0
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
@@ -279,6 +282,36 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
 
   function update(id: ItemId, change: (item: Item) => void): void {
     if (state.byId[id]) setState("byId", id, produce(change))
+  }
+
+  function dropRetry(): void {
+    if (!retryId) return
+    const id = retryId
+    retryId = null
+    setState("items", (ids) => ids.filter((item) => item !== id))
+  }
+
+  function onRetry(message: System<"api_retry">): void {
+    retryAttempt = message.attempt
+    const retry = {
+      attempt: message.attempt,
+      max: message.max_retries,
+      delayMs: message.retry_delay_ms,
+      status: message.error_status,
+      reason: message.error,
+      at: now + shift,
+    }
+    const text = `API retry ${message.attempt}/${message.max_retries}`
+    if (retryId)
+      update(retryId, (item) => {
+        if (item.kind !== "system") return
+        item.text = text
+        item.retry = retry
+      })
+    else {
+      retryId = newId("system")
+      add({ kind: "system", id: retryId, text, level: "warning", retry }, null)
+    }
   }
 
   function startedItem(block: ContentBlock): Item | null {
@@ -345,6 +378,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     const event = message.event
     switch (event.type) {
       case "message_start":
+        dropRetry()
         for (const id of cursors.get(key)?.blocks.values() ?? []) stopStreaming(id)
         cursors.set(key, { messageId: event.message.id, blocks: new Map(), lastIndex: -1, finalized: new Set() })
         return
@@ -389,6 +423,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   function onAssistant(message: Of<"assistant">): void {
     // claude repeats an API error as a reply of its own, and the turn's end already shows it.
     if (message.is_api_error_message) return
+    dropRetry()
     const key = message.parent_tool_use_id ?? MAIN
     const usage = message.message.usage
     // A reply claude makes up itself, such as `/context`, carries no usage.
@@ -503,6 +538,9 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     if (stopped) log.info("turn stopped during execution", errors.join("\n"))
     const reason = stopped ? "stopped during execution" : message.result || errors.join("\n") || message.subtype
     const error = message.is_error ? reason : null
+    const retries = message.is_error && retryId ? retryAttempt : 0
+    dropRetry()
+    retryAttempt = 0
     add(
       {
         kind: "turn-end",
@@ -512,6 +550,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         inputTokens: message.usage.input_tokens,
         outputTokens: message.usage.output_tokens,
         error,
+        retries,
         interrupted: interruptSent,
         endedAt: now,
       },
@@ -644,16 +683,7 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
         add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
         return
       case "api_retry":
-        add(
-          {
-            kind: "system",
-            id: newId("system"),
-            text: `API retry ${message.attempt}/${message.max_retries}`,
-            level: "warning",
-          },
-          null,
-        )
-        return
+        return onRetry(message)
       case "background_tasks_changed":
         return onBackgroundTasks(message)
       case "task_started":

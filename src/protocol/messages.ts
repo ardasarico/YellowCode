@@ -78,6 +78,9 @@ const apiRetry = z.looseObject({
   subtype: z.literal("api_retry"),
   attempt: z.number(),
   max_retries: z.number(),
+  retry_delay_ms: z.number(),
+  error_status: z.number().nullable(),
+  error: z.string(),
 })
 
 const backgroundTasksChanged = z.looseObject({

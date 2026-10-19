@@ -31,6 +31,7 @@ const turnEnd: TurnEnd = {
   inputTokens: 0,
   outputTokens: 0,
   error: null,
+  retries: 0,
   interrupted: false,
   endedAt: 0,
 }

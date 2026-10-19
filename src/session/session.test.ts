@@ -309,6 +309,38 @@ test("an API error reply leaves the text and the context size to the turn end", 
   expect(session.state.usage.context.used).toBe(1200)
 })
 
+const retry = (attempt: number) => ({
+  type: "system",
+  subtype: "api_retry",
+  attempt,
+  max_retries: 10,
+  retry_delay_ms: 1000,
+  error_status: 529,
+  error: "overloaded",
+})
+const rows = (session: ReturnType<typeof createSession>) =>
+  session.state.items.map((id) => session.state.byId[id]).filter((item) => item !== undefined)
+
+test("API retries collapse into one row that goes once the reply streams", () => {
+  const retrying = rows(replay("api-retry", "message_start")).filter((item) => item.kind === "system")
+  expect(retrying).toMatchObject([{ retry: { attempt: 2, max: 10, status: 529, reason: "overloaded" } }])
+  const answered = rows(replay("api-retry", '"Now list three risks'))
+  expect(answered.map((item) => item.kind)).toEqual(["user", "text", "turn-end"])
+})
+
+test("a turn that fails after retrying keeps only its end, with the retry count", () => {
+  const session = feed(retry(1), retry(2), {
+    type: "result",
+    subtype: "success",
+    is_error: true,
+    total_cost_usd: 0,
+    duration_ms: 41000,
+    usage: { input_tokens: 0, output_tokens: 0 },
+    result: "API Error: 529 Overloaded",
+  })
+  expect(rows(session)).toMatchObject([{ kind: "turn-end", error: "API Error: 529 Overloaded", retries: 2 }])
+})
+
 test("thinking text fills from the stream", () => {
   const thinking = items(replay("thinking")).filter((item) => item.kind === "thinking")
   expect(thinking.length).toBeGreaterThan(0)

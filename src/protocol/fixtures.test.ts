@@ -17,7 +17,9 @@ test("all recordings are present", () => {
   expect(files.toSorted()).toEqual(
     [
       "agent-shell",
+      "agents-failed",
       "agents",
+      "api-retry",
       "ask",
       "background-bash",
       "chat",

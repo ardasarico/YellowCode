@@ -14,7 +14,10 @@ export function TurnEndRow(props: { parts: TurnEnd[] }) {
   const last = () => props.parts.at(-1)
   const duration = () => formatDuration(props.parts.reduce((sum, part) => sum + part.durationMs, 0))
   const clock = () => formatClock(last()?.endedAt ?? 0)
-  const errorSuffix = () => ` · ${duration()}`
+  const errorSuffix = () => {
+    const retries = last()?.retries ?? 0
+    return `${retries > 0 ? ` · after ${retries} ${retries === 1 ? "retry" : "retries"}` : ""} · ${duration()}`
+  }
   const error = () => {
     const part = last()
     return part && !part.interrupted && part.error ? (part.error.split("\n")[0] ?? "") : null

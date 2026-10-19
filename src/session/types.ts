@@ -120,10 +120,14 @@ export type TurnEnd = {
   inputTokens: number
   outputTokens: number
   error: string | null
+  // The attempt count of the API retries before a failed turn gave up; 0 when none ran.
+  retries: number
   interrupted: boolean
   endedAt: number
 }
-export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning" }
+// `at` is epoch milliseconds, shifted like every other replayed time.
+export type Retry = { attempt: number; max: number; delayMs: number; status: number | null; reason: string; at: number }
+export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning"; retry?: Retry }
 export type ShellEnd = { kind: "shell-end"; id: ItemId; taskId: string }
 
 export type Item = UserMessage | AssistantText | Thinking | ToolCall | Ask | TurnEnd | SystemEvent | ShellEnd
