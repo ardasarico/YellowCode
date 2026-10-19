@@ -45,18 +45,37 @@ export function UltracodeWord(props: { frame: number }) {
   )
 }
 
-export function InputEdge(props: { width: number; ultracode: boolean; frame: number; glyph?: string }) {
+const LABEL_INDENT = 2
+
+const range = (from: number, to: number) => Array.from({ length: Math.max(0, to - from) }, (_, x) => from + x)
+
+// `label` is drawn muted two cells into the rule, when it fits with two rule cells after it.
+export function InputEdge(props: { width: number; ultracode: boolean; frame: number; glyph?: string; label?: string }) {
   const glyph = () => props.glyph ?? EDGE
   const width = () => Math.max(0, props.width)
-  const columns = () => Array.from({ length: width() }, (_, x) => x)
+  const label = () => {
+    const text = props.label ? ` ${props.label} ` : ""
+    return text && LABEL_INDENT + Bun.stringWidth(text) + LABEL_INDENT <= width() ? text : ""
+  }
+  const after = () => LABEL_INDENT + Bun.stringWidth(label())
+  const cells = (from: number, to: number) =>
+    props.ultracode ? (
+      <Index each={range(from, to)}>
+        {(x) => <span style={{ fg: edgeColor(x(), width(), props.frame) }}>{glyph()}</span>}
+      </Index>
+    ) : (
+      <span style={{ fg: theme.frame }}>{glyph().repeat(Math.max(0, to - from))}</span>
+    )
   return (
     <text flexShrink={0} wrapMode="none">
-      {props.ultracode ? (
-        <Index each={columns()}>
-          {(x) => <span style={{ fg: edgeColor(x(), width(), props.frame) }}>{glyph()}</span>}
-        </Index>
+      {label() ? (
+        <>
+          {cells(0, LABEL_INDENT)}
+          <span style={{ fg: theme.muted }}>{label()}</span>
+          {cells(after(), width())}
+        </>
       ) : (
-        <span style={{ fg: theme.frame }}>{glyph().repeat(width())}</span>
+        cells(0, width())
       )}
     </text>
   )

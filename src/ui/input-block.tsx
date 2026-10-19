@@ -37,6 +37,20 @@ export type InputBlockProps = {
 
 export const TILE_PADDING = 3
 
+export const UNFOLD_HINT = "ctrl+x unfold"
+
+export function UnfoldHint() {
+  return (
+    <text wrapMode="none">
+      <span style={{ fg: theme.text }}>{"ctrl+x"}</span>
+      <span style={{ fg: theme.muted }}>{" unfold"}</span>
+    </text>
+  )
+}
+
+const rightWidth = () =>
+  (settings.effort ? `  effort ${settings.effort}`.length : 0) + (settings.ultracode ? "  ultracode".length : 0)
+
 // The suggestion list opens above the tile, over whatever the welcome screen shows there, and its padding rows are
 // taken from the room.
 export function InputBlock(props: InputBlockProps) {
@@ -59,10 +73,11 @@ export function InputBlock(props: InputBlockProps) {
   })
   const modelLabel = () => {
     if (!props.model) return ""
-    const right =
-      (settings.effort ? `  effort ${settings.effort}`.length : 0) + (settings.ultracode ? "  ultracode".length : 0)
-    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - right)
+    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth())
   }
+  const unfold = () =>
+    completion.unfoldable() &&
+    Bun.stringWidth(modelLabel()) + 2 + UNFOLD_HINT.length + rightWidth() <= props.width - 2 * TILE_PADDING
 
   return (
     <box ref={(element) => (block = element)} flexDirection="column" flexShrink={0} width={props.width}>
@@ -114,6 +129,10 @@ export function InputBlock(props: InputBlockProps) {
               {modelLabel()}
             </text>
             <box flexDirection="row">
+              <Show when={unfold()}>
+                <UnfoldHint />
+                <text>{settings.effort ? "  " : ""}</text>
+              </Show>
               <Show when={settings.effort}>
                 {(level) => (
                   <text>

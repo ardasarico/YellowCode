@@ -1,6 +1,6 @@
 import { RGBA, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
-import { type Accessor, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
+import { type Accessor, createEffect, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import type { Draft } from "../input/draft.ts"
 import { loadImage } from "../input/image-file.ts"
@@ -13,7 +13,7 @@ import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
 import { cut, formatTokens, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
-import { type InputBlockProps, PROMPT_KEY_BINDINGS } from "./input-block.tsx"
+import { type InputBlockProps, PROMPT_KEY_BINDINGS, UNFOLD_HINT, UnfoldHint } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
 import type { Notice, Span } from "./notice.ts"
 import { SuggestionList } from "./suggestion-list.tsx"
@@ -116,6 +116,7 @@ function PromptInput(
     history: Accessor<Draft[]>
     onListOpen?: (open: boolean) => void
     onLeaveDown?: () => void
+    onUnfoldable: (unfoldable: boolean) => void
   },
 ) {
   const dimensions = useTerminalDimensions()
@@ -148,12 +149,28 @@ function PromptInput(
     queueMicrotask(() => setArmed(true))
   })
   onCleanup(() => props.onDraft(completion.draft()))
+  createEffect(() => props.onUnfoldable(completion.unfoldable()))
+  onCleanup(() => props.onUnfoldable(false))
+
+  // History wins over the hidden lines.
+  const edgeLabel = () => {
+    const position = completion.historyPosition()
+    if (position) return `History ${position.n}/${position.m}`
+    const hidden = completion.hiddenAbove()
+    return hidden > 0 ? `↑ ${hidden} more ${hidden === 1 ? "line" : "lines"}` : undefined
+  }
 
   return (
     <>
       {/* The list covers the notice line. Without the zIndex a notice line mounted after the input paints over it. */}
       <box zIndex={1}>
-        <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
+        <InputEdge
+          width={props.width}
+          ultracode={settings.ultracode}
+          frame={props.frame}
+          glyph="─"
+          label={edgeLabel()}
+        />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
       </box>
       <ImageStrip chips={completion.chips()} marginLeft={2} onRows={setStripRows} />
@@ -161,6 +178,7 @@ function PromptInput(
         flexDirection="row"
         onSizeChange={function () {
           setInputRows(this.height)
+          completion.sampleCursor()
         }}
       >
         <text fg={theme.accent} flexShrink={0}>
@@ -218,6 +236,7 @@ function InfoLine(props: {
   agents: boolean
   shells?: Shells
   asking: boolean
+  unfoldable: boolean
 }) {
   const label = () =>
     props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - contextWidth(props.context)) : ""
@@ -245,6 +264,12 @@ function InfoLine(props: {
     const shellsHint = counter !== null && !counter.selected
     const text = props.agents ? (shellsHint ? BOTH_HINT : AGENTS_HINT) : shellsHint ? SHELLS_HINT : null
     return text && leftWidth() + Bun.stringWidth(text) + HINT_ROOM <= props.width ? text : null
+  }
+  const unfold = () => {
+    if (props.asking || !props.unfoldable) return false
+    const shown = hint()
+    const hintWidth = shown ? Bun.stringWidth(shown) + 2 : 0
+    return leftWidth() + hintWidth + UNFOLD_HINT.length + HINT_ROOM <= props.width
   }
   return (
     <box flexDirection="row" justifyContent="space-between">
@@ -287,6 +312,9 @@ function InfoLine(props: {
         </Show>
       </box>
       <box flexDirection="row" gap={2}>
+        <Show when={unfold()}>
+          <UnfoldHint />
+        </Show>
         <Show when={hint()}>
           {(text) => (
             <text fg={theme.muted} wrapMode="none">
@@ -313,6 +341,7 @@ export function PromptBar(props: PromptBarProps) {
   const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
   const dimensions = useTerminalDimensions()
   let draft: Draft = { text: "", chips: [] }
+  const [unfoldable, setUnfoldable] = createSignal(false)
 
   // The chat keeps its rows, so a tall ask scrolls inside what is left.
   const askGap = () => (props.spaced && !hasNotice() ? 1 : 0)
@@ -351,6 +380,7 @@ export function PromptBar(props: PromptBarProps) {
             onQuit={props.onQuit}
             onEscape={props.onEscape}
             fill={props.fill}
+            onUnfoldable={setUnfoldable}
           />
         }
       >
@@ -368,6 +398,7 @@ export function PromptBar(props: PromptBarProps) {
         agents={props.agents ?? false}
         shells={props.shells}
         asking={props.ask !== undefined}
+        unfoldable={unfoldable()}
       />
     </box>
   )

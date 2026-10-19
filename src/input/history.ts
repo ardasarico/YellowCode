@@ -1,11 +1,11 @@
 export type HistoryCursor = { row: number; rows: number; empty: boolean }
 
-// `entry` is null when the step leaves the history for an empty prompt.
-export type HistoryStep<T> = { state: number | null; entry: T | null; cursor: number }
+// `entry` is null when the step leaves the history for an empty prompt. `total` counts the entries without repeats.
+export type HistoryStep<T> = { state: number | null; entry: T | null; cursor: number; total: number }
 
 function recall<T extends { text: string }>(entries: T[], state: number): HistoryStep<T> {
   const entry = entries[state] ?? null
-  return { state, entry, cursor: entry?.text.length ?? 0 }
+  return { state, entry, cursor: entry?.text.length ?? 0, total: entries.length }
 }
 
 export function historyStep<T extends { text: string }>(
@@ -22,5 +22,5 @@ export function historyStep<T extends { text: string }>(
   }
 
   if (state === null || cursor.row !== cursor.rows - 1) return null
-  return state < list.length - 1 ? recall(list, state + 1) : { state: null, entry: null, cursor: 0 }
+  return state < list.length - 1 ? recall(list, state + 1) : { state: null, entry: null, cursor: 0, total: list.length }
 }

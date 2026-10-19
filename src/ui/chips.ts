@@ -86,6 +86,13 @@ export function useChips(options: ChipsOptions) {
     return found.toSorted((a, b) => a.start - b.start)
   }
 
+  // The text chip the cursor touches, which Ctrl+X unfolds.
+  const foldedAtCursor = () => {
+    const cursor = options.area()?.cursorOffset
+    if (cursor === undefined) return undefined
+    return marks().find(({ start, end, chip }) => chip.kind === "text" && start <= cursor && cursor <= end)
+  }
+
   const sync = () => {
     const area = options.area()
     const found = marks()
@@ -224,8 +231,7 @@ export function useChips(options: ChipsOptions) {
       key.preventDefault()
       void fromClipboard()
     } else if (key.ctrl && key.name === "x" && !key.shift && !key.meta) {
-      const cursor = area.cursorOffset
-      const mark = marks().find(({ start, end, chip }) => chip.kind === "text" && start <= cursor && cursor <= end)
+      const mark = foldedAtCursor()
       if (mark?.chip.kind === "text") {
         key.preventDefault()
         replacePlaced(mark.start, mark.end, mark.chip.content)
@@ -242,5 +248,5 @@ export function useChips(options: ChipsOptions) {
     }
   })
 
-  return { chips, sync, draft, load, clear, paste, replace }
+  return { chips, sync, draft, load, clear, paste, replace, foldedAtCursor }
 }

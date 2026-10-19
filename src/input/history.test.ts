@@ -5,9 +5,9 @@ const entries = ["first", "a\nb\nc", "a\nb\nc", "last"].map((text) => ({ text })
 
 test("up walks the rows of a recalled entry before going older; down past the newest empties", () => {
   const last = historyStep(entries, null, "up", { row: 0, rows: 1, empty: true })
-  expect(last).toEqual({ state: 2, entry: { text: "last" }, cursor: 4 })
+  expect(last).toEqual({ state: 2, entry: { text: "last" }, cursor: 4, total: 3 })
   const multi = historyStep(entries, 2, "up", { row: 0, rows: 1, empty: false })
-  expect(multi).toEqual({ state: 1, entry: { text: "a\nb\nc" }, cursor: 5 })
+  expect(multi).toEqual({ state: 1, entry: { text: "a\nb\nc" }, cursor: 5, total: 3 })
   expect(historyStep(entries, 1, "up", { row: 2, rows: 3, empty: false })).toBeNull()
   expect(historyStep(entries, 1, "up", { row: 0, rows: 3, empty: false })?.entry?.text).toBe("first")
   expect(historyStep(entries, 1, "down", { row: 1, rows: 3, empty: false })).toBeNull()
@@ -16,6 +16,7 @@ test("up walks the rows of a recalled entry before going older; down past the ne
     state: null,
     entry: null,
     cursor: 0,
+    total: 3,
   })
 })
 
@@ -23,4 +24,9 @@ test("a draft is never replaced and a scrolled tall entry moves the cursor first
   expect(historyStep(entries, null, "up", { row: 0, rows: 1, empty: false })).toBeNull()
   expect(historyStep(entries, null, "down", { row: 0, rows: 1, empty: false })).toBeNull()
   expect(historyStep(entries, 1, "up", { row: 2, rows: 8, empty: false })).toBeNull()
+})
+
+test("the total counts a message sent twice in a row once", () => {
+  const sent = ["one", "two", "two", "three", "two"].map((text) => ({ text }))
+  expect(historyStep(sent, null, "up", { row: 0, rows: 1, empty: true })?.total).toBe(4)
 })

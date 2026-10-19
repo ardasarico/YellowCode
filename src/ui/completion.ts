@@ -1,5 +1,5 @@
 import type { PasteEvent, TextareaRenderable } from "@opentui/core"
-import { useKeyboard } from "@opentui/solid"
+import { useKeyboard, useRenderer } from "@opentui/solid"
 import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { argumentValues, findCommand, matchCommands, matchValues } from "../input/commands.ts"
 import {
@@ -67,7 +67,26 @@ export function useCompletion(options: CompletionOptions) {
   // Text put in by code (a restored draft, a history recall, a completed argument) is not an edit, so it opens no list.
   // Its content change arrives a microtask later, so it is recognised by its text: set `placed` before putting it in.
   let placed: string | null = null
-  let browsing: number | null = null
+  const [browsing, setBrowsing] = createSignal<{ state: number; total: number } | null>(null)
+  const [hiddenAbove, setHiddenAbove] = createSignal(0)
+  const [unfoldable, setUnfoldable] = createSignal(false)
+  // The textarea scrolls to its cursor while it is drawn, and an edit by code moves the cursor halfway through,
+  // so both are read after the next frame.
+  const renderer = useRenderer()
+  let sampling = false
+  const sampleCursor = () => {
+    if (sampling) return
+    sampling = true
+    const sample = () => {
+      renderer.removePostProcessFn(sample)
+      sampling = false
+      const live = area && !area.isDestroyed ? area : undefined
+      setHiddenAbove(live?.scrollY ?? 0)
+      setUnfoldable(live !== undefined && chips.foldedAtCursor() !== undefined)
+    }
+    renderer.addPostProcessFn(sample)
+    renderer.requestRender()
+  }
   // The text of the last fill while it is still untouched.
   let filled: string | null = null
 
@@ -140,6 +159,7 @@ export function useCompletion(options: CompletionOptions) {
 
   const refresh = () => {
     if (!area) return
+    sampleCursor()
     const text = area.plainText
     if (text === seen) {
       paint()
@@ -150,7 +170,7 @@ export function useCompletion(options: CompletionOptions) {
     if (text !== ghost()?.text) setGhost(null)
     if (text === placed) return
     placed = null
-    browsing = null
+    setBrowsing(null)
     const slash = filled !== null && text === `${filled}/`
     filled = null
     if (slash) {
@@ -200,6 +220,7 @@ export function useCompletion(options: CompletionOptions) {
 
   const leftToken = () => {
     if (!area) return
+    sampleCursor()
     // Undo and redo change the text without a content change event.
     if (area.plainText !== seen) queueMicrotask(refresh)
     if (ghost() && cursorIndex(area) !== area.plainText.length) setGhost(null)
@@ -318,14 +339,14 @@ export function useCompletion(options: CompletionOptions) {
 
   const recall = (direction: "up" | "down"): boolean => {
     if (!area || !options.history) return false
-    const step = historyStep(options.history(), browsing, direction, {
+    const step = historyStep(options.history(), browsing()?.state ?? null, direction, {
       row: area.visualCursor.visualRow + area.scrollY,
       rows: area.editorView.getTotalVirtualLineCount(),
       empty: area.plainText === "",
     })
     if (!step) return false
     const draft = step.entry ?? { text: "", chips: [] }
-    browsing = step.state
+    setBrowsing(step.state === null ? null : { state: step.state, total: step.total })
     placed = draft.text
     chips.load(draft)
     area.cursorOffset = toBufferOffset(draft.text, step.cursor, measureIn(area))
@@ -333,15 +354,17 @@ export function useCompletion(options: CompletionOptions) {
     return true
   }
 
-  const leavesDown = () => browsing === null && area?.plainText === ""
+  const leavesDown = () => browsing() === null && area?.plainText === ""
 
   useKeyboard((key) => {
     if (!options.focused()) return
+    // ↑ in the textarea moves the cursor without a cursor change event.
+    sampleCursor()
     if (key.ctrl && key.name === "c") {
       key.preventDefault()
       if (area && area.plainText !== "") {
         close()
-        browsing = null
+        setBrowsing(null)
         edit({ text: "", cursor: 0 })
       } else options.onQuit?.()
       return
@@ -389,6 +412,13 @@ export function useCompletion(options: CompletionOptions) {
     shown,
     selected: index,
     hint,
+    historyPosition: () => {
+      const current = browsing()
+      return current ? { n: current.state + 1, m: current.total } : null
+    },
+    hiddenAbove,
+    sampleCursor,
+    unfoldable,
     refresh,
     leftToken,
     submit,
