@@ -8,6 +8,7 @@
     "dev": "bun src/index.tsx",
     "record": "bun tools/record/record.ts",
     "transcripts": "bun tools/record/transcripts.ts",
+    "tour": "bun tools/record/tour.ts",
     "flicker": "bun tools/flicker.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings --disable-nested-config",
