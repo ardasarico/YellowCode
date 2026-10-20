@@ -6,7 +6,7 @@ import { theme } from "../../theme/theme.ts"
 import { isLocalImage } from "./images.ts"
 import { mathSpans } from "./math.ts"
 import { refId, textParts } from "./refs.ts"
-import { shortcutKeys } from "./shortcut.ts"
+import { proseShortcuts, shortcutKeys } from "./shortcut.ts"
 import { blendsIn, swatchColor } from "./swatch.ts"
 
 export type RunStyle = {
@@ -74,20 +74,28 @@ export function toRuns(
     const first = refs?.numbers.get(token)
     return refs && first !== undefined ? refId(refs.itemId, first + nth) : undefined
   }
-  const plain = (text: string, runStyle: RunStyle) => {
-    for (const span of mathSpans(text))
-      push(span.text, span.math ? { ...runStyle, fg: theme.accent, italic: true } : runStyle)
-  }
   const keyCap = (key: string) =>
     push(` ${key} `, { ...style, fg: theme.text, bold: true, bg: theme.tile ?? theme.band ?? undefined })
+  const keyCaps = (keys: string[]) =>
+    keys.forEach((key, index) => {
+      if (index > 0) push("+", { ...style, fg: theme.muted })
+      keyCap(key)
+    })
+  const plain = (text: string, runStyle: RunStyle) => {
+    for (const part of proseShortcuts(text)) {
+      if (part.keys) {
+        keyCaps(part.keys)
+        continue
+      }
+      for (const span of mathSpans(part.text))
+        push(span.text, span.math ? { ...runStyle, fg: theme.accent, italic: true } : runStyle)
+    }
+  }
   const code = (text: string, ref?: string) => {
     if (ref) return pushRef(text, { ...style, fg: theme.accent }, ref)
     const keys = shortcutKeys(text)
     if (keys) {
-      keys.forEach((key, index) => {
-        if (index > 0) push("+", { ...style, fg: theme.muted })
-        keyCap(key)
-      })
+      keyCaps(keys)
       return
     }
     const color = swatchColor(text)
