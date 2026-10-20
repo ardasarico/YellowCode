@@ -28,7 +28,9 @@ Without `--replay` the app spawns the real `claude` in its working directory,
 with the user's account, settings and tools. Isolate a live run:
 
 - Run it in a throwaway directory (a fresh `git init` repo under `/tmp`), with
-  the app started by its absolute path, so tools cannot touch this repo.
+  the app started through `bin/yellowcode` by its absolute path, so tools cannot
+  touch this repo. Outside the repo `bun src/index.tsx` would miss the preload
+  in `bunfig.toml` and fetch other package versions; the launcher does not.
 - Drop the variables a parent Claude Code session passes down (`CLAUDECODE`,
   `CLAUDE_CODE_*`, `CLAUDE_EFFORT`, `CLAUDE_PID`), or the child picks up the
   parent's session id, plugin dirs and effort.
@@ -37,10 +39,10 @@ with the user's account, settings and tools. Isolate a live run:
 
 ```bash
 D=/tmp/yc-live-run && rm -rf $D && mkdir -p $D && git -C $D init -q
-APP="$PWD/src/index.tsx"
+APP="$PWD/bin/yellowcode"
 UNSET=$(env | grep -oE '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_EFFORT|CLAUDE_PID)=' | tr -d = | sed 's/^/-u /' | tr '\n' ' ')
 tmux -L yc kill-session -t $S 2>/dev/null
-tmux -L yc new-session -d -s $S -x 120 -y 40 -c $D "env $UNSET ANTHROPIC_MODEL=haiku bun --config=$PWD/bunfig.toml $APP --skip-terminal-check; echo \"[exited \$?]\"; sleep 600"
+tmux -L yc new-session -d -s $S -x 120 -y 40 -c $D "env $UNSET ANTHROPIC_MODEL=haiku $APP --skip-terminal-check; echo \"[exited \$?]\"; sleep 600"
 ```
 
 Pass `-L yc` to every `tmux` command below for such a session. The app logs
@@ -63,6 +65,11 @@ for i in $(seq 50); do tmux capture-pane -p -t $S | grep -q '/ commands' && brea
 tmux capture-pane -p -t $S      # plain text
 tmux capture-pane -p -e -t $S   # with ANSI colors and styles
 ```
+
+A capture can catch a half-drawn frame: tmux updates its grid while a frame is
+still arriving, and a real terminal only shows complete frames. Before
+reporting missing or repeated lines, capture again until two captures in a row
+match.
 
 ## Interact
 

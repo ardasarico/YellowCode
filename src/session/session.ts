@@ -38,6 +38,8 @@ export type SessionStore = {
   prepend(events: SourceEvent[]): void
   answer(response: string): void
   stopRunning(): void
+  // The interrupt was refused or timed out, so the turn goes on and may be interrupted again.
+  interruptFailed(): void
   // With a problem, Claude Code went away on its own: running work stops and the chat ends with an error row.
   end(problem?: SessionEnd): void
   rewind(rewound: Rewound): void
@@ -249,12 +251,13 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       warning: null,
     },
     rewound: null,
+    interrupting: false,
+    turn: null,
   })
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
   let prepends = 0
-  let interruptSent = false
   let now = 0
   // Recorded times are shifted by this much so a replay reads them as if they happened just now.
   let shift = 0
@@ -262,6 +265,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   let live = new Set<string>()
   // Our own get_task_output requests: request id → task id.
   const outputRequests = new Map<string, string>()
+  // The request id of the interrupt that is out.
+  let interruptId: string | null = null
+  // Messages sent during a turn that claude has not taken in yet: uuid → user item.
+  const waiting = new Map<string, ItemId>()
   // Shells whose end already has its row; a repeated notification adds no second one.
   const shellEnds = new Set<string>()
   // The live API retry row; it goes once a reply starts or the turn ends.
@@ -501,8 +508,16 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (block.type !== "tool_result") continue
       const tool = state.byId[block.tool_use_id]
       const task = tool?.kind === "tool" && tool.taskId ? state.tasks[tool.taskId] : undefined
+      const skipped = message.tool_result_meta?.find((meta) => meta.id === block.tool_use_id)?.non_execution_kind
       update(block.tool_use_id, (item) => {
         if (item.kind !== "tool") return
+        // An interrupt stops the tool; claude's rejection text is meant for the model.
+        if (skipped === "user-rejected" || skipped === "interrupted") {
+          item.status = "stopped"
+          item.result = ""
+          if (item.agent) item.agent.state = "stopped"
+          return
+        }
         // A background task's tool result only says it launched; its outcome arrives as a task_notification.
         const launched = !block.is_error && (task?.background === true || fileResult?.isAsync === true)
         if (launched && task) item.status = toolStatus(task.state)
@@ -525,7 +540,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   function settleTurn(): void {
     for (const id of state.items.toReversed()) {
       const item = state.byId[id]
-      if (item?.kind === "user") return
+      if (item?.kind === "turn-end") return
       if (item?.kind !== "tool" || item.status !== "running") continue
       if (item.taskId && state.tasks[item.taskId]?.state === "running") continue
       update(id, (tool) => {
@@ -552,7 +567,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
     settleTurn()
-    if (interruptSent) cutLastText()
+    const interrupted = state.interrupting
+    if (interrupted) cutLastText()
     const errors = message.errors ?? []
     // claude's own diagnostic for a turn that stopped mid-way says nothing the user can act on.
     const stopped =
@@ -562,7 +578,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       errors.every((line) => line.startsWith("[ede_diagnostic]"))
     if (stopped) log.info("turn stopped during execution", errors.join("\n"))
     const reason = stopped ? "stopped during execution" : message.result || errors.join("\n") || message.subtype
-    const error = message.is_error ? reason : null
+    // An interrupt ends its turn with an error result, which is no error to the user.
+    const error = message.is_error && !interrupted ? reason : null
     const retries = message.is_error && retryId ? retryAttempt : 0
     dropRetry()
     retryAttempt = 0
@@ -576,11 +593,12 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         outputTokens: message.usage.output_tokens,
         error,
         retries,
-        interrupted: interruptSent,
+        interrupted,
         endedAt: now,
       },
       null,
     )
+    setState("interrupting", false)
     if (loginNeeded && !loginShown) {
       loginShown = true
       add({ kind: "system", id: newId("system"), text: LOGIN_HINT, level: "warning" }, null)
@@ -600,7 +618,19 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         if (window !== undefined) current.context.window = window
       }),
     )
-    setState("status", "idle")
+    for (const uuid of message.user_message_uuids ?? []) settleQueued(uuid)
+    setState("turn", null)
+    // A message still queued runs next, so the session keeps running.
+    setState("status", waiting.size > 0 ? "running" : "idle")
+  }
+
+  function settleQueued(uuid: string): void {
+    const id = waiting.get(uuid)
+    if (!id) return
+    waiting.delete(uuid)
+    update(id, (item) => {
+      if (item.kind === "user") item.queue = null
+    })
   }
 
   function shifted(window: { utilization: number; resetsAt: number }): Window {
@@ -708,6 +738,16 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     switch (message.subtype) {
       case "init":
         setState("info", initInfo(message))
+        return
+      case "status":
+        for (const uuid of message.user_message_uuids ?? []) settleQueued(uuid)
+        if (message.status !== "requesting") return
+        // A turn claude starts itself (a queued message, a background task's end) runs like any other; one that takes
+        // in a user message counts as the user's.
+        if (state.turn === null) setState("interrupting", false)
+        if (message.user_message_uuids?.length) setState("turn", "user")
+        else if (state.turn === null) setState("turn", "claude")
+        if (state.status === "idle") setState("status", "running")
         return
       case "compact_boundary":
         add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
@@ -824,6 +864,12 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return
       }
       case "control_response": {
+        // The reply to an interrupt that came after its turn's result (or raced it) leaves nothing to interrupt.
+        if (message.response.request_id === interruptId) {
+          interruptId = null
+          if (state.turn === null) setState("interrupting", false)
+          return
+        }
         const taskId = outputRequests.get(message.response.request_id)
         if (!taskId) return
         outputRequests.delete(message.response.request_id)
@@ -836,6 +882,14 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         })
         return
       }
+      case "command_lifecycle":
+        if (message.state !== "queued") settleQueued(message.command_uuid)
+        return
+      case "control_cancel_request":
+        update(`ask-${message.request_id}`, (item) => {
+          if (item.kind === "ask" && item.status === "pending") item.status = "cancelled"
+        })
+        return
       case "rate_limit_event":
         return onRateLimit(message)
     }
@@ -851,11 +905,20 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         setState("rewound", null)
       }
       const { text, images } = describeUserContent(message.message.content)
-      add({ kind: "user", id: newId("user"), text, images }, null)
-      interruptSent = false
+      const id = newId("user")
+      // Only a message sent during a turn waits; one sent while idle starts its own turn.
+      const queued = state.status === "running" && message.uuid !== undefined
+      add({ kind: "user", id, text, images, queue: queued ? "queued" : null }, null)
+      if (queued && message.uuid) waiting.set(message.uuid, id)
+      else setState("turn", "user")
+      // A message queued during a turn keeps that turn's interrupt; a fresh turn drops one that raced the result.
+      if (state.status !== "running") setState("interrupting", false)
       setState("status", "running")
     } else if (message.type === "control_request" && message.request.subtype === "interrupt") {
-      interruptSent = true
+      // An interrupt that goes out after its turn's result already came in has nothing left to interrupt.
+      if (state.turn === null) return
+      interruptId = message.request_id
+      setState("interrupting", true)
     } else if (message.type === "control_request" && message.request.subtype === "get_task_output") {
       outputRequests.set(message.request_id, message.request.task_id)
     } else if (message.type === "control_response") {
@@ -949,6 +1012,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning,
+    interruptFailed() {
+      interruptId = null
+      setState("interrupting", false)
+    },
     end(problem) {
       for (const id of Object.keys(state.byId)) stopStreaming(id)
       cursors.clear()
@@ -963,6 +1030,14 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         dropRetry()
         add({ kind: "system", id: newId("system"), text: problem.text, level: "error", detail: problem.detail }, null)
       }
+      // A message still waiting never ran.
+      for (const id of waiting.values())
+        update(id, (item) => {
+          if (item.kind === "user") item.queue = "not sent"
+        })
+      waiting.clear()
+      setState("turn", null)
+      setState("interrupting", false)
       setState("status", "ended")
     },
   }

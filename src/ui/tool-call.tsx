@@ -2,7 +2,7 @@ import { infoStringToFiletype, RGBA } from "@opentui/core"
 import { extname } from "node:path"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
-import { QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
+import { DECLINED_WITH_NOTE, QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { ownAskProblem, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -95,7 +95,8 @@ export function deniedLine(ask: Ask): string {
   const problem = ownAskProblem(ask)
   if (problem) return `rejected · ${problem}`
   if (backToChat(ask)) return "back to chat"
-  const note = ask.denial.trim().replaceAll("\n", " ")
+  const said = ask.denial.startsWith(DECLINED_WITH_NOTE) ? ask.denial.slice(DECLINED_WITH_NOTE.length) : ask.denial
+  const note = said.trim().replaceAll("\n", " ")
   return note && note !== TOOL_DECLINED ? `denied · ${note}` : "denied"
 }
 
@@ -110,8 +111,9 @@ export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
   const questions = askUserQuestionInput.safeParse(tool.input).data?.questions ?? []
   return Object.entries(answers).map(([question, answer]) => {
     const header = questions.find((entry) => entry.question === question)?.header ?? question
+    const shown = answer.replaceAll("\n", " ")
     const note = notes[question]?.replaceAll("\n", " ")
-    return note ? `${header}: ${answer} · ${note}` : `${header}: ${answer}`
+    return note ? `${header}: ${shown} · ${note}` : `${header}: ${shown}`
   })
 }
 

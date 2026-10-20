@@ -5,7 +5,8 @@ export type OutgoingImage = {
   base64: string
 }
 
-export function userMessage(text: string, images: OutgoingImage[] = []): string {
+// A uuid makes claude report when a message sent during a turn is taken in (command_lifecycle).
+export function userMessage(text: string, images: OutgoingImage[] = [], uuid?: string): string {
   const content =
     images.length === 0
       ? text
@@ -16,10 +17,12 @@ export function userMessage(text: string, images: OutgoingImage[] = []): string 
           })),
           { type: "text", text },
         ]
-  return JSON.stringify({ type: "user", parent_tool_use_id: null, message: { role: "user", content } })
+  return JSON.stringify({ type: "user", parent_tool_use_id: null, uuid, message: { role: "user", content } })
 }
 
 export const TOOL_DECLINED = "The user declined this tool call."
+// A note on its own reads like the tool's output, so it goes out as what the user said.
+export const DECLINED_WITH_NOTE = "The user declined this tool call and said:\n"
 export const QUESTION_TO_CHAT =
   "The user wants to talk this over in the chat instead of answering. Stop and wait for their message."
 

@@ -227,6 +227,7 @@ const hunk = z.looseObject({
 const user = z.looseObject({
   type: z.literal("user"),
   parent_tool_use_id: z.string().nullable().optional(),
+  uuid: z.string().optional(),
   message: z.looseObject({ content: z.union([z.string(), z.array(userBlock)]) }),
   tool_use_result: z
     .union([
@@ -238,6 +239,11 @@ const user = z.looseObject({
       z.unknown().transform(() => undefined),
     ])
     .optional(),
+  // Why a tool did not run, per tool use id: "user-rejected" after an interrupt, "permission-rule", …
+  tool_result_meta: z
+    .array(z.looseObject({ id: z.string(), non_execution_kind: z.string().optional() }))
+    .optional()
+    .catch(undefined),
 })
 
 const result = z.looseObject({
@@ -255,6 +261,14 @@ const result = z.looseObject({
   modelUsage: z.record(z.string(), z.looseObject({ contextWindow: z.number() })).optional(),
   result: z.string().optional(),
   errors: z.array(z.string()).optional(),
+  user_message_uuids: z.array(z.string()).optional(),
+})
+
+// Where a user message sent with a uuid is: "queued", "started", "completed".
+const commandLifecycle = z.looseObject({
+  type: z.literal("command_lifecycle"),
+  command_uuid: z.string(),
+  state: z.string(),
 })
 
 const permissionUpdate = z.looseObject({
@@ -349,6 +363,9 @@ export const questionAnswers = z.looseObject({
   annotations: z.record(z.string(), z.looseObject({ notes: z.string().optional() })).optional(),
 })
 
+// claude takes back one of its own requests, such as a permission ask; it needs no reply.
+const controlCancelRequest = z.looseObject({ type: z.literal("control_cancel_request"), request_id: z.string() })
+
 export const taskOutput = z.looseObject({ output: z.string(), total_bytes: z.number(), truncated: z.boolean() })
 
 export const slashCommand = z.looseObject({
@@ -405,8 +422,17 @@ const rateLimit = z.looseObject({
   }),
 })
 
+// claude's state between requests; a turn's first request names the messages it takes in.
+const systemStatus = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("status"),
+  status: z.string().nullable().optional(),
+  user_message_uuids: z.array(z.string()).optional(),
+})
+
 const system = z.discriminatedUnion("subtype", [
   systemInit,
+  systemStatus,
   compactBoundary,
   apiRetry,
   backgroundTasksChanged,
@@ -424,6 +450,8 @@ export const protocolMessage = z.discriminatedUnion("type", [
   result,
   controlRequest,
   controlResponse,
+  controlCancelRequest,
+  commandLifecycle,
   rateLimit,
 ])
 
@@ -458,5 +486,8 @@ export const KNOWN_KEYS = new Set([
   "control_request/get_task_output",
   "control_request/stop_task",
   "control_response",
+  "control_cancel_request",
+  "command_lifecycle",
+  "system/status",
   "rate_limit_event",
 ])

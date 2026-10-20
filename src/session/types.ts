@@ -4,7 +4,15 @@ import type { Rewound } from "./rewind.ts"
 export type ItemId = string
 
 export type ChatImage = { name: string; mediaType: string; data: string | null; path: string | null }
-export type UserMessage = { kind: "user"; id: ItemId; text: string; images: ChatImage[] }
+// `queue` is "queued" from a send during a turn until claude takes the message in, and "not sent" when claude
+// ended before that.
+export type UserMessage = {
+  kind: "user"
+  id: ItemId
+  text: string
+  images: ChatImage[]
+  queue: "queued" | "not sent" | null
+}
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
 // `durationMs` is null when the block did not stream, as in a resumed session.
 export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number | null }
@@ -196,4 +204,9 @@ export type Session = {
   tasks: Record<string, Task>
   usage: Usage
   rewound: Rewound | null
+  // An interrupt went out and its turn has not ended yet.
+  interrupting: boolean
+  // The turn claude is working on, from its start to its result, and who started it: a user message, or claude
+  // itself (a background task's end). The status can stay "running" without one while messages wait to be taken in.
+  turn: "user" | "claude" | null
 }

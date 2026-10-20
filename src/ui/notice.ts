@@ -22,6 +22,9 @@ export type NoticeState = {
   asking: boolean
   quitArmed: boolean
   rewindArmed: boolean
+  // Keys are held after claude took back the ask the user was typing for.
+  held: boolean
+  interruptible: boolean
   now: number
 }
 
@@ -37,6 +40,7 @@ export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`,
 export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
 
 const HINTS = "F3 sidebar · F4 ultracode"
+const WARN_AT = 0.85
 
 const LIMIT_NAMES: Record<string, string> = {
   five_hour: "5-hour",
@@ -55,18 +59,21 @@ function warningText(usage: Usage, now: number): Span | null {
   const warning = usage.warning
   if (!warning) return null
   const name = LIMIT_NAMES[warning.type] ?? warning.type.replaceAll("_", " ")
-  if (warning.status === "rejected") {
-    const resets = warning.resetsAt > 0 ? ` · resets in ${formatUntil(warning.resetsAt - now)}` : ""
-    return { text: `${name} limit reached${resets}`, fg: theme.error }
-  }
+  const resets = warning.resetsAt > 0 ? ` · resets in ${formatUntil(warning.resetsAt - now)}` : ""
+  if (warning.status === "rejected") return { text: `${name} limit reached${resets}`, fg: theme.error }
+  // Claude Code warns once a usage threshold is passed, which can be far below the limit; the sidebar shows the rest.
   const window = limitWindow(usage, warning.type)
-  const percent = window ? ` · ${Math.round(window.utilization * 100)}%` : ""
-  return { text: `${name} limit almost reached${percent}`, fg: theme.warning }
+  if (!window || window.utilization < WARN_AT) return null
+  return {
+    text: `You've used ${Math.round(window.utilization * 100)}% of your ${name} limit${resets}`,
+    fg: theme.warning,
+  }
 }
 
 function leftSpans(state: NoticeState): Span[] {
   if (state.quitArmed) return [quitHint()]
   if (state.rewindArmed) return [rewindHint()]
+  if (state.held) return [{ text: "Claude Code withdrew the request", fg: theme.muted }]
   const live = state.replay === null && state.readOnly === null
   if (live && state.status === "ended") return [{ text: "✗ Claude Code exited · Ctrl+C: quit", fg: theme.error }]
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
@@ -82,5 +89,6 @@ function leftSpans(state: NoticeState): Span[] {
 }
 
 export function noticeFor(state: NoticeState): Notice {
-  return { left: leftSpans(state), right: state.asking ? [] : [{ text: HINTS, fg: theme.muted }] }
+  const hints = state.interruptible ? `esc interrupt · ${HINTS}` : HINTS
+  return { left: leftSpans(state), right: state.asking ? [] : [{ text: hints, fg: theme.muted }] }
 }

@@ -3,13 +3,13 @@ import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import { z } from "zod"
 import type { PermissionUpdate } from "../../protocol/messages.ts"
-import { allowTool, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
+import { allowTool, DECLINED_WITH_NOTE, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
 import { severe } from "../../session/ask.ts"
 import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
 import { type WorkflowPlan, workflowPlan } from "../../session/workflow-script.ts"
 import { theme } from "../../theme/theme.ts"
-import { cut, mcpTool, toolLabel } from "../format.ts"
+import { cut, cutPath, mcpTool, toolLabel } from "../format.ts"
 import { covered } from "../images.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
@@ -98,10 +98,20 @@ export function alwaysChoice(update: PermissionUpdate, toolName: string): Choice
       : update.type === "addDirectories"
         ? (update.directories?.join(", ") ?? "")
         : (rule?.ruleContent ?? toolLabel(rule?.toolName ?? ""))
-  const subject = oneLine(text) || toolLabel(toolName)
-  return update.type === "setMode"
-    ? { kind: "always", before: "Yes, and allow ", subject, after: " for this session" }
-    : { kind: "always", before: "Yes, and always allow ", subject, after: " here" }
+  // claude writes an absolute path in a rule with a second leading slash.
+  const subject = (oneLine(text) || toolLabel(toolName)).replace(/^\/\//, "/")
+  const lasts = lasting(update)
+  if (lasts === "session") return { kind: "always", before: "Yes, and allow ", subject, after: " for this session" }
+  const after = lasts === "everywhere" ? " in every project" : " here"
+  return { kind: "always", before: "Yes, and always allow ", subject, after }
+}
+
+// Where claude keeps the update decides how long it lasts.
+function lasting(update: PermissionUpdate): "session" | "here" | "everywhere" {
+  if (update.destination === "session" || update.destination === "cliArg") return "session"
+  if (update.destination === "userSettings") return "everywhere"
+  if (update.destination) return "here"
+  return update.type === "setMode" ? "session" : "here"
 }
 
 function choicesFor(ask: Ask): Choice[] {
@@ -148,8 +158,12 @@ export function PermissionBand(props: AskViewProps) {
     return (inline ? "  " : "\n") + lines.join("\n")
   })
   const reason = createMemo(() => wrapRows(props.ask.reason, inner(), TEXT_ROWS).join("\n"))
+  // A path keeps its end in view.
   const subject = (choice: Choice) =>
-    cut(choice.subject, inner() - 5 - Bun.stringWidth(choice.before) - Bun.stringWidth(choice.after))
+    (choice.subject.startsWith("/") ? cutPath : cut)(
+      choice.subject,
+      inner() - 5 - Bun.stringWidth(choice.before) - Bun.stringWidth(choice.after),
+    )
   const [cursor, setCursor] = createSignal(untrack(() => (severe(props.ask) ? choices().length - 1 : 0)))
   const [noting, setNoting] = createSignal(false)
 
@@ -163,7 +177,7 @@ export function PermissionBand(props: AskViewProps) {
   let field: InputRenderable | undefined
   const sendNote = (note: string) => {
     const text = note.trim()
-    if (text) props.onAnswer(denyTool(props.ask.requestId, text))
+    if (text) props.onAnswer(denyTool(props.ask.requestId, DECLINED_WITH_NOTE + text))
   }
 
   const typing = typingGuard()

@@ -8,8 +8,8 @@ import { type Accessor, createSignal, type Setter, Show } from "solid-js"
 import { liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
-import { initializeModels, initializeResponse } from "./protocol/messages.ts"
-import { initializeRequest, userMessage } from "./protocol/outgoing.ts"
+import { initializeModels, initializeResponse, permissionReply } from "./protocol/messages.ts"
+import { initializeRequest, interruptRequest, userMessage } from "./protocol/outgoing.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
@@ -32,8 +32,9 @@ import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
 const USAGE = [
-  "Usage: bun run dev [--sessions <folder>] [--skip-terminal-check]",
-  "       bun run dev --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]",
+  "Usage: yellowcode [--sessions <folder>] [--skip-terminal-check]",
+  "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]",
+  "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
 
 function fail(message: string): never {
@@ -336,17 +337,37 @@ function Main() {
           provider={provider}
           sessions={sessions}
           onSubmit={(text, images) => {
-            if (text.trim() || images.length > 0) return source.send(userMessage(text, images))
+            // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
+            const uuid = mode.kind === "live" ? crypto.randomUUID() : undefined
+            if (text.trim() || images.length > 0) return source.send(userMessage(text, images, uuid))
             // An empty Enter releases the next recorded message.
             if (mode.kind === "replay") source.send("")
             return true
           }}
           onAnswer={(ask, response) => {
-            log.info(`answer to ${ask.toolName}`, response)
+            // The reply carries the tool's whole input (a Write's file) and the user's notes, so only its gist is logged.
+            const answer = parse(response)
+            const reply =
+              answer.kind === "message" && answer.message.type === "control_response" ? answer.message : null
+            const behavior =
+              permissionReply.safeParse(reply?.response.response).data?.behavior ?? reply?.response.subtype
+            log.info(`answer to ${ask.toolName}`, { requestId: ask.requestId, behavior })
             session.answer(response)
             source.send(response)
           }}
           onQuit={() => void quit()}
+          onInterrupt={
+            requests
+              ? () =>
+                  void requests.send(interruptRequest).then(
+                    (reply) => log.info("interrupted", reply),
+                    (error: unknown) => {
+                      log.warn("interrupt failed", error instanceof Error ? error.message : error)
+                      session.interruptFailed()
+                    },
+                  )
+              : undefined
+          }
           rewind={
             mode.kind === "replay"
               ? {

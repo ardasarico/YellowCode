@@ -121,6 +121,7 @@ export function UserMessageRow(props: {
         height={collapsed() ? COLLAPSED_ROWS : "auto"}
       >
         <MessageText text={printable(props.item.text)} commands={props.commands} />
+        <span style={{ fg: theme.muted }}>{props.item.queue ? `  ${props.item.queue}` : ""}</span>
       </text>
       <Show when={overflowing()}>
         <text

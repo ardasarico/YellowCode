@@ -16,8 +16,22 @@ export function buildRows(session: Session): Row[] {
   const rows: Row[] = []
   let lastEnd: EndRow | null = null
   let carried: ItemId[] = []
+  // An interrupted or failed turn neither absorbs the turn before it nor is absorbed by the next, so what happened
+  // stays in view.
+  const final = (id: ItemId | undefined) => {
+    const item = id === undefined ? undefined : session.byId[id]
+    return item?.kind === "turn-end" && (item.interrupted || item.error !== null)
+  }
+  // The turn end each item leads up to.
+  const endAhead: (ItemId | undefined)[] = []
+  let ahead: ItemId | undefined
+  for (let index = session.items.length - 1; index >= 0; index--) {
+    const id = session.items[index]
+    if (id !== undefined && session.byId[id]?.kind === "turn-end") ahead = id
+    endAhead[index] = ahead
+  }
 
-  for (const id of session.items) {
+  for (const [index, id] of session.items.entries()) {
     if (id === session.rewound?.userId) break
     const item = session.byId[id]
     if (!item) continue
@@ -25,7 +39,7 @@ export function buildRows(session: Session): Row[] {
     if (item.kind === "ask") continue
 
     if (item.kind === "turn-end") {
-      if (lastEnd) {
+      if (lastEnd && !final(lastEnd.id) && !final(id)) {
         rows.splice(rows.indexOf(lastEnd), 1)
         carried = lastEnd.turnEnds
       }
@@ -33,7 +47,7 @@ export function buildRows(session: Session): Row[] {
       carried = []
       continue
     }
-    if (item.kind === "user") {
+    if (item.kind === "user" || (lastEnd && (final(lastEnd.id) || final(endAhead[index])))) {
       lastEnd = null
       carried = []
     } else if (lastEnd && (item.kind === "text" || item.kind === "thinking" || item.kind === "tool")) {

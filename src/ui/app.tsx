@@ -18,6 +18,7 @@ import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
 import { isAgentCall, isWorkflowCall, topNodes } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
+import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
 import { pasteNotice } from "./chips.ts"
@@ -66,6 +67,8 @@ export type AppProps = {
   onSubmit: (text: string, images: OutgoingImage[]) => boolean
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
+  // Without it nothing can be interrupted (a replay or a read-only transcript).
+  onInterrupt?: () => void
   // Without it the session cannot rewind (a read-only transcript).
   rewind?: { extras: RewindExtras | null; onRewind: (rewound: Rewound) => void; onRedo: () => void }
 }
@@ -170,6 +173,14 @@ export function App(props: AppProps) {
   createEffect(() => {
     if (pending()) setAgentView(null)
   })
+  createEffect(
+    on(pending, (now, before) => {
+      // An ask that comes while the hold's limit let typing through to the prompt is held from too.
+      // An ask that the user's own interrupt cancelled leaves nothing to hold.
+      const withdrawn = before?.status === "cancelled" && !props.session.interrupting
+      if (withdrawn || (now && rushedSubmit())) holdKeys(() => pending() !== null)
+    }),
+  )
   const [mcpFailure, setMcpFailure] = createSignal<string | null>(null)
   const failedServers = new Set<string>()
 
@@ -414,6 +425,19 @@ export function App(props: AppProps) {
     setSelected(ids[next] ?? null)
   }
 
+  const interruptible = () =>
+    props.onInterrupt !== undefined && props.session.turn !== null && !props.session.interrupting
+  // Ctrl+C interrupts once per turn, so a claude that refuses the interrupt can still be quit; Esc can try again.
+  let interruptedByCtrlC = false
+  createEffect(
+    on(
+      () => props.session.turn,
+      (turn) => {
+        if (turn === null) interruptedByCtrlC = false
+      },
+    ),
+  )
+
   // The first Ctrl+C only warns, so a stray press does not end the session.
   const [quitArmed, setQuitArmed] = createSignal(false)
   let disarm: ReturnType<typeof setTimeout> | undefined
@@ -457,7 +481,21 @@ export function App(props: AppProps) {
 
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
+    if (heldKey(key)) {
+      key.preventDefault()
+      key.stopPropagation()
+      return
+    }
     if (key.ctrl && key.name === "c") {
+      // A turn the user started is interrupted first, whatever is open; the draft stays. A turn claude started on its
+      // own (Esc interrupts it) is not what the user meant to stop, so Ctrl+C clears or quits there.
+      if (interruptible() && props.session.turn === "user" && !interruptedByCtrlC) {
+        interruptedByCtrlC = true
+        key.preventDefault()
+        key.stopPropagation()
+        props.onInterrupt?.()
+        return
+      }
       // A focused prompt takes it: it clears its text, or calls pressQuit when empty.
       if (input().focused && !pending()) return
       key.stopPropagation()
@@ -537,6 +575,13 @@ export function App(props: AppProps) {
       else setFocus("input")
       return
     }
+    // Esc interrupts only when nothing else takes it; the draft stays.
+    if (key.name === "escape" && !listOpen() && interruptible()) {
+      key.preventDefault()
+      key.stopPropagation()
+      props.onInterrupt?.()
+      return
+    }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
       stepEffort(key.name === "up" ? 1 : -1)
@@ -580,6 +625,7 @@ export function App(props: AppProps) {
   const ended = () => live() && props.session.status === "ended"
 
   const submit = ({ text, images, draft }: Submission): boolean => {
+    if (rushedSubmit()) return false
     const command = text.trim()
     if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
@@ -668,6 +714,8 @@ export function App(props: AppProps) {
       asking: pending() !== null,
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
+      held: held(),
+      interruptible: interruptible(),
       now: Date.now(),
     })
   }

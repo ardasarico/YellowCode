@@ -1,7 +1,14 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { allowTool, answerQuestions, denyTool, QUESTION_TO_CHAT } from "../protocol/outgoing.ts"
+import {
+  allowTool,
+  answerQuestions,
+  denyTool,
+  interruptRequest,
+  QUESTION_TO_CHAT,
+  userMessage,
+} from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { LOGIN_HINT } from "./login.ts"
@@ -149,6 +156,15 @@ test("the outgoing response settles the ask", () => {
       { tool_name: "AskUserQuestion" },
     ),
   ).toMatchObject({ status: "answered", answers: { "Which?": "A" }, notes: { "Which?": "because" } })
+})
+
+test("claude cancelling an ask closes it, unless the user answered first", () => {
+  const cancel = { type: "control_cancel_request", request_id: "r1" }
+  expect(feed(canUseTool({}), cancel).state.byId["ask-r1"]).toMatchObject({ status: "cancelled" })
+  const answered = feed(canUseTool({}))
+  answered.answer(allowTool("r1", {}))
+  answered.apply("in", parse(JSON.stringify(cancel)), 0)
+  expect(answered.state.byId["ask-r1"]).toMatchObject({ status: "allowed" })
 })
 
 test("a recorded response does not overwrite the user's own answer", () => {
@@ -379,6 +395,127 @@ test("a failed login adds the sign-in hint after the turn, an invalid API key do
     { kind: "system", level: "warning", text: LOGIN_HINT },
   ])
   expect(failedLogin("Invalid API key · Fix external API key").map((item) => item.kind)).toEqual(["turn-end"])
+})
+
+test("an interrupted turn ends interrupted, not failed, with its tool stopped and claude's rejection hidden", () => {
+  const session = createSession()
+  const send = (line: string) => session.apply("out", parse(line), 0)
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  send(userMessage("run it"))
+  receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 20" } }))
+  receive({ type: "system", subtype: "task_started", task_id: "k1", tool_use_id: "t1", task_type: "local_bash" })
+  send(interruptRequest("yc-1"))
+  receive({
+    type: "control_response",
+    response: { subtype: "success", request_id: "yc-1", response: { still_queued: [] } },
+  })
+  receive({
+    type: "system",
+    subtype: "task_notification",
+    task_id: "k1",
+    status: "stopped",
+    summary: "",
+    output_file: "",
+  })
+  receive({
+    type: "user",
+    message: {
+      content: [
+        { type: "tool_result", tool_use_id: "t1", is_error: true, content: "The user doesn't want to proceed" },
+      ],
+    },
+    tool_result_meta: [{ id: "t1", non_execution_kind: "user-rejected" }],
+  })
+  receive({
+    type: "user",
+    message: { content: [{ type: "text", text: "[Request interrupted by user for tool use]" }] },
+  })
+  receive({
+    type: "result",
+    subtype: "error_during_execution",
+    is_error: true,
+    total_cost_usd: 0,
+    duration_ms: 9100,
+    usage: { input_tokens: 0, output_tokens: 0 },
+    errors: ["[ede_diagnostic] result_type=user"],
+  })
+
+  expect(session.state.byId["t1"]).toMatchObject({ status: "stopped", result: "" })
+  expect(rows(session).at(-1)).toMatchObject({ kind: "turn-end", interrupted: true, error: null })
+  expect(session.state).toMatchObject({ status: "idle", interrupting: false })
+})
+
+test("an interrupt that goes out after its turn's result marks no later turn as interrupted", () => {
+  const session = createSession()
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const ended = {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    total_cost_usd: 0,
+    duration_ms: 1,
+    usage: { input_tokens: 1, output_tokens: 1 },
+    result: "ok",
+  }
+  session.apply("out", parse(userMessage("hi")), 0)
+  receive(assistant("a1", { type: "text", text: "first answer" }))
+  receive(ended)
+  session.apply("out", parse(interruptRequest("yc-2")), 0)
+  receive({ type: "control_response", response: { subtype: "success", request_id: "yc-2", response: {} } })
+  expect(session.state.interrupting).toBe(false)
+
+  // claude starts a turn of its own, for a background task that ended.
+  receive(assistant("a2", { type: "text", text: "the shell printed **done" }))
+  receive(ended)
+  expect(rows(session).at(-1)).toMatchObject({ kind: "turn-end", interrupted: false })
+  expect(rows(session).at(-2)).toMatchObject({ kind: "text", markdown: "the shell printed **done" })
+})
+
+test("a message sent during a turn waits as queued, outlives an interrupt and runs as the next turn", () => {
+  const session = createSession()
+  const send = (line: string) => session.apply("out", parse(line), 0)
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const queued = () => rows(session).find((item) => item.kind === "user" && item.text === "also this")
+  send(userMessage("run it"))
+  receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 20" } }))
+  send(userMessage("also this", [], "u2"))
+  expect(queued()).toMatchObject({ queue: "queued" })
+
+  send(interruptRequest("yc-1"))
+  receive(result)
+  expect(rows(session).find((item) => item.kind === "turn-end")).toMatchObject({ interrupted: true })
+  expect(session.state.status).toBe("running")
+  expect(queued()).toMatchObject({ queue: "queued" })
+
+  receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
+  expect(queued()).toMatchObject({ queue: null })
+  receive({ ...result, subtype: "success", is_error: false })
+  expect(rows(session).findLast((item) => item.kind === "turn-end")).toMatchObject({ interrupted: false })
+  expect(session.state.status).toBe("idle")
+})
+
+test("only a turn in progress can be interrupted, and the session knows who started it", () => {
+  const session = createSession()
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  session.apply("out", parse(userMessage("run it")), 0)
+  receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 9" } }))
+  session.apply("out", parse(userMessage("also this", [], "u2")), 0)
+  receive({ ...result, subtype: "success", is_error: false, queued_turn_count: 1 })
+  // u2 is still waiting: the session stays running, but no turn is in progress to interrupt.
+  expect(session.state).toMatchObject({ status: "running", turn: null })
+  session.apply("out", parse(interruptRequest("yc-1")), 0)
+  expect(session.state.interrupting).toBe(false)
+
+  receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
+  receive({ type: "system", subtype: "status", status: "requesting", user_message_uuids: ["u2"] })
+  expect(session.state).toMatchObject({ status: "running", turn: "user" })
+  receive({ ...result, subtype: "success", is_error: false, queued_turn_count: 1 })
+  // A count of queued turns alone holds nothing.
+  expect(session.state).toMatchObject({ status: "idle", turn: null })
+
+  // A turn claude starts on its own, after a background task ended, is claude's (Ctrl+C does not interrupt it).
+  receive({ type: "system", subtype: "status", status: "requesting" })
+  expect(session.state).toMatchObject({ status: "running", turn: "claude" })
 })
 
 test("thinking text fills from the stream", () => {

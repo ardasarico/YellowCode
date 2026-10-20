@@ -57,11 +57,15 @@ test("the first key still typed into the prompt as an ask appears does not answe
     width: 80,
     height: 20,
   })
-  setSystemTime(new Date(10_400))
-  setup.mockInput.pressKey("1")
+  // The app notes every key before any other handler sees it.
+  const press = (at: number) => {
+    setSystemTime(new Date(at))
+    noteKey()
+    setup.mockInput.pressKey("1")
+  }
+  press(10_400)
   expect(sent).toHaveLength(0)
-  setSystemTime(new Date(10_600))
-  setup.mockInput.pressKey("1")
+  press(10_600)
   expect(sent).toHaveLength(1)
   setSystemTime()
   setup.renderer.destroy()
@@ -96,6 +100,11 @@ test("the always-allow label reads as words and never comes out empty", () => {
     "Bash",
   )
   expect(alwaysChoice({ type: "addDirectories", directories: [] }, "Read").subject).toBe("Read")
+  const read = alwaysChoice(
+    { type: "addRules", rules: [{ toolName: "Read", ruleContent: "//tmp/x/**" }], destination: "userSettings" },
+    "Read",
+  )
+  expect(`${read.before}${read.subject}${read.after}`).toBe("Yes, and always allow /tmp/x/** in every project")
   expect(
     alwaysChoice({ type: "addRules", rules: [{ toolName: "Bash", ruleContent: "cat <<EOF\nhi\nEOF" }] }, "Bash")
       .subject,

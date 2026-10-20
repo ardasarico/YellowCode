@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "license": "GPL-3.0-only",
+  "bin": {
+    "yellowcode": "bin/yellowcode"
+  },
   "type": "module",
   "scripts": {
     "dev": "bun src/index.tsx",

@@ -1,0 +1,18 @@
+#!/bin/sh
+# Starts YellowCode from any directory. bunfig.toml's preload resolves against the working directory, so outside
+# the repo bun would fetch other package versions; this takes the preload and every package from the repo itself.
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in
+    /*) self=$link ;;
+    *) self=$(dirname "$self")/$link ;;
+  esac
+done
+repo=$(cd "$(dirname "$self")/.." && pwd -P)
+preload="$repo/node_modules/@opentui/solid/scripts/preload.js"
+if [ ! -f "$preload" ]; then
+  echo "YellowCode: run \`bun install\` in $repo" >&2
+  exit 1
+fi
+exec bun --no-install --preload "$preload" "$repo/src/index.tsx" "$@"
