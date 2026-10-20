@@ -27,7 +27,7 @@ Never read the screen right after starting or sending keys. Poll for text you
 expect instead:
 
 ```bash
-for i in $(seq 50); do tmux capture-pane -p -t $S | grep -q 'enter send' && break; sleep 0.1; done
+for i in $(seq 50); do tmux capture-pane -p -t $S | grep -q '/ commands' && break; sleep 0.1; done
 ```
 
 ## Read the screen

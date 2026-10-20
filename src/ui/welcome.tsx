@@ -26,12 +26,10 @@ const TICK_MS = 50
 export const RECENT_ROWS = 3
 const WORDMARK = wordmark()
 const HINTS: [string, string][] = [
-  ["⇧↑↓", "effort"],
-  ["⇧←→", "model"],
-  ["enter", "send"],
   ["/", "commands"],
   ["↓", "recent"],
-  ["ctrl+c", "quit"],
+  ["⇧+↑↓", "effort"],
+  ["⇧+←→", "model"],
 ]
 
 const HINT_GAP = "   "
