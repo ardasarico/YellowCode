@@ -23,7 +23,8 @@ tar -xzf $D/*.tgz -C $D package/sdk.d.ts && rm $D/*.tgz
 
 Read `$D/package/sdk.d.ts` (search for `SDKMessage`, `SDKControl`, the
 `subtype` you need). It is a reference only: never add the SDK as a dependency
-or import it.
+or import it. `.local/` is gitignored, so the types and the probe output below
+stay out of the repo.
 
 ## 2. Changes: the SDK changelog
 
@@ -56,6 +57,6 @@ and observed behavior disagree, trust the observed behavior.
 
 After every Claude Code update, re-run `probe.ts skills` (with
 `YC_PLUGIN_SKILL=<plugin>:<skill>` set to a loaded plugin's skill, to see the
-plugin lock) and compare it with the notes section "Skills: protocol probe
-(2026-10-14)": `/skills` depends on the internal `get_skills_dialog` request
-and the hidden `claude edit-skill-overrides` command.
+plugin lock) and check that `/skills` still works: it depends on the internal
+`get_skills_dialog` request and the hidden `claude edit-skill-overrides`
+command.
