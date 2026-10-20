@@ -1,8 +1,5 @@
-diff --git a/node_modules/grok-mermaid/.bun-tag-85c3e3fec9934dbc b/.bun-tag-85c3e3fec9934dbc
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/layout.js b/dist/layout.js
-index 209e4fca03ded2893b4e0a6229323990e9d85142..5229156fd72e94f5e2e7d3e8833754abb5c1ff40 100644
+index 209e4fca03ded2893b4e0a6229323990e9d85142..a964f62426aa790fbcdaa069b4801ae150568507 100644
 --- a/dist/layout.js
 +++ b/dist/layout.js
 @@ -248,16 +248,14 @@ export function assignTracks(spans) {
@@ -298,6 +295,15 @@ index 209e4fca03ded2893b4e0a6229323990e9d85142..5229156fd72e94f5e2e7d3e8833754ab
      const by = from.y + from.h - 1;
      const headRow = to.y - 1;
      canvas.junction(bx, by, D);
+@@ -766,7 +877,7 @@ function routeForward(canvas, from, to, edge, bus) {
+     if (edge.headFrom !== 'none')
+         canvas.set(bx, by, headGlyph(edge.headFrom, '▲'), 'edge');
+     if (edge.label !== null)
+-        placeLabel(canvas, edge.label, headRow, tx + 1);
++        placeLabel(canvas, edge.label, headRow, tx + 2);
+ }
+ /** A self-edge: a stub loop hanging below the box. */
+ function routeSelf(canvas, p, edge) {
 @@ -790,24 +901,27 @@ function routeSelf(canvas, p, edge) {
      if (edge.label !== null)
          placeLabel(canvas, edge.label, bottom + 1, p.x + p.w + 1);
