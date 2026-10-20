@@ -8,19 +8,21 @@ import { type Accessor, createSignal, type Setter, Show } from "solid-js"
 import { liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
-import { initializeModels, initializeResponse, permissionReply } from "./protocol/messages.ts"
+import { commandRows, modelRows, permissionReply } from "./protocol/messages.ts"
 import { initializeRequest, interruptRequest, userMessage } from "./protocol/outgoing.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
 import { ownAskRejection } from "./session/ask.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
-import { initSettings, settings } from "./session/settings.ts"
+import { initSettings, setKnobs, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import { loadRewindExtras } from "./session/rewind.ts"
 import { createClaudeSource, describeExit } from "./source/claude.ts"
+import { claudeArgs } from "./source/claude-args.ts"
+import { createControls } from "./source/controls.ts"
 import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
 import { createRequests, refusal, type Requests, RequestTimeout } from "./source/requests.ts"
@@ -78,14 +80,18 @@ const workspace = {
 const sessionsFolder = values.sessions ?? projectFolder(CLAUDE_PROJECTS, cwd)
 const sessionsCwd = values.sessions ? null : realpathSync(cwd)
 const session = createSession({ starting: values.replay === undefined })
+// claude starts with flags from the saved settings, so they are read first.
+const { settings: stored, problem, backup } = loadSettings()
+initSettings(stored)
 
 function liveMode() {
   try {
     // claude ends on closed input only once its turn and its background tasks are done.
     const busy = () =>
       session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-    const source = createClaudeSource(cwd, busy)
-    return { kind: "live" as const, source }
+    const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored)])
+    const requests = createRequests((line) => source.send(line))
+    return { kind: "live" as const, source, requests, provider: liveProvider(requests) }
   } catch (error) {
     return fail(
       `Cannot start claude: ${error instanceof Error ? error.message : String(error)}. Is Claude Code installed?`,
@@ -101,18 +107,24 @@ async function replayMode(file: string) {
   })
   const source = createReplaySource(recording, speed)
   const info = { file: basename(file), speed: speed === "instant" ? "instant" : `${speed}x`, status: source.status }
-  return { kind: "replay" as const, source, recording, info, rewindExtras: await loadRewindExtras(file) }
+  const provider = replayProvider(recording)
+  return { kind: "replay" as const, source, recording, info, provider, rewindExtras: await loadRewindExtras(file) }
 }
 
 const mode = values.replay === undefined ? liveMode() : await replayMode(values.replay)
 const source = mode.source
 // A replay answers from its recording, and a request sent to it would release its gate instead.
-const requests = mode.kind === "live" ? createRequests((line) => source.send(line)) : null
+const requests = mode.kind === "live" ? mode.requests : null
 const firstInfo = mode.kind === "replay" ? recordedInfo(mode.recording) : null
 const firstModel = firstInfo?.model ?? null
-const provider = mode.kind === "replay" ? replayProvider(mode.recording) : liveProvider()
-const { settings: stored, problem, backup } = loadSettings()
-initSettings(stored)
+const provider = mode.provider
+// Live shows the model and effort claude reports, and nothing until it does.
+if (mode.kind === "live") setKnobs({ model: null, effort: null, ultracode: false })
+const bypass = stored.permissionMode === "bypassPermissions"
+const controls =
+  mode.kind === "live" && requests ? createControls({ requests, provider: mode.provider, session, bypass }) : null
+if (mode.kind === "live")
+  log.info("claude flags", { permissionMode: stored.permissionMode, thinking: stored.thinking, bypass })
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",
@@ -198,8 +210,8 @@ function initialize(live: Requests): void {
   void live.send(initializeRequest, INITIALIZE_TIMEOUT_MS).then(
     (reply) => {
       log.info("initialized", {
-        commands: initializeResponse.safeParse(reply).data?.commands.length ?? 0,
-        models: initializeModels.safeParse(reply).data?.models.length ?? 0,
+        commands: commandRows.safeParse(reply).data?.commands.length ?? 0,
+        models: modelRows.safeParse(reply).data?.models.length ?? 0,
         ms: Math.round(performance.now() - started),
       })
       initialized.resolve(reply)
@@ -217,6 +229,9 @@ const invalidCounts = new Map<string, number>()
 
 async function pump(): Promise<void> {
   if (requests) initialize(requests)
+  void initialized.promise.then((reply) => {
+    if (reply) controls?.initialized(reply)
+  })
   let yielded = performance.now()
   try {
     for await (const event of source.events) {
@@ -229,6 +244,7 @@ async function pump(): Promise<void> {
       }
       if (parsed.kind === "unknown" && event.dir === "in") log.debug(`unknown message ${parsed.key}`)
       session.apply(event.dir, parsed, event.at)
+      if (event.dir === "in" && parsed.kind === "message") controls?.onMessage(parsed.message)
       if (event.dir === "in" && parsed.kind === "message" && parsed.message.type === "control_response")
         requests?.settle(parsed.message.response)
       if (
@@ -339,10 +355,14 @@ function Main() {
           onSubmit={(text, images) => {
             // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
             const uuid = mode.kind === "live" ? crypto.randomUUID() : undefined
-            if (text.trim() || images.length > 0) return source.send(userMessage(text, images, uuid))
-            // An empty Enter releases the next recorded message.
-            if (mode.kind === "replay") source.send("")
-            return true
+            if (!text.trim() && images.length === 0) {
+              // An empty Enter releases the next recorded message.
+              if (mode.kind === "replay") source.send("")
+              return true
+            }
+            // A knob change still waiting goes first, so the message runs under it.
+            controls?.flush()
+            return source.send(userMessage(text, images, uuid))
           }}
           onAnswer={(ask, response) => {
             // The reply carries the tool's whole input (a Write's file) and the user's notes, so only its gist is logged.

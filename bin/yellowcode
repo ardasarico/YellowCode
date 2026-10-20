@@ -1,6 +1,7 @@
 #!/bin/sh
 # Starts YellowCode from any directory. bunfig.toml's preload resolves against the working directory, so outside
-# the repo bun would fetch other package versions; this takes the preload and every package from the repo itself.
+# the repo bun would fetch other package versions; this takes the preload and every package from the repo itself,
+# and reads no bunfig.toml from the working directory (another project's preloads would not resolve).
 self=$0
 while [ -L "$self" ]; do
   link=$(readlink "$self")
@@ -15,4 +16,4 @@ if [ ! -f "$preload" ]; then
   echo "YellowCode: run \`bun install\` in $repo" >&2
   exit 1
 fi
-exec bun --no-install --preload "$preload" "$repo/src/index.tsx" "$@"
+exec bun --no-install --config=/dev/null --preload "$preload" "$repo/src/index.tsx" "$@"

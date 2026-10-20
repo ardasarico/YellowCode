@@ -1,3 +1,5 @@
+import type { SlashCommand } from "../protocol/messages.ts"
+
 export type Command = { name: string; description: string; argumentHint: string; aliases: string[] }
 
 // `match` is the typed run inside the shown text: the name, or the alias on an alias row.
@@ -16,6 +18,26 @@ export const OWN_COMMANDS: Command[] = [
   { name: "skills", description: "See the skills of this session", argumentHint: "", aliases: [] },
   { name: "plugins", description: "See the plugins of this session", argumentHint: "", aliases: [] },
 ]
+
+// The / list leaves out help, internal commands (__x) and those that work only in claude's own terminal UI.
+export function shownCommands(commands: SlashCommand[], terminalOnly: readonly string[]): SlashCommand[] {
+  const dropped = new Set(terminalOnly)
+  return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
+}
+
+// A name claude lists twice shows once, as its first row.
+export function claudeCommands(commands: SlashCommand[], terminalOnly: readonly string[]): Command[] {
+  const seen = new Set<string>()
+  const unique = shownCommands(commands, terminalOnly).filter(({ name }) => !seen.has(name) && seen.add(name))
+  return withOwnCommands(
+    unique.map(({ name, description, argumentHint, aliases }) => ({
+      name,
+      description,
+      argumentHint,
+      aliases: aliases ?? [],
+    })),
+  )
+}
 
 // An own command hides recorded commands and aliases with its name, so the list shows it once.
 export function withOwnCommands(commands: Command[]): Command[] {

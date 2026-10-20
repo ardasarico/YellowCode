@@ -209,4 +209,6 @@ export type Session = {
   // The turn claude is working on, from its start to its result, and who started it: a user message, or claude
   // itself (a background task's end). The status can stay "running" without one while messages wait to be taken in.
   turn: "user" | "claude" | null
+  // The permission mode claude says the session runs in ("default" is shown as manual).
+  permissionMode: string | null
 }

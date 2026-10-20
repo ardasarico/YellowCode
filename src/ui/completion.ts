@@ -17,6 +17,7 @@ import type { OutgoingImage } from "../protocol/outgoing.ts"
 import {
   argumentToken,
   atToken,
+  closeFolderQuote,
   commandLine,
   completeCommand,
   highlightRanges,
@@ -166,6 +167,8 @@ export function useCompletion(options: CompletionOptions) {
       paint()
       return
     }
+    // Only typing and pasting add text; an undo that brings a "/ " back must not have its quote closed again.
+    const grew = text.length > seen.length
     seen = text
     chips.sync()
     if (text !== ghost()?.text) setGhost(null)
@@ -179,6 +182,11 @@ export function useCompletion(options: CompletionOptions) {
       return
     }
     const cursor = cursorIndex(area)
+    const closed = grew ? closeFolderQuote(text, cursor) : null
+    if (closed) {
+      edit(closed)
+      return
+    }
     fileRequest++
     const query = slashQuery(text, cursor)
     if (query !== null) {

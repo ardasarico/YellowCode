@@ -94,6 +94,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     [
       "claude",
       ...CLAUDE_STREAM_ARGS,
+      "--thinking-display=summarized",
       ...isolation,
       "--model=haiku",
       "--permission-mode=default",

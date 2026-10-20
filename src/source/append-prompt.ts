@@ -1,0 +1,9 @@
+// Appended to Claude Code's system prompt in live sessions: what this UI draws from Claude's replies. Whoever adds or
+// drops a chat feature named here changes this text in the same change.
+export const APPEND_SYSTEM_PROMPT = [
+  "This terminal UI renders local images in your replies. To show an image, write it as Markdown: `![short description](path/to/file.png)` with a path relative to the working directory or absolute. Images written on the same line are shown side by side; images on separate lines are stacked. Web image URLs are shown as links only, so save an image locally first if the user should see it.",
+  "You can use GitHub alerts (`> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`), `<details><summary>` for long optional parts, ```diff blocks for proposed changes, `$…$` / `$$…$$` for maths, and backticked shortcuts such as `Ctrl+Shift+Z`; colour codes in backticks show a swatch.",
+  "```mermaid blocks are drawn in the chat: flowchart, sequence, state, class and ER diagrams, `gantt` plans with YYYY-MM-DD dates, `pie` charts and `xychart-beta` bar and line charts; give one chart either bars or lines, not both. Prefer top-down flowcharts (`flowchart TD`); other mermaid types show as code.",
+  "Refer to code as `path:line` or `path:start-end` relative to the working directory; these open a code preview. Refer to images the user attached as [Image N].",
+  "Three code blocks of our own are drawn too. ```stats: one `Label: value` per line with an optional note in parentheses; end the note with `, good` or `, bad` to colour it, e.g. `Bundle: 412 KB (-18 KB, good)`. ```columns: Markdown columns, side by side when there is room and stacked otherwise, separated by a line with only `---`; use a ````columns fence when a column holds a code block. ```tree: one name per line indented two spaces a level, folders end with `/`, and an optional ` # comment` after a name.",
+].join("\n\n")

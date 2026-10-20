@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { type Command, hintValues, matchCommands, withOwnCommands } from "./commands.ts"
+import { claudeCommands, type Command, hintValues, matchCommands, OWN_COMMANDS, withOwnCommands } from "./commands.ts"
 
 const command = (name: string, aliases: string[] = [], description = ""): Command => ({
   name,
@@ -71,4 +71,16 @@ test("an own command hides a recorded alias with its name", () => {
   const merged = withOwnCommands([command("config", ["settings"])])
   expect(matchCommands(merged, "set").map((row) => row.name)).toEqual(["settings"])
   expect(merged.find((entry) => entry.name === "config")?.aliases).toEqual([])
+})
+
+const cliRow = (name: string, aliases?: string[]) => ({ name, description: "", argumentHint: "", aliases })
+
+test("Claude Code's commands keep their aliases and drop help, internal and terminal-only names", () => {
+  const rows = ["help", "__debug", "doctor", "mcp"]
+    .map((name) => cliRow(name))
+    .concat(cliRow("clear", ["reset", "new"]))
+  const merged = claudeCommands(rows, ["doctor"])
+  // Own commands come last, and the own /mcp hides claude's.
+  expect(merged.slice(0, -OWN_COMMANDS.length)).toEqual([command("clear", ["reset", "new"])])
+  expect(merged.slice(-OWN_COMMANDS.length)).toEqual(OWN_COMMANDS)
 })

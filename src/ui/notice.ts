@@ -40,6 +40,8 @@ export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`,
 export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
 
 const HINTS = "F3 sidebar · F4 ultracode"
+// With Claude Code gone F4 has nothing to change.
+const ENDED_HINTS = "F3 sidebar"
 const WARN_AT = 0.85
 
 const LIMIT_NAMES: Record<string, string> = {
@@ -89,6 +91,8 @@ function leftSpans(state: NoticeState): Span[] {
 }
 
 export function noticeFor(state: NoticeState): Notice {
-  const hints = state.interruptible ? `esc interrupt · ${HINTS}` : HINTS
+  const ended = state.replay === null && state.readOnly === null && state.status === "ended"
+  const keys = ended ? ENDED_HINTS : HINTS
+  const hints = state.interruptible ? `esc interrupt · ${keys}` : keys
   return { left: leftSpans(state), right: state.asking ? [] : [{ text: hints, fg: theme.muted }] }
 }

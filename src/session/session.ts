@@ -38,6 +38,7 @@ export type SessionStore = {
   prepend(events: SourceEvent[]): void
   answer(response: string): void
   stopRunning(): void
+  setPermissionMode(mode: string): void
   // The interrupt was refused or timed out, so the turn goes on and may be interrupted again.
   interruptFailed(): void
   // With a problem, Claude Code went away on its own: running work stops and the chat ends with an error row.
@@ -253,6 +254,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     rewound: null,
     interrupting: false,
     turn: null,
+    permissionMode: null,
   })
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
@@ -502,7 +504,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   }
 
   function onToolResults(message: Of<"user">): void {
-    if (typeof message.message.content === "string") return
+    if (message.isReplay || typeof message.message.content === "string") return
     const fileResult = message.tool_use_result
     for (const block of message.message.content) {
       if (block.type !== "tool_result") continue
@@ -738,9 +740,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     switch (message.subtype) {
       case "init":
         setState("info", initInfo(message))
+        setState("permissionMode", message.permissionMode)
         return
       case "status":
         for (const uuid of message.user_message_uuids ?? []) settleQueued(uuid)
+        if (message.permissionMode) setState("permissionMode", message.permissionMode)
         if (message.status !== "requesting") return
         // A turn claude starts itself (a queued message, a background task's end) runs like any other; one that takes
         // in a user message counts as the user's.
@@ -748,6 +752,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         if (message.user_message_uuids?.length) setState("turn", "user")
         else if (state.turn === null) setState("turn", "claude")
         if (state.status === "idle") setState("status", "running")
+        return
+      // The command list is the input's business (controls.ts).
+      case "commands_changed":
         return
       case "compact_boundary":
         add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
@@ -1012,6 +1019,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning,
+    setPermissionMode(mode) {
+      setState("permissionMode", mode)
+    },
     interruptFailed() {
       interruptId = null
       setState("interrupting", false)

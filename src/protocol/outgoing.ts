@@ -125,6 +125,43 @@ export function getSettingsRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_settings" } })
 }
 
+export function setPermissionModeRequest(requestId: string, mode: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "set_permission_mode", mode },
+  })
+}
+
+export function setModelRequest(requestId: string, model: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "set_model", model } })
+}
+
+// Settings claude takes as if they were launch flags: effortLevel, ultracode.
+export function applyFlagSettingsRequest(requestId: string, settings: Record<string, unknown>): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "apply_flag_settings", settings },
+  })
+}
+
+export function thinkingDisplayRequest(requestId: string, display: "summarized" | "omitted"): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "set_max_thinking_tokens", thinking_display: display },
+  })
+}
+
+export function fileSuggestionsRequest(requestId: string, query: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "file_suggestions", query },
+  })
+}
+
 export function getHooksListingRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_hooks_listing" } })
 }

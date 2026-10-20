@@ -89,7 +89,14 @@ async function run(spec: Spec, workDir: string): Promise<string> {
   const { CLAUDE_CODE_PLUGIN_DIRS: _, ...parentEnv } = process.env
   const env = { ...parentEnv, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
   const proc = Bun.spawn(
-    ["claude", ...CLAUDE_STREAM_ARGS, "--safe-mode", "--model=haiku", "--permission-mode=default"],
+    [
+      "claude",
+      ...CLAUDE_STREAM_ARGS,
+      "--thinking-display=summarized",
+      "--safe-mode",
+      "--model=haiku",
+      "--permission-mode=default",
+    ],
     { cwd: workDir, env, stdin: "pipe", stdout: "pipe", stderr: "inherit" },
   )
   const timeout = setTimeout(() => proc.kill(), SESSION_TIMEOUT_MS)

@@ -228,6 +228,8 @@ const user = z.looseObject({
   type: z.literal("user"),
   parent_tool_use_id: z.string().nullable().optional(),
   uuid: z.string().optional(),
+  // claude's own echo of a local command's output (a model switch, a compaction), not something the user sent.
+  isReplay: z.boolean().optional(),
   message: z.looseObject({ content: z.union([z.string(), z.array(userBlock)]) }),
   tool_use_result: z
     .union([
@@ -262,6 +264,8 @@ const result = z.looseObject({
   result: z.string().optional(),
   errors: z.array(z.string()).optional(),
   user_message_uuids: z.array(z.string()).optional(),
+  // Set when a typed command such as /model or /effort ran without the model.
+  local_command: z.string().optional(),
 })
 
 // Where a user message sent with a uuid is: "queued", "started", "completed".
@@ -378,7 +382,33 @@ export const slashCommand = z.looseObject({
 
 export const initializeResponse = z.looseObject({ commands: z.array(slashCommand) })
 
-export const modelInfo = z.looseObject({ value: z.string(), description: z.string().optional() })
+export const modelInfo = z.looseObject({
+  value: z.string(),
+  description: z.string().optional(),
+  // The full id an alias row stands for, such as claude-opus-5-5 for "opus".
+  resolvedModel: z.string().optional(),
+})
+
+// What get_settings says the session uses; the reply also holds permission rules and env, so only this is read.
+export const appliedSettings = z.looseObject({
+  applied: z.looseObject({
+    model: z.string().nullable().optional(),
+    effort: z.string().nullable().optional(),
+    ultracode: z.boolean().optional(),
+    // Asked for, though the model may not have it (then `ultracode` stays false until a model that has it).
+    ultracodeRequested: z.boolean().optional(),
+  }),
+})
+
+export const initializeMode = z.looseObject({ current_permission_mode: z.string() })
+export const permissionModeReply = z.looseObject({ mode: z.string() })
+
+// Folders end in "/"; paths come as they are, spaces and all.
+export const fileSuggestions = z.looseObject({ suggestions: z.array(z.looseObject({ path: z.string() })) })
+
+// Rows are read one by one, so one odd row does not empty the list.
+export const commandRows = z.looseObject({ commands: z.array(z.unknown()) })
+export const modelRows = z.looseObject({ models: z.array(z.unknown()) })
 
 export const initializeModels = z.looseObject({ models: z.array(modelInfo) })
 
@@ -428,11 +458,21 @@ const systemStatus = z.looseObject({
   subtype: z.literal("status"),
   status: z.string().nullable().optional(),
   user_message_uuids: z.array(z.string()).optional(),
+  // Sent when the permission mode changed, e.g. after an always-allow that switches to acceptEdits.
+  permissionMode: z.string().optional(),
+})
+
+// claude's command list changed (skills reloaded or found in a subfolder); it carries the whole new list.
+const commandsChanged = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("commands_changed"),
+  commands: z.array(z.unknown()),
 })
 
 const system = z.discriminatedUnion("subtype", [
   systemInit,
   systemStatus,
+  commandsChanged,
   compactBoundary,
   apiRetry,
   backgroundTasksChanged,
@@ -489,5 +529,6 @@ export const KNOWN_KEYS = new Set([
   "control_cancel_request",
   "command_lifecycle",
   "system/status",
+  "system/commands_changed",
   "rate_limit_event",
 ])

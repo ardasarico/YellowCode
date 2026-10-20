@@ -3,7 +3,6 @@ import { constants } from "node:os"
 import { log } from "../log/log.ts"
 import type { SessionEnd } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
-import { CLAUDE_STREAM_ARGS } from "./claude-args.ts"
 import { splitLines } from "./lines.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
@@ -45,11 +44,7 @@ function tryWrite(write: () => unknown): void {
   }
 }
 
-export function createClaudeSource(
-  cwd: string,
-  running: () => boolean,
-  command: string[] = ["claude", ...CLAUDE_STREAM_ARGS],
-): ClaudeSource {
+export function createClaudeSource(cwd: string, running: () => boolean, command: string[]): ClaudeSource {
   const proc = Bun.spawn(command, { cwd, stdin: "pipe", stdout: "pipe", stderr: "pipe" })
   log.info("claude started", { pid: proc.pid, cwd })
   const alive = () => proc.exitCode === null && proc.signalCode === null

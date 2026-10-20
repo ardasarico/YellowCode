@@ -2,6 +2,7 @@ import { createMemo } from "solid-js"
 import type { PluginHook, SettingsSource, SkillRow } from "../../protocol/messages.ts"
 import { pluginEntries } from "../../session/plugins.ts"
 import { settings } from "../../session/settings.ts"
+import { modeLabel } from "../../session/settings-file.ts"
 import type { SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
 import { McpTab } from "../mcp/mcp-tab.tsx"
@@ -16,6 +17,8 @@ const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
 export function SettingsDialog(props: {
   tab: SettingsTab
   info: SessionInfo | null
+  // As claude reports it ("default", "acceptEdits", …).
+  permissionMode: string | null
   title: string | null
   model: string | null
   version: string
@@ -40,7 +43,7 @@ export function SettingsDialog(props: {
       sessionId: info?.id ?? null,
       model: props.model,
       effort: settings.effort,
-      permissionMode: info?.permissionMode ?? null,
+      permissionMode: props.permissionMode === null ? null : modeLabel(props.permissionMode),
       mcpServers: info ? info.mcpServers.length : null,
       plugins: plugins()?.length ?? null,
       skills: props.skillRows ? props.skills : (info?.skills.length ?? null),

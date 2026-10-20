@@ -8,7 +8,7 @@ import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
-import { settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
+import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
@@ -214,10 +214,14 @@ export function App(props: AppProps) {
   createEffect(on(lastUser, () => setMcpFailure(null), { defer: true }))
 
   const [settingsProblem, setSettingsProblem] = createSignal(untrack(() => props.settingsProblem))
-  // `previous` is undefined on the first run and null on the Enter that leaves the welcome screen.
+  // What claude refused while a settings file problem was in view.
+  let waiting: string | null = null
+  // What claude refused shows until the next Enter; a broken settings file stays past the Enter that leaves the
+  // welcome screen (`previous` is undefined on the first run and null on that Enter).
+  const refusalShown = () => settingsProblem() !== null && settingsProblem() === controlProblem()?.text
   createEffect(
     on(lastUser, (_, previous) => {
-      if (previous) setSettingsProblem(null)
+      if (previous || refusalShown()) setSettingsProblem(null)
     }),
   )
   createEffect(
@@ -231,11 +235,41 @@ export function App(props: AppProps) {
         settings.editor,
         settings.notifications,
       ],
-      () => setSettingsProblem(null),
+      () => {
+        waiting = null
+        setSettingsProblem(null)
+      },
       { defer: true },
     ),
   )
   createEffect(on(failedSaves, () => setSettingsProblem(SAVE_PROBLEM), { defer: true }))
+  // A problem with the settings file stays in view (it may offer the backup); what claude refused meanwhile waits
+  // until it has gone.
+  const fileProblemShown = () => {
+    const shown = settingsProblem()
+    return shown !== null && (shown === props.settingsProblem || shown === SAVE_PROBLEM)
+  }
+  createEffect(
+    on(
+      controlProblem,
+      (problem, previous) => {
+        if (problem && fileProblemShown()) waiting = problem.text
+        else if (problem) setSettingsProblem(problem.text)
+        // Taken back by claude: the refused change came true after all.
+        else if (previous && waiting === previous.text) waiting = null
+        else if (previous && settingsProblem() === previous.text) setSettingsProblem(null)
+      },
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(settingsProblem, (shown) => {
+      if (shown !== null || waiting === null) return
+      const text = waiting
+      waiting = null
+      setSettingsProblem(text)
+    }),
+  )
 
   createEffect(on(() => settings.theme, setTheme, { defer: true }))
 
@@ -582,6 +616,12 @@ export function App(props: AppProps) {
       props.onInterrupt?.()
       return
     }
+    // With Claude Code gone there is nothing to change.
+    const knob = (key.shift && ["up", "down", "left", "right"].includes(key.name)) || key.name === "f4"
+    if (knob && ended()) {
+      key.preventDefault()
+      return
+    }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
       stepEffort(key.name === "up" ? 1 : -1)
@@ -839,6 +879,7 @@ export function App(props: AppProps) {
           <SettingsDialog
             tab={tab()}
             info={props.session.info ?? props.firstInfo ?? null}
+            permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
             title={title()?.title ?? null}
             model={settings.model ?? props.model()}
             version={props.workspace.version}

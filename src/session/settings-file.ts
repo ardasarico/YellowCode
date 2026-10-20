@@ -9,6 +9,16 @@ import { themes } from "../theme/theme.ts"
 
 export const PERMISSION_MODES = ["auto", "manual", "acceptEdits", "plan", "bypassPermissions", "dontAsk"] as const
 export type PermissionMode = (typeof PERMISSION_MODES)[number]
+
+// YellowCode says "manual" for what Claude Code calls "default".
+export function protocolMode(mode: PermissionMode): string {
+  return mode === "manual" ? "default" : mode
+}
+
+export function modeLabel(mode: string): string {
+  return mode === "default" ? "manual" : mode
+}
+
 export type SidebarSetting = "auto" | "shown" | "hidden"
 export type ThinkingSetting = "summarized" | "hidden"
 export type TitleSource = "yellowcode" | "claude-code"

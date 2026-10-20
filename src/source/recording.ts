@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { shownCommands } from "../input/commands.ts"
 import { parseJson } from "../protocol/json.ts"
 import {
   initializeModels,
@@ -92,8 +93,7 @@ export function recordedCommands(recording: Recording): SlashCommand[] {
   }
 
   const commands = rich ?? (init?.names ?? []).map((name) => ({ name, description: "", argumentHint: "" }))
-  const dropped = new Set(init?.terminalOnly)
-  return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
+  return shownCommands(commands, init?.terminalOnly ?? [])
 }
 
 export function recordedModels(recording: Recording): ModelInfo[] {
