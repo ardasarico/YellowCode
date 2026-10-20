@@ -34,3 +34,17 @@ export function swatchColor(code: string): Rgb | null {
   }
   return null
 }
+
+function luminance(color: Rgb) {
+  const [red = 0, green = 0, blue = 0] = color.map((channel) => {
+    const c = channel / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue
+}
+
+// A dark colour on a dark background can still be told apart, so this looks at contrast rather than channel gaps.
+export function blendsIn(color: Rgb, behind: Rgb) {
+  const [a, b] = [luminance(color), luminance(behind)]
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) < 1.2
+}

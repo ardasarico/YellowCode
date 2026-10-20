@@ -7,7 +7,7 @@ import { isLocalImage } from "./images.ts"
 import { mathSpans } from "./math.ts"
 import { refId, textParts } from "./refs.ts"
 import { shortcutKeys } from "./shortcut.ts"
-import { swatchColor } from "./swatch.ts"
+import { blendsIn, swatchColor } from "./swatch.ts"
 
 export type RunStyle = {
   fg: RGBA
@@ -92,10 +92,10 @@ export function toRuns(
     }
     const color = swatchColor(text)
     if (color) {
-      const behind = (style.bg ?? theme.canvas).toInts()
-      // A swatch in the colour behind it would show as a blank gap, so it gets a frame.
-      const hidden = color.every((channel, index) => Math.abs(channel - (behind[index] ?? 0)) < 32)
-      push("■", { ...style, fg: RGBA.fromInts(...color, 255), ...(hidden && { bg: theme.frame }) })
+      const [red, green, blue] = (style.bg ?? theme.canvas).toInts()
+      // A swatch in the colour behind it would show as a blank gap, so only its outline is drawn.
+      if (blendsIn(color, [red, green, blue])) push("□", { ...style, fg: theme.frame })
+      else push("■", { ...style, fg: RGBA.fromInts(...color, 255) })
       push(" ", style)
     }
     push(text, { ...style, fg: theme.syntax.string })
