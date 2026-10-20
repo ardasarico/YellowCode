@@ -809,7 +809,7 @@ export function App(props: AppProps) {
             />
             <Show when={panel().length > 0}>
               {/* The selection bar sits in the last gap cell, so the marks line up with the prompt. */}
-              <box paddingLeft={EDGE_GAP - 1}>
+              <box paddingLeft={EDGE_GAP - 1} flexShrink={0}>
                 <AgentPanel
                   nodes={panel()}
                   selected={panelSelected()}
