@@ -28,7 +28,7 @@ import {
 } from "../../src/source/recording.ts"
 import { solidPng } from "./png.ts"
 import { scenarios, type Scenario } from "./scenarios.ts"
-import { createNames, keptNames, learnSkills, scrub } from "./scrub.ts"
+import { createNames, keptNames, learnSkills, scrub, scrubPaths, scrubStreams } from "./scrub.ts"
 
 const QUIET_MS = 3_000
 const POLL_MS = 1_000
@@ -274,9 +274,13 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     entries.map((entry) => entry.line),
     names,
   )
+  const scrubbed = scrubStreams(
+    entries.map((entry) => scrub(entry.line, paths, names)),
+    (text) => scrubPaths(text, paths),
+  )
   const recording = {
     header: { cliVersion, scenario: scenario.name, recordedAt: new Date().toISOString() },
-    entries: entries.map((entry) => ({ t: entry.t, dir: entry.dir, line: scrub(entry.line, paths, names) })),
+    entries: entries.map((entry, index) => ({ t: entry.t, dir: entry.dir, line: scrubbed[index] ?? entry.line })),
   }
   await mkdir(outDir, { recursive: true })
   await writeFile(join(outDir, `${scenario.name}.jsonl`), serializeRecording(recording))

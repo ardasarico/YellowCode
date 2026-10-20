@@ -361,7 +361,7 @@ test("usage adds up tokens, the context window and plan limits", () => {
   const usage = replay("chat").state.usage
   expect(usage.tokens).toBe(2 + 586 + 3856 + 13961 + (2 + 46 + 625 + 17817))
   expect(usage.context.window).toBe(1_000_000)
-  expect(usage.limits.fiveHour?.utilization).toBe(0.32)
+  expect(usage.limits.fiveHour?.utilization).toBe(0.3)
 })
 
 test("MCP servers keep their status", () => {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { z } from "zod"
 import { parseJson } from "../../src/protocol/json.ts"
 import { HOOKS_ID, SETTINGS_ID, SKILLS_DIALOG_ID } from "../../src/source/recording.ts"
@@ -429,14 +430,105 @@ export function rewrite(line: string, names: Names): string {
 
 type ScrubPaths = { workDirs: string[]; home: string; username: string; uid: number }
 
-export function scrub(line: string, paths: ScrubPaths, names: Names = createNames([])): string {
-  let out = line
+export function scrubPaths(text: string, paths: ScrubPaths): string {
+  let out = text
   for (const dir of paths.workDirs) {
     out = out.replaceAll(dir.replaceAll("/", "-"), "-Users-user-project")
     out = out.replaceAll(dir, "/Users/user/project")
   }
   for (const prefix of ["/private/tmp", "/tmp"])
     out = out.replaceAll(`${prefix}/claude-${paths.uid}`, "/tmp/claude-user")
-  out = out.replaceAll(paths.home, "/Users/user").replaceAll(paths.username, "user").replace(EMAIL, "user@example.com")
-  return rewrite(out, names)
+  return out.replaceAll(paths.home, "/Users/user").replaceAll(paths.username, "user").replace(EMAIL, "user@example.com")
+}
+
+const API_ID = /\b(msg|req)_01[A-Za-z0-9]{20,}\b/g
+
+// The same real id always becomes the same fake one, so a stream's events still match their message.
+export function scrubIds(line: string): string {
+  return line.replace(
+    API_ID,
+    (id, prefix: string) => `${prefix}_01fake${createHash("sha256").update(id).digest("hex").slice(0, 18)}`,
+  )
+}
+
+const FAKE_UTILIZATION: Record<string, number> = { five_hour: 0.3, seven_day: 0.2 }
+
+// Usage levels and the overage setting come from the recording account.
+export function scrubRateLimit(line: string): string {
+  const json = parseJson(line)
+  if (!json.ok) return line
+  const event = z
+    .looseObject({ type: z.literal("rate_limit_event"), rate_limit_info: z.record(z.string(), z.unknown()) })
+    .safeParse(json.value)
+  if (!event.success) return line
+  const { overageStatus: _status, overageDisabledReason: _reason, ...info } = event.data.rate_limit_info
+  const windows = z.record(z.string(), z.looseObject({ utilization: z.number() })).safeParse(info.unifiedWindows)
+  if (typeof info.utilization === "number") info.utilization = FAKE_UTILIZATION[String(info.rateLimitType)] ?? 0.1
+  if (windows.success)
+    info.unifiedWindows = Object.fromEntries(
+      Object.entries(windows.data).map(([name, window]) => [
+        name,
+        { ...window, utilization: FAKE_UTILIZATION[name] ?? 0.1 },
+      ]),
+    )
+  return JSON.stringify({ ...event.data, rate_limit_info: info })
+}
+
+export function scrub(line: string, paths: ScrubPaths, names: Names = createNames([])): string {
+  return scrubRateLimit(scrubIds(rewrite(scrubPaths(line, paths), names)))
+}
+
+const streamDelta = z.looseObject({
+  type: z.literal("stream_event"),
+  parent_tool_use_id: z.string().nullable().optional(),
+  event: z.looseObject({
+    type: z.string(),
+    index: z.number().optional(),
+    delta: z.record(z.string(), z.unknown()).optional(),
+  }),
+})
+const DELTA_FIELDS = ["partial_json", "text", "thinking"]
+
+// A path can be split across a block's streamed deltas, where replacing line by line misses it. Each block's pieces
+// are joined and cleaned; a piece then ends where its old end lands in the cleaned text, moved on past any
+// replacement it would cut.
+export function scrubStreams(lines: string[], clean: (text: string) => string): string[] {
+  const out = [...lines]
+  const open = new Map<string, { at: number; field: string; text: string }[]>()
+  const flush = (key: string) => {
+    const pieces = open.get(key) ?? []
+    open.delete(key)
+    const joined = pieces.map((piece) => piece.text).join("")
+    const cleaned = clean(joined)
+    if (cleaned === joined) return
+    let end = 0
+    let from = 0
+    pieces.forEach((piece, index) => {
+      end += piece.text.length
+      let prefix = clean(joined.slice(0, end))
+      while (index < pieces.length - 1 && !cleaned.startsWith(prefix) && end < joined.length)
+        prefix = clean(joined.slice(0, ++end))
+      const to = index === pieces.length - 1 || !cleaned.startsWith(prefix) ? cleaned.length : prefix.length
+      const json = parseJson(out[piece.at] ?? "")
+      const parsed = streamDelta.safeParse(json.ok ? json.value : null)
+      if (!parsed.success || !parsed.data.event.delta) return
+      parsed.data.event.delta[piece.field] = cleaned.slice(from, Math.max(from, to))
+      out[piece.at] = JSON.stringify(parsed.data)
+      from = Math.max(from, to)
+    })
+  }
+  lines.forEach((line, at) => {
+    const json = parseJson(line)
+    const parsed = streamDelta.safeParse(json.ok ? json.value : null)
+    if (!parsed.success) return
+    const { event, parent_tool_use_id } = parsed.data
+    const key = `${parent_tool_use_id ?? ""}:${event.index ?? 0}`
+    if (event.type === "content_block_stop") return flush(key)
+    if (event.type !== "content_block_delta") return
+    const field = DELTA_FIELDS.find((name) => typeof event.delta?.[name] === "string")
+    if (!field) return
+    open.set(key, [...(open.get(key) ?? []), { at, field, text: String(event.delta?.[field]) }])
+  })
+  for (const key of open.keys()) flush(key)
+  return out
 }
