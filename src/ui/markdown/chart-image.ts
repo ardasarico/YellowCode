@@ -65,8 +65,10 @@ export function chartSvg(chart: XYChart, size: ChartSize, colors: ChartColors): 
   const plotWidth = width - left - font
   const plotHeight = height - top - font * 2
   const count = Math.max(...chart.series.map((one) => one.values.length))
-  const gap = plotWidth / Math.max(1, count - 1)
-  const x = (index: number) => left + (count <= 1 ? plotWidth / 2 : index * gap)
+  // Bars sit in the middle of equal slots, so the first and last stay clear of the axis and the edge.
+  const bars = chart.series.some((one) => one.kind === "bar")
+  const gap = plotWidth / Math.max(1, bars ? count : count - 1)
+  const x = (index: number) => left + (bars ? (index + 0.5) * gap : count <= 1 ? plotWidth / 2 : index * gap)
   const y = (value: number) => top + (1 - (value - low) / (high - low || 1)) * plotHeight
   const text = (at: [number, number], anchor: string, content: string) =>
     `<text x="${at[0]}" y="${at[1]}" text-anchor="${anchor}" dominant-baseline="central" font-size="${label}" fill="${colors.muted}">${escape(content)}</text>`

@@ -11,6 +11,8 @@ import { DAY, type Gantt, type GanttTask } from "./gantt.ts"
 const LINE_ROWS = 10
 const LINE_COLUMNS = 64
 const IMAGE_ROWS = 12
+const IMAGE_MIN_COLUMNS = 48
+const IMAGE_POINT_COLUMNS = 6
 const BAR_COLUMNS = 40
 const COLUMN_ROWS = 8
 const LABEL_COLUMNS = 24
@@ -217,13 +219,18 @@ export function useKittyGraphics(): () => boolean {
 // Drawn at the pixel size of the cells it covers, so its labels come out at about the terminal's own text size.
 export function LineChartImage(props: { chart: XYChart; width: number }) {
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
+  // As wide as its points need, so a chart with a handful of them does not stretch across the whole transcript.
+  const columns = () => {
+    const count = Math.max(...props.chart.series.map((one) => one.values.length))
+    return Math.min(props.width, Math.max(IMAGE_MIN_COLUMNS, (count + 1) * IMAGE_POINT_COLUMNS))
+  }
   const image = createMemo(() => {
     const size = cell()
     if (!size) return null
     const made = chartImage(
       props.chart,
       {
-        width: Math.round(props.width * size.width),
+        width: Math.round(columns() * size.width),
         height: Math.round(IMAGE_ROWS * size.height),
         font: size.height * 0.65,
       },
@@ -250,8 +257,8 @@ export function LineChartImage(props: { chart: XYChart; width: number }) {
         <Title>{props.chart.title}</Title>
         <Show when={image()}>
           {(source) => (
-            <Show when={!blank()} fallback={<box width={props.width} height={IMAGE_ROWS} />}>
-              <image ref={trackImage} source={source()} fit="fit" width={props.width} height={IMAGE_ROWS} />
+            <Show when={!blank()} fallback={<box width={columns()} height={IMAGE_ROWS} />}>
+              <image ref={trackImage} source={source()} fit="fit" width={columns()} height={IMAGE_ROWS} />
             </Show>
           )}
         </Show>
