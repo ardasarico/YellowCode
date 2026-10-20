@@ -1,9 +1,16 @@
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
+import { allowTool, answerQuestions } from "../../../src/protocol/outgoing.ts"
 
 type Message = Record<string, any>
-type Step = { control: Message } | { run: string[]; stdin: string } | { waitMs: number }
+type Step =
+  | { control: Message | ((seen: Message[]) => Message) }
+  | { send: Message }
+  | { until: (message: Message) => boolean }
+  | { signal: NodeJS.Signals }
+  | { run: string[]; stdin: string }
+  | { waitMs: number }
 type Scenario = {
   prompt?: string
   controls?: Message[]
@@ -12,6 +19,15 @@ type Scenario = {
   files?: Record<string, string>
   args?: string[]
   steps?: Step[]
+  permissionMode?: string
+  // An empty CLAUDE_CONFIG_DIR and no ANTHROPIC_* variables: the keychain is only asked for this directory's own entry.
+  isolatedConfig?: boolean
+  // The line answering a can_use_tool request; undefined leaves it unanswered.
+  answer?: (request: Message) => string | undefined
+  // null launches without --model, as YellowCode does.
+  model?: string | null
+  // A shell command run in the project before claude starts.
+  setup?: string
 }
 
 const skillFile = (name: string, description: string) =>
@@ -25,6 +41,63 @@ const loadedPluginSkill = process.env.YC_PLUGIN_SKILL
 // Installed plugins as `<plugin>@<marketplace>`, turned on and off in the temporary project's settings.
 const pluginOn = process.env.YC_PLUGIN_ON
 const pluginOff = process.env.YC_PLUGIN_OFF
+
+const user = (text: string, extra: Message = {}): Step => ({
+  send: { type: "user", parent_tool_use_id: null, message: { role: "user", content: text }, ...extra },
+})
+const interrupt: Step = {
+  send: { type: "control_request", request_id: "interrupt", request: { subtype: "interrupt" } },
+}
+const is = (type: string, subtype?: string) => (message: Message) =>
+  message.type === type && (subtype === undefined || (message.subtype ?? message.request?.subtype) === subtype)
+const toolUse =
+  (name: string, match: (input: Message) => boolean = () => true) =>
+  (message: Message) =>
+    message.type === "assistant" &&
+    message.message.content.some(
+      (block: Message) => block.type === "tool_use" && block.name === name && match(block.input),
+    )
+const backgroundTaskOutput = (seen: Message[]) => ({
+  subtype: "get_task_output",
+  task_id: seen.find((message) => message.subtype === "task_started" && message.is_backgrounded)?.task_id,
+})
+const queue = (extra: Message = {}): Scenario => ({
+  steps: [
+    user("Run `sleep 6` with the Bash tool, then reply with one word."),
+    { until: toolUse("Bash") },
+    { waitMs: 1000 },
+    user("Also name the capital of France in one word.", extra),
+    { until: is("result") },
+    { waitMs: 15_000 },
+  ],
+})
+const writeNotes = "Use the Write tool to create notes.txt containing 'hello'. Do nothing else."
+const ready = "Reply with the single word: ready"
+const turn = (text: string): Step[] => [user(text), { until: is("result") }]
+const settings: Step = { control: { subtype: "get_settings" } }
+const control = (subtype: string, fields: Message = {}): Step => ({ control: { subtype, ...fields } })
+const think = (a: number, b: number) =>
+  `Think it through step by step: what is ${a} * ${b}? Reply with only the number.`
+const writeLater = (path: string, content: string): Step => ({
+  run: ["sh", "-c", 'mkdir -p "$(dirname "$1")" && cat > "$1"', "sh", path],
+  stdin: content,
+})
+// The probe session's own transcript: the line types in order, then the title and name lines in full.
+const transcriptTitles: Step = {
+  run: [
+    "sh",
+    "-c",
+    `cd "$HOME/.claude/projects/$(pwd -P | sed 's/[^a-zA-Z0-9]/-/g')" && jq -c .type *.jsonl | uniq -c && jq -c 'select(.type | test("title|name"))' *.jsonl`,
+  ],
+  stdin: "",
+}
+// A fixed number of polls: the _sent times show when the answer stopped being empty.
+const pollFiles = (query: string, times: number): Step[] =>
+  Array.from({ length: times }, (): Step[] => [control("file_suggestions", { query }), { waitMs: 100 }]).flat()
+// The number of tracked files in the big repo of the c-p2 scenarios.
+const bigFiles = Number(process.env.YC_BIG_FILES ?? 30_000)
+const bigRepo =
+  `git init -q && mkdir big && cd big && seq -f 'f%.0f.txt' 1 ${bigFiles} | xargs touch && cd .. && git add -A`
 
 const scenarios: Record<string, Scenario> = {
   text: { prompt: "Reply with the single word: ready" },
@@ -96,6 +169,309 @@ const scenarios: Record<string, Scenario> = {
       { waitMs: 15_000 },
     ],
   },
+  "init-timing": { steps: [{ control: { subtype: "initialize" } }, { waitMs: 10_000 }] },
+  queue: queue(),
+  "queue-now": queue({ priority: "now" }),
+  "queue-later": queue({ priority: "later" }),
+  "queue-uuid": queue({ uuid: crypto.randomUUID() }),
+  interrupt: {
+    steps: [
+      user("Run `sleep 20` with the Bash tool, then reply with one word."),
+      { until: toolUse("Bash") },
+      { waitMs: 5000 },
+      interrupt,
+      { until: is("result") },
+      user("Reply with the single word: again"),
+      { until: is("result") },
+    ],
+  },
+  "interrupt-ask": {
+    answer: () => undefined,
+    steps: [
+      user(writeNotes),
+      { until: is("control_request", "can_use_tool") },
+      { waitMs: 1000 },
+      interrupt,
+      { until: is("result") },
+      { waitMs: 3000 },
+    ],
+  },
+  "background-interrupt": {
+    steps: [
+      user(
+        "Run two Bash commands one after the other: first `sleep 30; echo bg-done` with run_in_background true, then `sleep 20` in the foreground. Then reply with one word.",
+      ),
+      { until: toolUse("Bash", (input) => input.command.includes("sleep 20")) },
+      { waitMs: 2000 },
+      interrupt,
+      { until: is("result") },
+      { control: backgroundTaskOutput },
+      { until: is("system", "task_notification") },
+      { control: backgroundTaskOutput },
+      { waitMs: 10_000 },
+    ],
+  },
+  multiselect: {
+    answer: (request) =>
+      answerQuestions(
+        request.request_id,
+        request.request.input,
+        { [request.request.input.questions[0].question]: "Red, Green" },
+        {},
+      ),
+    steps: [
+      user(
+        "Call AskUserQuestion once with one question: header 'Colors', question 'Which colors do you like?', multiSelect true, options Red, Green and Blue. Then quote the tool result you received word for word.",
+      ),
+      { until: is("result") },
+    ],
+  },
+  "auto-mode": {
+    permissionMode: "auto",
+    // The user's own allow rules would decide the Bash call before the classifier does.
+    args: ["--setting-sources", "project"],
+    steps: [
+      { control: { subtype: "initialize" } },
+      user(writeNotes),
+      { until: is("result") },
+      user("Run `curl -sI https://example.com` with the Bash tool, then reply with one word."),
+      { until: is("result") },
+    ],
+  },
+  "stdin-close": { steps: [user("Reply with the single word: ready"), { until: is("result") }] },
+  sigterm: {
+    steps: [
+      user("Run `sleep 20` with the Bash tool, then reply with one word."),
+      { until: toolUse("Bash") },
+      { waitMs: 2000 },
+      { signal: "SIGTERM" },
+    ],
+  },
+  unauthenticated: {
+    isolatedConfig: true,
+    steps: [user("Reply with the single word: ready"), { until: is("result") }],
+  },
+  "c-initialize": {
+    model: null,
+    steps: [control("initialize"), settings, control("list_models"), control("initialize"), settings],
+  },
+  "c-model": {
+    timeoutMs: 300_000,
+    steps: [
+      control("initialize"),
+      settings,
+      control("set_model", { model: "sonnet" }),
+      settings,
+      ...turn(ready),
+      control("set_model", { model: "claude-haiku-5-5" }),
+      settings,
+      ...turn(ready),
+      control("set_model", { model: "haiku" }),
+      settings,
+      control("set_model", { model: "claude-nonexistent-9" }),
+      settings,
+      ...turn(ready),
+      control("set_model", { model: "default" }),
+      settings,
+      control("set_model", { model: null }),
+      settings,
+    ],
+  },
+  "c-effort": {
+    timeoutMs: 300_000,
+    steps: [
+      settings,
+      control("apply_flag_settings", { settings: { effortLevel: "low" } }),
+      settings,
+      ...turn(ready),
+      control("apply_flag_settings", { settings: { effortLevel: "max" } }),
+      settings,
+      control("apply_flag_settings", { settings: { effortLevel: "bogus" } }),
+      settings,
+      control("apply_flag_settings", { settings: { ultracode: true } }),
+      settings,
+      ...turn(`${ready}. Do not use any tools.`),
+      control("apply_flag_settings", { settings: { effortLevel: null, ultracode: null } }),
+      settings,
+      control("apply_flag_settings", { settings: { effortLevel: "low" } }),
+      control("set_model", { model: "sonnet" }),
+      settings,
+    ],
+  },
+  "c-thinking": {
+    timeoutMs: 300_000,
+    args: ["--thinking-display=summarized", "--effort=max"],
+    steps: [
+      ...turn(think(37, 43)),
+      control("set_max_thinking_tokens", { thinking_display: "omitted" }),
+      ...turn(think(58, 67)),
+      control("set_max_thinking_tokens", { thinking_display: "highlights" }),
+      ...turn(think(29, 71)),
+      control("set_max_thinking_tokens", { max_thinking_tokens: null, thinking_display: null }),
+    ],
+  },
+  "c-thinking-omitted": {
+    args: ["--thinking-display=omitted", "--effort=max"],
+    steps: [
+      ...turn(think(37, 43)),
+      control("set_max_thinking_tokens", { thinking_display: "summarized" }),
+      ...turn(think(58, 67)),
+    ],
+  },
+  "c-permission-mode": {
+    timeoutMs: 300_000,
+    steps: [
+      control("set_permission_mode", { mode: "acceptEdits" }),
+      ...turn(ready),
+      control("set_permission_mode", { mode: "plan" }),
+      control("set_permission_mode", { mode: "auto" }),
+      control("set_permission_mode", { mode: "bypassPermissions" }),
+      control("set_permission_mode", { mode: "dontAsk" }),
+      control("set_permission_mode", { mode: "manual" }),
+      ...turn(ready),
+      control("set_permission_mode", { mode: "default" }),
+      control("initialize"),
+    ],
+  },
+  "c-permission-bypass": {
+    args: ["--allow-dangerously-skip-permissions"],
+    steps: [
+      control("set_permission_mode", { mode: "bypassPermissions" }),
+      ...turn(ready),
+      control("set_permission_mode", { mode: "default" }),
+      control("set_permission_mode", { mode: "bypassPermissions" }),
+    ],
+  },
+  "c-files": {
+    files: {
+      "src/main.ts": "",
+      "src/my file.ts": "",
+      "docs/read me.md": "",
+      "Notes Folder/inner.txt": "",
+      ".hidden/secret.txt": "",
+      ".probe-rc": "",
+      "ignored.log": "",
+      ".gitignore": "ignored.log\n",
+    },
+    steps: [
+      { run: ["sh", "-c", "git init -q && git add -A && touch untracked.txt"], stdin: "" },
+      control("file_suggestions", { query: "my" }),
+      { waitMs: 3000 },
+      ...["", "my", "my f", "my\\ f", "read me", "Notes F", "notes/", "Notes Folder/", ".hid", "src/", "ignored"].map(
+        (query) => control("file_suggestions", { query }),
+      ),
+      control("file_suggestions", { query: "untracked" }),
+      { waitMs: 5000 },
+      control("file_suggestions", { query: "untracked" }),
+    ],
+  },
+  "c-commands-changed": {
+    args: ["--settings", '{"disableAllHooks":true}'],
+    files: {
+      "sub/.claude/skills/probe-sub/SKILL.md": skillFile("probe-sub", "Probe skill in a subdirectory."),
+      "sub/notes.txt": "hello\n",
+    },
+    steps: [
+      control("initialize"),
+      writeLater(
+        ".claude/commands/probe-added-cmd.md",
+        "---\ndescription: Probe added command.\n---\n\nReply with added.\n",
+      ),
+      { waitMs: 5000 },
+      writeLater(".claude/skills/probe-added/SKILL.md", skillFile("probe-added", "Probe skill added mid-session.")),
+      { waitMs: 5000 },
+      control("reload_skills"),
+      { waitMs: 2000 },
+      ...turn("Read sub/notes.txt with the Read tool, then reply with one word."),
+      { waitMs: 3000 },
+    ],
+  },
+  "c-rename": {
+    steps: [
+      ...turn(ready),
+      { waitMs: 8000 },
+      transcriptTitles,
+      control("rename_session", { title: "Probe host title", source: "host" }),
+      control("rename_session", { title: "Probe remote title" }),
+      { waitMs: 2000 },
+      transcriptTitles,
+    ],
+  },
+  "c-append-prompt": {
+    args: [
+      "--forward-subagent-text",
+      "--thinking-display=summarized",
+      "--append-system-prompt",
+      "The probe marker is AMBER-HERON-71.",
+    ],
+    steps: turn("What is the probe marker in your instructions? Reply with the marker only."),
+  },
+  "c-p2-warm": {
+    files: { "src/my file.ts": "" },
+    setup: bigRepo,
+    steps: [control("file_suggestions", { query: "" }), ...pollFiles("my file", 150)],
+  },
+  "c-p2-late": {
+    files: { "src/my file.ts": "" },
+    setup: bigRepo,
+    steps: [{ waitMs: 10_000 }, ...pollFiles("my file", 100)],
+  },
+  "c-p3-busy": {
+    files: { "notes.txt": "" },
+    steps: [
+      control("file_suggestions", { query: "" }),
+      user("Run `sleep 8` with the Bash tool, then reply with one word."),
+      { until: toolUse("Bash") },
+      { waitMs: 1000 },
+      control("file_suggestions", { query: "notes" }),
+      control("set_model", { model: "claude-haiku-4-5-20251001" }),
+      control("apply_flag_settings", { settings: { effortLevel: "low" } }),
+      settings,
+      { until: is("result") },
+      settings,
+    ],
+  },
+  "c-p4-auto-off": {
+    permissionMode: "auto",
+    args: ["--settings", '{"disableAutoMode":"disable"}'],
+    steps: [control("initialize"), ...turn(ready), control("set_permission_mode", { mode: "auto" })],
+  },
+  "c-p6-bypass-start": {
+    permissionMode: "bypassPermissions",
+    args: ["--allow-dangerously-skip-permissions"],
+    steps: [control("initialize"), ...turn(ready)],
+  },
+  // Isolated: /model and /effort save to the user's settings file, and no model call is needed.
+  "c-p7-local": {
+    isolatedConfig: true,
+    steps: [
+      ...turn("/model sonnet"),
+      settings,
+      ...turn("/effort low"),
+      settings,
+      ...turn("/rename Probe typed name"),
+    ],
+  },
+  "c-p12-rename": { steps: [...turn("/rename Probe typed name"), { waitMs: 1000 }, transcriptTitles] },
+  "c-p9-ultracode-model": {
+    steps: [
+      settings,
+      control("set_model", { model: "claude-haiku-4-5-20251001" }),
+      settings,
+      control("apply_flag_settings", { settings: { ultracode: true } }),
+      settings,
+      control("set_model", { model: "haiku" }),
+      settings,
+    ],
+  },
+  "c-p9-no-workflows": {
+    args: ["--settings", '{"disableWorkflows":true}'],
+    steps: [settings, control("apply_flag_settings", { settings: { ultracode: true } }), settings],
+  },
+  "c-p11-set-mode": {
+    answer: (request) => allowTool(request.request_id, request.request.input, request.request.permission_suggestions),
+    steps: [...turn(writeNotes), ...turn(ready)],
+  },
 }
 
 const name = process.argv[2] ?? ""
@@ -115,6 +491,7 @@ for (const [path, content] of Object.entries(scenario.files ?? {})) {
   await mkdir(dirname(join(workDir, path)), { recursive: true })
   await writeFile(join(workDir, path), content)
 }
+if (scenario.setup) Bun.spawnSync(["sh", "-c", scenario.setup], { cwd: workDir })
 
 const readOrNull = (path: string) => readFile(path).catch(() => null)
 const guarded = [
@@ -139,6 +516,13 @@ if (scenario.steps) {
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([key]) => key !== "CLAUDECODE" && !key.startsWith("CLAUDE_CODE_")),
 )
+if (scenario.isolatedConfig) {
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("ANTHROPIC_") || key === "CLAUDE_SECURESTORAGE_CONFIG_DIR") delete env[key]
+  }
+  env.CLAUDE_CONFIG_DIR = join(root, "config")
+  await mkdir(env.CLAUDE_CONFIG_DIR)
+}
 
 const proc = Bun.spawn(
   [
@@ -150,30 +534,53 @@ const proc = Bun.spawn(
     "--include-partial-messages",
     "--include-hook-events",
     "--permission-prompt-tool=stdio",
-    "--permission-mode=default",
-    "--model=haiku",
+    `--permission-mode=${scenario.permissionMode ?? "default"}`,
+    ...(scenario.model === null ? [] : [`--model=${scenario.model ?? "haiku"}`]),
     ...(scenario.args ?? []),
   ],
-  { cwd: workDir, env, stdin: "pipe", stdout: "pipe", stderr: "inherit" },
+  { cwd: workDir, env, stdin: "pipe", stdout: "pipe", stderr: "pipe" },
 )
+const stderr = new Response(proc.stderr).text()
 
-const send = (message: Message) => proc.stdin.write(JSON.stringify(message) + "\n")
+const started = performance.now()
+const elapsed = () => Math.round(performance.now() - started)
+const messages: Message[] = []
+const sendLine = (line: string) => {
+  messages.push({ _sent: JSON.parse(line), _ms: elapsed() })
+  proc.stdin.write(line + "\n")
+}
+const send = (message: Message) => sendLine(JSON.stringify(message))
+const closeStdin = () => {
+  messages.push({ _stdin_closed: true, _ms: elapsed() })
+  void proc.stdin.end()
+}
 const pendingControls = new Set<string>()
 const controlSubtypes = new Map<string, string>()
-const controlAnswered = new Map<string, () => void>()
+const waiters: { match: (message: Message) => boolean; resolve: () => void }[] = []
+const waitFor = (match: (message: Message) => boolean) =>
+  new Promise<void>((resolve) => waiters.push({ match, resolve }))
+let ended = false
 
 const sendControl = (id: string, request: Message) => {
   controlSubtypes.set(id, request.subtype)
   send({ type: "control_request", request_id: id, request })
 }
 
+const primitives = (value: Message | undefined) =>
+  value && Object.fromEntries(Object.entries(value).filter(([, inner]) => inner === null || typeof inner !== "object"))
+
 // get_settings holds permission rules and env, so only these fields may reach disk or the terminal.
 const cutSettings = (response: Message) => ({
   keys: Object.keys(response),
+  applied: primitives(response.applied),
   sources: response.sources?.map(({ source, settings }: Message) => ({
     source,
     enabledPlugins: settings?.enabledPlugins,
     skillOverrides: settings?.skillOverrides,
+    model: settings?.model,
+    effortLevel: settings?.effortLevel,
+    modelSettings: settings?.modelSettings,
+    ultracode: settings?.ultracode,
   })),
 })
 
@@ -183,6 +590,11 @@ const cutInitialize = (response: Message) => ({
   commands: response.commands,
   agents: response.agents,
   output_style: response.output_style,
+  models: response.models,
+  current_permission_mode: response.current_permission_mode,
+  capabilities: response.capabilities,
+  session_state: response.session_state,
+  fast_mode_state: response.fast_mode_state,
 })
 const cutHooks = (response: Message) => ({
   keys: Object.keys(response),
@@ -210,20 +622,26 @@ scenario.controls?.forEach((request, index) => {
 })
 if (scenario.prompt) send({ type: "user", message: { role: "user", content: scenario.prompt } })
 
-const started = performance.now()
 const timeout = setTimeout(() => proc.kill(), scenario.timeoutMs ?? 180_000)
-const messages: Message[] = []
 const decoder = new TextDecoder()
 let buffer = ""
 let sawNotification = false
 
 const runSteps = async (steps: Step[]) => {
   for (const [index, step] of steps.entries()) {
+    if (ended) break
     if ("control" in step) {
       const id = `probe-step-${index}`
-      const answered = new Promise<void>((resolve) => controlAnswered.set(id, resolve))
-      sendControl(id, step.control)
+      const answered = waitFor((message) => message.type === "control_response" && message.response?.request_id === id)
+      sendControl(id, typeof step.control === "function" ? step.control(messages) : step.control)
       await answered
+    } else if ("send" in step) {
+      send(step.send)
+    } else if ("until" in step) {
+      await waitFor(step.until)
+    } else if ("signal" in step) {
+      messages.push({ _signal: step.signal, _ms: elapsed() })
+      proc.kill(step.signal)
     } else if ("run" in step) {
       const child = Bun.spawn(step.run, { cwd: workDir, env, stdin: "pipe", stdout: "pipe", stderr: "pipe" })
       void child.stdin.write(step.stdin)
@@ -239,7 +657,7 @@ const runSteps = async (steps: Step[]) => {
     }
   }
 }
-const stepsDone = scenario.steps ? runSteps(scenario.steps).finally(() => proc.stdin.end()) : undefined
+const stepsDone = scenario.steps ? runSteps(scenario.steps).finally(closeStdin) : undefined
 
 read: for await (const chunk of proc.stdout) {
   buffer += decoder.decode(chunk, { stream: true })
@@ -255,20 +673,16 @@ read: for await (const chunk of proc.stdout) {
     if (cut && message.response.response) message.response.response = cut(message.response.response)
     messages.push(message)
 
+    for (const waiter of waiters.filter(({ match }) => match(message))) {
+      waiters.splice(waiters.indexOf(waiter), 1)
+      waiter.resolve()
+    }
+
     if (message.type === "control_request" && message.request?.subtype === "can_use_tool") {
-      send({
-        type: "control_response",
-        response: {
-          subtype: "success",
-          request_id: message.request_id,
-          response: { behavior: "allow", updatedInput: message.request.input },
-        },
-      })
+      const answer = (scenario.answer ?? ((request) => allowTool(request.request_id, request.request.input)))(message)
+      if (answer) sendLine(answer)
     }
-    if (requestId) {
-      pendingControls.delete(requestId)
-      controlAnswered.get(requestId)?.()
-    }
+    if (requestId) pendingControls.delete(requestId)
     if (message.type === "system" && message.subtype === "task_notification") {
       sawNotification = true
       const seconds = Math.round((performance.now() - started) / 1000)
@@ -282,9 +696,17 @@ read: for await (const chunk of proc.stdout) {
   }
 }
 
+ended = true
+for (const { resolve } of waiters) resolve()
 await stepsDone
-if (!scenario.steps) proc.stdin.end()
-await proc.exited
+if (!scenario.steps) closeStdin()
+const exitCode = await proc.exited
+messages.push({ _exit: exitCode, signal: proc.signalCode, _ms: elapsed() })
+const stderrText = await stderr
+if (stderrText) {
+  messages.push({ _stderr: stderrText })
+  console.error(stderrText)
+}
 clearTimeout(timeout)
 
 for (const { path, copy, existed } of backups) {
@@ -304,8 +726,12 @@ await mkdir(outDir, { recursive: true })
 const outFile = join(outDir, `${name}.jsonl`)
 await writeFile(outFile, messages.map((message) => JSON.stringify(message)).join("\n") + "\n")
 
-const kindOf = (message: Message) =>
-  message._run ? "_run" : [message.type, message.subtype ?? message.event?.type ?? message.request?.subtype].filter(Boolean).join("/")
+const kindOf = (message: Message): string => {
+  const marker = Object.keys(message)[0] ?? ""
+  if (marker === "_sent") return `_sent ${kindOf(message._sent)}`
+  if (marker.startsWith("_")) return marker
+  return [message.type, message.subtype ?? message.event?.type ?? message.request?.subtype].filter(Boolean).join("/")
+}
 
 const shorten = (value: unknown): unknown => {
   if (typeof value === "string") return value.length > 80 ? `${value.slice(0, 80)}…` : value

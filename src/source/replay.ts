@@ -85,6 +85,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
     status,
     send(line) {
       release?.(line)
+      return true
     },
     close() {
       closed = true

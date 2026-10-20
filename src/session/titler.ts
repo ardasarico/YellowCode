@@ -22,12 +22,23 @@ function instructions(messages: readonly string[]): string {
   ].join("\n")
 }
 
+const running = new Set<Bun.Subprocess>()
+let stopped = false
+
+export function stopTitles(): void {
+  stopped = true
+  for (const proc of running) proc.kill()
+}
+
 // Asks Haiku through the claude binary, with no tools, customizations or saved session.
 export async function titleSession(messages: readonly string[]): Promise<SessionTitle | null> {
+  if (stopped) return null
   const proc = Bun.spawn(
     ["claude", "-p", "--model=haiku", "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
     { stdin: new Blob([instructions(messages)]), stdout: "pipe", stderr: "pipe" },
   )
+  running.add(proc)
+  void proc.exited.then(() => running.delete(proc))
   const [output, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
   if (code !== 0) {
     log.warn("session title failed", { code, stderr: await new Response(proc.stderr).text() })

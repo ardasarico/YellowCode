@@ -21,6 +21,7 @@ export function attentionState(session: Session): Attention {
   if (session.status === "running") return { state: "working", id: null }
   for (let index = session.items.length - 1; index >= 0; index--) {
     const item = session.byId[session.items[index] ?? ""]
+    if (item?.kind === "system" && item.level === "error") return { state: "error", id: item.id, error: item.text }
     if (item?.kind !== "turn-end") continue
     if (item.error === null) return { state: "done", id: item.id }
     return { state: "error", id: item.id, error: item.error }

@@ -30,7 +30,7 @@ import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { noticeFor, problemNotice, quitHint, type ReplayInfo } from "./notice.ts"
+import { noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
@@ -62,7 +62,8 @@ export type AppProps = {
   sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
   earlier?: boolean
   onEarlier?: () => void
-  onSubmit: (text: string, images: OutgoingImage[]) => void
+  // False when the message could not go out; the prompt keeps it.
+  onSubmit: (text: string, images: OutgoingImage[]) => boolean
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
   // Without it the session cannot rewind (a read-only transcript).
@@ -104,6 +105,8 @@ export function App(props: AppProps) {
   const dimensions = useTerminalDimensions()
   const welcome = () => props.session.items.length === 0
   const [recents, setRecents] = createSignal<SessionEntry[]>([])
+  // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held.
+  let welcomeDraft: Draft | undefined
   // The selected row of the welcome screen's recent sessions; null while the tile has the keys.
   const [recent, setRecent] = createSignal<number | null>(null)
   onMount(() => {
@@ -573,7 +576,10 @@ export function App(props: AppProps) {
     }
   })
 
-  const submit = ({ text, images, draft }: Submission) => {
+  const live = () => props.replay === null && !props.readOnly
+  const ended = () => live() && props.session.status === "ended"
+
+  const submit = ({ text, images, draft }: Submission): boolean => {
     const command = text.trim()
     if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
@@ -581,19 +587,26 @@ export function App(props: AppProps) {
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills") setDialog({ name: "skills" })
-    else if (command === "/rewind" && props.rewind) openRewind()
-    else if (command === "/redo" && props.rewind) redo()
+    else if (command === "/rewind") openRewind()
+    else if (command === "/redo") redo()
+    else if (ended()) return false
     else {
-      if (draft.chips.length > 0) drafts.set(userItems().length, { text, draft })
-      props.onSubmit(text, images)
+      const index = userItems().length
+      if (!props.onSubmit(text, images)) return false
+      if (draft.chips.length > 0) drafts.set(index, { text, draft })
     }
+    return true
   }
 
   const input = () => ({
     focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
     placeholder: props.readOnly
       ? "Read-only · resuming needs the live connection"
-      : "Enter sends the next recorded message",
+      : props.replay
+        ? "Enter sends the next recorded message"
+        : ended()
+          ? "Claude Code is not running"
+          : "Message Claude Code",
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
@@ -627,7 +640,8 @@ export function App(props: AppProps) {
   const welcomeNotice = () => {
     if (quitArmed()) return quitHint()
     const problem = pasteNotice() ?? settingsProblem()
-    return problem ? problemNotice(problem) : null
+    if (problem) return problemNotice(problem)
+    return live() && props.session.status === "starting" ? startingNotice() : null
   }
   const openBackup = () => {
     const backup = props.settingsBackup
@@ -648,6 +662,7 @@ export function App(props: AppProps) {
       usage: props.session.usage,
       replay: props.replay,
       readOnly: props.readOnly?.title ?? null,
+      status: props.session.status,
       mcpFailure: mcpFailure(),
       settingsProblem: pasteNotice() ?? settingsProblem(),
       asking: pending() !== null,
@@ -668,6 +683,7 @@ export function App(props: AppProps) {
               onLeaveDown: () => {
                 if (recentShown()) setRecent(0)
               },
+              onDraft: (draft) => (welcomeDraft = draft),
             }}
             workspace={props.workspace}
             notice={welcomeNotice()}
@@ -730,6 +746,7 @@ export function App(props: AppProps) {
             />
             <PromptBar
               {...input()}
+              draft={welcomeDraft}
               spaced
               width={chatWidth()}
               notice={notice()}

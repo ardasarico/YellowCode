@@ -1,6 +1,6 @@
 import { RGBA, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
-import { type Accessor, createEffect, createSignal, Index, type JSX, onCleanup, onMount, Show } from "solid-js"
+import { type Accessor, createEffect, createSignal, Index, type JSX, onCleanup, onMount, Show, untrack } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import type { Draft } from "../input/draft.ts"
 import { loadImage } from "../input/image-file.ts"
@@ -36,6 +36,8 @@ export type PromptBarProps = InputBlockProps & {
   agents?: boolean
   shells?: Shells
   newLines?: NewLines
+  // What the input starts from, such as a draft the welcome screen's input held.
+  draft?: Draft
 }
 
 type Shells = { count: number; selected: boolean; onOpen: () => void }
@@ -342,7 +344,7 @@ export function PromptBar(props: PromptBarProps) {
   const inner = () => promptInnerWidth(props.width)
   const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
   const dimensions = useTerminalDimensions()
-  let draft: Draft = { text: "", chips: [] }
+  let draft: Draft = untrack(() => props.draft) ?? { text: "", chips: [] }
   const [unfoldable, setUnfoldable] = createSignal(false)
 
   // The chat keeps its rows, so a tall ask scrolls inside what is left.

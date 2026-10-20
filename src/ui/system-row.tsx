@@ -1,6 +1,8 @@
-import { createSignal, Show } from "solid-js"
+import type { RGBA } from "@opentui/core"
+import { createSignal, Index, Match, Show, Switch } from "solid-js"
 import type { Retry, SystemEvent } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { cut } from "./format.ts"
 import { useTicker } from "./ticker.ts"
 
 const REASONS: Record<string, string> = {
@@ -46,18 +48,57 @@ function RetryRow(props: { retry: Retry }) {
   return <text fg={theme.warning}>{text()}</text>
 }
 
-// An info event marks a turning point in the session, so it spans the width; a warning is a single line.
+// Wrapped lines start under the text, not under the glyph.
+function GlyphRow(props: { glyph: string; text: string; fg: RGBA }) {
+  return (
+    <box flexDirection="row">
+      <text fg={props.fg} flexShrink={0}>{`${props.glyph} `}</text>
+      <text fg={props.fg} wrapMode="word">
+        {props.text}
+      </text>
+    </box>
+  )
+}
+
+const DETAIL_INDENT = "  "
+
+function ErrorRow(props: { text: string; detail: string[] }) {
+  const [width, setWidth] = createSignal(0)
+  return (
+    <box
+      flexDirection="column"
+      onSizeChange={function () {
+        setWidth(this.width)
+      }}
+    >
+      <GlyphRow glyph="✗" text={props.text} fg={theme.error} />
+      <Index each={props.detail}>
+        {(line) => (
+          <text wrapMode="none" fg={theme.muted}>
+            {DETAIL_INDENT + cut(line(), width() - DETAIL_INDENT.length)}
+          </text>
+        )}
+      </Index>
+    </box>
+  )
+}
+
+// An info event marks a turning point in the session, so it spans the width; a warning or an error is a glyph row.
 export function SystemRow(props: { item: SystemEvent }) {
   return (
-    <Show
-      when={props.item.level === "info"}
+    <Switch
       fallback={
-        <Show when={props.item.retry} fallback={<text fg={theme.warning}>{`! ${props.item.text}`}</text>}>
+        <Show when={props.item.retry} fallback={<GlyphRow glyph="!" text={props.item.text} fg={theme.warning} />}>
           {(retry) => <RetryRow retry={retry()} />}
         </Show>
       }
     >
-      <Divider text={props.item.text} />
-    </Show>
+      <Match when={props.item.level === "info"}>
+        <Divider text={props.item.text} />
+      </Match>
+      <Match when={props.item.level === "error"}>
+        <ErrorRow text={props.item.text} detail={props.item.detail ?? []} />
+      </Match>
+    </Switch>
   )
 }

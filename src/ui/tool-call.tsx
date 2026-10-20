@@ -70,6 +70,7 @@ export function toolLines(
   const question = tool.name === "AskUserQuestion" || tool.name === OWN_ASK
   if (ask?.status === "pending") return [question ? "waiting for your answer" : "waiting for your approval"]
   if (ask?.status === "denied") return [deniedLine(ask)]
+  if (ask?.status === "cancelled") return ["cancelled"]
   if (isBackgroundShell(tool)) {
     if (!shell) return ["in background"]
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
@@ -154,7 +155,7 @@ export function ToolCallRow(props: {
     startedAt: shell()?.startedAt ?? null,
   }))
   const color = () => {
-    if (props.ask && backToChat(props.ask)) return theme.muted
+    if (props.ask && (backToChat(props.ask) || props.ask.status === "cancelled")) return theme.muted
     if (background() && !waiting() && !denied()) return shellColor(shell())
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error

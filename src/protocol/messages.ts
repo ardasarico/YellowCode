@@ -213,6 +213,7 @@ const assistant = z.looseObject({
       .optional(),
   }),
   is_api_error_message: z.boolean().optional(),
+  error: z.string().optional(),
 })
 
 const hunk = z.looseObject({
@@ -326,24 +327,26 @@ const controlRequest = z.looseObject({
   ]),
 })
 
+// Each request has its own reply shape, so callers parse `response.response` with the schema they need.
 const controlResponse = z.looseObject({
   type: z.literal("control_response"),
   response: z.looseObject({
     subtype: z.string(),
     request_id: z.string(),
-    response: z
-      .looseObject({
-        behavior: z.string().optional(),
-        message: z.string().optional(),
-        updatedInput: z
-          .looseObject({
-            answers: z.record(z.string(), z.string()).optional(),
-            annotations: z.record(z.string(), z.looseObject({ notes: z.string().optional() })).optional(),
-          })
-          .optional(),
-      })
-      .optional(),
+    response: z.unknown().optional(),
   }),
+})
+
+// updatedInput is the tool's own input, so only a question's answers in it are read (questionAnswers).
+export const permissionReply = z.looseObject({
+  behavior: z.string().optional(),
+  message: z.string().optional(),
+  updatedInput: z.unknown().optional(),
+})
+
+export const questionAnswers = z.looseObject({
+  answers: z.record(z.string(), z.string()).optional(),
+  annotations: z.record(z.string(), z.looseObject({ notes: z.string().optional() })).optional(),
 })
 
 export const taskOutput = z.looseObject({ output: z.string(), total_bytes: z.number(), truncated: z.boolean() })

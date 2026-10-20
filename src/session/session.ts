@@ -2,6 +2,9 @@ import { basename } from "node:path"
 import { createStore, produce } from "solid-js/store"
 import { log } from "../log/log.ts"
 import {
+  OWN_ASK,
+  permissionReply,
+  questionAnswers,
   taskOutput,
   type ContentBlock,
   type PermissionUpdate,
@@ -10,6 +13,7 @@ import {
 } from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
+import { LOGIN_HINT, needsLogin } from "./login.ts"
 import type { Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
@@ -17,6 +21,7 @@ import type {
   Item,
   ItemId,
   Session,
+  SessionEnd,
   SessionInfo,
   Task,
   TaskState,
@@ -33,7 +38,8 @@ export type SessionStore = {
   prepend(events: SourceEvent[]): void
   answer(response: string): void
   stopRunning(): void
-  end(): void
+  // With a problem, Claude Code went away on its own: running work stops and the chat ends with an error row.
+  end(problem?: SessionEnd): void
   rewind(rewound: Rewound): void
   redo(): void
 }
@@ -227,10 +233,10 @@ export function initInfo(message: System<"init">): SessionInfo {
   }
 }
 
-export function createSession(options?: { idPrefix?: string }): SessionStore {
+export function createSession(options?: { idPrefix?: string; starting?: boolean }): SessionStore {
   const [state, setState] = createStore<Session>({
     info: null,
-    status: "idle",
+    status: options?.starting ? "starting" : "idle",
     items: [],
     byId: {},
     tasks: {},
@@ -261,6 +267,9 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   // The live API retry row; it goes once a reply starts or the turn ends.
   let retryId: ItemId | null = null
   let retryAttempt = 0
+  // A failed login shows its hint once, after the turn it failed.
+  let loginNeeded = false
+  let loginShown = false
   // When each streaming thinking block started, so its end can give it a duration.
   const thinkingSince = new Map<ItemId, number>()
   const idPrefix = options?.idPrefix ?? ""
@@ -434,7 +443,11 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
 
   function onAssistant(message: Of<"assistant">): void {
     // claude repeats an API error as a reply of its own, and the turn's end already shows it.
-    if (message.is_api_error_message) return
+    if (message.is_api_error_message) {
+      const text = message.message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
+      if (needsLogin(message.error, text)) loginNeeded = true
+      return
+    }
     dropRetry()
     const key = message.parent_tool_use_id ?? MAIN
     const usage = message.message.usage
@@ -568,6 +581,11 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       },
       null,
     )
+    if (loginNeeded && !loginShown) {
+      loginShown = true
+      add({ kind: "system", id: newId("system"), text: LOGIN_HINT, level: "warning" }, null)
+    }
+    loginNeeded = false
     const usage = message.usage
     const window = state.info ? message.modelUsage?.[state.info.model]?.contextWindow : undefined
     setState(
@@ -841,17 +859,61 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
     } else if (message.type === "control_request" && message.request.subtype === "get_task_output") {
       outputRequests.set(message.request_id, message.request.task_id)
     } else if (message.type === "control_response") {
-      const reply = message.response.response
-      update(`ask-${message.response.request_id}`, (item) => {
+      const payload = message.response.response
+      const parsed = payload === undefined ? null : permissionReply.safeParse(payload)
+      // A reply that cannot be read must not settle the ask, least of all as allowed.
+      if (parsed && !parsed.success) {
+        log.warn(`invalid control_response message: ${parsed.error.message}`)
+        unreadable("control_response")
+        return
+      }
+      const reply = parsed?.data
+      const id = `ask-${message.response.request_id}`
+      const ask = state.byId[id]
+      const question = ask?.kind === "ask" && (ask.toolName === "AskUserQuestion" || ask.toolName === OWN_ASK)
+      const answered =
+        question && reply?.updatedInput !== undefined ? questionAnswers.safeParse(reply.updatedInput) : null
+      if (answered && !answered.success) {
+        log.warn(`invalid control_response message: ${answered.error.message}`)
+        unreadable("control_response")
+        return
+      }
+      update(id, (item) => {
         // The first response settles the ask; in replay that is the user's own, and the recorded one comes after.
         if (item.kind !== "ask" || item.status !== "pending") return
-        const answers = reply?.updatedInput?.answers
+        const answers = answered?.data.answers
         if (reply?.behavior === "deny") item.status = "denied"
         else if (answers) item.status = "answered"
         else item.status = "allowed"
         item.answers = answers ?? {}
-        item.notes = notesOf(reply?.updatedInput?.annotations)
+        item.notes = notesOf(answered?.data.annotations)
         item.denial = reply?.behavior === "deny" ? (reply.message ?? "") : ""
+      })
+    }
+  }
+
+  function unreadable(key: string): void {
+    const seen = invalid.get(key)
+    if (!seen) {
+      const id = newId("system")
+      invalid.set(key, { id, count: 1 })
+      add({ kind: "system", id, text: `Could not read a ${key} message`, level: "warning" }, null)
+      return
+    }
+    seen.count += 1
+    update(seen.id, (item) => {
+      if (item.kind === "system") item.text = `Could not read ${key} messages (×${seen.count})`
+    })
+  }
+
+  function stopRunning(): void {
+    for (const task of Object.values(state.tasks)) if (task.state === "running") finishTask(task.id, "stopped")
+    for (const item of Object.values(state.byId)) {
+      if (item.kind !== "tool" || (item.status !== "running" && item.agent?.state !== "running")) continue
+      update(item.id, (tool) => {
+        if (tool.kind !== "tool") return
+        if (tool.status === "running") tool.status = "stopped"
+        if (tool.agent?.state === "running") tool.agent.state = "stopped"
       })
     }
   }
@@ -859,23 +921,11 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
   return {
     state,
     apply(dir, parsed, at) {
+      if (dir === "in" && state.status === "starting") setState("status", "idle")
       now = at
       shift = Date.now() - at
       if (state.usage.startedAt === null) setState("usage", "startedAt", Date.now())
-      if (parsed.kind === "invalid") {
-        const seen = invalid.get(parsed.key)
-        if (!seen) {
-          const id = newId("system")
-          invalid.set(parsed.key, { id, count: 1 })
-          add({ kind: "system", id, text: `Could not read a ${parsed.key} message`, level: "warning" }, null)
-          return
-        }
-        seen.count += 1
-        update(seen.id, (item) => {
-          if (item.kind === "system") item.text = `Could not read ${parsed.key} messages (×${seen.count})`
-        })
-        return
-      }
+      if (parsed.kind === "invalid") return unreadable(parsed.key)
       if (parsed.kind === "unknown") return
       if (dir === "in") onIncoming(parsed.message)
       else onOutgoing(parsed.message)
@@ -898,20 +948,21 @@ export function createSession(options?: { idPrefix?: string }): SessionStore {
       if (parsed.kind === "message") onOutgoing(parsed.message)
     },
     // For a stored transcript: work with no recorded outcome will never finish.
-    stopRunning() {
-      for (const task of Object.values(state.tasks)) if (task.state === "running") finishTask(task.id, "stopped")
-      for (const item of Object.values(state.byId)) {
-        if (item.kind !== "tool" || (item.status !== "running" && item.agent?.state !== "running")) continue
-        update(item.id, (tool) => {
-          if (tool.kind !== "tool") return
-          if (tool.status === "running") tool.status = "stopped"
-          if (tool.agent?.state === "running") tool.agent.state = "stopped"
-        })
-      }
-    },
-    end() {
+    stopRunning,
+    end(problem) {
       for (const id of Object.keys(state.byId)) stopStreaming(id)
       cursors.clear()
+      if (problem) {
+        stopRunning()
+        for (const item of Object.values(state.byId)) {
+          if (item.kind !== "ask" || item.status !== "pending") continue
+          update(item.id, (ask) => {
+            if (ask.kind === "ask") ask.status = "cancelled"
+          })
+        }
+        dropRetry()
+        add({ kind: "system", id: newId("system"), text: problem.text, level: "error", detail: problem.detail }, null)
+      }
       setState("status", "ended")
     },
   }

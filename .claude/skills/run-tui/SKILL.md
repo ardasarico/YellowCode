@@ -16,10 +16,37 @@ tmux kill-session -t $S 2>/dev/null
 tmux new-session -d -s $S -x 120 -y 40 -c "$PWD" 'bun run dev --replay fixtures/sessions/chat.jsonl --skip-terminal-check; echo "[exited $?]"; sleep 600'
 ```
 
-`--replay` is required; any recording in `fixtures/sessions/` works.
+`--replay` plays a recording from `fixtures/sessions/`; any of them works.
+Use a replay for UI work: it needs no account and plays the same every time.
 
 The trailing `echo` and `sleep` keep the pane open after the app exits, so a
 crash and its exit code stay readable.
+
+### Live
+
+Without `--replay` the app spawns the real `claude` in its working directory,
+with the user's account, settings and tools. Isolate a live run:
+
+- Run it in a throwaway directory (a fresh `git init` repo under `/tmp`), with
+  the app started by its absolute path, so tools cannot touch this repo.
+- Drop the variables a parent Claude Code session passes down (`CLAUDECODE`,
+  `CLAUDE_CODE_*`, `CLAUDE_EFFORT`, `CLAUDE_PID`), or the child picks up the
+  parent's session id, plugin dirs and effort.
+- Pick a cheap model with `ANTHROPIC_MODEL`, and use a private tmux socket
+  (`-L`) so the user's tmux server is not touched.
+
+```bash
+D=/tmp/yc-live-run && rm -rf $D && mkdir -p $D && git -C $D init -q
+APP="$PWD/src/index.tsx"
+UNSET=$(env | grep -oE '^(CLAUDECODE|CLAUDE_CODE_[A-Z_]+|CLAUDE_EFFORT|CLAUDE_PID)=' | tr -d = | sed 's/^/-u /' | tr '\n' ' ')
+tmux -L yc kill-session -t $S 2>/dev/null
+tmux -L yc new-session -d -s $S -x 120 -y 40 -c $D "env $UNSET ANTHROPIC_MODEL=haiku bun --config=$PWD/bunfig.toml $APP --skip-terminal-check; echo \"[exited \$?]\"; sleep 600"
+```
+
+Pass `-L yc` to every `tmux` command below for such a session. The app logs
+`claude started` and `claude exited` to `~/.yellowcode/logs/yellowcode.log`
+(or `$YELLOWCODE_LOG_DIR`). After quitting, check that no claude is left:
+`pgrep -fl -- --input-format=stream-json`.
 
 ## Wait for the screen
 

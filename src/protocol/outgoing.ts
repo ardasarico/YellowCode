@@ -23,6 +23,13 @@ export const TOOL_DECLINED = "The user declined this tool call."
 export const QUESTION_TO_CHAT =
   "The user wants to talk this over in the chat instead of answering. Stop and wait for their message."
 
+export function errorResponse(requestId: string, message: string): string {
+  return JSON.stringify({
+    type: "control_response",
+    response: { subtype: "error", request_id: requestId, error: message },
+  })
+}
+
 function permissionResponse(requestId: string, response: unknown): string {
   return JSON.stringify({
     type: "control_response",

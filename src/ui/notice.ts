@@ -1,5 +1,5 @@
 import type { RGBA } from "@opentui/core"
-import type { Usage, Window } from "../session/types.ts"
+import type { SessionStatus, Usage, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { formatUntil } from "./format.ts"
 
@@ -16,6 +16,7 @@ export type NoticeState = {
   usage: Usage
   replay: ReplayInfo | null
   readOnly: string | null
+  status: SessionStatus
   mcpFailure: string | null
   settingsProblem: string | null
   asking: boolean
@@ -33,6 +34,7 @@ const STATUS_TEXT = {
 export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: theme.muted })
 export const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
 export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
+export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
 
 const HINTS = "F3 sidebar · F4 ultracode"
 
@@ -65,12 +67,15 @@ function warningText(usage: Usage, now: number): Span | null {
 function leftSpans(state: NoticeState): Span[] {
   if (state.quitArmed) return [quitHint()]
   if (state.rewindArmed) return [rewindHint()]
+  const live = state.replay === null && state.readOnly === null
+  if (live && state.status === "ended") return [{ text: "✗ Claude Code exited · Ctrl+C: quit", fg: theme.error }]
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
+  if (live) return state.status === "starting" ? [startingNotice()] : []
   const replay = state.replay
   if (replay === null) return []
   return [{ text: `▶ ${replay.file} · ${replay.speed} · ${STATUS_TEXT[replay.status()]}`, fg: theme.muted }]

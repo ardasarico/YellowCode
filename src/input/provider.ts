@@ -26,6 +26,21 @@ export type InputProvider = {
   files(query: string): Promise<string[]>
 }
 
+export function liveProvider(): InputProvider {
+  // Rewinding a live session waits for hidden git snapshots and --resume-session-at.
+  const commands = withOwnCommands([]).filter((command) => command.name !== "rewind" && command.name !== "redo")
+  const models = MODELS.map((value) => ({ value, note: "" }))
+  return {
+    commands: () => commands,
+    models: () => models,
+    skills: () => [],
+    settingsSources: () => [],
+    skillRows: () => null,
+    pluginHooks: () => [],
+    files: suggestFiles,
+  }
+}
+
 export function replayProvider(recording: Recording): InputProvider {
   const commands = withOwnCommands(
     recordedCommands(recording).map(({ name, description, argumentHint, aliases }) => ({

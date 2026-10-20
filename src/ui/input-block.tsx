@@ -1,5 +1,5 @@
 import { type BoxRenderable, type KeyBinding, TextAttributes } from "@opentui/core"
-import { Show } from "solid-js"
+import { onCleanup, Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import { loadImage } from "../input/image-file.ts"
 import type { Draft } from "../input/draft.ts"
@@ -28,11 +28,13 @@ export type InputBlockProps = {
   model: string | null
   width: number
   provider: InputProvider
-  onSubmit: (submission: Submission) => void
+  onSubmit: (submission: Submission) => boolean
   onLeaveDown?: () => void
   onQuit?: () => void
   onEscape?: () => void
   fill?: { draft: Draft; seq: number }
+  // Gets what the input still holds when it goes away.
+  onDraft?: (draft: Draft) => void
 }
 
 export const TILE_PADDING = 3
@@ -71,6 +73,7 @@ export function InputBlock(props: InputBlockProps) {
     onQuit: () => props.onQuit?.(),
     fill: () => props.fill,
   })
+  onCleanup(() => props.onDraft?.(completion.draft()))
   const modelLabel = () => {
     if (!props.model) return ""
     return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth())

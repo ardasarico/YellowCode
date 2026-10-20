@@ -108,7 +108,7 @@ export type Ask = {
   suggestion: PermissionUpdate | null
   defaultToNo: boolean
   safetyCheck: boolean
-  status: "pending" | "allowed" | "denied" | "answered"
+  status: "pending" | "allowed" | "denied" | "answered" | "cancelled"
   answers: Record<string, string>
   notes: Record<string, string>
   denial: string
@@ -128,7 +128,16 @@ export type TurnEnd = {
 }
 // `at` is epoch milliseconds, shifted like every other replayed time.
 export type Retry = { attempt: number; max: number; delayMs: number; status: number | null; reason: string; at: number }
-export type SystemEvent = { kind: "system"; id: ItemId; text: string; level: "info" | "warning"; retry?: Retry }
+export type SystemEvent = {
+  kind: "system"
+  id: ItemId
+  text: string
+  level: "info" | "warning" | "error"
+  retry?: Retry
+  detail?: string[]
+}
+// Why Claude Code went away, for the row that ends the chat; `detail` is the tail of its stderr.
+export type SessionEnd = { text: string; detail: string[] }
 export type ShellEnd = { kind: "shell-end"; id: ItemId; taskId: string }
 
 export type Item = UserMessage | AssistantText | Thinking | ToolCall | Ask | TurnEnd | SystemEvent | ShellEnd
@@ -176,7 +185,8 @@ export type Usage = {
   warning: { status: string; type: string; resetsAt: number } | null
 }
 
-export type SessionStatus = "idle" | "running" | "ended"
+// "starting" lasts until Claude Code first writes or the first message goes out.
+export type SessionStatus = "starting" | "idle" | "running" | "ended"
 
 export type Session = {
   info: SessionInfo | null

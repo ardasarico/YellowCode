@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test"
 import { OWN_ASK } from "../protocol/messages.ts"
+import { userMessage } from "../protocol/outgoing.ts"
+import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
 import type { Ask, Item, Session, TurnEnd } from "../session/types.ts"
 import { attentionState, notification } from "./attention.ts"
@@ -56,4 +58,23 @@ test("each state pings only at the levels that allow it", () => {
     expect(notification(attention, "waiting")).toBe(waiting)
     expect(notification(attention, "off")).toBeNull()
   }
+})
+
+test("Claude Code going away mid-turn is an error, with its ask cancelled and its tool stopped", () => {
+  const session = createSession()
+  const input = { command: "sleep 9" }
+  const incoming = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  session.apply("out", parse(userMessage("run it")), 0)
+  incoming({ type: "assistant", message: { id: "a", content: [{ type: "tool_use", id: "t1", name: "Bash", input }] } })
+  incoming({
+    type: "control_request",
+    request_id: "r1",
+    request: { subtype: "can_use_tool", tool_name: "Bash", tool_use_id: "t1", input },
+  })
+  session.end({ text: "Claude Code stopped (SIGKILL)", detail: [] })
+
+  expect(attentionState(session.state)).toMatchObject({ state: "error", error: "Claude Code stopped (SIGKILL)" })
+  expect(session.state.byId["ask-r1"]).toMatchObject({ status: "cancelled" })
+  expect(session.state.byId["t1"]).toMatchObject({ status: "stopped" })
+  expect(session.state.status).toBe("ended")
 })

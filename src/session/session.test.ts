@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { answerQuestions, denyTool, QUESTION_TO_CHAT } from "../protocol/outgoing.ts"
+import { allowTool, answerQuestions, denyTool, QUESTION_TO_CHAT } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
+import { LOGIN_HINT } from "./login.ts"
 import { createSession, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
@@ -95,6 +96,13 @@ const canUseTool = (extra: object) => ({
   request: { subtype: "can_use_tool", tool_name: "Bash", tool_use_id: "t1", input: { command: "ls" }, ...extra },
 })
 
+test("allowing a tool whose own input has annotations settles its ask as allowed", () => {
+  const input = { path: "a.ts", annotations: [{ line: 1, message: "x" }] }
+  const session = feed(canUseTool({ tool_name: "mcp__fake__annotate", input }))
+  session.apply("out", parse(allowTool("r1", input)), 0)
+  expect(rows(session)).toMatchObject([{ kind: "ask", status: "allowed" }])
+})
+
 test("an ask offers the first suggestion that is not switching to auto mode", () => {
   const session = feed(
     canUseTool({
@@ -122,8 +130,8 @@ test("an ask offers no suggestion when always allow is suppressed", () => {
   expect(session.state.byId["ask-r1"]).toMatchObject({ suggestion: null })
 })
 
-const settle = (response: object) => {
-  const session = feed(canUseTool({}))
+const settle = (response: object, ask: object = {}) => {
+  const session = feed(canUseTool(ask))
   const reply = { type: "control_response", response: { subtype: "success", request_id: "r1", response } }
   session.apply("out", parse(JSON.stringify(reply)), 0)
   return session.state.byId["ask-r1"]
@@ -133,10 +141,13 @@ test("the outgoing response settles the ask", () => {
   expect(settle({ behavior: "deny", message: "no" })).toMatchObject({ status: "denied" })
   expect(settle({ behavior: "allow", updatedInput: {} })).toMatchObject({ status: "allowed" })
   expect(
-    settle({
-      behavior: "allow",
-      updatedInput: { answers: { "Which?": "A" }, annotations: { "Which?": { notes: "because" } } },
-    }),
+    settle(
+      {
+        behavior: "allow",
+        updatedInput: { answers: { "Which?": "A" }, annotations: { "Which?": { notes: "because" } } },
+      },
+      { tool_name: "AskUserQuestion" },
+    ),
   ).toMatchObject({ status: "answered", answers: { "Which?": "A" }, notes: { "Which?": "because" } })
 })
 
@@ -339,6 +350,35 @@ test("a turn that fails after retrying keeps only its end, with the retry count"
     result: "API Error: 529 Overloaded",
   })
   expect(rows(session)).toMatchObject([{ kind: "turn-end", error: "API Error: 529 Overloaded", retries: 2 }])
+})
+
+const failedLogin = (text: string) =>
+  rows(
+    feed(
+      {
+        type: "assistant",
+        is_api_error_message: true,
+        error: "authentication_failed",
+        message: { id: "a", model: "<synthetic>", content: [{ type: "text", text }] },
+      },
+      {
+        type: "result",
+        subtype: "success",
+        is_error: true,
+        total_cost_usd: 0,
+        duration_ms: 0,
+        usage: { input_tokens: 0, output_tokens: 0 },
+        result: text,
+      },
+    ),
+  )
+
+test("a failed login adds the sign-in hint after the turn, an invalid API key does not", () => {
+  expect(failedLogin("Not logged in · Please run /login")).toMatchObject([
+    { kind: "turn-end", error: "Not logged in · Please run /login" },
+    { kind: "system", level: "warning", text: LOGIN_HINT },
+  ])
+  expect(failedLogin("Invalid API key · Fix external API key").map((item) => item.kind)).toEqual(["turn-end"])
 })
 
 test("thinking text fills from the stream", () => {

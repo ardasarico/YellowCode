@@ -43,7 +43,8 @@ export type CompletionOptions = {
   width: Accessor<number>
   // Rows free above the input for the list.
   room: Accessor<number>
-  onSubmit: (submission: Submission) => void
+  // False keeps the text in the prompt.
+  onSubmit: (submission: Submission) => boolean
   readClipboard: ReadClipboard
   loadImage: LoadImage
   history?: Accessor<Draft[]>
@@ -253,8 +254,7 @@ export function useCompletion(options: CompletionOptions) {
   const submit = () => {
     if (!area) return
     const draft = chips.draft()
-    options.onSubmit({ ...expandDraft(draft), draft })
-    chips.clear()
+    if (options.onSubmit({ ...expandDraft(draft), draft })) chips.clear()
   }
 
   // Only the changed middle is replaced, so the chips around it and the undo history stay.
