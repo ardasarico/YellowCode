@@ -8,6 +8,9 @@ export const SIDEBAR_MIN_WIDTH = 30
 // The empty cells between content and the window or sidebar edge, the same on both sides of the chat, the prompt and
 // the sidebar.
 export const EDGE_GAP = 2
+// One more empty cell before a docked sidebar: the terminal's own padding already widens the chat's left edge, so its
+// right edge looked cramped beside the sidebar's fill.
+export const SIDEBAR_GAP = 1
 
 // The sidebar takes at most half the terminal. It narrows down to its minimum to dock beside a 60-column chat; in a
 // terminal narrower than that it never docks, and F3 lays it over the right side of the chat instead.

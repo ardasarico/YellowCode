@@ -4,7 +4,7 @@ import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, wrapLines } from "./format.ts"
-import { EDGE_GAP } from "./layout.ts"
+import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
 import { shortName, toolPrefix } from "./mcp/servers.ts"
 import { useTicker } from "./ticker.ts"
@@ -269,7 +269,8 @@ export function Sidebar(props: SidebarProps) {
     tick()
     return Date.now()
   }
-  const inner = () => props.width - 2 * EDGE_GAP
+  const gap = () => (props.overlay ? 0 : SIDEBAR_GAP)
+  const inner = () => props.width - gap() - 2 * EDGE_GAP
   const [hover, setHover] = createSignal(false)
   const edgeColor = () => {
     if (props.resizing) return theme.accent
@@ -281,7 +282,8 @@ export function Sidebar(props: SidebarProps) {
     <box
       flexDirection="row"
       flexShrink={0}
-      width={props.width}
+      width={props.width - gap()}
+      marginLeft={gap()}
       backgroundColor={theme.band ?? theme.canvas}
       position={props.overlay ? "absolute" : "relative"}
       right={0}

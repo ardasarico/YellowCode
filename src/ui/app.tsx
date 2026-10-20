@@ -29,7 +29,7 @@ import { windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
-import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
+import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, problemNotice, quitHint, type ReplayInfo } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -700,7 +700,8 @@ export function App(props: AppProps) {
             const width = dimensions().width
             const half = Math.floor(width / 2)
             const max = Math.max(SIDEBAR_MIN_WIDTH, Math.min(half, width - MIN_CHAT_WIDTH))
-            setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x)))
+            const gap = sidebar() === "docked" ? SIDEBAR_GAP : 0
+            setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x + gap)))
           }}
           onMouseUp={() => {
             if (!resizing()) return
