@@ -130,8 +130,16 @@ function PageBar(props: { questions: Question[]; page: number; answered: boolean
             const current = () => tab().page === props.page
             return (
               <>
-                <span style={{ fg: theme.frame }}>{index > 0 ? "  │  " : ""}</span>
-                <span style={{ fg: current() ? theme.text : theme.muted, bold: current() }}>{tab().text}</span>
+                {index > 0 ? " " : ""}
+                <span
+                  style={{
+                    fg: current() ? theme.text : theme.muted,
+                    bg: current() ? (theme.tile ?? theme.band ?? undefined) : undefined,
+                    bold: current(),
+                  }}
+                >
+                  {` ${tab().text} `}
+                </span>
               </>
             )
           }}
@@ -324,8 +332,8 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
                 </Index>
               </box>
               <box id="extra-row" flexDirection="row">
-                <text fg={onExtraRow() ? theme.accent : theme.muted} flexShrink={0}>
-                  {"❯ "}
+                <text fg={theme.accent} flexShrink={0}>
+                  {onExtraRow() ? "❯ " : "  "}
                 </text>
                 <input
                   focused={onExtraRow()}
@@ -441,8 +449,8 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
                 </box>
               </Show>
               <box id="own-row" flexDirection="row">
-                <text fg={onOwnRow() ? theme.accent : theme.muted} flexShrink={0}>
-                  {"❯ "}
+                <text fg={theme.accent} flexShrink={0}>
+                  {onOwnRow() ? "❯ " : "  "}
                 </text>
                 <input
                   focused={onOwnRow()}

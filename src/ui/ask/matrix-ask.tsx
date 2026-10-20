@@ -12,10 +12,10 @@ import type { AskViewProps } from "./ask-surface.tsx"
 import { cutStep, fitKeyHints, LABEL_EXTRA, matrixColumns, stackSteps, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 
-const MATRIX_PAGE = 5
-// When a step would be cut beside the labels, each row's steps go in full on the rows under its label, four rows
+const MATRIX_PAGE = 8
+// When a step would be cut beside the labels, each row's steps go in full on the rows under its label, six rows
 // to a page.
-const STACKED_PAGE = 4
+const STACKED_PAGE = 6
 const STEPS_INDENT = 4
 const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc back to chat"
 const SHORT_HINTS = "↑↓ · ←→ · space · enter · n · esc"

@@ -7,14 +7,14 @@ const bar = (headers: string[], current: number, width: number) => {
 }
 
 test("the page bar cuts long headers first and folds pages only when that is not enough", () => {
-  expect(bar(["Storage", "Formats"], 0, 60)).toBe("1. Storage | 2. Formats | Submit")
+  expect(bar(["Storage", "Formats"], 0, 60)).toBe("Storage | Formats | Submit (1 of 2)")
   expect(pageWindow(["Storage location for settings", "Formats"], 0, [], 40).tabs[0]?.text).toEndWith("…")
   const nine = ["Storage", "Format", "Sync", "Theme", "Font", "Keys", "Sidebar", "Titles", "Updates"]
-  expect(bar(nine, 4, 70)).toBe("‹ +4 | 5. Font | 6. Keys | +3 › | Submit (5 of 9)")
-  expect(bar(nine, 4, 40)).toBe("‹ +4 | 5. Font | +4 › | Submit")
+  expect(bar(nine, 4, 70)).toBe("‹ +3 | Theme | Font | Keys | Sidebar | +2 › | Submit (5 of 9)")
+  expect(bar(nine, 4, 30)).toBe("‹ +4 | Font | +4 › | Submit")
   for (const current of [0, 4, 8, 9]) {
     const { tabs, indicator } = pageWindow(nine, current, [], 70)
-    const width = 2 + tabs.reduce((sum, tab, i) => sum + Bun.stringWidth(tab.text) + (i ? 5 : 0), 0)
+    const width = 2 + tabs.reduce((sum, tab, i) => sum + Bun.stringWidth(tab.text) + 2 + (i ? 1 : 0), 0)
     expect(width + (indicator ? indicator.length + 2 : 0)).toBeLessThanOrEqual(70)
     expect(tabs.some((tab) => tab.page === current)).toBe(true)
   }

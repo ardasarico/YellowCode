@@ -127,17 +127,19 @@ export function stackSteps(scale: string[], width: number): { at: number; text: 
 // `page` is null on a fold marker; Submit's page is the number of questions.
 export type PageTab = { text: string; page: number | null }
 
-const SEPARATOR = 5
+// Each tab is a chip with a cell of padding on both sides, and one cell between chips.
+const CHIP = 2
+const SEPARATOR = 1
 const SHORTEST = 12
 const LONGEST = 20
 
 const barWidth = (tabs: PageTab[], indicator: string) =>
   2 +
-  tabs.reduce((sum, tab, index) => sum + Bun.stringWidth(tab.text) + (index > 0 ? SEPARATOR : 0), 0) +
+  tabs.reduce((sum, tab, index) => sum + Bun.stringWidth(tab.text) + CHIP + (index > 0 ? SEPARATOR : 0), 0) +
   (indicator ? Bun.stringWidth(indicator) + 2 : 0)
 
 // Every page on one row, cutting the longest headers first. When even short labels do not fit, the current page and
-// the neighbours that fit stay, the rest fold into `‹ +N` / `+N ›`, and `N of M` goes on the right if it fits.
+// the neighbours that fit stay and the rest fold into `‹ +N` / `+N ›`. `N of M` goes on the right whenever it fits.
 export function pageWindow(
   headers: string[],
   current: number,
@@ -145,25 +147,24 @@ export function pageWindow(
   width: number,
 ): { tabs: PageTab[]; indicator: string } {
   const count = headers.length
-  const labels = (limit: number) =>
-    headers.map((header, index) => cut(`${index + 1}. ${header}`, limit) + (answered[index] ? " ✓" : ""))
+  const labels = (limit: number) => headers.map((header, index) => cut(header, limit) + (answered[index] ? " ✓" : ""))
   const tabsOf = (texts: string[], from: number, to: number): PageTab[] => [
     ...(from > 0 ? [{ text: `‹ +${from}`, page: null }] : []),
     ...texts.slice(from, to + 1).map((text, offset) => ({ text, page: from + offset })),
     ...(to < count - 1 ? [{ text: `+${count - 1 - to} ›`, page: null }] : []),
     { text: "Submit", page: count },
   ]
-  let limit = Math.max(...headers.map((header, index) => Bun.stringWidth(`${index + 1}. ${header}`)), 0)
+  const counter = current < count ? `${current + 1} of ${count}` : ""
+  let limit = Math.max(...headers.map((header) => Bun.stringWidth(header)), 0)
   // No limit fits when even the shortest labels do not.
   if (limit > SHORTEST && barWidth(tabsOf(labels(SHORTEST), 0, count - 1), "") > width) limit = SHORTEST
   while (limit > SHORTEST && barWidth(tabsOf(labels(limit), 0, count - 1), "") > width) limit--
   const all = tabsOf(labels(limit), 0, count - 1)
-  if (barWidth(all, "") <= width) return { tabs: all, indicator: "" }
+  if (barWidth(all, "") <= width) return { tabs: all, indicator: barWidth(all, counter) <= width ? counter : "" }
 
   const texts = labels(LONGEST)
   let from = Math.min(current, count - 1)
   let to = from
-  const counter = current < count ? `${current + 1} of ${count}` : ""
   const indicator = barWidth(tabsOf(texts, from, to), counter) <= width ? counter : ""
   for (let grew = true; grew;) {
     grew = false
