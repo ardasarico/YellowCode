@@ -1,5 +1,13 @@
 import { expect, test } from "bun:test"
-import { claudeCommands, type Command, hintValues, matchCommands, OWN_COMMANDS, withOwnCommands } from "./commands.ts"
+import {
+  claudeCommands,
+  type Command,
+  hintValues,
+  matchCommands,
+  OWN_COMMANDS,
+  untitledCommand,
+  withOwnCommands,
+} from "./commands.ts"
 
 const command = (name: string, aliases: string[] = [], description = ""): Command => ({
   name,
@@ -83,4 +91,15 @@ test("Claude Code's commands keep their aliases and drop help, internal and term
   // Own commands come last, and the own /mcp hides claude's.
   expect(merged.slice(0, -OWN_COMMANDS.length)).toEqual([command("clear", ["reset", "new"])])
   expect(merged.slice(-OWN_COMMANDS.length)).toEqual(OWN_COMMANDS)
+})
+
+test("Claude Code's own commands get a title only from the user's words after them", () => {
+  const own = (name: string, aliases: string[] = []): Command => ({ ...command(name, aliases), builtin: true })
+  const list = [own("model"), own("deep-research"), own("rename"), own("usage", ["cost"]), command("fix-issue")]
+  expect(untitledCommand(list, "/model sonnet")).toBe(true)
+  expect(untitledCommand(list, "/cost")).toBe(true)
+  expect(untitledCommand(list, "/deep-research tokio against smol")).toBe(false)
+  expect(untitledCommand(list, "/rename my new session name")).toBe(true)
+  expect(untitledCommand(list, "/fix-issue 123")).toBe(false)
+  expect(untitledCommand(list, "plain words")).toBe(false)
 })

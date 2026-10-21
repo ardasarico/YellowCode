@@ -2,7 +2,7 @@ import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { findCommand } from "../input/commands.ts"
+import { untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
@@ -181,12 +181,9 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  // Claude Code's own commands (/model, /clear, /context) name no work; a skill or a custom command carries the
-  // user's words, so it is titled.
-  const runsBuiltin = (text: string) => {
-    const name = /^\/(\S+)/.exec(text.trimStart())?.[1]
-    return name !== undefined && findCommand(props.provider.commands(), name)?.builtin === true
-  }
+  // Claude Code's own commands (/model, /clear, /context) name no work unless the user's words follow them; a skill
+  // or a custom command carries them, so it is titled.
+  const runsBuiltin = (text: string) => untitledCommand(props.provider.commands(), text)
   const haikuTitle = useSessionTitle(
     () => props.session,
     () => props.titles && settings.sessionTitle === "yellowcode",

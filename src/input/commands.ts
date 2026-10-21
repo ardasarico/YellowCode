@@ -143,6 +143,17 @@ export function findCommand(commands: Command[], name: string): Command | null {
   )
 }
 
+const TITLED_WORDS = 3
+
+// A message running one of Claude Code's own commands gives a session no title (/model sonnet), unless the user's own
+// words follow it (/deep-research tokio against smol); /rename names the session itself.
+export function untitledCommand(commands: Command[], text: string): boolean {
+  const [, name, args = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(text.trim()) ?? []
+  const command = name === undefined ? null : findCommand(commands, name)
+  if (command?.builtin !== true) return false
+  return command.name === "rename" || args.split(/\s+/).filter(Boolean).length < TITLED_WORDS
+}
+
 export function argumentValues(command: Command, models: ArgumentValue[]): ArgumentValue[] {
   if (command.name === "model" && models.length > 0) return models
   return hintValues(command.argumentHint).map((value) => ({ value, note: "" }))

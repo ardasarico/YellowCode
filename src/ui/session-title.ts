@@ -3,7 +3,7 @@ import { type SessionTitle, titleSession } from "../session/titler.ts"
 import type { Session } from "../session/types.ts"
 
 // Refreshes the title after every user message; one request at a time, then once more if messages arrived meanwhile.
-// A message that runs a slash command (/model, /clear, a skill) names no work, so it neither asks nor counts.
+// A message isCommand rules out (/model sonnet, /clear) names no work, so it neither asks nor counts.
 export function useSessionTitle(
   session: () => Session,
   enabled: () => boolean,
