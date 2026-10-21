@@ -518,6 +518,84 @@ test("only a turn in progress can be interrupted, and the session knows who star
   expect(session.state).toMatchObject({ status: "running", turn: "claude" })
 })
 
+test("/clear starts the chat over but keeps a message sent after it, and local commands get no turn end", () => {
+  const session = createSession()
+  const send = (line: string) => session.apply("out", parse(line), 0)
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const done = { ...result, subtype: "success", is_error: false, total_cost_usd: 0.5 }
+  const local = (command: string) => ({ ...done, usage: { input_tokens: 0, output_tokens: 0 }, local_command: command })
+  send(userMessage("a", [], "u1"))
+  receive(assistant("m1", { type: "text", text: "x" }))
+  receive(done)
+  send(userMessage("/compact", [], "u2"))
+  receive({ type: "system", subtype: "status", status: "compacting" })
+  // A mode change during the compaction says nothing about it.
+  receive({ type: "system", subtype: "status", status: null, permissionMode: "acceptEdits" })
+  expect(session.state.compacting).toBe(true)
+  receive({ type: "system", subtype: "status", status: null, compact_result: "success" })
+  receive({ type: "system", subtype: "compact_boundary", compact_metadata: { trigger: "manual", post_tokens: 1200 } })
+  receive(local("compact"))
+  expect(session.state).toMatchObject({ compacting: false, usage: { context: { used: 1200 } } })
+  expect(rows(session).map((item) => item.kind)).toEqual(["user", "text", "turn-end", "user", "system"])
+
+  send(userMessage("/clear", [], "u3"))
+  send(userMessage("b", [], "u4"))
+  receive({ type: "conversation_reset", new_conversation_id: "c2", trigger: "clear", user_message_uuid: "u3" })
+  receive({ ...local("clear"), total_cost_usd: 0, user_message_uuids: ["u3"] })
+  expect(rows(session)).toMatchObject([{ kind: "user", text: "b", queue: "queued" }])
+  expect(session.state).toMatchObject({ conversation: 1, status: "running", usage: { tokens: 0, costUsd: 0 } })
+})
+
+test("/clear keeps a running background agent off the chat with its steps, and an ask still open", () => {
+  const session = createSession()
+  const send = (line: string) => session.apply("out", parse(line), 0)
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const input = { description: "d", prompt: "p", subagent_type: "general-purpose", run_in_background: true }
+  send(userMessage("start", [], "u1"))
+  receive(assistant("m1", { type: "tool_use", id: "ag1", name: "Agent", input }))
+  receive({ type: "system", subtype: "task_started", task_id: "k1", tool_use_id: "ag1", is_backgrounded: true })
+  receive(assistant("s1", { type: "text", text: "sub step" }, "ag1"))
+  receive({ ...result, subtype: "success", is_error: false })
+  receive(canUseTool({ tool_use_id: "t9" }))
+  send(userMessage("/clear", [], "u2"))
+  receive({ type: "conversation_reset", new_conversation_id: "c2" })
+  receive(assistant("s2", { type: "text", text: "sub later" }, "ag1"))
+  receive(assistant("s3", { type: "text", text: "lost" }, "gone"))
+
+  expect(rows(session).map((item) => item.kind)).toEqual(["ask"])
+  expect(session.state.carried).toEqual(["ag1"])
+  const agent = session.state.byId["ag1"]
+  const steps = agent?.kind === "tool" ? agent.children.map((id) => session.state.byId[id]) : []
+  expect(steps).toMatchObject([{ markdown: "sub step" }, { markdown: "sub later" }])
+  expect(items(session).some((item) => item.kind === "text" && item.markdown === "lost")).toBe(false)
+})
+
+const agentCall = (id: string, background: boolean) => ({
+  type: "tool_use",
+  id,
+  name: "Agent",
+  input: { description: id, prompt: "p", subagent_type: "general-purpose", run_in_background: background },
+})
+
+test("/clear carries a background agent that a finished foreground agent started", () => {
+  const session = createSession()
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  session.apply("out", parse(userMessage("start", [], "u1")), 0)
+  receive(assistant("m1", agentCall("outer", false)))
+  receive({ type: "system", subtype: "task_started", task_id: "k1", tool_use_id: "outer" })
+  receive(assistant("s1", agentCall("inner", true), "outer"))
+  receive({ type: "system", subtype: "task_started", task_id: "k2", tool_use_id: "inner", is_backgrounded: true })
+  receive({ type: "system", subtype: "task_notification", task_id: "k1", status: "completed", summary: "" })
+  receive({ ...result, subtype: "success", is_error: false })
+  receive({ type: "conversation_reset", new_conversation_id: "c2" })
+  expect(session.state.carried).toEqual(["inner"])
+  receive(assistant("s2", { type: "text", text: "inner step" }, "inner"))
+  const inner = session.state.byId["inner"]
+  expect(inner?.kind === "tool" && inner.children.map((id) => session.state.byId[id])).toMatchObject([
+    { markdown: "inner step" },
+  ])
+})
+
 test("thinking text fills from the stream", () => {
   const thinking = items(replay("thinking")).filter((item) => item.kind === "thinking")
   expect(thinking.length).toBeGreaterThan(0)

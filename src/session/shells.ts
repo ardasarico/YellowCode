@@ -6,6 +6,7 @@ export function isShell(task: Task): boolean {
 }
 
 // The tool calls the chat still shows, subagents' included: none from a rewind's prompt on, none a later send dropped.
+// Agents a /clear carried over count too.
 function shownTools(session: Session): Set<ItemId> {
   const byId = unwrap(session.byId)
   const shown = new Set<ItemId>()
@@ -15,6 +16,7 @@ function shownTools(session: Session): Set<ItemId> {
     shown.add(id)
     for (const child of item.children) visit(child)
   }
+  for (const id of session.carried) visit(id)
   for (const id of session.items) {
     if (id === session.rewound?.userId) break
     visit(id)

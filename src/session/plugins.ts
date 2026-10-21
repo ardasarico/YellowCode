@@ -11,6 +11,26 @@ export type Plugin = {
 }
 
 const PROJECT_SOURCES = new Set(["projectSettings", "localSettings"])
+// The setting sources `claude plugin enable|disable --scope` writes.
+const CLI_SCOPES: Record<string, "user" | "project" | "local"> = {
+  userSettings: "user",
+  projectSettings: "project",
+  localSettings: "local",
+}
+
+// How settings and claude's CLI name a plugin.
+export const pluginSettingId = (plugin: Plugin) =>
+  plugin.marketplace ? `${plugin.name}@${plugin.marketplace}` : plugin.name
+
+// Where the setting that decides a plugin's state lives: the last source that names it. Null when no source does (a
+// --plugin-dir, synced or skills-dir plugin) or when the CLI cannot write that source (flag, policy).
+export function pluginScope(plugin: Plugin, sources: SettingsSource[]): "user" | "project" | "local" | null {
+  const id = pluginSettingId(plugin)
+  let scope: "user" | "project" | "local" | null = null
+  for (const { source, settings } of sources)
+    if (Object.hasOwn(settings.enabledPlugins ?? {}, id)) scope = CLI_SCOPES[source] ?? null
+  return scope
+}
 
 const owned = (names: string[], prefix: string) =>
   names.filter((name) => name.startsWith(prefix)).map((name) => name.slice(prefix.length))

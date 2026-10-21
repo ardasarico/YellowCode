@@ -169,3 +169,28 @@ export function getHooksListingRequest(requestId: string): string {
 export function getSkillsDialogRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_skills_dialog" } })
 }
+
+export function mcpStatusRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "mcp_status" } })
+}
+
+export function mcpReconnectRequest(requestId: string, serverName: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "mcp_reconnect", serverName },
+  })
+}
+
+export function mcpToggleRequest(requestId: string, serverName: string, enabled: boolean): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "mcp_toggle", serverName, enabled },
+  })
+}
+
+// The user asked for the change, so the reload is applied even when it costs the prompt cache.
+export function reloadPluginsRequest(requestId: string): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "reload_plugins" } })
+}

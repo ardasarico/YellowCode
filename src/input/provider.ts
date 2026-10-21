@@ -10,7 +10,7 @@ import {
 } from "../protocol/messages.ts"
 import { fileSuggestionsRequest } from "../protocol/outgoing.ts"
 import { MODELS } from "../session/settings.ts"
-import { type Skill, skillList } from "../session/skills.ts"
+import { type InitLists, type Skill, skillList } from "../session/skills.ts"
 import {
   type Recording,
   recordedCommands,
@@ -43,6 +43,12 @@ export type LiveProvider = InputProvider & {
   setCommands(commands: SlashCommand[]): void
   setTerminalOnly(names: string[]): void
   setModels(models: ModelInfo[]): void
+  setSkillRows(rows: SkillRow[]): void
+  setSettingsSources(sources: SettingsSource[]): void
+  setPluginHooks(hooks: PluginHook[]): void
+  setInitLists(lists: InitLists): void
+  // A skill whose new state claude has not reported yet shows it already; null drops that.
+  setPendingSkill(name: string, enabled: boolean | null): void
 }
 
 export function liveProvider(requests: Requests): LiveProvider {
@@ -53,6 +59,11 @@ export function liveProvider(requests: Requests): LiveProvider {
     claudeCommands(raw, terminalOnly).filter((command) => command.name !== "rewind" && command.name !== "redo")
   const [commands, setCommands] = createSignal(shown())
   const [models, setModels] = createSignal<ArgumentValue[]>(MODELS.map((value) => ({ value, note: "" })))
+  const [skillRows, setSkillRows] = createSignal<SkillRow[] | null>(null)
+  const [sources, setSources] = createSignal<SettingsSource[]>([])
+  const [hooks, setHooks] = createSignal<PluginHook[]>([])
+  const [initLists, setInitLists] = createSignal<InitLists | null>(null)
+  const [pending, setPending] = createSignal(new Map<string, boolean>())
   return {
     commands,
     models,
@@ -67,10 +78,26 @@ export function liveProvider(requests: Requests): LiveProvider {
     setModels(next) {
       setModels(next.map(({ value, description }) => ({ value, note: description ?? "" })))
     },
-    skills: () => [],
-    settingsSources: () => [],
-    skillRows: () => null,
-    pluginHooks: () => [],
+    skills: () => {
+      const skills = skillList(skillRows() ?? [], initLists(), sources())
+      for (const skill of skills) skill.enabled = pending().get(skill.name) ?? skill.enabled
+      return skills
+    },
+    settingsSources: sources,
+    skillRows,
+    pluginHooks: hooks,
+    setSkillRows: (rows) => setSkillRows(rows),
+    setSettingsSources: (next) => setSources(next),
+    setPluginHooks: (next) => setHooks(next),
+    setInitLists: (lists) => setInitLists(lists),
+    setPendingSkill(name, enabled) {
+      setPending((current) => {
+        const next = new Map(current)
+        if (enabled === null) next.delete(name)
+        else next.set(name, enabled)
+        return next
+      })
+    },
     async files(query) {
       try {
         const reply = await requests.send((id) => fileSuggestionsRequest(id, query), FILES_TIMEOUT_MS)

@@ -9,6 +9,10 @@ import { TwoPane } from "../dialog/two-pane.tsx"
 
 const NOTICE = "On/off comes with the live connection"
 
+// The live connection runs this; without it each action shows the notice. It resolves with what changed where, and
+// a rejection says what went wrong.
+export type PluginActions = { setEnabled(plugin: Plugin, enabled: boolean): Promise<string> }
+
 const LIST_FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
   { key: "→", action: "details" },
@@ -61,7 +65,7 @@ function detailItems(plugin: Plugin, width: number, opened: Set<string>): Dialog
   ]
 }
 
-export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null }) {
+export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null; actions?: PluginActions }) {
   const sections = (): DialogSection[] => {
     const plugins = props.plugins ?? []
     return plugins.length > 0 ? [{ title: "", rows: plugins.map(listRow) }] : []
@@ -74,6 +78,18 @@ export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null }) {
     const ids = new Set(openedFor(row))
     if (!ids.delete(id)) ids.add(id)
     setOpened({ plugin: row.id, ids })
+  }
+  // The row changes once claude has reloaded its plugins.
+  const turn = (row: DialogRow) => {
+    const plugin = pluginFor(row)
+    const actions = props.actions
+    if (!actions) return props.api.notify(NOTICE)
+    if (!plugin) return
+    props.api.notify(`Turning ${plugin.on ? "off" : "on"} ${plugin.name}…`)
+    actions.setEnabled(plugin, !plugin.on).then(
+      (done) => props.api.notify(done),
+      (error: unknown) => props.api.notify(error instanceof Error ? error.message : String(error)),
+    )
   }
 
   return (
@@ -92,11 +108,11 @@ export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null }) {
       actions={(row) => [{ id: "toggle", label: pluginFor(row)?.on ? "Turn off" : "Turn on" }]}
       onAction={(row, action) => {
         if (action.id.endsWith(MORE)) toggle(row, action.id)
-        else props.api.notify(NOTICE)
+        else turn(row)
       }}
       onKey={(key, row) => {
         if (key.name !== "space" || !row) return false
-        props.api.notify(NOTICE)
+        turn(row)
         return true
       }}
       footer={() => LIST_FOOTER}

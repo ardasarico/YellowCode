@@ -98,3 +98,22 @@ test("only the permission mode stepping stops on goes out, and bypassPermissions
   expect(controlProblem()?.text).toBe("bypassPermissions applies from the next start")
   pick(DEFAULT_SETTINGS.permissionMode)
 })
+
+test("the controls of a claude that was replaced send nothing more, and its late replies change nothing", async () => {
+  setKnobs({ model: null, effort: null, ultracode: false })
+  const { requests, sent } = fakeRequests()
+  const controls = createControls({
+    requests,
+    provider: liveProvider(requests),
+    session: createSession(),
+    bypass: false,
+  })
+  controls.initialized({ commands: [], models })
+  controls.dispose()
+  sent.find((request) => request.subtype === "get_settings")?.resolve(applied("claude-sonnet-5-5"))
+  await Bun.sleep(1)
+  expect(settings.model).toBeNull()
+  setKnobs({ model: "claude-opus-5-5" })
+  await later()
+  expect(sent.map((request) => request.subtype)).toEqual(["get_settings", "file_suggestions"])
+})

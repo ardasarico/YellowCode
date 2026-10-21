@@ -146,13 +146,15 @@ export function PermissionBand(props: AskViewProps) {
   // always-allow rule one.
   const inner = () => Math.max(1, props.width - 4)
   const title = () => cut(`! ${props.ask.displayName}`, inner())
+  const from = () => (props.ask.agent ? cut(`  from ${props.ask.agent}`, inner() - Bun.stringWidth(title())) : "")
   const server = () => {
     const mcp = mcpTool(props.ask.toolName)
-    return mcp && !props.ask.description ? cut(`  ${mcp.server} MCP server`, inner() - Bun.stringWidth(title())) : ""
+    const room = inner() - Bun.stringWidth(title() + from())
+    return mcp && !props.ask.description ? cut(`  ${mcp.server} MCP server`, room) : ""
   }
   const description = createMemo(() => {
     if (!props.ask.description) return ""
-    const lead = Bun.stringWidth(title()) + 2
+    const lead = Bun.stringWidth(title() + from()) + 2
     const inline = inner() - lead >= INLINE_ROOM
     const lines = wrapRows(props.ask.description, inner(), TEXT_ROWS, inline ? lead : 0)
     return (inline ? "  " : "\n") + lines.join("\n")
@@ -225,6 +227,7 @@ export function PermissionBand(props: AskViewProps) {
     >
       <text wrapMode="none" flexShrink={1} minHeight={1}>
         <span style={{ fg: colors().tone, bold: true }}>{title()}</span>
+        <span style={{ fg: theme.muted }}>{from()}</span>
         <span style={{ fg: theme.muted }}>{server()}</span>
         <span style={{ fg: theme.text, bold: true }}>{description()}</span>
       </text>

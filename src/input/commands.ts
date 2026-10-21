@@ -1,6 +1,7 @@
 import type { SlashCommand } from "../protocol/messages.ts"
 
-export type Command = { name: string; description: string; argumentHint: string; aliases: string[] }
+// `builtin` is Claude Code's own command (/model, /clear, and a few bundled skills), not a skill or a custom command.
+export type Command = { name: string; description: string; argumentHint: string; aliases: string[]; builtin?: boolean }
 
 // `match` is the typed run inside the shown text: the name, or the alias on an alias row.
 export type CommandRow = Pick<Command, "name" | "description" | "argumentHint"> & {
@@ -30,11 +31,12 @@ export function claudeCommands(commands: SlashCommand[], terminalOnly: readonly 
   const seen = new Set<string>()
   const unique = shownCommands(commands, terminalOnly).filter(({ name }) => !seen.has(name) && seen.add(name))
   return withOwnCommands(
-    unique.map(({ name, description, argumentHint, aliases }) => ({
+    unique.map(({ name, description, argumentHint, aliases, builtin }) => ({
       name,
       description,
       argumentHint,
       aliases: aliases ?? [],
+      builtin,
     })),
   )
 }

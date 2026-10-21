@@ -13,7 +13,8 @@ export type UserMessage = {
   images: ChatImage[]
   queue: "queued" | "not sent" | null
 }
-export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean }
+// `local` marks claude's own output for a local command (/context, /model), which belongs to no model turn.
+export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean; local?: boolean }
 // `durationMs` is null when the block did not stream, as in a resumed session.
 export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number | null }
 export type ToolCall = {
@@ -120,6 +121,8 @@ export type Ask = {
   answers: Record<string, string>
   notes: Record<string, string>
   denial: string
+  // The subagent that asked; absent for the main thread.
+  agent?: string
 }
 export type TurnEnd = {
   kind: "turn-end"
@@ -202,6 +205,9 @@ export type Session = {
   items: ItemId[]
   byId: Record<ItemId, Item>
   tasks: Record<string, Task>
+  // What claude reported after the last init (mcp_status, reload_plugins), live only; it wins over info's lists.
+  mcpServers: McpServer[] | null
+  plugins: SessionInfo["plugins"] | null
   usage: Usage
   rewound: Rewound | null
   // An interrupt went out and its turn has not ended yet.
@@ -211,4 +217,12 @@ export type Session = {
   turn: "user" | "claude" | null
   // The permission mode claude says the session runs in ("default" is shown as manual).
   permissionMode: string | null
+  // The title Claude Code keeps for the session: the last rename, YellowCode's own or a typed /rename.
+  claudeTitle: string | null
+  // How many times claude started the conversation over (/clear).
+  conversation: number
+  // claude is summarizing the conversation (/compact, or on its own when the context is full).
+  compacting: boolean
+  // Agent and workflow calls from before a /clear whose task still ran then: off the chat, still in the agent panel.
+  carried: ItemId[]
 }

@@ -1,5 +1,6 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
 import { createMemo, createSignal, Index, Show } from "solid-js"
+import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -51,7 +52,7 @@ function serverActivity(session: Session): ServerActivity {
   )
   const used = new Set<string>()
   const running = new Set<string>()
-  for (const server of session.info?.mcpServers ?? []) {
+  for (const server of currentServers(session, null) ?? []) {
     const own = tools.filter((tool) => tool.name.startsWith(toolPrefix(server.name)))
     if (own.length > 0) used.add(server.name)
     if (own.some((tool) => tool.status === "running" && !waiting.has(tool.id))) running.add(server.name)
@@ -185,7 +186,7 @@ function ServerRow(props: { server: Server; status: ServerStatus; width: number 
 
 function Mcp(props: { session: Session; width: number }) {
   const [open, setOpen] = createSignal(false)
-  const all = () => props.session.info?.mcpServers ?? []
+  const all = () => currentServers(props.session, null) ?? []
   const servers = () => all().filter((server) => server.status !== "disabled")
   const activity = createMemo(() => serverActivity(props.session))
   // A closed section still lists problems and running servers.
@@ -323,7 +324,7 @@ export function Sidebar(props: SidebarProps) {
         />
         {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
         <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
-          <Show when={(props.session.info?.mcpServers ?? []).some((server) => server.status !== "disabled")}>
+          <Show when={(currentServers(props.session, null) ?? []).some((server) => server.status !== "disabled")}>
             <Mcp session={props.session} width={inner()} />
           </Show>
         </box>

@@ -70,8 +70,20 @@ const systemInit = z.looseObject({
 const compactBoundary = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("compact_boundary"),
-  compact_metadata: z.looseObject({ trigger: z.string() }),
+  // post_tokens is the context left after the summary.
+  compact_metadata: z.looseObject({ trigger: z.string(), post_tokens: z.number().optional() }),
 })
+
+// Output of a local command that claude shows as its own text (/usage and others).
+const localCommandOutput = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("local_command_output"),
+  content: z.string(),
+})
+
+// /clear (or a fresh start after plan mode) dropped the conversation; claude goes on in a new session, whose id the
+// init right after it carries.
+const conversationReset = z.looseObject({ type: z.literal("conversation_reset") })
 
 const apiRetry = z.looseObject({
   type: z.literal("system"),
@@ -200,6 +212,7 @@ const streamEvent = z.looseObject({
 const assistant = z.looseObject({
   type: z.literal("assistant"),
   parent_tool_use_id: z.string().nullable().optional(),
+  uuid: z.string().optional(),
   message: z.looseObject({
     id: z.string(),
     model: z.string().optional(),
@@ -214,6 +227,8 @@ const assistant = z.looseObject({
   }),
   is_api_error_message: z.boolean().optional(),
   error: z.string().optional(),
+  // Set on claude's reply to a local command that failed, such as a compaction the API refused.
+  local_command_outcome: z.looseObject({ kind: z.string() }).optional().catch(undefined),
 })
 
 const hunk = z.looseObject({
@@ -338,6 +353,7 @@ const controlRequest = z.looseObject({
       default_to_no: z.boolean().optional(),
       suppress_always_allow_rule: z.boolean().optional(),
       blocked_path: z.string().optional(),
+      agent_id: z.string().optional(),
     }),
     z.looseObject({ subtype: z.literal("interrupt") }),
     z.looseObject({ subtype: z.literal("get_task_output"), task_id: z.string() }),
@@ -419,6 +435,8 @@ export const skillRow = z.looseObject({
   source: z.string(),
   state: z.string(),
   locked_by: z.string().optional(),
+  // Passed back as is with an edit of the skill's state.
+  handles: z.unknown().optional(),
 })
 
 export const skillsDialog = z.looseObject({ skills: z.array(z.unknown()) })
@@ -438,6 +456,31 @@ export const settingsSources = z.looseObject({
 export const pluginHook = z.looseObject({ event: z.string(), matcher: z.string(), pluginName: z.string() })
 
 export const hooksListing = z.looseObject({ hooks: z.array(z.unknown()) })
+
+export const mcpServerRows = z.looseObject({ mcpServers: z.array(z.unknown()) })
+// A config can hold keys (env, headers, arguments, a url's query), so it stays unknown until mcp.ts takes the safe
+// parts out.
+export const mcpServerStatus = z.looseObject({
+  name: z.string(),
+  status: z.string(),
+  error: z.string().nullable().optional(),
+  scope: z.string().optional(),
+  source: z.string().optional(),
+  serverInfo: z.looseObject({ name: z.string(), version: z.string() }).optional().catch(undefined),
+  config: z.unknown().optional(),
+  tools: z
+    .array(z.looseObject({ name: z.string() }))
+    .optional()
+    .catch(undefined),
+})
+
+export const pluginRow = z.looseObject({ name: z.string(), path: z.string(), source: z.string().optional() })
+export const reloadPluginsReply = z.looseObject({
+  commands: z.array(z.unknown()),
+  plugins: z.array(z.unknown()),
+  mcpServers: z.array(z.unknown()),
+  error_count: z.number().optional(),
+})
 
 const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
 
@@ -469,11 +512,20 @@ const commandsChanged = z.looseObject({
   commands: z.array(z.unknown()),
 })
 
+// The session got a new title, from a rename_session request or a typed /rename.
+const sessionTitleChanged = z.looseObject({
+  type: z.literal("system"),
+  subtype: z.literal("session_title_changed"),
+  title: z.string(),
+})
+
 const system = z.discriminatedUnion("subtype", [
   systemInit,
   systemStatus,
   commandsChanged,
+  sessionTitleChanged,
   compactBoundary,
+  localCommandOutput,
   apiRetry,
   backgroundTasksChanged,
   taskStarted,
@@ -493,6 +545,7 @@ export const protocolMessage = z.discriminatedUnion("type", [
   controlCancelRequest,
   commandLifecycle,
   rateLimit,
+  conversationReset,
 ])
 
 export type ProtocolMessage = z.infer<typeof protocolMessage>
@@ -530,5 +583,8 @@ export const KNOWN_KEYS = new Set([
   "command_lifecycle",
   "system/status",
   "system/commands_changed",
+  "system/session_title_changed",
+  "system/local_command_output",
   "rate_limit_event",
+  "conversation_reset",
 ])

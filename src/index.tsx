@@ -1,34 +1,35 @@
 import { CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
-import { realpathSync } from "node:fs"
+import { existsSync, realpathSync } from "node:fs"
 import { constants, homedir } from "node:os"
-import { basename } from "node:path"
+import { basename, join } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createSignal, type Setter, Show } from "solid-js"
-import { liveProvider, replayProvider } from "./input/provider.ts"
+import { type InputProvider, liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
-import { commandRows, modelRows, permissionReply } from "./protocol/messages.ts"
-import { initializeRequest, interruptRequest, userMessage } from "./protocol/outgoing.ts"
+import { permissionReply } from "./protocol/messages.ts"
+import { interruptRequest, type OutgoingImage, renameSession, userMessage } from "./protocol/outgoing.ts"
+import { heldElsewhere } from "./resume/held.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
-import { ownAskRejection } from "./session/ask.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
-import { initSettings, setKnobs, settings } from "./session/settings.ts"
+import { initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { loadSettings } from "./session/settings-file.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import { loadRewindExtras } from "./session/rewind.ts"
-import { createClaudeSource, describeExit } from "./source/claude.ts"
-import { claudeArgs } from "./source/claude-args.ts"
-import { createControls } from "./source/controls.ts"
+import { connect, type Connection, pump } from "./source/live.ts"
 import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
-import { createRequests, refusal, type Requests, RequestTimeout } from "./source/requests.ts"
+import type { Requests } from "./source/requests.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import type { McpActions } from "./ui/mcp/mcp-tab.tsx"
+import type { PluginActions } from "./ui/settings/plugins-tab.tsx"
+import type { SkillActions } from "./ui/skills/skills-dialog.tsx"
 import { noteKey } from "./ui/ask/typing.ts"
 import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
@@ -79,19 +80,57 @@ const workspace = {
 }
 const sessionsFolder = values.sessions ?? projectFolder(CLAUDE_PROJECTS, cwd)
 const sessionsCwd = values.sessions ? null : realpathSync(cwd)
-const session = createSession({ starting: values.replay === undefined })
+// The replay's session, or the one live starts with; opening another session brings a new store.
+const firstSession = createSession({ starting: values.replay === undefined })
 // claude starts with flags from the saved settings, so they are read first.
 const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
 
+// The claude YellowCode talks to now; a restart or another session replaces it. Never set in a replay.
+let connection: Connection
+// What the rest of this file sends requests through, so they reach the claude of the moment.
+const liveRequests: Requests = {
+  send: (build, timeoutMs) => connection.requests.send(build, timeoutMs),
+  settle: (reply) => connection.requests.settle(reply),
+  close: (reason) => connection.requests.close(reason),
+}
+// One for the app's life: each claude fills it from its initialize reply.
+const claudeLists = liveProvider(liveRequests)
+// The dialogs' actions go to the claude of the moment, so a restart under the same App keeps working.
+const mcpActions: McpActions = {
+  reconnect: (name) => connection.mcp.actions.reconnect(name),
+  setEnabled: (name, enabled) => connection.mcp.actions.setEnabled(name, enabled),
+  login: (name) => connection.mcp.actions.login(name),
+}
+const skillActions: SkillActions = {
+  setEnabled: (skill, enabled) => connection.extensions.skills.setEnabled(skill, enabled),
+}
+const pluginActions: PluginActions = {
+  setEnabled: (plugin, enabled) => connection.extensions.plugins.setEnabled(plugin, enabled),
+}
+// Connections asked to stop whose claude may still run, with the promise of it being gone.
+const stopped = new Map<Connection, Promise<void>>()
+
+function stop(old: Connection): Promise<void> {
+  let gone = stopped.get(old)
+  if (!gone) {
+    gone = old.close().finally(() => stopped.delete(old))
+    stopped.set(old, gone)
+  }
+  return gone
+}
+
+// The session claude runs: the id it reported, else the one it was started with.
+const idOf = (live: Connection) => live.session.state.info?.id ?? live.spawn.sessionId ?? live.spawn.resume
+
 function liveMode() {
   try {
-    // claude ends on closed input only once its turn and its background tasks are done.
-    const busy = () =>
-      session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-    const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored)])
-    const requests = createRequests((line) => source.send(line))
-    return { kind: "live" as const, source, requests, provider: liveProvider(requests) }
+    // Live shows the model and effort claude reports, and nothing until it does.
+    setKnobs({ model: null, effort: null, ultracode: false })
+    // A new session gets its id from here, so it is known before claude reports it.
+    const spawn = { sessionId: crypto.randomUUID() }
+    connection = connect({ cwd, session: firstSession, spawn, stored: settings, provider: claudeLists })
+    return { kind: "live" as const, provider: claudeLists }
   } catch (error) {
     return fail(
       `Cannot start claude: ${error instanceof Error ? error.message : String(error)}. Is Claude Code installed?`,
@@ -112,19 +151,20 @@ async function replayMode(file: string) {
 }
 
 const mode = values.replay === undefined ? liveMode() : await replayMode(values.replay)
-const source = mode.source
+const source =
+  mode.kind === "live"
+    ? { send: (line: string) => connection.source.send(line), close: () => void stop(connection) }
+    : mode.source
 // A replay answers from its recording, and a request sent to it would release its gate instead.
-const requests = mode.kind === "live" ? mode.requests : null
+const requests = mode.kind === "live" ? liveRequests : null
 const firstInfo = mode.kind === "replay" ? recordedInfo(mode.recording) : null
 const firstModel = firstInfo?.model ?? null
 const provider = mode.provider
-// Live shows the model and effort claude reports, and nothing until it does.
-if (mode.kind === "live") setKnobs({ model: null, effort: null, ultracode: false })
-const bypass = stored.permissionMode === "bypassPermissions"
-const controls =
-  mode.kind === "live" && requests ? createControls({ requests, provider: mode.provider, session, bypass }) : null
-if (mode.kind === "live")
-  log.info("claude flags", { permissionMode: stored.permissionMode, thinking: stored.thinking, bypass })
+// A read-only transcript is no live project, so its dialogs show none of claude's lists.
+const readOnlyProvider: InputProvider =
+  mode.kind === "live"
+    ? { ...provider, skills: () => [], settingsSources: () => [], skillRows: () => null, pluginHooks: () => [] }
+    : provider
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",
@@ -158,7 +198,7 @@ startTheme(renderer.nativeScene, settings.theme)
 renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
 
 let quitting = false
-// close() stops claude within its own timers; this also covers a process claude started that keeps the pipes open.
+// Each close() is bounded on its own; this bounds the quit as a whole.
 const QUIT_WAIT_MS = 8000
 
 async function quit(code = 0): Promise<void> {
@@ -177,7 +217,7 @@ async function quit(code = 0): Promise<void> {
     }
     // The terminal comes back to its normal state asynchronously, and exiting before that leaves it broken.
     await renderer.closed.catch(() => {})
-    if (mode.kind === "live") await Promise.race([mode.source.exited, Bun.sleep(QUIT_WAIT_MS)])
+    if (mode.kind === "live") await Promise.race([Promise.all(stopped.values()), Bun.sleep(QUIT_WAIT_MS)])
     process.exit(code)
   }
 }
@@ -195,103 +235,13 @@ process.on("SIGHUP", () => {
   process.exit(129)
 })
 
-const INVALID_LOG_EVERY = 100
-const EXIT_WAIT_MS = 3000
-const INITIALIZE_TIMEOUT_MS = 60_000
-
-// What claude offers before the first message (system/init only comes with it). The reply also names the account,
-// so only counts are logged.
-const initialized = Promise.withResolvers<unknown>()
-// A claude that stays silent through initialize is closed, and its end says why.
-let silent = false
-
-function initialize(live: Requests): void {
-  const started = performance.now()
-  void live.send(initializeRequest, INITIALIZE_TIMEOUT_MS).then(
-    (reply) => {
-      log.info("initialized", {
-        commands: commandRows.safeParse(reply).data?.commands.length ?? 0,
-        models: modelRows.safeParse(reply).data?.models.length ?? 0,
-        ms: Math.round(performance.now() - started),
-      })
-      initialized.resolve(reply)
-    },
-    (error: unknown) => {
-      log.warn("initialize failed", error instanceof Error ? error.message : error)
-      initialized.resolve(null)
-      if (!(error instanceof RequestTimeout)) return
-      silent = true
-      source.close()
-    },
-  )
-}
-const invalidCounts = new Map<string, number>()
-
-async function pump(): Promise<void> {
-  if (requests) initialize(requests)
-  void initialized.promise.then((reply) => {
-    if (reply) controls?.initialized(reply)
-  })
-  let yielded = performance.now()
-  try {
-    for await (const event of source.events) {
-      const parsed = parse(event.line)
-      if (parsed.kind === "invalid") {
-        const count = (invalidCounts.get(parsed.key) ?? 0) + 1
-        invalidCounts.set(parsed.key, count)
-        if (count === 1) log.warn(`invalid ${parsed.key} message: ${parsed.error}`, parsed.raw)
-        else if (count % INVALID_LOG_EVERY === 0) log.warn(`invalid ${parsed.key} messages: ${count} so far`)
-      }
-      if (parsed.kind === "unknown" && event.dir === "in") log.debug(`unknown message ${parsed.key}`)
-      session.apply(event.dir, parsed, event.at)
-      if (event.dir === "in" && parsed.kind === "message") controls?.onMessage(parsed.message)
-      if (event.dir === "in" && parsed.kind === "message" && parsed.message.type === "control_response")
-        requests?.settle(parsed.message.response)
-      if (
-        mode.kind === "live" &&
-        event.dir === "in" &&
-        parsed.kind !== "message" &&
-        parsed.key.startsWith("control_request/")
-      ) {
-        const subtype = parsed.key.slice("control_request/".length)
-        const reply = refusal(
-          event.line,
-          parsed.kind === "unknown"
-            ? `YellowCode does not support ${subtype}`
-            : `YellowCode could not read this ${subtype} request`,
-        )
-        if (reply) {
-          log.warn(`answered ${parsed.key} with an error`)
-          source.send(reply)
-        }
-      }
-      const rejection = event.dir === "in" && parsed.kind === "message" ? ownAskRejection(parsed.message) : null
-      if (rejection) {
-        log.info("rejected own ask", rejection)
-        session.answer(rejection)
-        source.send(rejection)
-      }
-      // Lines that are already waiting arrive without a macrotask, so a burst would not paint until it ends.
-      if (performance.now() - yielded > 8) {
-        await new Promise((resolve) => setImmediate(resolve))
-        yielded = performance.now()
-      }
-    }
-  } catch (error) {
-    log.error("source failed", error)
+async function start(): Promise<void> {
+  if (mode.kind === "live") {
+    connection.start()
+    return
   }
-  if (mode.kind === "replay") return session.end()
-  requests?.close("Claude Code exited")
-  // A process claude started can keep its stderr open after claude itself has gone.
-  const exit = await Promise.race([mode.source.exited, Bun.sleep(EXIT_WAIT_MS).then(() => mode.source.exitNow())])
-  if (silent)
-    session.end({ text: `Claude Code did not answer in ${INITIALIZE_TIMEOUT_MS / 1000} s`, detail: exit.stderr })
-  else if (exit.closed) session.end()
-  else if (exit.code === null && exit.signal === null) {
-    log.warn("claude closed its output but still runs")
-    mode.source.close()
-    session.end({ text: "Claude Code stopped responding", detail: exit.stderr })
-  } else session.end(describeExit(exit))
+  await pump(mode.source, firstSession, null)
+  firstSession.end()
 }
 
 type View = {
@@ -301,7 +251,13 @@ type View = {
   setEarlier: Setter<TranscriptCursor | null>
 }
 
+// A transcript shown read-only (a replay, or --sessions), in place of the main App.
 const [view, setView] = createSignal<View | null>(null)
+// What the main App shows: the session claude runs (or the replay's), and, once resumed, its transcript.
+const [chat, setChat] = createSignal<{ session: SessionStore; resumed: View | null }>({
+  session: firstSession,
+  resumed: null,
+})
 let opening = 0
 
 async function open(entry: SessionEntry): Promise<void> {
@@ -315,6 +271,108 @@ async function open(entry: SessionEntry): Promise<void> {
   setView({ entry, session: opened, earlier, setEarlier })
 }
 
+// A turn that runs keeps the session it belongs to; background tasks alone stop, as on quit.
+function working(): boolean {
+  // A restart that waits for the old claude to end sends the typed message once it has started.
+  if (restarting) setControlProblem({ text: "Claude Code is starting again · open the session once it runs" })
+  else if (connection.session.state.status === "running")
+    setControlProblem({ text: "Claude Code is working · Esc interrupts it, then open the session" })
+  else return false
+  return true
+}
+
+// Continues a session of this project in place, or as a copy when another process runs it (two writers on one file).
+async function openLive(entry: SessionEntry): Promise<void> {
+  const current = connection
+  if (entry.id === idOf(current) || working()) return
+  const token = ++opening
+  const part = await readTranscript(entry.path)
+  if (quitting) return
+  // A session left a moment ago may still be writing its file.
+  await Promise.all([...stopped].flatMap(([old, gone]) => (idOf(old) === entry.id ? [gone] : [])))
+  if (quitting || token !== opening || connection !== current || working()) return
+  const copy = heldElsewhere(entry.id)
+  const spawn = copy ? { resume: entry.id, fork: true, sessionId: crypto.randomUUID() } : { resume: entry.id }
+  const session = createSession({ starting: true })
+  session.prepend(part.events)
+  let next: Connection
+  try {
+    next = connect({ cwd, session, spawn, stored: settings, provider: claudeLists })
+  } catch (error) {
+    log.error("cannot start claude", error)
+    setControlProblem({ text: `Cannot start Claude Code: ${error instanceof Error ? error.message : String(error)}` })
+    return
+  }
+  void stop(current)
+  // Opening another session starts from Claude Code's own model and effort.
+  setKnobs({ model: null, effort: null, ultracode: false })
+  connection = next
+  next.start()
+  const [earlier, setEarlier] = createSignal(part.earlier)
+  setChat({ session, resumed: { entry, session, earlier, setEarlier } })
+  if (copy) setControlProblem({ text: "This session is open in another process, so it opened as a copy" })
+}
+
+// Set while a restart waits for a claude that stopped responding to end.
+let restarting = false
+
+// Claude Code went away on its own: a new claude continues the same conversation, and the message goes to it.
+function restart(text: string, images: OutgoingImage[]): boolean {
+  if (quitting) return false
+  const ended = connection
+  const { code, signal } = ended.source.exitNow()
+  // One that stopped responding can still be running out its grace; a second claude must not write the same file
+  // meanwhile, so the start waits for it, and Enter again only refuses to send.
+  if (code === null && signal === null) {
+    ended.session.restart()
+    restarting = true
+    void stop(ended).then(() => {
+      restarting = false
+      if (!relaunch(ended, text, images)) log.warn("the restarted claude took no message")
+    })
+    return true
+  }
+  void stop(ended)
+  return relaunch(ended, text, images)
+}
+
+// False when no claude took the message, so the prompt keeps it.
+function relaunch(ended: Connection, text: string, images: OutgoingImage[]): boolean {
+  if (quitting || connection !== ended) return false
+  const { session } = ended
+  const id = session.state.info?.id
+  // With nothing on disk the start is repeated, under a new id in case claude took the old one.
+  const again = ended.spawn.sessionId ? { ...ended.spawn, sessionId: crypto.randomUUID() } : ended.spawn
+  const spawn =
+    id !== undefined && existsSync(join(projectFolder(CLAUDE_PROJECTS, cwd), `${id}.jsonl`)) ? { resume: id } : again
+  const carry = { model: settings.model, effort: settings.effort, ultracode: settings.ultracode }
+  try {
+    connection = connect({ cwd, session, spawn, stored: settings, provider: claudeLists, carry })
+  } catch (error) {
+    log.error("cannot start claude", error)
+    session.end({ text: "Cannot start Claude Code", detail: [error instanceof Error ? error.message : String(error)] })
+    return false
+  }
+  session.restart()
+  connection.start()
+  if (!text.trim() && images.length === 0) return true
+  return source.send(userMessage(text, images, crypto.randomUUID()))
+}
+
+// A title claude already has (our last rename, or the user's /rename of the same words) is not written again. The
+// session is the App's own, so a title for a session left meanwhile goes to its id, which claude refuses.
+function rename(live: Requests, session: SessionStore, title: string): void {
+  // claude reports the session id with the first init; a title that comes earlier waits for the next message's.
+  const id = session.state.info?.id
+  if (!id || session.state.claudeTitle === title) return
+  void live
+    .send((requestId) => renameSession(requestId, title, id))
+    .then(
+      () => log.info("renamed session", { id }),
+      (error: unknown) => log.warn("rename failed", error instanceof Error ? error.message : error),
+    )
+}
+
 async function loadEarlier(shown: View): Promise<void> {
   const cursor = shown.earlier()
   if (cursor === null) return
@@ -324,16 +382,23 @@ async function loadEarlier(shown: View): Promise<void> {
 }
 
 const sessions = {
-  list: () => listSessions(sessionsFolder, sessionsCwd),
+  // The session claude runs is not one to open. Until claude reports it, that is the one it was started with; after
+  // that the App leaves out the id the session reports, which a /clear changes.
+  list: async () => {
+    const entries = await listSessions(sessionsFolder, sessionsCwd)
+    const starting = mode.kind === "live" && connection.session.state.info === null ? idOf(connection) : undefined
+    return entries.filter((entry) => entry.id !== starting)
+  },
   open: (entry: SessionEntry) => {
-    open(entry).catch((error: unknown) => log.error("cannot open session", error))
+    const opened = mode.kind === "live" && values.sessions === undefined ? openLive(entry) : open(entry)
+    opened.catch((error: unknown) => log.error("cannot open session", error))
   },
 }
 
 const terminal = values["skip-terminal-check"] ? null : terminalProblem(await capabilities)
 if (terminal) log.info("terminal problem", terminal)
 const [checking, setChecking] = createSignal(terminal !== null)
-if (terminal === null) void pump()
+if (terminal === null) void start()
 
 function Main() {
   return (
@@ -341,67 +406,92 @@ function Main() {
       when={view()}
       keyed
       fallback={
-        <App
-          session={session.state}
-          model={() => session.state.info?.model ?? firstModel}
-          firstInfo={firstInfo}
-          workspace={workspace}
-          replay={mode.kind === "replay" ? mode.info : null}
-          titles={mode.kind === "live" || values.titles === true}
-          settingsProblem={problem}
-          settingsBackup={backup}
-          provider={provider}
-          sessions={sessions}
-          onSubmit={(text, images) => {
-            // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
-            const uuid = mode.kind === "live" ? crypto.randomUUID() : undefined
-            if (!text.trim() && images.length === 0) {
-              // An empty Enter releases the next recorded message.
-              if (mode.kind === "replay") source.send("")
-              return true
-            }
-            // A knob change still waiting goes first, so the message runs under it.
-            controls?.flush()
-            return source.send(userMessage(text, images, uuid))
-          }}
-          onAnswer={(ask, response) => {
-            // The reply carries the tool's whole input (a Write's file) and the user's notes, so only its gist is logged.
-            const answer = parse(response)
-            const reply =
-              answer.kind === "message" && answer.message.type === "control_response" ? answer.message : null
-            const behavior =
-              permissionReply.safeParse(reply?.response.response).data?.behavior ?? reply?.response.subtype
-            log.info(`answer to ${ask.toolName}`, { requestId: ask.requestId, behavior })
-            session.answer(response)
-            source.send(response)
-          }}
-          onQuit={() => void quit()}
-          onInterrupt={
-            requests
-              ? () =>
-                  void requests.send(interruptRequest).then(
-                    (reply) => log.info("interrupted", reply),
-                    (error: unknown) => {
-                      log.warn("interrupt failed", error instanceof Error ? error.message : error)
-                      session.interruptFailed()
-                    },
-                  )
-              : undefined
-          }
-          rewind={
-            mode.kind === "replay"
-              ? {
-                  extras: mode.rewindExtras,
-                  // Restoring files and respawning claude at the prompt wait for the live connection.
-                  onRewind: (rewound) => {
-                    log.info("rewind", rewound)
-                    session.rewind(rewound)
-                  },
-                  onRedo: () => session.redo(),
+        // Keyed on what it shows, so a restart keeps the App and another session gets a new one.
+        <Show when={chat()} keyed>
+          {(current) => (
+            <App
+              session={current.session.state}
+              model={() => current.session.state.info?.model ?? firstModel}
+              firstInfo={firstInfo}
+              workspace={workspace}
+              replay={mode.kind === "replay" ? mode.info : null}
+              title={
+                current.resumed
+                  ? { title: current.resumed.entry.title, summary: current.resumed.entry.firstPrompt }
+                  : undefined
+              }
+              titles={mode.kind === "live" || values.titles === true}
+              // The App before it showed the settings file's problem already.
+              settingsProblem={current.resumed ? null : problem}
+              settingsBackup={current.resumed ? null : backup}
+              provider={provider}
+              mcpActions={mode.kind === "live" ? mcpActions : undefined}
+              skillActions={mode.kind === "live" ? skillActions : undefined}
+              pluginActions={mode.kind === "live" ? pluginActions : undefined}
+              sessions={sessions}
+              earlier={current.resumed ? current.resumed.earlier() !== null : false}
+              onEarlier={() => {
+                if (!current.resumed) return
+                loadEarlier(current.resumed).catch((error: unknown) =>
+                  log.error("cannot load earlier conversation", error),
+                )
+              }}
+              onSubmit={(text, images) => {
+                // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
+                const uuid = mode.kind === "live" ? crypto.randomUUID() : undefined
+                if (!text.trim() && images.length === 0) {
+                  // An empty Enter releases the next recorded message.
+                  if (mode.kind === "replay") source.send("")
+                  return true
                 }
-              : undefined
-          }
-        />
+                // A knob change still waiting goes first, so the message runs under it.
+                if (mode.kind === "live") connection.controls.flush()
+                return source.send(userMessage(text, images, uuid))
+              }}
+              onRestart={mode.kind === "live" ? restart : undefined}
+              onAnswer={(ask, response) => {
+                // The reply carries the tool's whole input (a Write's file) and the user's notes, so only its gist is
+                // logged.
+                const answer = parse(response)
+                const reply =
+                  answer.kind === "message" && answer.message.type === "control_response" ? answer.message : null
+                const behavior =
+                  permissionReply.safeParse(reply?.response.response).data?.behavior ?? reply?.response.subtype
+                log.info(`answer to ${ask.toolName}`, { requestId: ask.requestId, behavior })
+                current.session.answer(response)
+                source.send(response)
+              }}
+              onQuit={() => void quit()}
+              onInterrupt={
+                requests
+                  ? () =>
+                      void requests.send(interruptRequest).then(
+                        (reply) => log.info("interrupted", reply),
+                        (error: unknown) => {
+                          log.warn("interrupt failed", error instanceof Error ? error.message : error)
+                          current.session.interruptFailed()
+                        },
+                      )
+                  : undefined
+              }
+              onTitle={requests ? (title) => rename(requests, current.session, title) : undefined}
+              onStopTask={mode.kind === "live" ? (taskId) => connection.tasks.stop(taskId) : undefined}
+              rewind={
+                mode.kind === "replay"
+                  ? {
+                      extras: mode.rewindExtras,
+                      // Restoring files and respawning claude at the prompt wait for the live connection.
+                      onRewind: (rewound) => {
+                        log.info("rewind", rewound)
+                        current.session.rewind(rewound)
+                      },
+                      onRedo: () => current.session.redo(),
+                    }
+                  : undefined
+              }
+            />
+          )}
+        </Show>
       }
     >
       {(shown) => (
@@ -413,7 +503,7 @@ function Main() {
           readOnly={{ title: shown.entry.title, summary: shown.entry.firstPrompt, modified: shown.entry.modified }}
           titles={false}
           settingsProblem={null}
-          provider={provider}
+          provider={readOnlyProvider}
           sessions={sessions}
           earlier={shown.earlier() !== null}
           onEarlier={() => {
@@ -436,7 +526,7 @@ await render(
           problem={found()}
           onContinue={() => {
             setChecking(false)
-            void pump()
+            void start()
           }}
           onQuit={() => void quit()}
         />

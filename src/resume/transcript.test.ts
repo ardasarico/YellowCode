@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test"
+import { mkdtempSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createSession, type SessionStore } from "../session/session.ts"
 import { listSessions } from "./session-list.ts"
@@ -70,6 +72,89 @@ test("long: earlier parts load from the cursor and go in front", async () => {
 
   session.prepend(earlier.events)
   expect(rows(session)).toEqual(prompts(1, 25))
+})
+
+const user = (content: string, extra: object = {}) => ({ type: "user", message: { role: "user", content }, ...extra })
+const command = (name: string, args = "") =>
+  user(
+    `<command-name>/${name}</command-name>\n<command-message>${name}</command-message>\n<command-args>${args}</command-args>`,
+  )
+const stdout = (text: string) => user(`<local-command-stdout>${text}</local-command-stdout>`)
+const caveat = user("<local-command-caveat>The command below was run directly in Claude Code</local-command-caveat>", {
+  isMeta: true,
+})
+
+test("a task notification ends its agent and an interrupt ends its turn, and neither is a user row", async () => {
+  const path = join(FOLDER, "..", "-Users-user-tasks", "5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b.jsonl")
+  const session = createSession()
+  loadTranscript(session, await readTranscript(path))
+  expect(rows(session)).toEqual([
+    "user Start a background agent that counts the sheep.",
+    "user Write a short poem about rain.",
+  ])
+  const items = Object.values(session.state.byId)
+  expect(items.find((item) => item.kind === "tool")).toMatchObject({ agent: { state: "completed" } })
+  expect(items.find((item) => item.kind === "turn-end")).toMatchObject({
+    interrupted: true,
+    error: null,
+    durationMs: 5000,
+  })
+})
+
+test("a later task notification without its tool-use-id still reaches the agent", async () => {
+  const result = {
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "launched" }] },
+  }
+  const note = (summary: string, toolUseId: string | null) =>
+    user(
+      `<task-notification>\n<task-id>afake0</task-id>\n${toolUseId ? `<tool-use-id>${toolUseId}</tool-use-id>\n` : ""}` +
+        `<status>completed</status>\n<summary>${summary}</summary>\n</task-notification>`,
+    )
+  const entries = [
+    user("count the sheep"),
+    {
+      type: "assistant",
+      message: { id: "m1", role: "assistant", content: [{ type: "tool_use", id: "t1", name: "Agent", input: {} }] },
+    },
+    result,
+    note("waiting on its own work", "t1"),
+    note("finished", null),
+  ]
+  const lines = entries.map((entry, index) =>
+    JSON.stringify({ ...entry, uuid: `u${index}`, parentUuid: index === 0 ? null : `u${index - 1}` }),
+  )
+  const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "notes.jsonl")
+  writeFileSync(path, lines.join("\n") + "\n")
+  const session = createSession()
+  loadTranscript(session, await readTranscript(path))
+  const tool = Object.values(session.state.byId).find((item) => item.kind === "tool")
+  expect(tool).toMatchObject({ agent: { state: "completed", report: "finished" } })
+})
+
+test("commands claude ran itself drop out with their output, /compact stays", async () => {
+  const entries = [
+    user("first"),
+    { type: "assistant", message: { id: "m1", role: "assistant", content: [{ type: "text", text: "one" }] } },
+    caveat,
+    command("model", "haiku"),
+    stdout("Set model to haiku"),
+    caveat,
+    command("context"),
+    { type: "system", subtype: "local_command", content: "<local-command-stdout>Context</local-command-stdout>" },
+    caveat,
+    command("compact"),
+    stdout("Compacted "),
+    user("second"),
+  ]
+  const lines = entries.map((entry, index) =>
+    JSON.stringify({ ...entry, uuid: `u${index}`, parentUuid: index === 0 ? null : `u${index - 1}` }),
+  )
+  const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "commands.jsonl")
+  writeFileSync(path, lines.join("\n") + "\n")
+  const session = createSession()
+  loadTranscript(session, await readTranscript(path))
+  expect(rows(session)).toEqual(["user first", "user /compact", "user second"])
 })
 
 const line = (message: object) => ({ dir: "in" as const, line: JSON.stringify(message), at: 0 })

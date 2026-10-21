@@ -1,4 +1,4 @@
-import type { McpServer, SessionInfo } from "../../session/types.ts"
+import type { McpServer } from "../../session/types.ts"
 
 export type McpState = "failed" | "needs-login" | "connecting" | "connected" | "off"
 export type McpGroup = "project" | "user" | "other"
@@ -46,12 +46,13 @@ export function shortName(name: string): string {
   return /^plugin:[^:]+:(.+)$/.exec(name)?.[1] ?? name.replace(/^claude\.ai /, "")
 }
 
-export function mcpEntries(info: SessionInfo | null): McpEntry[] {
-  return (info?.mcpServers ?? [])
+// `tools` is the session's tool list, for a server whose own list claude has not reported.
+export function mcpEntries(servers: McpServer[] | null, tools: string[]): McpEntry[] {
+  return (servers ?? [])
     .map((server) => {
       const prefix = toolPrefix(server.name)
-      const tools =
-        server.tools ?? info?.tools.filter((tool) => tool.startsWith(prefix)).map((tool) => tool.slice(prefix.length))
+      const own =
+        server.tools ?? tools.filter((tool) => tool.startsWith(prefix)).map((tool) => tool.slice(prefix.length))
       const { group, tag, where } = placement(server.source ?? server.scope)
       return {
         server,
@@ -60,7 +61,7 @@ export function mcpEntries(info: SessionInfo | null): McpEntry[] {
         group,
         where,
         state: STATES[server.status] ?? "connected",
-        tools: tools ?? [],
+        tools: own,
       }
     })
     .toSorted((a, b) => RANK[a.state] - RANK[b.state])

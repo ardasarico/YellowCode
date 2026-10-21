@@ -4,7 +4,7 @@ import { join } from "node:path"
 
 const MAX_KEY_LENGTH = 200
 
-export const CLAUDE_PROJECTS = join(homedir(), ".claude", "projects")
+export const CLAUDE_PROJECTS = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude"), "projects")
 
 export function projectKey(path: string): string {
   const key = path.replace(/[^A-Za-z0-9]/g, "-")

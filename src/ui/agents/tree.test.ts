@@ -5,7 +5,7 @@ import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { Session } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
-import { activeNodes, agentTree, barSize, shellNodes } from "./tree.ts"
+import { activeNodes, agentTree, barSize, shellNodes, taskIdOf } from "./tree.ts"
 
 function play(name: string) {
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -75,6 +75,22 @@ test("agents and shells of rewound prompts leave the tree, the panel and the she
   expect(counts()).toEqual([0, 0, 0])
   session.redo()
   expect(counts()).toEqual([1, 1, 1])
+})
+
+test("x stops the node's own task: an agent's, a shell's, and none for a workflow's agent", () => {
+  const session = replay("agent-shell")
+  const [agent] = agentTree(session)
+  const [shell] = shellNodes(session)
+  if (!agent || !shell) throw new Error("agent-shell fixture changed")
+  expect([taskIdOf(session, agent), taskIdOf(session, shell)]).toEqual(["ac15290731e0393df", "bpry8sht6"])
+  const workflow = replay("workflow")
+  const ids = agentTree(workflow).map((node) => [node.kind, taskIdOf(workflow, node)])
+  expect(ids).toEqual([
+    ["workflow", Object.keys(workflow.tasks)[0] ?? ""],
+    ["phase", null],
+    ["workflow-agent", null],
+    ["workflow-agent", null],
+  ])
 })
 
 test("the workflow bar narrows to 12, then 8 columns, then goes away", () => {

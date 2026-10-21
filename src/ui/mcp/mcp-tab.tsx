@@ -1,5 +1,5 @@
 import { createMemo, createSignal } from "solid-js"
-import type { McpConfig, SessionInfo } from "../../session/types.ts"
+import type { McpConfig, McpServer } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, names, title } from "../dialog/detail.ts"
 import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
@@ -9,11 +9,11 @@ import { TwoPane } from "../dialog/two-pane.tsx"
 import type { Span } from "../notice.ts"
 import { MCP_GROUPS, type McpEntry, type McpState, mcpEntries } from "./servers.ts"
 
-// The live connection runs these; without them each action shows a notice.
+// The live connection runs these; without them each action shows a notice. A rejection says what went wrong.
 export type McpActions = {
-  reconnect(name: string): void
-  setEnabled(name: string, enabled: boolean): void
-  login(name: string): void
+  reconnect(name: string): Promise<void>
+  setEnabled(name: string, enabled: boolean): Promise<void>
+  login(name: string): Promise<void>
 }
 
 const ON_OFF_NOTICE = "On/off comes with the live connection"
@@ -67,8 +67,9 @@ function stateSpan(state: McpState): Span {
 
 function shownConfig(config: McpConfig): [string, string] {
   if ("command" in config) return ["Command", [config.command, config.package].filter(Boolean).join(" ")]
+  // A path can hold a key as well as the query, so only where the server is shows.
   const url = URL.parse(config.url)
-  return ["URL", url ? `${url.origin}${url.pathname}` : config.url]
+  return ["URL", url && url.origin !== "null" ? url.origin : config.url]
 }
 
 function detailItems(entry: McpEntry, width: number, open: boolean): DialogItem[] {
@@ -110,18 +111,30 @@ function listFooter(entry: McpEntry | undefined): FooterAction[] {
   return [...footer, { key: "esc", action: "close" }]
 }
 
-export function McpTab(props: { api: TabApi; info: SessionInfo | null; actions?: McpActions }) {
-  const entries = createMemo(() => mcpEntries(props.info))
+export function McpTab(props: {
+  api: TabApi
+  servers: McpServer[] | null
+  // The session's tools, for servers without a tool list of their own.
+  tools: string[]
+  actions?: McpActions
+}) {
+  const entries = createMemo(() => mcpEntries(props.servers, props.tools))
   const [opened, setOpened] = createSignal<string | null>(null)
   const entryFor = (row: DialogRow | undefined) => entries().find((entry) => entry.server.name === row?.id)
 
   const run = (entry: McpEntry, id: string) => {
     const actions = props.actions
     const name = entry.server.name
-    if (!actions) props.api.notify(NOTICES[id] ?? ON_OFF_NOTICE)
-    else if (id === "reconnect" || id === "restart") actions.reconnect(name)
-    else if (id === "login") actions.login(name)
-    else if (id === "on" || id === "off") actions.setEnabled(name, id === "on")
+    if (!actions) return props.api.notify(NOTICES[id] ?? ON_OFF_NOTICE)
+    const done =
+      id === "reconnect" || id === "restart"
+        ? actions.reconnect(name)
+        : id === "login"
+          ? actions.login(name)
+          : id === "on" || id === "off"
+            ? actions.setEnabled(name, id === "on")
+            : null
+    done?.catch((error: unknown) => props.api.notify(error instanceof Error ? error.message : String(error)))
   }
 
   return (
@@ -131,7 +144,7 @@ export function McpTab(props: { api: TabApi; info: SessionInfo | null; actions?:
       searchPlaceholder="Search servers"
       empty={(query) => {
         if (query) return `No servers match "${query}".`
-        return props.info ? "No MCP servers in this session." : "MCP servers appear after the first message."
+        return props.servers ? "No MCP servers in this session." : "MCP servers appear after the first message."
       }}
       detail={(row, width) => {
         const entry = entryFor(row)

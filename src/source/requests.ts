@@ -5,12 +5,15 @@ import { errorResponse } from "../protocol/outgoing.ts"
 
 export class RequestError extends Error {}
 export class RequestTimeout extends RequestError {}
+// The line could not go out, as when claude has just ended.
+export class RequestUnsent extends RequestError {}
 
 export const REQUEST_TIMEOUT_MS = 30_000
 
 export type Requests = {
   // Resolves with the reply's `response`; an error reply, a timeout or close() rejects it with a RequestError.
-  send(build: (requestId: string) => string, timeoutMs?: number): Promise<unknown>
+  // `quiet` logs a timeout at debug level, for requests that repeat every second.
+  send(build: (requestId: string) => string, timeoutMs?: number, options?: { quiet?: boolean }): Promise<unknown>
   settle(reply: { subtype: string; request_id: string; response?: unknown }): void
   close(reason: string): void
 }
@@ -26,13 +29,15 @@ export function createRequests(write: (line: string) => boolean): Requests {
   let closed: string | null = null
 
   return {
-    send(build, timeoutMs = REQUEST_TIMEOUT_MS) {
+    send(build, timeoutMs = REQUEST_TIMEOUT_MS, options) {
       if (closed !== null) return Promise.reject(new RequestError(closed))
       const id = `yc-${++counter}`
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
           pending.delete(id)
-          log.warn(`request ${id} timed out after ${timeoutMs} ms`)
+          const message = `request ${id} timed out after ${timeoutMs} ms`
+          if (options?.quiet) log.debug(message)
+          else log.warn(message)
           reject(new RequestTimeout(`${id} timed out after ${timeoutMs} ms`))
         }, timeoutMs)
         pending.set(id, { resolve, reject, timer })
@@ -45,7 +50,7 @@ export function createRequests(write: (line: string) => boolean): Requests {
         if (written) return
         clearTimeout(timer)
         pending.delete(id)
-        reject(new RequestError(`${id} could not be sent`))
+        reject(new RequestUnsent(`${id} could not be sent`))
       })
     },
     settle(reply) {

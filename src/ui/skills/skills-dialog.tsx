@@ -4,8 +4,8 @@ import { theme } from "../../theme/theme.ts"
 import { Dialog, type FooterAction } from "../dialog/dialog.tsx"
 import type { DialogRow, DialogSection } from "../dialog/list.ts"
 
-// The live connection runs this; without it Space only shows the notice.
-export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): void }
+// The live connection runs this; without it Space only shows the notice. A rejection says what went wrong.
+export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): Promise<void> }
 
 const WIDTH = 96
 const MIN_HEIGHT = 14
@@ -78,7 +78,10 @@ export function SkillsDialog(props: {
         if (key.name !== "space" || query) return false
         const skill = skillOf(row)
         if (!skill || skill.locked) return true
-        if (props.actions) props.actions.setEnabled(skill, !skill.enabled)
+        if (props.actions)
+          props.actions
+            .setEnabled(skill, !skill.enabled)
+            .catch((error: unknown) => showNotice(error instanceof Error ? error.message : String(error)))
         else showNotice(REPLAY_NOTICE)
         return true
       }}

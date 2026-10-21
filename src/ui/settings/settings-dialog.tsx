@@ -3,11 +3,11 @@ import type { PluginHook, SettingsSource, SkillRow } from "../../protocol/messag
 import { pluginEntries } from "../../session/plugins.ts"
 import { settings } from "../../session/settings.ts"
 import { modeLabel } from "../../session/settings-file.ts"
-import type { SessionInfo } from "../../session/types.ts"
+import type { McpServer, SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
-import { McpTab } from "../mcp/mcp-tab.tsx"
+import { type McpActions, McpTab } from "../mcp/mcp-tab.tsx"
 import { ConfigTab } from "./config-tab.tsx"
-import { PluginsTab } from "./plugins-tab.tsx"
+import { type PluginActions, PluginsTab } from "./plugins-tab.tsx"
 import { type StatusFacts, StatusTab } from "./status-tab.tsx"
 
 export type SettingsTab = "status" | "config" | "mcp" | "plugins"
@@ -17,6 +17,10 @@ const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
 export function SettingsDialog(props: {
   tab: SettingsTab
   info: SessionInfo | null
+  // Live, claude lists them before the first message, when there is no info yet.
+  servers: McpServer[] | null
+  mcpActions?: McpActions
+  pluginActions?: PluginActions
   // As claude reports it ("default", "acceptEdits", …).
   permissionMode: string | null
   title: string | null
@@ -44,7 +48,7 @@ export function SettingsDialog(props: {
       model: props.model,
       effort: settings.effort,
       permissionMode: props.permissionMode === null ? null : modeLabel(props.permissionMode),
-      mcpServers: info ? info.mcpServers.length : null,
+      mcpServers: props.servers?.length ?? null,
       plugins: plugins()?.length ?? null,
       skills: props.skillRows ? props.skills : (info?.skills.length ?? null),
       tools: info ? info.tools.length : null,
@@ -55,8 +59,18 @@ export function SettingsDialog(props: {
   const tabs: Tab<SettingsTab>[] = [
     { id: "status", label: "Status", render: (api) => <StatusTab api={api} facts={facts()} /> },
     { id: "config", label: "Config", render: (api) => <ConfigTab api={api} /> },
-    { id: "mcp", label: "MCP", render: (api) => <McpTab api={api} info={props.info} /> },
-    { id: "plugins", label: "Plugins", render: (api) => <PluginsTab api={api} plugins={plugins()} /> },
+    {
+      id: "mcp",
+      label: "MCP",
+      render: (api) => (
+        <McpTab api={api} servers={props.servers} tools={props.info?.tools ?? []} actions={props.mcpActions} />
+      ),
+    },
+    {
+      id: "plugins",
+      label: "Plugins",
+      render: (api) => <PluginsTab api={api} plugins={plugins()} actions={props.pluginActions} />,
+    },
   ]
 
   return <TabbedDialog title="Settings" tabs={tabs} tab={props.tab} onTab={props.onTab} onClose={props.onClose} />

@@ -17,13 +17,21 @@ export function thinkingArg(thinking: StoredSettings["thinking"]): string {
   return `--thinking-display=${thinking === "hidden" ? "omitted" : "summarized"}`
 }
 
+// Which conversation claude runs: a new one under a given id, an earlier one (resume), or a copy of one under a new
+// id (fork).
+export type Spawn = { resume?: string; fork?: boolean; sessionId?: string }
+
 // How YellowCode starts claude, from what the user saved. bypassPermissions can be switched to only in a session
 // started with the allow flag, so the flag goes along only when that mode is saved.
-export function claudeArgs(stored: Pick<StoredSettings, "thinking" | "permissionMode">): string[] {
+export function claudeArgs(stored: Pick<StoredSettings, "thinking" | "permissionMode">, spawn: Spawn = {}): string[] {
   const bypass = stored.permissionMode === "bypassPermissions" ? ["--allow-dangerously-skip-permissions"] : []
   return [
     ...CLAUDE_STREAM_ARGS,
     thinkingArg(stored.thinking),
+    // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.
+    ...(spawn.resume ? ["--resume", spawn.resume] : []),
+    ...(spawn.fork ? ["--fork-session"] : []),
+    ...(spawn.sessionId ? ["--session-id", spawn.sessionId] : []),
     "--permission-mode",
     protocolMode(stored.permissionMode),
     ...bypass,

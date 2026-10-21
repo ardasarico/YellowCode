@@ -380,7 +380,10 @@ export function PromptBar(props: PromptBarProps) {
             onSubmit={props.onSubmit}
             frame={frame()}
             draft={draft}
-            onDraft={(next) => (draft = next)}
+            onDraft={(next) => {
+              draft = next
+              props.onDraft?.(next)
+            }}
             provider={props.provider}
             history={props.history}
             onListOpen={props.onListOpen}

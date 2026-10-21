@@ -186,7 +186,8 @@ export function AgentPage(props: PageProps) {
     return last?.kind === "text" ? last.markdown.trim() : ""
   }
   const outcome = () => {
-    if (running()) return null
+    // A stopped agent's summary is only its description.
+    if (running() || props.node.state === "stopped") return null
     if (props.node.state === "failed")
       return { text: agent()?.error || report() || "failed", color: theme.error, markdown: false }
     const text = report()

@@ -66,7 +66,9 @@ export function WorkflowPage(props: PageProps & { rows: TreeNode[] }) {
   const task = () => workflowTask(props.session, props.node.id)
   const duration = useDuration(() => props.node)
   const agents = () => task()?.workflow?.agents.length ?? 0
-  const summary = () => (props.node.state === "running" ? "" : (task()?.summary ?? "").trim())
+  // A stopped workflow's summary is only its description.
+  const summary = () =>
+    props.node.state === "running" || props.node.state === "stopped" ? "" : (task()?.summary ?? "").trim()
   const description = () => {
     const text = task()?.description ?? ""
     return text === props.node.name ? "" : text

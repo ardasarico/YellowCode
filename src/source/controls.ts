@@ -35,15 +35,26 @@ import {
 import { EFFORT_LEVELS, type EffortLevel } from "../theme/brand.ts"
 import type { Requests } from "./requests.ts"
 
+// What the user chose for the conversation, or what claude said it uses.
+export type Knobs = { model: string | null; effort: EffortLevel | null; ultracode: boolean }
+
 // Live only: what claude offers and uses, read from its initialize reply, get_settings and the messages after them.
 export type Controls = {
+  // Another live module that takes the same initialize reply and messages, after it was created.
+  follow(follower: Follower): void
   initialized(reply: unknown): void
   onMessage(message: ProtocolMessage): void
   // Sends the changes still waiting out their delay, so a message sent right after them goes out under them.
   flush(): void
+  // A claude started again for the same conversation gets the knobs it had, before any message goes out.
+  carry(knobs: Knobs): void
+  // The claude is being replaced: nothing it answers from here on reaches the knobs, the lists or the notices.
+  dispose(): void
 }
 
-const commandsOf = (rows: unknown[]): SlashCommand[] =>
+export type Follower = Pick<Controls, "initialized" | "onMessage">
+
+export const commandsOf = (rows: unknown[]): SlashCommand[] =>
   rows.flatMap((row) => {
     const parsed = slashCommand.safeParse(row)
     return parsed.success ? [parsed.data] : []
@@ -99,15 +110,22 @@ export function createControls(options: {
   }
   // What claude said it uses, last. A knob sends only what differs from it, so writing it back to the knobs sends
   // nothing.
-  const known: { model: string | null; effort: EffortLevel | null; ultracode: boolean } = {
-    model: null,
-    effort: null,
-    ultracode: false,
-  }
+  const known: Knobs = { model: null, effort: null, ultracode: false }
   // Changes waiting to go out, or sent and not answered yet.
   const pending = new Set<Knob>()
   const timers = new Map<Knob, { timer: ReturnType<typeof setTimeout>; send: () => void }>()
   let ultracodeAsked = false
+  const followers: Follower[] = []
+  let disposed = false
+  // One that throws must not keep the message from the others, nor end the pump.
+  const tell = (call: (follower: Follower) => void) => {
+    for (const follower of followers)
+      try {
+        call(follower)
+      } catch (error) {
+        log.error("live module failed", error)
+      }
+  }
 
   // get_settings is the only source of the model and effort before the first turn (init comes with the first
   // message), and after a change it tells what claude actually applied.
@@ -115,7 +133,7 @@ export function createControls(options: {
     requests.send(getSettingsRequest).then(
       (reply) => {
         // The state from before a change still on its way would undo it; the refresh after that change comes later.
-        if (pending.size > 0) return
+        if (disposed || pending.size > 0) return
         const applied = appliedSettings.safeParse(reply).data?.applied
         if (!applied) return log.warn("claude settings: no applied settings in the reply")
         known.model = applied.model ?? null
@@ -160,13 +178,14 @@ export function createControls(options: {
           settle(knob)
         },
         (error: unknown) => {
+          if (disposed) return
           if (session.state.status !== "ended") setControlProblem({ text: failure(knob, error) })
           settle(knob)
         },
       )
     })
 
-  createRoot(() => {
+  const stopEffects = createRoot((dispose) => {
     createEffect(
       on(
         () => settings.model,
@@ -234,16 +253,35 @@ export function createControls(options: {
         { defer: true },
       ),
     )
+    return dispose
   })
 
+  const flush = () => {
+    for (const { timer, send } of timers.values()) {
+      clearTimeout(timer)
+      send()
+    }
+  }
+
   return {
-    flush() {
-      for (const { timer, send } of timers.values()) {
-        clearTimeout(timer)
-        send()
-      }
+    follow(follower) {
+      followers.push(follower)
+    },
+    flush,
+    carry({ model, effort, ultracode }) {
+      if (model !== null) change("model", (id) => setModelRequest(id, modelValue(model)))
+      if (effort !== null) change("effort", (id) => applyFlagSettingsRequest(id, { effortLevel: effort, ultracode }))
+      else if (ultracode) change("ultracode", (id) => applyFlagSettingsRequest(id, { ultracode }))
+      flush()
+    },
+    dispose() {
+      disposed = true
+      stopEffects()
+      for (const { timer } of timers.values()) clearTimeout(timer)
+      timers.clear()
     },
     initialized(reply) {
+      if (disposed) return
       const commands = commandRows.safeParse(reply).data?.commands
       if (commands) provider.setCommands(commandsOf(commands))
       const rows = modelRows.safeParse(reply).data?.models
@@ -260,8 +298,10 @@ export function createControls(options: {
       refresh()
       // claude builds its file index on the first non-empty query, which itself answers nothing.
       requests.send((id) => fileSuggestionsRequest(id, "a")).catch(() => {})
+      tell((follower) => follower.initialized(reply))
     },
     onMessage(message) {
+      if (disposed) return
       if (message.type === "system" && message.subtype === "commands_changed")
         provider.setCommands(commandsOf(message.commands))
       else if (message.type === "system" && message.subtype === "init") {
@@ -274,6 +314,7 @@ export function createControls(options: {
           setKnobs({ model: message.model })
         }
       } else if (message.type === "result" && message.local_command) refresh()
+      tell((follower) => follower.onMessage(message))
     },
   }
 }

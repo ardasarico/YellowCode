@@ -17,9 +17,12 @@ export type NoticeState = {
   replay: ReplayInfo | null
   readOnly: string | null
   status: SessionStatus
+  // Enter starts Claude Code again once it has exited.
+  restartable: boolean
   mcpFailure: string | null
   settingsProblem: string | null
   asking: boolean
+  compacting: boolean
   quitArmed: boolean
   rewindArmed: boolean
   // Keys are held after claude took back the ask the user was typing for.
@@ -77,12 +80,16 @@ function leftSpans(state: NoticeState): Span[] {
   if (state.rewindArmed) return [rewindHint()]
   if (state.held) return [{ text: "Claude Code withdrew the request", fg: theme.muted }]
   const live = state.replay === null && state.readOnly === null
-  if (live && state.status === "ended") return [{ text: "✗ Claude Code exited · Ctrl+C: quit", fg: theme.error }]
+  if (live && state.status === "ended") {
+    const restart = state.restartable ? " · Enter: restart" : ""
+    return [{ text: `✗ Claude Code exited · Ctrl+C: quit${restart}`, fg: theme.error }]
+  }
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []
+  if (live && state.compacting) return [{ text: "Compacting conversation…", fg: theme.muted }]
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
   if (live) return state.status === "starting" ? [startingNotice()] : []
   const replay = state.replay

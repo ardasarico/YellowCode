@@ -38,9 +38,12 @@ export type SessionStore = {
   prepend(events: SourceEvent[]): void
   answer(response: string): void
   stopRunning(): void
+  setLists(lists: Partial<Pick<Session, "mcpServers" | "plugins">>): void
   setPermissionMode(mode: string): void
   // The interrupt was refused or timed out, so the turn goes on and may be interrupted again.
   interruptFailed(): void
+  // An ended session gets a new claude; the chat stays as it was.
+  restart(): void
   // With a problem, Claude Code went away on its own: running work stops and the chat ends with an error row.
   end(problem?: SessionEnd): void
   rewind(rewound: Rewound): void
@@ -243,6 +246,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     items: [],
     byId: {},
     tasks: {},
+    mcpServers: null,
+    plugins: null,
     usage: {
       startedAt: null,
       tokens: 0,
@@ -255,6 +260,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     interrupting: false,
     turn: null,
     permissionMode: null,
+    claudeTitle: null,
+    conversation: 0,
+    compacting: false,
+    carried: [],
   })
   const cursors = new Map<string, Cursor>()
   const invalid = new Map<string, { id: ItemId; count: number }>()
@@ -281,12 +290,22 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   let loginShown = false
   // When each streaming thinking block started, so its end can give it a duration.
   const thinkingSince = new Map<ItemId, number>()
+  // The uuids of claude's own replies to local commands (/context, /model) shown so far.
+  const localOutputs = new Set<string>()
+  // Tool calls that messages named as their parent but that are not here; logged once each.
+  const lostParents = new Set<string>()
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
   function add(item: Item, parent: string | null | undefined): void {
-    setState("byId", item.id, item)
     const parentItem = parent ? state.byId[parent] : undefined
+    // A subagent's message whose call is gone (a /clear took it) must not read as the main agent's.
+    if (parent && parentItem?.kind !== "tool") {
+      if (!lostParents.has(parent)) log.warn("dropped messages under an unknown tool call", { parent })
+      lostParents.add(parent)
+      return
+    }
+    setState("byId", item.id, item)
     if (parentItem?.kind === "tool") {
       update(parentItem.id, (tool) => {
         if (tool.kind === "tool") tool.children.push(item.id)
@@ -451,17 +470,29 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   }
 
   function onAssistant(message: Of<"assistant">): void {
+    const text = () =>
+      message.message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
     // claude repeats an API error as a reply of its own, and the turn's end already shows it.
     if (message.is_api_error_message) {
-      const text = message.message.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
-      if (needsLogin(message.error, text)) loginNeeded = true
+      if (needsLogin(message.error, text())) loginNeeded = true
+      return
+    }
+    // claude's own reply, such as the output of `/context`; it carries no usage.
+    const local = message.message.model === "<synthetic>"
+    // A compaction that keeps a local command's output prints it again, under the same uuid.
+    if (local && message.uuid) {
+      if (localOutputs.has(message.uuid)) return
+      localOutputs.add(message.uuid)
+    }
+    // A local command that failed (a compaction the API refused) says why in a reply of its own.
+    if (message.local_command_outcome?.kind === "failed") {
+      if (text().trim()) add({ kind: "system", id: newId("system"), text: text(), level: "warning" }, null)
       return
     }
     dropRetry()
     const key = message.parent_tool_use_id ?? MAIN
     const usage = message.message.usage
-    // A reply claude makes up itself, such as `/context`, carries no usage.
-    if (usage && !message.parent_tool_use_id && message.message.model !== "<synthetic>") {
+    if (usage && !message.parent_tool_use_id && !local) {
       setState(
         "usage",
         "context",
@@ -497,7 +528,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (block.type === "text" && !block.text.trim()) continue
       const item = startedItem(block)
       if (!item) continue
-      add(item, message.parent_tool_use_id)
+      add(local && item.kind === "text" ? { ...item, local } : item, message.parent_tool_use_id)
       finalize(item.id, block)
       stopStreaming(item.id)
     }
@@ -506,6 +537,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   function onToolResults(message: Of<"user">): void {
     if (message.isReplay || typeof message.message.content === "string") return
     const fileResult = message.tool_use_result
+    const parent = message.parent_tool_use_id ? state.byId[message.parent_tool_use_id] : undefined
+    const agentStopped = parent?.kind === "tool" && parent.agent?.state === "stopped"
     for (const block of message.message.content) {
       if (block.type !== "tool_result") continue
       const tool = state.byId[block.tool_use_id]
@@ -513,8 +546,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       const skipped = message.tool_result_meta?.find((meta) => meta.id === block.tool_use_id)?.non_execution_kind
       update(block.tool_use_id, (item) => {
         if (item.kind !== "tool") return
-        // An interrupt stops the tool; claude's rejection text is meant for the model.
-        if (skipped === "user-rejected" || skipped === "interrupted") {
+        // An interrupt or a stop of its agent stops the tool; claude's rejection text is meant for the model.
+        if (skipped === "user-rejected" || skipped === "interrupted" || (agentStopped && block.is_error)) {
           item.status = "stopped"
           item.result = ""
           if (item.agent) item.agent.state = "stopped"
@@ -585,22 +618,25 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const retries = message.is_error && retryId ? retryAttempt : 0
     dropRetry()
     retryAttempt = 0
-    add(
-      {
-        kind: "turn-end",
-        id: newId("turn"),
-        costUsd: message.total_cost_usd,
-        durationMs: message.duration_ms,
-        inputTokens: message.usage.input_tokens,
-        outputTokens: message.usage.output_tokens,
-        error,
-        retries,
-        interrupted,
-        endedAt: now,
-      },
-      null,
-    )
+    // A local command (/context, /compact, /clear) made no model turn to time; one that failed still says why.
+    if (!message.local_command || message.is_error)
+      add(
+        {
+          kind: "turn-end",
+          id: newId("turn"),
+          costUsd: message.total_cost_usd,
+          durationMs: message.duration_ms,
+          inputTokens: message.usage.input_tokens,
+          outputTokens: message.usage.output_tokens,
+          error,
+          retries,
+          interrupted,
+          endedAt: now,
+        },
+        null,
+      )
     setState("interrupting", false)
+    setState("compacting", false)
     if (loginNeeded && !loginShown) {
       loginShown = true
       add({ kind: "system", id: newId("system"), text: LOGIN_HINT, level: "warning" }, null)
@@ -745,6 +781,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       case "status":
         for (const uuid of message.user_message_uuids ?? []) settleQueued(uuid)
         if (message.permissionMode) setState("permissionMode", message.permissionMode)
+        // A mode change reports itself as a status too, and says nothing about a compaction going on.
+        if (message.status === "compacting") setState("compacting", true)
+        else if (!message.permissionMode) setState("compacting", false)
         if (message.status !== "requesting") return
         // A turn claude starts itself (a queued message, a background task's end) runs like any other; one that takes
         // in a user message counts as the user's.
@@ -756,8 +795,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       // The command list is the input's business (controls.ts).
       case "commands_changed":
         return
-      case "compact_boundary":
+      case "session_title_changed":
+        setState("claudeTitle", message.title)
+        return
+      case "compact_boundary": {
         add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
+        setState("compacting", false)
+        const left = message.compact_metadata.post_tokens
+        if (left !== undefined) setState("usage", "context", "used", left)
+        return
+      }
+      case "local_command_output":
+        add({ kind: "text", id: newId("text"), markdown: message.content, streaming: false, local: true }, null)
         return
       case "api_retry":
         return onRetry(message)
@@ -822,6 +871,15 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
           }
         })
         finishTask(message.task_id, message.status)
+        // A task this session never saw start (a call read back from a transcript) still ends its call.
+        if (!state.tasks[message.task_id] && message.tool_use_id)
+          update(message.tool_use_id, (item) => {
+            if (item.kind !== "tool") return
+            if (item.status === "running") item.status = toolStatus(message.status)
+            if (!item.agent) return
+            item.agent.state = message.status
+            item.agent.report = message.summary
+          })
         const task = state.tasks[message.task_id]
         if (task && isShell(task) && !shellEnds.has(task.id)) {
           shellEnds.add(task.id)
@@ -847,6 +905,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       case "control_request": {
         const request = message.request
         if (request.subtype !== "can_use_tool") return
+        const agent = request.agent_id ? state.tasks[request.agent_id]?.name : undefined
         add(
           {
             kind: "ask",
@@ -865,6 +924,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
             answers: {},
             notes: {},
             denial: "",
+            ...(agent ? { agent } : {}),
           },
           null,
         )
@@ -883,6 +943,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         const reply = taskOutput.safeParse(message.response.response)
         if (!reply.success) return
         setTask(taskId, (task) => {
+          // A shell's output only grows, so a smaller tail is a late reply to an older read.
+          if (reply.data.total_bytes < task.outputBytes) return
           task.output = reply.data.output
           task.outputBytes = reply.data.total_bytes
           task.truncated = reply.data.truncated
@@ -899,6 +961,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return
       case "rate_limit_event":
         return onRateLimit(message)
+      case "conversation_reset":
+        return reset()
     }
   }
 
@@ -988,6 +1052,61 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     }
   }
 
+  // The chat starts over; the /clear's own result is still to come. Messages sent after the /clear that claude has
+  // not taken in yet run in the new conversation, an ask still open waits for its answer, and work still running in
+  // the process goes on: agents and workflows keep their steps off the chat, in the agent panel.
+  function reset(): void {
+    const byId = state.byId
+    const queued = new Set(waiting.values())
+    const items = state.items.filter((id) => {
+      const item = byId[id]
+      return queued.has(id) || (item?.kind === "ask" && item.status === "pending")
+    })
+    const goesOn = (id: ItemId) => {
+      const item = byId[id]
+      if (item?.kind !== "tool" || (item.agent === null && item.name !== "Agent" && item.name !== "Workflow"))
+        return false
+      return item.taskId !== null && state.tasks[item.taskId]?.state === "running"
+    }
+    // A running agent goes with all its steps; under a finished call (a foreground agent that started a background
+    // one and returned) a running one is looked for.
+    const carried: ItemId[] = []
+    const find = (id: ItemId): void => {
+      const item = byId[id]
+      if (goesOn(id)) carried.push(id)
+      else if (item?.kind === "tool") for (const child of item.children) find(child)
+    }
+    for (const id of [...state.carried, ...state.items]) find(id)
+    const kept = new Set(items)
+    const keep = (id: ItemId) => {
+      kept.add(id)
+      const item = byId[id]
+      if (item?.kind === "tool") for (const child of item.children) keep(child)
+    }
+    for (const id of carried) keep(id)
+    for (const key of cursors.keys()) if (!kept.has(key)) cursors.delete(key)
+    for (const id of thinkingSince.keys()) if (!kept.has(id)) thinkingSince.delete(id)
+    invalid.clear()
+    retryId = null
+    retryAttempt = 0
+    setState(
+      produce((session) => {
+        for (const id of Object.keys(session.byId)) if (!kept.has(id)) delete session.byId[id]
+        session.items = items
+        session.carried = carried
+        for (const [id, task] of Object.entries(session.tasks)) if (task.state !== "running") delete session.tasks[id]
+        session.rewound = null
+        session.compacting = false
+        session.claudeTitle = null
+        session.usage.tokens = 0
+        session.usage.costUsd = 0
+        session.usage.context.used = 0
+        session.usage.startedAt = Date.now()
+        session.conversation += 1
+      }),
+    )
+  }
+
   return {
     state,
     apply(dir, parsed, at) {
@@ -1019,12 +1138,22 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning,
+    setLists(lists) {
+      if (lists.mcpServers !== undefined) setState("mcpServers", lists.mcpServers)
+      if (lists.plugins !== undefined) setState("plugins", lists.plugins)
+    },
     setPermissionMode(mode) {
       setState("permissionMode", mode)
     },
     interruptFailed() {
       interruptId = null
       setState("interrupting", false)
+    },
+    restart() {
+      // The new claude numbers its requests from the start again.
+      interruptId = null
+      outputRequests.clear()
+      setState("status", "starting")
     },
     end(problem) {
       for (const id of Object.keys(state.byId)) stopStreaming(id)
@@ -1048,6 +1177,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       waiting.clear()
       setState("turn", null)
       setState("interrupting", false)
+      setState("compacting", false)
       setState("status", "ended")
     },
   }

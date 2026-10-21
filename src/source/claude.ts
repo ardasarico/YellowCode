@@ -9,7 +9,10 @@ import type { Source, SourceEvent } from "./source.ts"
 // `closed` is true when the process ended after close() was called.
 export type ClaudeExit = { code: number | null; signal: string | null; stderr: string[]; closed: boolean }
 export type ClaudeSource = Source & {
+  // Once the process and its output are done; a process claude started can hold the output open long after.
   exited: Promise<ClaudeExit>
+  // Once the claude process itself has ended.
+  ended: Promise<void>
   // What is known now; code and signal are both null while the process still runs.
   exitNow(): ClaudeExit
 }
@@ -105,6 +108,7 @@ export function createClaudeSource(cwd: string, running: () => boolean, command:
   return {
     events: events(),
     exited,
+    ended: proc.exited.then(() => {}),
     exitNow,
     send(line) {
       if (closed || !reading || !alive()) {

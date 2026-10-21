@@ -276,7 +276,11 @@ export function innerNodes(session: Session, tool: ToolCall, colorIndex: number)
     .filter((node) => node.kind === "agent" || node.kind === "workflow")
 }
 
-const topCalls = (session: Session) => agentCalls(session, session.items, session.rewound?.userId)
+// Agents a /clear carried over come first.
+const topCalls = (session: Session) => [
+  ...agentCalls(session, session.carried, undefined),
+  ...agentCalls(session, session.items, session.rewound?.userId),
+]
 
 // Pre-order: every top-level agent or workflow followed by its descendants.
 export function agentTree(session: Session): TreeNode[] {
@@ -305,6 +309,15 @@ export function shellNodes(session: Session): TreeNode[] {
     colorIndex: 0,
     selectable: true,
   }))
+}
+
+// The task a node stands for: a shell's own, an agent's or workflow's through its call. The rows inside a workflow
+// have none.
+export function taskIdOf(session: Session, node: TreeNode): string | null {
+  if (node.kind === "shell") return node.id.slice(shellNodeId("").length)
+  if (node.kind !== "agent" && node.kind !== "workflow") return null
+  const tool = session.byId[node.id]
+  return tool?.kind === "tool" ? tool.taskId : null
 }
 
 // Top-level agents and workflows that are running or started since the latest user message, in tree order.

@@ -29,9 +29,20 @@ function lastLine(task: Task, duration: string): { text: string; color: RGBA } {
   return { text: `exited with code ${code}`, color: code === 0 ? theme.muted : theme.error }
 }
 
+// A progress line redraws itself after each \r, so only its last state is kept.
+function lastStates(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => {
+      const row = line.replace(/\r+$/, "")
+      return row.slice(row.lastIndexOf("\r") + 1)
+    })
+    .join("\n")
+}
+
 function body(task: Task): { text: string; color: RGBA } {
   if (task.output === null) return { text: "output not available", color: theme.muted }
-  const text = Bun.stripANSI(task.output).replace(EXIT_MARKER, "").trimEnd()
+  const text = lastStates(Bun.stripANSI(task.output).replace(EXIT_MARKER, "")).trimEnd()
   if (text) return { text, color: theme.text }
   return { text: task.state === "running" ? "no output yet" : "no output", color: theme.muted }
 }

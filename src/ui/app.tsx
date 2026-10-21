@@ -2,11 +2,13 @@ import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
+import { findCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
+import { currentInfo, currentServers } from "../session/lists.ts"
 import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
 import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
@@ -29,6 +31,7 @@ import { openFile } from "./dialog/open-file.ts"
 import { windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
+import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
 import { noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
@@ -36,9 +39,10 @@ import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
 import { RewindDialog } from "./rewind/rewind-dialog.tsx"
+import type { PluginActions } from "./settings/plugins-tab.tsx"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
-import { SkillsDialog } from "./skills/skills-dialog.tsx"
+import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { hasThinkingText } from "./thinking.tsx"
 import { useTicker } from "./ticker.ts"
@@ -55,20 +59,32 @@ export type AppProps = {
   workspace: Workspace
   replay: ReplayInfo | null
   readOnly?: SessionTitle & { modified: number }
+  // A resumed session's listed title, kept until a new message titles it again.
+  title?: SessionTitle
   titles: boolean
   settingsProblem: string | null
   // The archived copy of a broken settings file, opened by a click on the notice.
   settingsBackup?: string | null
   provider: InputProvider
+  // Live only; without them the MCP tab's actions show a notice.
+  mcpActions?: McpActions
+  skillActions?: SkillActions
+  pluginActions?: PluginActions
   sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
   earlier?: boolean
   onEarlier?: () => void
   // False when the message could not go out; the prompt keeps it.
   onSubmit: (text: string, images: OutgoingImage[]) => boolean
+  // Enter once Claude Code has exited starts it again and sends what was typed, if anything. Live only.
+  onRestart?: (text: string, images: OutgoingImage[]) => boolean
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
   // Without it nothing can be interrupted (a replay or a read-only transcript).
   onInterrupt?: () => void
+  // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
+  onTitle?: (title: string) => void
+  // Without it no task can be stopped from the agent view (a replay or a read-only transcript).
+  onStopTask?: (taskId: string) => Promise<void>
   // Without it the session cannot rewind (a read-only transcript).
   rewind?: { extras: RewindExtras | null; onRewind: (rewound: Rewound) => void; onRedo: () => void }
 }
@@ -106,18 +122,52 @@ export function App(props: AppProps) {
   let scroll: ScrollBoxRenderable | undefined
   const renderer = useRenderer()
   const dimensions = useTerminalDimensions()
-  const welcome = () => props.session.items.length === 0
-  const [recents, setRecents] = createSignal<SessionEntry[]>([])
-  // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held.
+  // Background work a /clear left running (an agent, a shell) keeps the chat up, so the agent panel, the shell
+  // counter and Ctrl+T still reach it.
+  const stillRunning = () =>
+    runningShellCount(props.session) > 0 ||
+    props.session.carried.some((id) => {
+      const item = props.session.byId[id]
+      return item?.kind === "tool" && item.taskId !== null && props.session.tasks[item.taskId]?.state === "running"
+    })
+  // A turn going on keeps it up too, so the screen does not flash between an agent's end and claude's turn about it.
+  const welcome = createMemo(
+    () => props.session.items.length === 0 && props.session.status !== "running" && !stillRunning(),
+  )
+  // The agent view and the chat focus belong to the chat; the welcome screen's input takes the keys again.
+  createEffect(
+    on(
+      welcome,
+      (shown) => {
+        if (!shown) return
+        setAgentView(null)
+        setFocus("input")
+      },
+      { defer: true },
+    ),
+  )
+  const [listed, setListed] = createSignal<SessionEntry[]>([])
+  // The session claude writes is not one to go back to; after a /clear its id comes with the init after the clear.
+  const unlisted = {
+    list: () => props.sessions.list().then((entries) => entries.filter((entry) => entry.id !== props.session.info?.id)),
+    open: (entry: SessionEntry) => props.sessions.open(entry),
+  }
+  const recents = () =>
+    listed()
+      .filter((entry) => entry.id !== props.session.info?.id)
+      .slice(0, RECENT_ROWS)
+  // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held; a /clear
+  // brings it back with what the prompt bar held.
   let welcomeDraft: Draft | undefined
+  let promptDraft: Draft | undefined
   // The selected row of the welcome screen's recent sessions; null while the tile has the keys.
   const [recent, setRecent] = createSignal<number | null>(null)
-  onMount(() => {
+  const loadRecents = () =>
     props.sessions
       .list()
-      .then((entries) => setRecents(entries.slice(0, RECENT_ROWS)))
+      .then((entries) => setListed(entries.slice(0, RECENT_ROWS + 1)))
       .catch(() => {})
-  })
+  onMount(() => void loadRecents())
   const recentShown = () => welcome() && welcomeLayout(dimensions().width, dimensions().height, recents().length).recent
   createEffect(() => {
     if (!recentShown()) setRecent(null)
@@ -131,11 +181,31 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  const title = useSessionTitle(
+  // Claude Code's own commands (/model, /clear, /context) name no work; a skill or a custom command carries the
+  // user's words, so it is titled.
+  const runsBuiltin = (text: string) => {
+    const name = /^\/(\S+)/.exec(text.trimStart())?.[1]
+    return name !== undefined && findCommand(props.provider.commands(), name)?.builtin === true
+  }
+  const haikuTitle = useSessionTitle(
     () => props.session,
-    () => props.titles,
-    untrack(() => props.readOnly),
+    () => props.titles && settings.sessionTitle === "yellowcode",
+    untrack(() => props.readOnly ?? props.title),
+    runsBuiltin,
   )
+  createEffect(on(haikuTitle, (next) => next && props.onTitle?.(next.title), { defer: true }))
+  // Claude Code's own title has no summary, so the sidebar shows the first message under it.
+  const claudeTitle = () => {
+    const text = props.session.claudeTitle
+    return text === null ? null : { title: text, summary: "" }
+  }
+  // A resumed session shows the title it was listed under until claude reports one, or a /clear starts over.
+  const listedTitle = untrack(() => props.title) ?? null
+  // claude carries a title over into the session a /clear starts, so YellowCode's own source shows only its own.
+  const title = () =>
+    props.readOnly || settings.sessionTitle === "yellowcode"
+      ? haikuTitle()
+      : (claudeTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
   const flagged = untrack(() => props.readOnly)
     ? () => false
     : useAttention(
@@ -201,11 +271,33 @@ export function App(props: AppProps) {
   // The drafts of messages sent from here, by the index their user item will get, so a recalled message gets its chips
   // back. The text check skips a draft whose message never arrived.
   const drafts = new Map<number, { text: string; draft: Draft }>()
-  const history = () =>
+  // What was sent from here, by conversation: a /clear takes the chat's user rows, and ↑ still finds them, /clear too.
+  const sent: { conversation: number; draft: Draft }[] = []
+  const [cleared, setCleared] = createSignal<Draft[]>([])
+  // /clear empties the chat, so the welcome screen comes back with the session that was just left among the recents.
+  createEffect(
+    on(
+      () => props.session.conversation,
+      (conversation) => {
+        const done = sent.filter((entry) => entry.conversation < conversation)
+        sent.splice(0, done.length)
+        setCleared((before) => [...before, ...done.map((entry) => entry.draft)])
+        drafts.clear()
+        setSelected(null)
+        setAgentView(null)
+        setFocus("input")
+        void loadRecents()
+      },
+      { defer: true },
+    ),
+  )
+  const chatHistory = () =>
     userItems().map((item, index) => {
-      const sent = drafts.get(index)
-      return sent?.text === item.text ? sent.draft : draftFromMessage(item.text, item.images)
+      const draft = drafts.get(index)
+      return draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images)
     })
+  // A message sent after a /clear and still waiting is in both; the history skips repeats in a row.
+  const history = () => [...cleared(), ...chatHistory()]
 
   const lastUser = createMemo(() => {
     for (const id of props.session.items.toReversed()) if (props.session.byId[id]?.kind === "user") return id
@@ -506,7 +598,7 @@ export function App(props: AppProps) {
   const rewind = (rewound: Rewound) => {
     const index = userItems().findIndex((item) => item.id === rewound.userId)
     props.rewind?.onRewind(rewound)
-    const draft = history()[index]
+    const draft = chatHistory()[index]
     if (draft) setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1 }))
   }
   const redo = () => {
@@ -540,7 +632,8 @@ export function App(props: AppProps) {
     if (key.ctrl && key.name === "t") {
       key.preventDefault()
       key.stopPropagation()
-      if (!pending()) toggleAgentView()
+      // The welcome screen has no agent view; agents a /clear carried over show again with the chat.
+      if (!pending() && !welcome()) toggleAgentView()
       return
     }
     if (agentView() !== null) return
@@ -675,11 +768,13 @@ export function App(props: AppProps) {
     else if (command === "/skills") setDialog({ name: "skills" })
     else if (command === "/rewind") openRewind()
     else if (command === "/redo") redo()
-    else if (ended()) return false
     else {
       const index = userItems().length
-      if (!props.onSubmit(text, images)) return false
+      const accepted = ended() ? (props.onRestart?.(text, images) ?? false) : props.onSubmit(text, images)
+      if (!accepted) return false
       if (draft.chips.length > 0) drafts.set(index, { text, draft })
+      // An empty Enter (a restart, a replay's next message) leaves nothing to recall.
+      if (text.trim() || images.length > 0) sent.push({ conversation: props.session.conversation, draft })
     }
     return true
   }
@@ -691,7 +786,9 @@ export function App(props: AppProps) {
       : props.replay
         ? "Enter sends the next recorded message"
         : ended()
-          ? "Claude Code is not running"
+          ? props.onRestart
+            ? "Claude Code is not running · Enter restarts it"
+            : "Claude Code is not running"
           : "Message Claude Code",
     model: settings.model ?? props.model(),
     provider: props.provider,
@@ -749,9 +846,11 @@ export function App(props: AppProps) {
       replay: props.replay,
       readOnly: props.readOnly?.title ?? null,
       status: props.session.status,
+      restartable: props.onRestart !== undefined,
       mcpFailure: mcpFailure(),
       settingsProblem: pasteNotice() ?? settingsProblem(),
       asking: pending() !== null,
+      compacting: props.session.compacting,
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
       held: held(),
@@ -772,6 +871,8 @@ export function App(props: AppProps) {
                 if (recentShown()) setRecent(0)
               },
               onDraft: (draft) => (welcomeDraft = draft),
+              draft: promptDraft,
+              history,
             }}
             workspace={props.workspace}
             notice={welcomeNotice()}
@@ -789,6 +890,7 @@ export function App(props: AppProps) {
               selected={id()}
               onSelect={setAgentView}
               onClose={() => setAgentView(null)}
+              onStop={props.onStopTask}
               width={dimensions().width}
               height={dimensions().height}
             />
@@ -835,6 +937,7 @@ export function App(props: AppProps) {
             <PromptBar
               {...input()}
               draft={welcomeDraft}
+              onDraft={(draft) => (promptDraft = draft)}
               spaced
               width={chatWidth()}
               notice={notice()}
@@ -878,7 +981,10 @@ export function App(props: AppProps) {
         {(tab) => (
           <SettingsDialog
             tab={tab()}
-            info={props.session.info ?? props.firstInfo ?? null}
+            info={currentInfo(props.session, props.firstInfo ?? null)}
+            servers={currentServers(props.session, props.firstInfo ?? null)}
+            mcpActions={props.mcpActions}
+            pluginActions={props.pluginActions}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
             title={title()?.title ?? null}
             model={settings.model ?? props.model()}
@@ -898,6 +1004,7 @@ export function App(props: AppProps) {
       <Show when={dialog()?.name === "skills"}>
         <SkillsDialog
           skills={props.provider.skills()}
+          actions={props.skillActions}
           onUse={(command) => {
             setDialog(null)
             setFill((previous) => ({ draft: { text: `/${command} `, chips: [] }, seq: (previous?.seq ?? 0) + 1 }))
@@ -930,7 +1037,7 @@ export function App(props: AppProps) {
         )}
       </Show>
       <Show when={dialog()?.name === "resume"}>
-        <ResumeDialog sessions={props.sessions} onClose={() => setDialog(null)} />
+        <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "rewind" && props.rewind}>
         {(options) => {

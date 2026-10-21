@@ -11,7 +11,8 @@ test("servers group by where they come from, problems first, with short names an
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
     session.apply(entry.dir, parse(entry.line), entry.t)
-  const rows = mcpEntries(session.state.info).map((entry) => [
+  const info = session.state.info
+  const rows = mcpEntries(info?.mcpServers ?? null, info?.tools ?? []).map((entry) => [
     entry.group,
     entry.label,
     entry.tag,

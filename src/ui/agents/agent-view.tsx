@@ -6,7 +6,7 @@ import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
-import { agentTree, shellNodes, type TreeNode } from "./tree.ts"
+import { agentTree, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
 import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
@@ -114,7 +114,7 @@ function Tree(props: {
   )
 }
 
-function Footer(props: { notice: boolean; width: number }) {
+function Footer(props: { notice: string | null; width: number }) {
   return (
     <box flexDirection="column" flexShrink={0}>
       <text fg={theme.frame} wrapMode="none">
@@ -136,9 +136,11 @@ function Footer(props: { notice: boolean; width: number }) {
           </text>
         }
       >
-        <text wrapMode="none" fg={theme.warning}>
-          {cut(STOP_NOTICE, props.width)}
-        </text>
+        {(text) => (
+          <text wrapMode="none" fg={theme.warning}>
+            {cut(text(), props.width)}
+          </text>
+        )}
       </Show>
     </box>
   )
@@ -194,6 +196,7 @@ export function AgentView(props: {
   selected: string
   onSelect: (id: string) => void
   onClose: () => void
+  onStop?: (taskId: string) => Promise<void>
   width: number
   height: number
 }) {
@@ -221,13 +224,20 @@ export function AgentView(props: {
     return list.slice(start, end === -1 ? undefined : end)
   }
 
-  const [notice, setNotice] = createSignal(false)
+  const [notice, setNotice] = createSignal<string | null>(null)
   let timer: ReturnType<typeof setTimeout> | undefined
   onCleanup(() => clearTimeout(timer))
-  const showNotice = () => {
+  const showNotice = (text: string) => {
     clearTimeout(timer)
-    setNotice(true)
-    timer = setTimeout(() => setNotice(false), NOTICE_MS)
+    setNotice(text)
+    timer = setTimeout(() => setNotice(null), NOTICE_MS)
+  }
+  // The row changes when claude reports the task stopped, so only a failed request shows anything.
+  const stop = (target: TreeNode, taskId: string) => {
+    if (!props.onStop) return showNotice(STOP_NOTICE)
+    props.onStop(taskId).catch((error: unknown) => {
+      showNotice(`Cannot stop ${target.name}: ${error instanceof Error ? error.message : String(error)}`)
+    })
   }
 
   const move = (step: 1 | -1) => {
@@ -247,7 +257,8 @@ export function AgentView(props: {
     else if (key.name === "escape") props.onClose()
     else if (key.name === "x") {
       const current = node()
-      if (current && stoppable(current)) showNotice()
+      const taskId = current && stoppable(current) ? taskIdOf(props.session, current) : null
+      if (current && taskId) stop(current, taskId)
     } else return
     key.preventDefault()
     key.stopPropagation()

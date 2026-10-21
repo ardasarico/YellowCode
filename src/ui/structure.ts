@@ -47,7 +47,9 @@ export function buildRows(session: Session): Row[] {
       carried = []
       continue
     }
-    if (item.kind === "user" || (lastEnd && (final(lastEnd.id) || final(endAhead[index])))) {
+    // claude's output for a local command (/model queued behind a turn) is no turn going on.
+    const local = item.kind === "text" && item.local === true
+    if (item.kind === "user" || local || (lastEnd && (final(lastEnd.id) || final(endAhead[index])))) {
       lastEnd = null
       carried = []
     } else if (lastEnd && (item.kind === "text" || item.kind === "thinking" || item.kind === "tool")) {

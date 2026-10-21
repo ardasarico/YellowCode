@@ -20,7 +20,7 @@ export type Skill = {
   locked: boolean
 }
 
-type InitLists = { skills: string[]; slashCommands: string[] }
+export type InitLists = { skills: string[]; slashCommands: string[] }
 
 const HIDDEN_SOURCES = new Set(["bundled", "built-in"])
 const PROJECT_SCOPES = new Set(["projectSettings", "localSettings"])

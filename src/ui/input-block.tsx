@@ -1,5 +1,5 @@
 import { type BoxRenderable, type KeyBinding, TextAttributes } from "@opentui/core"
-import { onCleanup, Show } from "solid-js"
+import { type Accessor, onCleanup, onMount, Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import { loadImage } from "../input/image-file.ts"
 import type { Draft } from "../input/draft.ts"
@@ -35,6 +35,10 @@ export type InputBlockProps = {
   fill?: { draft: Draft; seq: number }
   // Gets what the input still holds when it goes away.
   onDraft?: (draft: Draft) => void
+  // What the input starts from, such as what the prompt bar held when a /clear brought the welcome screen back.
+  draft?: Draft
+  // Earlier messages, for ↑ and ↓ on an empty input.
+  history?: Accessor<Draft[]>
 }
 
 export const TILE_PADDING = 3
@@ -72,6 +76,10 @@ export function InputBlock(props: InputBlockProps) {
     onLeaveDown: () => props.onLeaveDown?.(),
     onQuit: () => props.onQuit?.(),
     fill: () => props.fill,
+    history: () => props.history?.() ?? [],
+  })
+  onMount(() => {
+    if (props.draft) completion.restore(props.draft)
   })
   onCleanup(() => props.onDraft?.(completion.draft()))
   const modelLabel = () => {
