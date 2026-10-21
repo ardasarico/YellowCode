@@ -4,7 +4,7 @@ import { existsSync, realpathSync } from "node:fs"
 import { constants, homedir } from "node:os"
 import { basename, join } from "node:path"
 import { parseArgs } from "node:util"
-import { type Accessor, createSignal, type Setter, Show } from "solid-js"
+import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
 import { type InputProvider, liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
@@ -16,7 +16,7 @@ import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
 import { initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
-import { loadSettings } from "./session/settings-file.ts"
+import { loadSettings, savedMode } from "./session/settings-file.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import { loadRewindExtras } from "./session/rewind.ts"
@@ -258,6 +258,25 @@ const [chat, setChat] = createSignal<{ session: SessionStore; resumed: View | nu
   session: firstSession,
   resumed: null,
 })
+// A mode picked after claude last said which one it uses wins at a restart: claude may never have applied it (picked
+// while claude was down or restarting, bypassPermissions without the allow flag).
+let modePicked = false
+createRoot(() => {
+  createEffect(
+    on(
+      () => settings.permissionMode,
+      () => (modePicked = true),
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => chat().session.state.permissionMode,
+      () => (modePicked = false),
+      { defer: true },
+    ),
+  )
+})
 let opening = 0
 
 async function open(entry: SessionEntry): Promise<void> {
@@ -346,8 +365,11 @@ function relaunch(ended: Connection, text: string, images: OutgoingImage[]): boo
   const spawn =
     id !== undefined && existsSync(join(projectFolder(CLAUDE_PROJECTS, cwd), `${id}.jsonl`)) ? { resume: id } : again
   const carry = { model: settings.model, effort: settings.effort, ultracode: settings.ultracode }
+  // The session goes on in the mode it was in (a plan mode claude entered, edits allowed for the session), not the
+  // saved one, unless the user picked one since.
+  const goesOn = modePicked ? undefined : (savedMode(session.state.permissionMode) ?? undefined)
   try {
-    connection = connect({ cwd, session, spawn, stored: settings, provider: claudeLists, carry })
+    connection = connect({ cwd, session, spawn, stored: settings, provider: claudeLists, carry, mode: goesOn })
   } catch (error) {
     log.error("cannot start claude", error)
     session.end({ text: "Cannot start Claude Code", detail: [error instanceof Error ? error.message : String(error)] })

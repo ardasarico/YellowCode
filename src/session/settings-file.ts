@@ -15,6 +15,12 @@ export function protocolMode(mode: PermissionMode): string {
   return mode === "manual" ? "default" : mode
 }
 
+// The saved form of a mode claude reports, if it is one YellowCode can start claude in.
+export function savedMode(mode: string | null): PermissionMode | null {
+  const saved = mode === "default" ? "manual" : mode
+  return PERMISSION_MODES.find((known) => known === saved) ?? null
+}
+
 export function modeLabel(mode: string): string {
   return mode === "default" ? "manual" : mode
 }

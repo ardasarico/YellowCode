@@ -6,6 +6,8 @@ import { DEFAULT_SETTINGS, type PermissionMode } from "../session/settings-file.
 import { createControls, SEND_DELAY_MS } from "./controls.ts"
 import type { Requests } from "./requests.ts"
 
+const LAUNCH = { mode: DEFAULT_SETTINGS.permissionMode, bypass: false }
+
 type Sent = { subtype: string; line: string; resolve: (response: unknown) => void; reject: (error: Error) => void }
 
 // Requests that record each control request and are answered by hand.
@@ -34,7 +36,7 @@ const later = () => Bun.sleep(SEND_DELAY_MS + 50)
 function start() {
   setKnobs({ model: null, effort: null, ultracode: false })
   const { requests, sent } = fakeRequests()
-  createControls({ requests, provider: liveProvider(requests), session: createSession(), bypass: false }).initialized({
+  createControls({ requests, provider: liveProvider(requests), session: createSession(), launch: LAUNCH }).initialized({
     commands: [],
     models,
   })
@@ -106,7 +108,7 @@ test("the controls of a claude that was replaced send nothing more, and its late
     requests,
     provider: liveProvider(requests),
     session: createSession(),
-    bypass: false,
+    launch: LAUNCH,
   })
   controls.initialized({ commands: [], models })
   controls.dispose()

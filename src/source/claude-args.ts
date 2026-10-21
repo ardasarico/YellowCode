@@ -1,4 +1,4 @@
-import { protocolMode, type StoredSettings } from "../session/settings-file.ts"
+import { type PermissionMode, protocolMode, type StoredSettings } from "../session/settings-file.ts"
 import { APPEND_SYSTEM_PROMPT } from "./append-prompt.ts"
 
 export const CLAUDE_STREAM_ARGS = [
@@ -21,10 +21,22 @@ export function thinkingArg(thinking: StoredSettings["thinking"]): string {
 // id (fork).
 export type Spawn = { resume?: string; fork?: boolean; sessionId?: string }
 
-// How YellowCode starts claude, from what the user saved. bypassPermissions can be switched to only in a session
-// started with the allow flag, so the flag goes along only when that mode is saved.
-export function claudeArgs(stored: Pick<StoredSettings, "thinking" | "permissionMode">, spawn: Spawn = {}): string[] {
-  const bypass = stored.permissionMode === "bypassPermissions" ? ["--allow-dangerously-skip-permissions"] : []
+// The permission mode claude starts in, and whether it may switch to bypassPermissions.
+export type Launch = { mode: PermissionMode; bypass: boolean }
+
+// The saved mode, or the mode a restarted session was in. bypassPermissions can be switched to only in a session
+// started with the allow flag, so the flag goes along when that mode is saved or the session was in it.
+export function launchOf(stored: Pick<StoredSettings, "permissionMode">, mode?: PermissionMode): Launch {
+  const launched = mode ?? stored.permissionMode
+  return {
+    mode: launched,
+    bypass: stored.permissionMode === "bypassPermissions" || launched === "bypassPermissions",
+  }
+}
+
+// How YellowCode starts claude: the saved thinking display, in the launch's mode.
+export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Launch, spawn: Spawn = {}): string[] {
+  const bypass = launch.bypass ? ["--allow-dangerously-skip-permissions"] : []
   return [
     ...CLAUDE_STREAM_ARGS,
     thinkingArg(stored.thinking),
@@ -33,7 +45,7 @@ export function claudeArgs(stored: Pick<StoredSettings, "thinking" | "permission
     ...(spawn.fork ? ["--fork-session"] : []),
     ...(spawn.sessionId ? ["--session-id", spawn.sessionId] : []),
     "--permission-mode",
-    protocolMode(stored.permissionMode),
+    protocolMode(launch.mode),
     ...bypass,
     "--append-system-prompt",
     APPEND_SYSTEM_PROMPT,

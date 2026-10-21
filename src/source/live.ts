@@ -5,9 +5,9 @@ import { initializeRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { ownAskRejection } from "../session/ask.ts"
 import type { SessionStore } from "../session/session.ts"
-import type { StoredSettings } from "../session/settings-file.ts"
+import type { PermissionMode, StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
-import { claudeArgs, type Spawn } from "./claude-args.ts"
+import { claudeArgs, launchOf, type Spawn } from "./claude-args.ts"
 import { type Controls, createControls, type Knobs } from "./controls.ts"
 import { createExtensions, type Extensions } from "./extensions.ts"
 import { createMcpControls, type McpControls } from "./mcp.ts"
@@ -99,21 +99,23 @@ export function connect(options: {
   provider: LiveProvider
   // The knobs of a conversation claude runs again, sent before anything else.
   carry?: Knobs
+  // The mode a restarted session goes on in; the saved one otherwise.
+  mode?: PermissionMode
 }): Connection {
   const { cwd, session, spawn, stored, provider, carry } = options
+  const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, spawn)])
+  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn)])
   const requests = createRequests((line) => source.send(line))
-  const bypass = stored.permissionMode === "bypassPermissions"
-  const controls = createControls({ requests, provider, session, bypass })
+  const controls = createControls({ requests, provider, session, launch })
   const mcp = createMcpControls({ requests, session })
   controls.follow(mcp)
   const extensions = createExtensions({ requests, provider, session, cwd })
   controls.follow(extensions)
   const tasks = createTaskControls({ requests, session })
-  log.info("claude flags", { permissionMode: stored.permissionMode, thinking: stored.thinking, bypass, ...spawn })
+  log.info("claude flags", { permissionMode: launch.mode, thinking: stored.thinking, bypass: launch.bypass, ...spawn })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,
   // so only counts are logged.

@@ -33,6 +33,7 @@ import {
   settings,
 } from "../session/settings.ts"
 import { EFFORT_LEVELS, type EffortLevel } from "../theme/brand.ts"
+import type { Launch } from "./claude-args.ts"
 import type { Requests } from "./requests.ts"
 
 // What the user chose for the conversation, or what claude said it uses.
@@ -92,13 +93,15 @@ export function createControls(options: {
   requests: Requests
   provider: LiveProvider
   session: SessionStore
-  // Started with --allow-dangerously-skip-permissions, so bypassPermissions can be switched to.
-  bypass: boolean
+  // The mode claude was started in, and whether it was started with --allow-dangerously-skip-permissions, so
+  // bypassPermissions can be switched to.
+  launch: Launch
 }): Controls {
-  const { requests, provider, session, bypass } = options
-  // claude starts in the saved mode when it can, and silently in another one when it cannot (auto turned off, a
-  // policy), so the mode it reports first is checked once against the one it was started with.
-  const launched = protocolMode(settings.permissionMode)
+  const { requests, provider, session } = options
+  const { bypass } = options.launch
+  // claude starts in the mode it is given when it can, and silently in another one when it cannot (auto turned off,
+  // a policy), so the mode it reports first is checked once against the one it was started with.
+  const launched = protocolMode(options.launch.mode)
   let modeChecked = false
   const checkMode = (current: string) => {
     if (modeChecked) return

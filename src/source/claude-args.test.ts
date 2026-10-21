@@ -1,21 +1,31 @@
 import { expect, test } from "bun:test"
 import { PERMISSION_MODES } from "../session/settings-file.ts"
-import { claudeArgs, type Spawn, thinkingArg } from "./claude-args.ts"
+import { claudeArgs, launchOf, type Spawn, thinkingArg } from "./claude-args.ts"
+
+const modeOf = (args: string[]) => args[args.indexOf("--permission-mode") + 1]
 
 test("the saved mode goes out as --permission-mode, and only bypassPermissions brings the allow flag", () => {
   for (const permissionMode of PERMISSION_MODES) {
-    const args = claudeArgs({ thinking: "summarized", permissionMode })
-    const mode = args[args.indexOf("--permission-mode") + 1]
-    expect(mode).toBe(permissionMode === "manual" ? "default" : permissionMode)
+    const args = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode }))
+    expect(modeOf(args)).toBe(permissionMode === "manual" ? "default" : permissionMode)
     expect(args.includes("--allow-dangerously-skip-permissions")).toBe(permissionMode === "bypassPermissions")
   }
 })
 
+test("a restarted session starts in its own mode, and keeps the allow flag the saved bypassPermissions brings", () => {
+  const plan = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode: "auto" }, "plan"))
+  expect(modeOf(plan)).toBe("plan")
+  expect(plan.includes("--allow-dangerously-skip-permissions")).toBe(false)
+  const fromBypass = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode: "bypassPermissions" }, "plan"))
+  expect(modeOf(fromBypass)).toBe("plan")
+  expect(fromBypass.includes("--allow-dangerously-skip-permissions")).toBe(true)
+})
+
 test("a new session gets its id, a resume only the id it continues, a fork both", () => {
-  const stored = { thinking: "summarized", permissionMode: "auto" } as const
+  const launch = launchOf({ permissionMode: "auto" })
   // They come before the appended prompt, whose line breaks would push them off claude's first line in `ps`.
   const added = (spawn: Spawn) => {
-    const args = claudeArgs(stored, spawn)
+    const args = claudeArgs({ thinking: "summarized" }, launch, spawn)
     return args.slice(args.indexOf(thinkingArg("summarized")) + 1, args.indexOf("--permission-mode"))
   }
   expect(added({})).toEqual([])
