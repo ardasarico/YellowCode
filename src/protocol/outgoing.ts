@@ -137,8 +137,12 @@ export function ownAskReply(ask: { requestId: string; input: unknown }, rpcId: R
   return mcpResponse(ask.requestId, rpcId, { content: [{ type: "text", text }] })
 }
 
+function controlRequest(requestId: string, subtype: string, fields: object = {}): string {
+  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype, ...fields } })
+}
+
 export function interruptRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "interrupt" } })
+  return controlRequest(requestId, "interrupt")
 }
 
 export function initializeRequest(
@@ -149,116 +153,72 @@ export function initializeRequest(
     sdkMcpServerConfigs?: Record<string, { timeout: number }>
   } = {},
 ): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "initialize", ...options },
-  })
+  return controlRequest(requestId, "initialize", options)
 }
 
 export function getTaskOutputRequest(requestId: string, taskId: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "get_task_output", task_id: taskId },
-  })
+  return controlRequest(requestId, "get_task_output", { task_id: taskId })
 }
 
 export function stopTaskRequest(requestId: string, taskId: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "stop_task", task_id: taskId },
-  })
+  return controlRequest(requestId, "stop_task", { task_id: taskId })
 }
 
 // Steps the conversation back to before this prompt; claude takes only its latest remaining prompt.
 export function rewindConversationRequest(requestId: string, uuid: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "rewind_conversation", target_message_uuid: uuid },
-  })
+  return controlRequest(requestId, "rewind_conversation", { target_message_uuid: uuid })
 }
 
 export function renameSession(requestId: string, title: string, sessionId?: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "rename_session", title, session_id: sessionId },
-  })
+  return controlRequest(requestId, "rename_session", { title, session_id: sessionId })
 }
 
 export function getSettingsRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_settings" } })
+  return controlRequest(requestId, "get_settings")
 }
 
 export function setPermissionModeRequest(requestId: string, mode: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "set_permission_mode", mode },
-  })
+  return controlRequest(requestId, "set_permission_mode", { mode })
 }
 
 export function setModelRequest(requestId: string, model: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "set_model", model } })
+  return controlRequest(requestId, "set_model", { model })
 }
 
 // Settings claude takes as if they were launch flags: effortLevel, ultracode.
 export function applyFlagSettingsRequest(requestId: string, settings: Record<string, unknown>): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "apply_flag_settings", settings },
-  })
+  return controlRequest(requestId, "apply_flag_settings", { settings })
 }
 
 export function thinkingDisplayRequest(requestId: string, display: "summarized" | "omitted"): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "set_max_thinking_tokens", thinking_display: display },
-  })
+  return controlRequest(requestId, "set_max_thinking_tokens", { thinking_display: display })
 }
 
 export function fileSuggestionsRequest(requestId: string, query: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "file_suggestions", query },
-  })
+  return controlRequest(requestId, "file_suggestions", { query })
 }
 
 export function getHooksListingRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_hooks_listing" } })
+  return controlRequest(requestId, "get_hooks_listing")
 }
 
 export function getSkillsDialogRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "get_skills_dialog" } })
+  return controlRequest(requestId, "get_skills_dialog")
 }
 
 export function mcpStatusRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "mcp_status" } })
+  return controlRequest(requestId, "mcp_status")
 }
 
 export function mcpReconnectRequest(requestId: string, serverName: string): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "mcp_reconnect", serverName },
-  })
+  return controlRequest(requestId, "mcp_reconnect", { serverName })
 }
 
 export function mcpToggleRequest(requestId: string, serverName: string, enabled: boolean): string {
-  return JSON.stringify({
-    type: "control_request",
-    request_id: requestId,
-    request: { subtype: "mcp_toggle", serverName, enabled },
-  })
+  return controlRequest(requestId, "mcp_toggle", { serverName, enabled })
 }
 
 // The user asked for the change, so the reload is applied even when it costs the prompt cache.
 export function reloadPluginsRequest(requestId: string): string {
-  return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "reload_plugins" } })
+  return controlRequest(requestId, "reload_plugins")
 }
