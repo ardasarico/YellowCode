@@ -39,9 +39,12 @@ async function open(args: string[]): Promise<boolean> {
   return false
 }
 
-export async function openFile(path: string, line?: number): Promise<void> {
+// False when the chosen editor could not open the file and the default app was used instead.
+export async function openFile(path: string, line?: number): Promise<boolean> {
   const editor = settings.editor
-  if (editor !== "default") await open([editorUrl(APPS[editor].scheme, path, line)])
+  const inEditor = editor === "default" || (await open([editorUrl(APPS[editor].scheme, path, line)]))
+  if (inEditor && editor !== "default") return true
   // A file no app claims, such as settings.json.bak, opens in the default text editor.
-  else if (!(await open([path]))) await open(["-t", path])
+  if (!(await open([path]))) await open(["-t", path])
+  return editor === "default"
 }

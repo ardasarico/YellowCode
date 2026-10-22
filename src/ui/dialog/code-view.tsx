@@ -10,7 +10,7 @@ import {
   RGBA,
 } from "@opentui/core"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, on, onCleanup } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { log } from "../../log/log.ts"
 import { settings } from "../../session/settings.ts"
 import { syntaxStyle, theme } from "../../theme/theme.ts"
@@ -19,7 +19,7 @@ import { cutPath } from "../format.ts"
 import type { FileRef } from "../markdown/refs.ts"
 import { Frame } from "./frame.tsx"
 import { fill, Footer, PAD_X } from "./list-view.tsx"
-import { openFile } from "./open-file.ts"
+import { editorName, openFile } from "./open-file.ts"
 
 const MARGIN = 0.03
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
@@ -75,6 +75,13 @@ export function CodeView(props: {
   let scroll: ScrollBoxRenderable | undefined
   let code: CodeRenderable | undefined
   let numbers: LineNumberRenderable | undefined
+  const [notice, setNotice] = createSignal("")
+  createEffect(
+    on(
+      () => props.index,
+      () => setNotice(""),
+    ),
+  )
   const dimensions = useTerminalDimensions()
   const panel = () => {
     const { width, height } = dimensions()
@@ -173,7 +180,12 @@ export function CodeView(props: {
     else if (key.name === "right") props.onIndex(Math.min(props.refs.length - 1, props.index + 1))
     else if (key.name === "o") {
       const shown = ref()
-      if (shown && shown.text === undefined) void openFile(shown.path, shown.line)
+      if (shown && shown.text === undefined) {
+        setNotice("")
+        void openFile(shown.path, shown.line).then((inEditor) => {
+          if (!inEditor) setNotice(`${editorName(settings.editor)} could not open it`)
+        })
+      }
     } else if (key.name === "escape") props.onClose()
   })
 
@@ -212,7 +224,7 @@ export function CodeView(props: {
         <Footer items={actions()} keys width={inner()} />
         <box flexGrow={1} />
         <text wrapMode="none" flexShrink={0} fg={theme.panelMuted}>
-          {several() ? `${props.index + 1} / ${props.refs.length}` : ""}
+          {notice() || (several() ? `${props.index + 1} / ${props.refs.length}` : "")}
         </text>
       </box>
     </Frame>
