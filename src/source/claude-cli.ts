@@ -5,7 +5,7 @@ export type CliResult = { code: number | null; stdout: string; stderr: string }
 
 const CLI_TIMEOUT_MS = 20_000
 // A claude that ignores SIGTERM gets SIGKILL this long after it, and one that outlives that too is given up on.
-const KILL_AFTER_MS = 2000
+export const KILL_AFTER_MS = 2000
 const GIVE_UP_AFTER_MS = 1000
 const OUTPUT_WAIT_MS = 1000
 

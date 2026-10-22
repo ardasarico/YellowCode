@@ -4,13 +4,14 @@ import { join } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
 import { parseJson } from "../protocol/json.ts"
-import { hostEnv } from "../source/claude-cli.ts"
+import { hostEnv, KILL_AFTER_MS } from "../source/claude-cli.ts"
 
 export type SessionTitle = { title: string; summary: string }
 
 const RECENT_MESSAGES = 12
 // Haiku is asked for a few words; a runaway line would also become the session's name in claude's transcript.
 const TITLE_MAX = 60
+const TITLE_TIMEOUT_MS = 30_000
 const Result = z.looseObject({ result: z.string() })
 
 function instructions(recent: readonly string[]): string {
@@ -70,9 +71,22 @@ export async function titleSession(messages: readonly string[]): Promise<Session
   )
   running.add(proc)
   void proc.exited.then(() => running.delete(proc))
-  const [output, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
-  if (code !== 0) {
-    log.warn("session title failed", { code, stderr: await new Response(proc.stderr).text() })
+  let late = false
+  let kill: ReturnType<typeof setTimeout> | undefined
+  const timer = setTimeout(() => {
+    late = true
+    proc.kill()
+    kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
+  }, TITLE_TIMEOUT_MS)
+  const [output, stderr, code] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+  clearTimeout(timer)
+  clearTimeout(kill)
+  if (late || code !== 0) {
+    log.warn("session title failed", { code, late, stderr })
     return null
   }
   const json = parseJson(output)
