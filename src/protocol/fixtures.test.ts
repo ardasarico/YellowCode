@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { scenarios } from "../../tools/record/scenarios.ts"
-import { createNames, keptNames, learnSkills, rewrite, SAMPLE_SERVER } from "../../tools/record/scrub.ts"
+import { bundledNames, createNames, keptNames, learnSkills, rewrite, SAMPLE_SERVER } from "../../tools/record/scrub.ts"
 import { parseRecording } from "../source/recording.ts"
 import { parse } from "./parse.ts"
 
@@ -78,13 +78,14 @@ test("recordings carry no names from the user's own setup", () => {
   for (const file of files) {
     const recording = parseRecording(readFileSync(join(dir, file), "utf8"))
     const scenario = scenarios.find((entry) => entry.name === recording.header.scenario)
-    const names = createNames(keptNames(scenario?.files))
+    const names = createNames(keptNames(scenario?.files), bundledNames(dir))
     learnSkills(
       recording.entries.map((entry) => entry.line),
       names,
     )
     for (const { line } of recording.entries) {
       expect(rewrite(line, names)).toBe(line)
+      expect(names.unmatched.size).toBe(0)
       const message = parse(line)
       if (message.kind !== "message" || message.message.type !== "system" || message.message.subtype !== "init")
         continue

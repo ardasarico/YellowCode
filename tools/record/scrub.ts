@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto"
+import { readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../../src/protocol/json.ts"
-import { HOOKS_ID, SETTINGS_ID, SKILLS_DIALOG_ID } from "../../src/source/recording.ts"
+import { HOOKS_ID, parseRecording, SETTINGS_ID, SKILLS_DIALOG_ID } from "../../src/source/recording.ts"
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g
 const initLine = z.looseObject({
@@ -44,7 +46,7 @@ const skillsReply = z.looseObject({
   type: z.literal("control_response"),
   response: z.looseObject({
     request_id: z.literal(SKILLS_DIALOG_ID),
-    response: z.looseObject({ skills: z.array(z.unknown()) }),
+    response: z.looseObject({ skills: z.unknown() }),
   }),
 })
 
@@ -89,7 +91,7 @@ const settingsSources = z.looseObject({
 
 const SYNCED = "anthropic-skills"
 const SYNCED_KEPT = 4
-const BUILTIN_AGENTS = new Set([
+export const BUILTIN_AGENTS = new Set([
   "claude",
   "claude-code-guide",
   "Explore",
@@ -138,6 +140,27 @@ const BUILTIN_MATCHERS = new Set([
   "manual",
   "auto",
 ])
+// Lines of these shapes carry no skill, plugin or agent lists, so they only get path, email and id scrubbing.
+const PLAIN_TYPES = new Set([
+  "assistant",
+  "user",
+  "stream_event",
+  "result",
+  "rate_limit_event",
+  "control_request",
+  "control_response",
+])
+const PLAIN_SYSTEM = new Set([
+  "api_retry",
+  "background_tasks_changed",
+  "status",
+  "task_notification",
+  "task_progress",
+  "task_started",
+  "task_updated",
+  "thinking_tokens",
+])
+const lineKind = z.looseObject({ type: z.string(), subtype: z.string().optional() })
 const SOURCE_LABEL = / \((user|project|cli flag|claude\.ai sync|managed|dynamic workflow)\)$/
 
 const letter = (index: number) => String.fromCharCode(97 + index)
@@ -168,11 +191,34 @@ function sampleDescription(name: string): string {
 
 export type Names = ReturnType<typeof createNames>
 
+function builtinsOf(value: unknown): string[] {
+  const reply = commandsReply.safeParse(value)
+  const list = z.array(z.unknown()).safeParse(reply.data?.response.response.commands)
+  return (list.data ?? []).flatMap((entry) => {
+    const parsed = command.safeParse(entry)
+    return parsed.data?.builtin ? [parsed.data.name] : []
+  })
+}
+
+// Recordings made without an initialize request carry no commands reply, so Claude Code's bundled names come from
+// the recordings already committed.
+export function bundledNames(dir: string): string[] {
+  const names = new Set<string>()
+  for (const file of readdirSync(dir).filter((name) => name.endsWith(".jsonl"))) {
+    for (const { line } of parseRecording(readFileSync(join(dir, file), "utf8")).entries) {
+      const json = parseJson(line)
+      if (json.ok) for (const name of builtinsOf(json.value)) names.add(name)
+    }
+  }
+  return [...names]
+}
+
 // The user's own skills, plugins, agents and MCP servers become fake names, the same ones across a recording.
 // Claude Code's built-in names and the names the scenario creates stay. Only the first few claude.ai skills are kept.
-export function createNames(keep: Iterable<string>) {
+export function createNames(keep: Iterable<string>, bundled: Iterable<string> = []) {
   const kept = new Set(keep)
-  const builtin = new Set<string>()
+  const builtin = new Set(bundled)
+  const unmatched = new Set<string>()
   const skills = new Set<string>()
   const fake = new Map<string, string | null>()
   const plugins = new Map<string, string>()
@@ -261,17 +307,16 @@ export function createNames(keep: Iterable<string>) {
 
   // A plugin name that init does not list as a skill is one of the plugin's commands.
   const skill = (name: string) => rename(name, name.includes(":") && !skills.has(name) ? "command" : "skill")
-  // Without a commands reply first, a plain name in the init lists cannot be told from a built-in one.
-  const listed = (name: string) => (name.includes(":") || fake.has(name) ? skill(name) : name)
   const agent = (name: string) => rename(name, "agent")
 
   const aliasesFor = (real: string, renamed: string, aliases: string[]) =>
     aliases.flatMap((alias) => {
-      const out = alias === short(real) ? short(renamed) : listed(alias)
+      const out = alias === short(real) ? short(renamed) : skill(alias)
       return out === null ? [] : [out]
     })
 
   return {
+    unmatched,
     learnBuiltins(names: string[]) {
       for (const name of names) builtin.add(name)
     },
@@ -279,7 +324,6 @@ export function createNames(keep: Iterable<string>) {
       for (const name of names) skills.add(name)
     },
     skill,
-    listed,
     agent,
     plugin,
     pluginId,
@@ -303,7 +347,8 @@ const present = <T>(value: T | null): value is T => value !== null
 
 function renameCommand(value: unknown, names: Names): unknown {
   const entry = command.safeParse(value)
-  if (!entry.success || entry.data.builtin) return value
+  if (!entry.success) return null
+  if (entry.data.builtin) return value
   const { name, description, aliases, argumentHint } = entry.data
   for (const alias of aliases ?? []) if (alias.includes(":")) names.skill(alias)
   const renamed = names.skill(name)
@@ -323,7 +368,7 @@ function renameCommand(value: unknown, names: Names): unknown {
 
 function renameRow(value: unknown, names: Names): unknown {
   const row = skillRow.safeParse(value)
-  if (!row.success) return value
+  if (!row.success) return null
   const { name, display_name, handles } = row.data
   const renamed = names.skill(name)
   if (renamed === null) return null
@@ -353,7 +398,10 @@ const renameKeys = (record: Record<string, unknown> | undefined, rename: (key: s
 
 export function rewrite(line: string, names: Names): string {
   const json = parseJson(line)
-  if (!json.ok) return line
+  if (!json.ok) {
+    names.unmatched.add("not json")
+    return line
+  }
   const init = initLine.safeParse(json.value)
   if (init.success) {
     const { skills, slash_commands, agents, tools, mcp_servers, plugins } = initLists.parse(init.data)
@@ -368,8 +416,8 @@ export function rewrite(line: string, names: Names): string {
       plugins: plugins ?? [],
       ...(mcp_servers && { mcp_servers }),
       ...(tools && { tools: tools.map(names.tool) }),
-      ...(skills && { skills: skills.map(names.listed).filter(present) }),
-      ...(slash_commands && { slash_commands: slash_commands.map(names.listed).filter(present) }),
+      ...(skills && { skills: skills.map(names.skill).filter(present) }),
+      ...(slash_commands && { slash_commands: slash_commands.map(names.skill).filter(present) }),
       ...(agents && { agents: agents.map(names.agent).filter(present) }),
     }
     if (rewritten.messaging_socket_path !== undefined) rewritten.messaging_socket_path = "/tmp/cc-socks/0.sock"
@@ -410,22 +458,23 @@ export function rewrite(line: string, names: Names): string {
   const skillsLine = skillsReply.safeParse(json.value)
   if (skillsLine.success) {
     const { response } = skillsLine.data
-    const skills = response.response.skills.map((row) => renameRow(row, names)).filter(present)
+    const rows = z.array(z.unknown()).safeParse(response.response.skills)
+    const skills = rows.success ? rows.data.map((row) => renameRow(row, names)).filter(present) : []
     return JSON.stringify({ ...skillsLine.data, response: { ...response, response: { ...response.response, skills } } })
   }
   const reply = commandsReply.safeParse(json.value)
   if (reply.success) {
     const { response } = reply.data
     const list = z.array(z.unknown()).safeParse(response.response.commands)
-    const builtins = list.data?.flatMap((entry) => {
-      const parsed = command.safeParse(entry)
-      return parsed.data?.builtin ? [parsed.data.name] : []
-    })
-    names.learnBuiltins(builtins ?? [])
-    const commands =
-      list.data?.map((entry) => renameCommand(entry, names)).filter(present) ?? response.response.commands
+    names.learnBuiltins(builtinsOf(json.value))
+    const commands = list.data?.map((entry) => renameCommand(entry, names)).filter(present) ?? []
     return JSON.stringify({ ...reply.data, response: { ...response, response: { commands } } })
   }
+  const kind = lineKind.safeParse(json.value)
+  const plain =
+    kind.success &&
+    (kind.data.type === "system" ? PLAIN_SYSTEM.has(kind.data.subtype ?? "") : PLAIN_TYPES.has(kind.data.type))
+  if (!plain) names.unmatched.add(kind.success ? `${kind.data.type}/${kind.data.subtype ?? ""}` : "no type")
   return line
 }
 

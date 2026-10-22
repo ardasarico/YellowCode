@@ -28,7 +28,7 @@ import {
 } from "../../src/source/recording.ts"
 import { solidPng } from "./png.ts"
 import { scenarios, type Scenario } from "./scenarios.ts"
-import { createNames, keptNames, learnSkills, scrub, scrubPaths, scrubStreams } from "./scrub.ts"
+import { bundledNames, createNames, keptNames, learnSkills, scrub, scrubPaths, scrubStreams } from "./scrub.ts"
 
 const QUIET_MS = 3_000
 const POLL_MS = 1_000
@@ -270,7 +270,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     username: userInfo().username,
     uid: userInfo().uid,
   }
-  const names = createNames(keptNames(scenario.files))
+  const names = createNames(keptNames(scenario.files), bundledNames(outDir))
   learnSkills(
     entries.map((entry) => entry.line),
     names,
@@ -279,9 +279,15 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     entries.map((entry) => scrub(entry.line, paths, names)),
     (text) => scrubPaths(text, paths),
   )
+  if (names.unmatched.size > 0)
+    throw new Error(`${scenario.name}: lines of unknown shape, not saved: ${[...names.unmatched].join(", ")}`)
   const recording = {
     header: { cliVersion, scenario: scenario.name, recordedAt: new Date().toISOString() },
-    entries: entries.map((entry, index) => ({ t: entry.t, dir: entry.dir, line: scrubbed[index] ?? entry.line })),
+    entries: entries.map((entry, index) => {
+      const line = scrubbed[index]
+      if (line === undefined) throw new Error(`${scenario.name}: line ${index} was not scrubbed`)
+      return { t: entry.t, dir: entry.dir, line }
+    }),
   }
   await mkdir(outDir, { recursive: true })
   await writeFile(join(outDir, `${scenario.name}.jsonl`), serializeRecording(recording))
