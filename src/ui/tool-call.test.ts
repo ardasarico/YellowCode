@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
-import { QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
-import type { Ask, ToolCall } from "../session/types.ts"
+import { OWN_ASK } from "../protocol/messages.ts"
+import { NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
+import type { ToolCall } from "../session/types.ts"
 import { answerLines, deniedLine, resultSummary, toolLines } from "./tool-call.tsx"
 
 const tool: ToolCall = {
@@ -58,25 +59,17 @@ test("a background Bash never shows its launch text", () => {
     expect(toolLines(bash, null, shell, 0).join()).not.toContain("Command running in background")
 })
 
-test("a question sent back to chat is not shown as denied", () => {
-  const ask: Ask = {
-    kind: "ask",
-    id: "ask-1",
-    requestId: "request-1",
-    toolUseId: "tool-1",
-    toolName: "AskUserQuestion",
-    displayName: "AskUserQuestion",
-    input: {},
-    description: "",
-    reason: "",
-    suggestion: null,
-    defaultToNo: false,
-    safetyCheck: false,
-    status: "denied",
-    answers: {},
-    notes: {},
-    denial: "",
+test("a question's denial reads the same live and read back from a transcript", () => {
+  const denials: [string, string][] = [
+    [QUESTION_TO_CHAT, "back to chat"],
+    [TOOL_DECLINED, "denied"],
+    [`${NOT_SHOWN}at most 4 options per question.`, "rejected · at most 4 options per question"],
+    [SUBAGENT_ASK, "sent back to the main agent"],
+  ]
+  for (const [denial, line] of denials) {
+    expect(deniedLine({ denial })).toBe(line)
+    expect(toolLines({ ...tool, name: OWN_ASK, status: "error", result: denial }, null, null, 0)).toEqual([line])
   }
-  expect(deniedLine({ ...ask, denial: QUESTION_TO_CHAT })).toBe("back to chat")
-  expect(deniedLine({ ...ask, toolName: "Bash", denial: TOOL_DECLINED })).toBe("denied")
+  const interrupted = "The user doesn't want to proceed with this tool use. The tool use was rejected."
+  expect(toolLines({ ...tool, status: "error", result: interrupted }, null, null, 0)).toEqual(["cancelled"])
 })

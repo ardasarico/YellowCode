@@ -2,7 +2,7 @@ import { statSync } from "node:fs"
 import { basename } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
-import { mcpServerRows, mcpServerStatus, type ProtocolMessage } from "../protocol/messages.ts"
+import { isOwnAskServer, mcpServerRows, mcpServerStatus, type ProtocolMessage } from "../protocol/messages.ts"
 import { mcpReconnectRequest, mcpStatusRequest, mcpToggleRequest } from "../protocol/outgoing.ts"
 import type { SessionStore } from "../session/session.ts"
 import type { McpConfig, McpServer } from "../session/types.ts"
@@ -102,9 +102,11 @@ function configOf(config: unknown): McpConfig | null {
 
 // Row by row, so one odd server does not empty the list.
 export function mcpServers(rows: unknown[]): McpServer[] {
+  let unreadable = 0
   const servers = rows.flatMap((row): McpServer[] => {
     const parsed = mcpServerStatus.safeParse(row)
-    if (!parsed.success) return []
+    if (!parsed.success) unreadable += 1
+    if (!parsed.success || isOwnAskServer(parsed.data)) return []
     const { name, status, error, scope, source, serverInfo, config, tools } = parsed.data
     return [
       {
@@ -119,8 +121,7 @@ export function mcpServers(rows: unknown[]): McpServer[] {
       },
     ]
   })
-  if (servers.length < rows.length)
-    log.warn(`mcp status: dropped ${rows.length - servers.length} of ${rows.length} rows`)
+  if (unreadable > 0) log.warn(`mcp status: dropped ${unreadable} of ${rows.length} rows`)
   return servers
 }
 
@@ -228,12 +229,11 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
     onMessage(message) {
       if (message.type !== "system" || message.subtype !== "init") return
       const servers = session.state.mcpServers
+      const rows = message.mcp_servers.filter((row) => !isOwnAskServer(row))
       const same =
         servers !== null &&
-        servers.length === message.mcp_servers.length &&
-        message.mcp_servers.every((row) =>
-          servers.some((server) => server.name === row.name && server.status === row.status),
-        )
+        servers.length === rows.length &&
+        rows.every((row) => servers.some((server) => server.name === row.name && server.status === row.status))
       if (!same) refresh()
     },
     refresh,

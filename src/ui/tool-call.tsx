@@ -2,8 +2,8 @@ import { infoStringToFiletype, RGBA } from "@opentui/core"
 import { extname } from "node:path"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
-import { DECLINED_WITH_NOTE, QUESTION_TO_CHAT, TOOL_DECLINED } from "../protocol/outgoing.ts"
-import { ownAskProblem, severe } from "../session/ask.ts"
+import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
+import { answersInResult, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
@@ -21,9 +21,6 @@ const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 const RESULT_INDENT = "  ⎿  "
 const LINE_INDENT = " ".repeat(RESULT_INDENT.length)
 const TAIL_LINES = 3
-// Matches `"<question>"="<answer>"` with optional ` notes: <note>` in an AskUserQuestion tool result. Our own ask
-// answers a matrix the same way, row by row.
-const ANSWER_IN_RESULT = /"([^"]*)"="([^"]*)"(?: notes: ([\s\S]*?))?(?=, "|\. |\.?$)/g
 
 function count(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? "" : "s"}`
@@ -76,6 +73,8 @@ export function toolLines(
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
   if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
+  const settled = ask ? null : settledQuestion(tool)
+  if (settled) return [settled]
   const answers = question ? answerLines(tool, ask) : []
   return answers.length > 0 ? answers : [resultSummary(tool)]
 }
@@ -91,23 +90,36 @@ function backToChat(ask: Ask): boolean {
   return ask.status === "denied" && ask.denial === QUESTION_TO_CHAT
 }
 
-export function deniedLine(ask: Ask): string {
-  const problem = ownAskProblem(ask)
-  if (problem) return `rejected · ${problem}`
-  if (backToChat(ask)) return "back to chat"
+// claude's result for a call the user interrupted.
+const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool use."
+
+// The denials a question's row names in words.
+function knownDenial(denial: string): string | null {
+  if (denial.startsWith(NOT_SHOWN)) return `rejected · ${denial.slice(NOT_SHOWN.length).replace(/\.$/, "")}`
+  if (denial === QUESTION_TO_CHAT) return "back to chat"
+  if (denial === SUBAGENT_ASK) return "sent back to the main agent"
+  if (denial === TOOL_DECLINED) return "denied"
+  return null
+}
+
+export function deniedLine(ask: Pick<Ask, "denial">): string {
+  const known = knownDenial(ask.denial)
+  if (known) return known
   const said = ask.denial.startsWith(DECLINED_WITH_NOTE) ? ask.denial.slice(DECLINED_WITH_NOTE.length) : ask.denial
   const note = said.trim().replaceAll("\n", " ")
-  return note && note !== TOOL_DECLINED ? `denied · ${note}` : "denied"
+  return note ? `denied · ${note}` : "denied"
+}
+
+// A question read back from a transcript has no ask, only its error result, which reads as a live one would.
+function settledQuestion(tool: ToolCall): string | null {
+  if ((tool.name !== "AskUserQuestion" && tool.name !== OWN_ASK) || tool.status !== "error") return null
+  if (tool.result.startsWith(INTERRUPTED_CALL)) return "cancelled"
+  if (tool.result.startsWith(DECLINED_WITH_NOTE)) return deniedLine({ denial: tool.result })
+  return knownDenial(tool.result)
 }
 
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
-  let answers = ask?.answers ?? {}
-  let notes = ask?.notes ?? {}
-  if (ask?.status !== "answered") {
-    const found = [...tool.result.matchAll(ANSWER_IN_RESULT)]
-    answers = Object.fromEntries(found.map(([, question = "", answer = ""]) => [question, answer]))
-    notes = Object.fromEntries(found.map(([, question = "", , note = ""]) => [question, note]))
-  }
+  const { answers, notes } = ask?.status === "answered" ? ask : answersInResult(tool.result)
   const questions = askUserQuestionInput.safeParse(tool.input).data?.questions ?? []
   return Object.entries(answers).map(([question, answer]) => {
     const header = questions.find((entry) => entry.question === question)?.header ?? question
@@ -158,6 +170,8 @@ export function ToolCallRow(props: {
   }))
   const color = () => {
     if (props.ask && (backToChat(props.ask) || props.ask.status === "cancelled")) return theme.muted
+    const settled = props.ask ? null : settledQuestion(props.item)
+    if (settled === "back to chat" || settled === "cancelled") return theme.muted
     if (background() && !waiting() && !denied()) return shellColor(shell())
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error

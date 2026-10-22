@@ -1,7 +1,9 @@
 import { expect, setSystemTime, test } from "bun:test"
 import { testRender } from "@opentui/solid"
-import { OWN_ASK } from "../../protocol/messages.ts"
-import { ownAskRejection } from "../../session/ask.ts"
+import { OWN_ASK, ownAskResult } from "../../protocol/messages.ts"
+import { allowAnswers, ownAskReply } from "../../protocol/outgoing.ts"
+import { parse } from "../../protocol/parse.ts"
+import { answersInResult, ownAskProblem } from "../../session/ask.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
 import { alwaysChoice } from "./permission-band.tsx"
@@ -71,25 +73,47 @@ test("the first key still typed into the prompt as an ask appears does not answe
   setup.renderer.destroy()
 })
 
-const ownAsk = (tool_name: string, input: unknown) => ({
-  type: "control_request" as const,
-  request_id: "request-1",
-  request: { subtype: "can_use_tool" as const, tool_name, tool_use_id: "tool-1", input },
-})
 const numbered = (count: number) => Array.from({ length: count }, (_, i) => ({ label: `Option ${i + 1}` }))
+const problem = (input: unknown, toolName = OWN_ASK) => ownAskProblem({ toolName, input })
 
 test("our own ask goes back to Claude with what to fix; stock asks are left alone", () => {
   const five = { questions: [{ question: "Which?", header: "Pick", options: numbered(5) }] }
-  expect(ownAskRejection(ownAsk(OWN_ASK, five))).toContain('"behavior":"deny","message":"Not shown to the user')
-  expect(ownAskRejection(ownAsk(OWN_ASK, five))).toContain("at most 4 options per question")
-  expect(ownAskRejection(ownAsk("AskUserQuestion", five))).toBeNull()
+  expect(problem(five)).toBe("at most 4 options per question")
+  expect(problem(five, "AskUserQuestion")).toBeNull()
   const twice = { questions: [0, 1].map(() => ({ question: "Same?", header: "Pick", options: numbered(2) })) }
-  expect(ownAskRejection(ownAsk(OWN_ASK, twice))).toContain("questions must be unique")
+  expect(problem(twice)).toBe("questions must be unique")
   const rows = [{ label: "A" }, { label: "A" }]
   const matrix = { matrix: { question: "Keep?", header: "File", rows, scale: ["Yes", "No"] } }
-  expect(ownAskRejection(ownAsk(OWN_ASK, matrix))).toContain("row labels must be unique")
+  expect(problem(matrix)).toBe("row labels must be unique")
   const fine = { questions: [{ question: "Which?", header: "Pick", options: numbered(4) }] }
-  expect(ownAskRejection(ownAsk(OWN_ASK, fine))).toBeNull()
+  expect(problem(fine)).toBeNull()
+  expect(problem({})).toBe("give exactly one of questions or matrix")
+  expect(problem({ ...fine, ...matrix })).toBe("give exactly one of questions or matrix")
+  expect(problem({ questions: [{ question: "Which?", options: numbered(2) }] })).toStartWith("questions.0.header:")
+})
+
+const sendOwn = (input: object, answers: Record<string, string>, notes: Record<string, string>) => {
+  const line = parse(ownAskReply({ requestId: "r", input }, 7, allowAnswers("r", input, answers, notes)))
+  const reply = line.kind === "message" && line.message.type === "control_response" ? line.message.response : null
+  const text = ownAskResult.parse(reply?.response).mcp_response.result.content[0]?.text ?? ""
+  expect(answersInResult(text)).toEqual({ answers, notes })
+  return text
+}
+
+test("an own ask's answer reaches Claude in stock's words and reads back the same", () => {
+  const questions = [
+    { question: "Where?", header: "Storage", options: numbered(2) },
+    { question: "Which?", header: "Format", options: numbered(2) },
+  ]
+  expect(sendOwn({ questions }, { "Which?": "TOML", "Where?": "Here" }, { "Where?": 'small. And fast, "ok"' })).toBe(
+    'Your questions have been answered: "Where?"="Here" notes: small. And fast, "ok", "Which?"="TOML". You can ' +
+      "now continue with these answers in mind.",
+  )
+  const matrix = { question: "Keep?", header: "File", rows: [{ label: "A" }, { label: "B" }], scale: ["Yes", "No"] }
+  expect(sendOwn({ matrix }, { A: "Yes", B: "No" }, { B: "later" })).toBe(
+    'Your questions have been answered: "Keep?": "A"="Yes", "B"="No" notes: later. You can now continue with ' +
+      "these answers in mind.",
+  )
 })
 
 test("the always-allow label reads as words and never comes out empty", () => {

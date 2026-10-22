@@ -1,6 +1,8 @@
 /* oxlint-disable no-await-in-loop */
 import { createSignal, type Accessor } from "solid-js"
+import { OWN_ASK, ownAskCall } from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
+import { ownAskProblem } from "../session/ask.ts"
 import type { Recording, RecordingEntry } from "./recording.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
@@ -20,6 +22,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
   let release: ((line: string) => void) | null = null
   let wakeEarly: (() => void) | null = null
   const permissionRequests = new Set<string>()
+  const mainCalls = new Set<string>()
 
   function waitsForUser(entry: RecordingEntry): "message" | "answer" | null {
     const parsed = parse(entry.line)
@@ -27,6 +30,19 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
     const message = parsed.message
     if (message.type === "control_request" && message.request.subtype === "can_use_tool")
       permissionRequests.add(message.request_id)
+    if (message.type === "assistant" && !message.parent_tool_use_id)
+      for (const block of message.message.content) if (block.type === "tool_use") mainCalls.add(block.id)
+    // A call to our own ask waits for the user's answer like a permission ask, unless it was never shown: broken, or
+    // a subagent's (its tool_use line comes after the call or names its agent).
+    if (
+      message.type === "control_request" &&
+      message.request.subtype === "mcp_message" &&
+      message.request.message.method === "tools/call"
+    ) {
+      const call = ownAskCall.safeParse(message.request.message.params).data
+      if (call && mainCalls.has(call.toolUseId) && ownAskProblem({ toolName: OWN_ASK, input: call.input }) === null)
+        permissionRequests.add(message.request_id)
+    }
     if (entry.dir !== "out") return null
     if (message.type === "user") return "message"
     if (message.type === "control_response" && permissionRequests.has(message.response.request_id)) return "answer"

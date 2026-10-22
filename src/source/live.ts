@@ -1,16 +1,17 @@
 import type { LiveProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
-import { commandRows, modelRows } from "../protocol/messages.ts"
-import { initializeRequest } from "../protocol/outgoing.ts"
+import { commandRows, modelRows, OWN_ASK } from "../protocol/messages.ts"
+import { allowTool, initializeRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
-import { ownAskRejection } from "../session/ask.ts"
 import type { SessionStore } from "../session/session.ts"
 import type { PermissionMode, StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
+import { type AskServer, createAskServer } from "./ask-server.ts"
 import { claudeArgs, launchOf, type Spawn } from "./claude-args.ts"
 import { type Controls, createControls, type Knobs } from "./controls.ts"
 import { createExtensions, type Extensions } from "./extensions.ts"
 import { createMcpControls, type McpControls } from "./mcp.ts"
+import { OWN_ASK_INIT } from "./own-ask-tool.ts"
 import { createRequests, refusal, type Requests, RequestTimeout } from "./requests.ts"
 import type { Source } from "./source.ts"
 import { createTaskControls, type TaskControls } from "./tasks.ts"
@@ -43,7 +44,7 @@ const invalidCounts = new Map<string, number>()
 export async function pump(
   source: Source,
   session: SessionStore,
-  live: { requests: Requests; controls: Controls } | null,
+  live: { requests: Requests; controls: Controls; asks: AskServer } | null,
 ): Promise<void> {
   let yielded = performance.now()
   try {
@@ -57,9 +58,20 @@ export async function pump(
       }
       if (parsed.kind === "unknown" && event.dir === "in") log.debug(`unknown message ${parsed.key}`)
       session.apply(event.dir, parsed, event.at)
-      if (event.dir === "in" && parsed.kind === "message") live?.controls.onMessage(parsed.message)
+      if (event.dir === "in" && parsed.kind === "message") {
+        live?.controls.onMessage(parsed.message)
+        live?.asks.seen(parsed.message)
+      }
       if (event.dir === "in" && parsed.kind === "message" && parsed.message.type === "control_response")
         live?.requests.settle(parsed.message.response)
+      if (
+        live &&
+        event.dir === "in" &&
+        parsed.kind === "message" &&
+        parsed.message.type === "control_request" &&
+        parsed.message.request.subtype === "mcp_message"
+      )
+        live.asks.serve(parsed.message.request_id, parsed.message.request)
       if (live && event.dir === "in" && parsed.kind !== "message" && parsed.key.startsWith("control_request/")) {
         const subtype = parsed.key.slice("control_request/".length)
         const reply = refusal(
@@ -73,12 +85,16 @@ export async function pump(
           source.send(reply)
         }
       }
-      const rejection = event.dir === "in" && parsed.kind === "message" ? ownAskRejection(parsed.message) : null
-      if (rejection) {
-        log.info("rejected own ask", rejection)
-        session.answer(rejection)
-        source.send(rejection)
-      }
+      // A user's settings rule can still ask about our own ask; its tools/call follows and opens it.
+      if (
+        live &&
+        event.dir === "in" &&
+        parsed.kind === "message" &&
+        parsed.message.type === "control_request" &&
+        parsed.message.request.subtype === "can_use_tool" &&
+        parsed.message.request.tool_name === OWN_ASK
+      )
+        source.send(allowTool(parsed.message.request_id, parsed.message.request.input))
       // Lines that are already waiting arrive without a macrotask, so a burst would not paint until it ends.
       if (performance.now() - yielded > 8) {
         await new Promise((resolve) => setImmediate(resolve))
@@ -115,6 +131,10 @@ export function connect(options: {
   const extensions = createExtensions({ requests, provider, session, cwd })
   controls.follow(extensions)
   const tasks = createTaskControls({ requests, session })
+  const asks = createAskServer(
+    (line) => source.send(line),
+    (toolUseId) => session.openOwnAsk(toolUseId),
+  )
   log.info("claude flags", { permissionMode: launch.mode, thinking: stored.thinking, bypass: launch.bypass, ...spawn })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,
@@ -127,6 +147,7 @@ export function connect(options: {
   // Nothing of this claude's asks or polls once it is closed or gone; the pump may still apply its last lines.
   const stopWork = () => {
     tasks.close()
+    asks.close()
     mcp.dispose()
     extensions.dispose()
   }
@@ -135,7 +156,7 @@ export function connect(options: {
     const started = performance.now()
     // With perTaskStopAffordance an interrupt leaves background agents running; x stops one task at a time.
     void requests
-      .send((id) => initializeRequest(id, { perTaskStopAffordance: true }), INITIALIZE_TIMEOUT_MS)
+      .send((id) => initializeRequest(id, { perTaskStopAffordance: true, ...OWN_ASK_INIT }), INITIALIZE_TIMEOUT_MS)
       .then(
         (reply) => {
           log.info("initialized", {
@@ -162,7 +183,7 @@ export function connect(options: {
     })
     if (carry) controls.carry(carry)
     tasks.start()
-    await pump(source, session, { requests, controls })
+    await pump(source, session, { requests, controls, asks })
     stopWork()
     requests.close("Claude Code exited")
     // A process claude started can keep its stderr open after claude itself has gone.

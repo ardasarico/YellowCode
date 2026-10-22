@@ -124,6 +124,8 @@ export type Ask = {
   denial: string
   // The subagent that asked; absent for the main thread.
   agent?: string
+  // Set for a call to our own ask tool, which is answered with an MCP result under this JSON-RPC id.
+  mcp?: { rpcId: string | number }
 }
 export type TurnEnd = {
   kind: "turn-end"

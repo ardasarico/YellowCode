@@ -1,4 +1,5 @@
-import type { PermissionUpdate } from "./messages.ts"
+import { ownAskMatrix, ownAskPages, permissionReply, type PermissionUpdate, questionAnswers } from "./messages.ts"
+import { parse } from "./parse.ts"
 
 export type OutgoingImage = {
   mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp"
@@ -25,6 +26,11 @@ export const TOOL_DECLINED = "The user declined this tool call."
 export const DECLINED_WITH_NOTE = "The user declined this tool call and said:\n"
 export const QUESTION_TO_CHAT =
   "The user wants to talk this over in the chat instead of answering. Stop and wait for their message."
+// Our own ask turns these calls down unseen; the problem or the reason follows.
+export const NOT_SHOWN = "Not shown to the user. Fix this and ask again: "
+export const SUBAGENT_ASK =
+  "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final " +
+  "report, so the main agent can ask it."
 
 export function errorResponse(requestId: string, message: string): string {
   return JSON.stringify({
@@ -33,7 +39,7 @@ export function errorResponse(requestId: string, message: string): string {
   })
 }
 
-function permissionResponse(requestId: string, response: unknown): string {
+function successResponse(requestId: string, response: unknown): string {
   return JSON.stringify({
     type: "control_response",
     response: { subtype: "success", request_id: requestId, response },
@@ -41,11 +47,11 @@ function permissionResponse(requestId: string, response: unknown): string {
 }
 
 export function allowTool(requestId: string, input: unknown, updatedPermissions?: PermissionUpdate[]): string {
-  return permissionResponse(requestId, { behavior: "allow", updatedInput: input, updatedPermissions })
+  return successResponse(requestId, { behavior: "allow", updatedInput: input, updatedPermissions })
 }
 
 export function denyTool(requestId: string, message: string): string {
-  return permissionResponse(requestId, { behavior: "deny", message })
+  return successResponse(requestId, { behavior: "deny", message })
 }
 
 // The model sees notes only under a question's own key, so an additional note joins the last question's notes.
@@ -82,14 +88,67 @@ export function allowAnswers(
     answers,
     ...(Object.keys(annotations).length > 0 ? { annotations } : {}),
   }
-  return permissionResponse(requestId, { behavior: "allow", updatedInput })
+  return successResponse(requestId, { behavior: "allow", updatedInput })
+}
+
+type RpcId = string | number
+
+export function mcpResponse(requestId: string, rpcId: RpcId, result: unknown): string {
+  return successResponse(requestId, { mcp_response: { jsonrpc: "2.0", id: rpcId, result } })
+}
+
+export function mcpError(requestId: string, rpcId: RpcId, code: number, message: string): string {
+  return successResponse(requestId, { mcp_response: { jsonrpc: "2.0", id: rpcId, error: { code, message } } })
+}
+
+// A JSON-RPC notification has no id to answer, but claude still waits for its control_response.
+export function mcpAck(requestId: string): string {
+  return successResponse(requestId, { mcp_response: { jsonrpc: "2.0", result: {}, id: 0 } })
+}
+
+// A tool error claude passes on to the model as the call's result.
+export function mcpToolError(requestId: string, rpcId: RpcId, text: string): string {
+  return mcpResponse(requestId, rpcId, { content: [{ type: "text", text }], isError: true })
+}
+
+// Our own ask's answer goes back as its MCP result, in the words stock AskUserQuestion gives Claude.
+export function ownAskReply(ask: { requestId: string; input: unknown }, rpcId: RpcId, response: string): string {
+  const line = parse(response)
+  const sent = line.kind === "message" && line.message.type === "control_response" ? line.message.response : null
+  const reply = permissionReply.safeParse(sent?.response).data
+  if (reply?.behavior !== "allow") return mcpToolError(ask.requestId, rpcId, reply?.message ?? TOOL_DECLINED)
+  const answered = questionAnswers.safeParse(reply.updatedInput).data
+  const answers = answered?.answers ?? {}
+  const pair = (key: string) => {
+    const note = answered?.annotations?.[key]?.notes
+    return `"${key}"="${answers[key]}"${note ? ` notes: ${note}` : ""}`
+  }
+  const pairs = (keys: string[]) =>
+    keys
+      .filter((key) => answers[key] !== undefined)
+      .map(pair)
+      .join(", ")
+  const matrix = ownAskMatrix.safeParse(ask.input).data?.matrix
+  const questions = ownAskPages.safeParse(ask.input).data?.questions ?? []
+  const body = matrix
+    ? `"${matrix.question}": ${pairs(matrix.rows.map((row) => row.label))}`
+    : pairs(questions.map((page) => page.question))
+  const text = `Your questions have been answered: ${body}. You can now continue with these answers in mind.`
+  return mcpResponse(ask.requestId, rpcId, { content: [{ type: "text", text }] })
 }
 
 export function interruptRequest(requestId: string): string {
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype: "interrupt" } })
 }
 
-export function initializeRequest(requestId: string, options: { perTaskStopAffordance?: boolean } = {}): string {
+export function initializeRequest(
+  requestId: string,
+  options: {
+    perTaskStopAffordance?: boolean
+    sdkMcpServers?: string[]
+    sdkMcpServerConfigs?: Record<string, { timeout: number }>
+  } = {},
+): string {
   return JSON.stringify({
     type: "control_request",
     request_id: requestId,

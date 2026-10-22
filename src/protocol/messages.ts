@@ -317,7 +317,13 @@ export const askUserQuestionInput = z.looseObject({
   ),
 })
 
-export const OWN_ASK = "mcp__yellowcode__ask"
+// Our own ask reaches claude as the one tool of an SDK MCP server that YellowCode serves over stdio.
+export const OWN_ASK_SERVER = "yellowcode"
+export const OWN_ASK = `mcp__${OWN_ASK_SERVER}__ask`
+
+// That server is how the tool gets to claude, not one of the user's servers, so no server list shows it.
+export const isOwnAskServer = (server: { name: string; source?: string | null }) =>
+  server.name === OWN_ASK_SERVER && server.source === "sdk"
 
 const askPage = z.looseObject({
   question: z.string(),
@@ -338,6 +344,34 @@ export const ownAskMatrix = z.looseObject({
     header: z.string(),
     rows: z.array(z.looseObject({ label: z.string() })),
     scale: z.array(z.string()),
+  }),
+})
+
+const rpcId = z.union([z.string(), z.number()])
+
+// The params of a `tools/call` for our server; claude names the model's tool_use in `_meta`.
+export const ownAskCall = z
+  .looseObject({
+    name: z.string(),
+    arguments: z.unknown().optional(),
+    _meta: z.looseObject({ "claudecode/toolUseId": z.string().optional() }).optional(),
+  })
+  .transform(({ name, arguments: input, ...rest }) => ({
+    name,
+    input,
+    toolUseId: rest["_meta"]?.["claudecode/toolUseId"] ?? "",
+  }))
+
+// claude gave up a call (an interrupt): `requestId` is the JSON-RPC id of the `tools/call`.
+export const mcpCancelled = z.looseObject({ requestId: rpcId })
+
+// Our reply to a `tools/call`, as it goes out in a control_response.
+export const ownAskResult = z.looseObject({
+  mcp_response: z.looseObject({
+    result: z.looseObject({
+      content: z.array(z.looseObject({ type: z.string(), text: z.string().optional() })),
+      isError: z.boolean().optional(),
+    }),
   }),
 })
 
@@ -363,6 +397,16 @@ const controlRequest = z.looseObject({
     z.looseObject({ subtype: z.literal("interrupt") }),
     z.looseObject({ subtype: z.literal("get_task_output"), task_id: z.string() }),
     z.looseObject({ subtype: z.literal("stop_task"), task_id: z.string() }),
+    z.looseObject({
+      subtype: z.literal("mcp_message"),
+      server_name: z.string(),
+      message: z.looseObject({
+        jsonrpc: z.string().optional(),
+        id: rpcId.optional(),
+        method: z.string().optional(),
+        params: z.unknown().optional(),
+      }),
+    }),
   ]),
 })
 
@@ -509,6 +553,14 @@ const rateLimit = z.looseObject({
   }),
 })
 
+// A heartbeat every 30 s while a tool runs long, such as an open own ask.
+const toolProgress = z.looseObject({
+  type: z.literal("tool_progress"),
+  tool_use_id: z.string(),
+  tool_name: z.string(),
+  parent_tool_use_id: z.string().nullable().optional(),
+})
+
 // claude's state between requests; a turn's first request names the messages it takes in.
 const systemStatus = z.looseObject({
   type: z.literal("system"),
@@ -560,9 +612,14 @@ export const protocolMessage = z.discriminatedUnion("type", [
   commandLifecycle,
   rateLimit,
   conversationReset,
+  toolProgress,
 ])
 
 export type ProtocolMessage = z.infer<typeof protocolMessage>
+export type McpMessage = Extract<
+  Extract<ProtocolMessage, { type: "control_request" }>["request"],
+  { subtype: "mcp_message" }
+>
 export type ContentBlock = z.infer<typeof contentBlock>
 export type UserBlock = z.infer<typeof userBlock>
 export type PermissionUpdate = z.infer<typeof permissionUpdate>
@@ -592,6 +649,7 @@ export const KNOWN_KEYS = new Set([
   "control_request/interrupt",
   "control_request/get_task_output",
   "control_request/stop_task",
+  "control_request/mcp_message",
   "control_response",
   "control_cancel_request",
   "command_lifecycle",
@@ -601,4 +659,5 @@ export const KNOWN_KEYS = new Set([
   "system/local_command_output",
   "rate_limit_event",
   "conversation_reset",
+  "tool_progress",
 ])

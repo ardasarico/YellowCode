@@ -12,6 +12,7 @@ import { permissionReply, rewindConversationReply } from "./protocol/messages.ts
 import {
   interruptRequest,
   type OutgoingImage,
+  ownAskReply,
   renameSession,
   rewindConversationRequest,
   userMessage,
@@ -799,6 +800,15 @@ function Main() {
                 const behavior =
                   permissionReply.safeParse(reply?.response.response).data?.behavior ?? reply?.response.subtype
                 log.info(`answer to ${ask.toolName}`, { requestId: ask.requestId, behavior })
+                if (ask.mcp) {
+                  // claude may have given the call up (an interrupt) while the user answered.
+                  const now = current.session.state.byId[ask.id]
+                  if (now?.kind !== "ask" || now.status !== "pending") return log.info("dropped a late own ask answer")
+                  const result = ownAskReply(ask, ask.mcp.rpcId, response)
+                  current.session.answer(result)
+                  source.send(result)
+                  return
+                }
                 current.session.answer(response)
                 // A file outside the project is read before the call may change it.
                 const reading =

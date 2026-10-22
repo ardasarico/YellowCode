@@ -99,11 +99,12 @@ const BUILTIN_AGENTS = new Set([
 ])
 // Claude Code's own tags for plugins that come from no marketplace.
 const PLUGIN_ORIGINS = new Set(["inline", "synced", "builtin"])
+// `yellowcode` is our own ask's server.
 export const SAMPLE_SERVER =
-  /^(echo|broken|postgres|claude-in-chrome|server-[a-z]|plugin:plugin-[a-z]:(plugin|server)-[a-z]|claude\.ai Connector [A-Z])$/
+  /^(yellowcode|echo|broken|postgres|claude-in-chrome|server-[a-z]|plugin:plugin-[a-z]:(plugin|server)-[a-z]|claude\.ai Connector [A-Z])$/
 // SAMPLE_SERVER names as they appear in MCP tool names.
 const SAMPLE_TOOL =
-  /^mcp__(echo|broken|postgres|claude-in-chrome|server-[a-z]|plugin_plugin-[a-z]_(plugin|server)-[a-z]|claude_ai_Connector_[A-Z])__[\w-]*$/
+  /^mcp__(yellowcode|echo|broken|postgres|claude-in-chrome|server-[a-z]|plugin_plugin-[a-z]_(plugin|server)-[a-z]|claude_ai_Connector_[A-Z])__[\w-]*$/
 // Claude Code's built-in tool names and the SessionStart and PreCompact matcher values.
 const BUILTIN_MATCHERS = new Set([
   "Agent",

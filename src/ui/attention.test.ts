@@ -38,6 +38,8 @@ const turnEnd: TurnEnd = {
   endedAt: 0,
 }
 
+const ownInput = { questions: [{ question: "Which?", header: "Pick", options: [{ label: "A" }, { label: "B" }] }] }
+
 function sessionWith(items: Item[], status: Session["status"] = "idle"): Session {
   const base = createSession().state
   return { ...base, status, items: items.map((item) => item.id), byId: Object.fromEntries(items.map((i) => [i.id, i])) }
@@ -46,7 +48,11 @@ function sessionWith(items: Item[], status: Session["status"] = "idle"): Session
 test("each state pings only at the levels that allow it", () => {
   const cases: [Session, string | null, string | null][] = [
     [sessionWith([ask], "running"), "Permission needed: Bash", "Permission needed: Bash"],
-    [sessionWith([{ ...ask, toolName: OWN_ASK }], "running"), "Claude has a question", "Claude has a question"],
+    [
+      sessionWith([{ ...ask, toolName: OWN_ASK, input: ownInput }], "running"),
+      "Claude has a question",
+      "Claude has a question",
+    ],
     [sessionWith([{ ...ask, status: "allowed" }], "running"), null, null],
     [sessionWith([turnEnd]), "Done", null],
     [sessionWith([{ ...turnEnd, error: "rate limited\nretry later" }]), "Error: rate limited", "Error: rate limited"],

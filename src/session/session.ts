@@ -2,7 +2,13 @@ import { basename } from "node:path"
 import { createStore, produce } from "solid-js/store"
 import { log } from "../log/log.ts"
 import {
+  isOwnAskServer,
+  mcpCancelled,
+  type McpMessage,
   OWN_ASK,
+  OWN_ASK_SERVER,
+  ownAskCall,
+  ownAskResult,
   permissionReply,
   questionAnswers,
   taskOutput,
@@ -13,11 +19,13 @@ import {
 } from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
+import { answersInResult } from "./ask.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type {
+  Ask,
   Item,
   ItemId,
   Session,
@@ -37,6 +45,8 @@ export type SessionStore = {
   apply(dir: "in" | "out", parsed: ParseResult, at: number): void
   prepend(events: SourceEvent[]): void
   answer(response: string): void
+  // Opens our own ask held for this tool_use until the ask server knew it was the main agent's.
+  openOwnAsk(toolUseId: string): void
   // A message shown at Enter, before it goes out; it waits until it does.
   showEarly(line: string): void
   // A message shown early never went out.
@@ -234,16 +244,18 @@ export function initInfo(message: System<"init">): SessionInfo {
     cwd: message.cwd,
     cliVersion: message.claude_code_version,
     tools: message.tools,
-    mcpServers: message.mcp_servers.map((server) => ({
-      name: server.name,
-      status: server.status,
-      source: server.source ?? null,
-      scope: null,
-      error: server.error ?? null,
-      config: null,
-      serverInfo: null,
-      tools: null,
-    })),
+    mcpServers: message.mcp_servers
+      .filter((server) => !isOwnAskServer(server))
+      .map((server) => ({
+        name: server.name,
+        status: server.status,
+        source: server.source ?? null,
+        scope: null,
+        error: server.error ?? null,
+        config: null,
+        serverInfo: null,
+        tools: null,
+      })),
     skills: message.skills,
     slashCommands: message.slash_commands ?? [],
     agents: message.agents ?? [],
@@ -290,6 +302,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   let live = new Set<string>()
   // Our own get_task_output requests: request id → task id.
   const outputRequests = new Map<string, string>()
+  // Calls to our own ask not yet known to be the main agent's, by tool_use id.
+  const heldAsks = new Map<string, Ask>()
   // The request id of the interrupt that is out.
   let interruptId: string | null = null
   // Messages sent during a turn that claude has not taken in yet: uuid → user item.
@@ -972,7 +986,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return onResult(message)
       case "control_request": {
         const request = message.request
-        if (request.subtype !== "can_use_tool") return
+        if (request.subtype === "mcp_message") return onOwnAskMessage(message.request_id, request)
+        // Our own ask opens from its tools/call; a permission ask for it is allowed at once.
+        if (request.subtype !== "can_use_tool" || request.tool_name === OWN_ASK) return
         const agent = request.agent_id ? state.tasks[request.agent_id]?.name : undefined
         add(
           {
@@ -1031,7 +1047,74 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return onRateLimit(message)
       case "conversation_reset":
         return reset()
+      case "tool_progress":
+        return
     }
+  }
+
+  function onOwnAskMessage(requestId: string, request: McpMessage): void {
+    if (request.server_name !== OWN_ASK_SERVER) return
+    const { id: rpcId, method, params } = request.message
+    if (method === "notifications/cancelled") {
+      const cancelled = mcpCancelled.safeParse(params).data
+      if (cancelled) cancelOwnAsks((ask) => ask.mcp?.rpcId === cancelled.requestId)
+      return
+    }
+    const call = ownAskCall.safeParse(params).data
+    if (method !== "tools/call" || rpcId === undefined || call?.name !== "ask") return
+    const ask: Ask = {
+      kind: "ask",
+      id: `ask-${requestId}`,
+      requestId,
+      toolUseId: call.toolUseId,
+      toolName: OWN_ASK,
+      displayName: "ask",
+      input: call.input,
+      description: "",
+      reason: "",
+      suggestion: null,
+      defaultToNo: false,
+      safetyCheck: false,
+      status: "pending",
+      answers: {},
+      notes: {},
+      denial: "",
+      mcp: { rpcId },
+    }
+    // Only the main agent's call opens. Its tool_use line came first; any other call waits for the ask server to
+    // place it (openOwnAsk) or turn it down.
+    const tool = state.byId[call.toolUseId]
+    if (tool && state.items.includes(tool.id)) add(ask, null)
+    else heldAsks.set(call.toolUseId, ask)
+  }
+
+  function cancelOwnAsks(which: (ask: Ask) => boolean = () => true): void {
+    for (const [toolUseId, held] of heldAsks) if (which(held)) heldAsks.delete(toolUseId)
+    for (const item of Object.values(state.byId)) {
+      if (item.kind !== "ask" || !item.mcp || item.status !== "pending" || !which(item)) continue
+      update(item.id, (ask) => {
+        if (ask.kind === "ask") ask.status = "cancelled"
+      })
+    }
+  }
+
+  // Our own ask settles from its MCP result: an error is a denial, else the answers are read back from the text.
+  function settleOwnAsk(id: string, payload: unknown): void {
+    const result = ownAskResult.safeParse(payload).data?.mcp_response.result
+    if (!result) return
+    const text = result.content.map((block) => block.text ?? "").join("")
+    update(id, (item) => {
+      if (item.kind !== "ask" || item.status !== "pending") return
+      if (result.isError) {
+        item.status = "denied"
+        item.denial = text
+        return
+      }
+      const { answers, notes } = answersInResult(text)
+      item.status = "answered"
+      item.answers = answers
+      item.notes = notes
+    })
   }
 
   function onOutgoing(message: ProtocolMessage, shownEarly = false): void {
@@ -1066,6 +1149,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       outputRequests.set(message.request_id, message.request.task_id)
     } else if (message.type === "control_response") {
       const payload = message.response.response
+      for (const [toolUseId, held] of heldAsks)
+        if (held.requestId === message.response.request_id) return void heldAsks.delete(toolUseId)
+      const own = state.byId[`ask-${message.response.request_id}`]
+      if (own?.kind === "ask" && own.mcp) return settleOwnAsk(own.id, payload)
       const parsed = payload === undefined ? null : permissionReply.safeParse(payload)
       // A reply that cannot be read must not settle the ask, least of all as allowed.
       if (parsed && !parsed.success) {
@@ -1213,6 +1300,12 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       for (const id of taskIds) hideFor.add(id)
       onHiddenStart = onStart
     },
+    openOwnAsk(toolUseId) {
+      const held = heldAsks.get(toolUseId)
+      if (!held) return
+      heldAsks.delete(toolUseId)
+      add(held, null)
+    },
     answer(response) {
       const parsed = parse(response)
       if (parsed.kind === "message") onOutgoing(parsed.message)
@@ -1257,6 +1350,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       outputRequests.clear()
       hiding = false
       hideFor.clear()
+      cancelOwnAsks()
       setState("status", "starting")
     },
     end(problem) {
@@ -1273,6 +1367,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         dropRetry()
         add({ kind: "system", id: newId("system"), text: problem.text, level: "error", detail: problem.detail }, null)
       }
+      // claude is gone, and with it the call our own ask would answer.
+      cancelOwnAsks()
       // A message still waiting never ran.
       for (const id of waiting.values())
         update(id, (item) => {
