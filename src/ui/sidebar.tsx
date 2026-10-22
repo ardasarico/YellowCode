@@ -5,7 +5,7 @@ import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
 import { shownText } from "../session/agent-message.ts"
 import { theme } from "../theme/theme.ts"
-import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, wrapLines } from "./format.ts"
+import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, plain, wrapLines } from "./format.ts"
 import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
 import { shortName, toolPrefix } from "./mcp/servers.ts"
@@ -46,9 +46,6 @@ function firstUserLine(session: Session): string {
   }
   return ""
 }
-
-// Escape sequences and other control characters would show as stray text.
-const plain = (text: string) => Bun.stripANSI(text).replace(/\p{Cc}/gu, " ")
 
 function serverActivity(session: Session): ServerActivity {
   const items = Object.values(session.byId)

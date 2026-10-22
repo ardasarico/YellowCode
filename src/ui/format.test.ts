@@ -1,5 +1,15 @@
 import { expect, test } from "bun:test"
-import { cut, formatSpan, formatTokens, formatUntil, modelName, printable, toolLabel, windowTitle } from "./format.ts"
+import {
+  cut,
+  formatSpan,
+  formatTokens,
+  formatUntil,
+  modelName,
+  pad,
+  printable,
+  toolLabel,
+  windowTitle,
+} from "./format.ts"
 
 test("toolLabel splits MCP tool names at the first server boundary", () => {
   expect(toolLabel("mcp__github__list_pull_requests")).toBe("github/list_pull_requests")
@@ -44,4 +54,16 @@ test("cut leaves nothing when not even the ellipsis fits", () => {
 
 test("printable drops escape sequences and control characters but keeps newlines and tabs", () => {
   expect(printable("\u001b[31merror\u001b[0m:\tfailed\r\n\u0007done")).toBe("error:\tfailed\ndone")
+})
+
+test("pad and cut count display columns", () => {
+  expect(Bun.stringWidth(pad("🍎 Apple", 10))).toBe(10)
+  expect(Bun.stringWidth(pad("日本語", 10))).toBe(10)
+  expect(pad("日本語", 4)).toBe("日本語")
+  expect(cut("日本語", 5)).toBe("日本…")
+  expect(cut("🍎 Apple", 4)).toBe("🍎 …")
+})
+
+test("cut turns line breaks into spaces", () => {
+  expect(cut("a\nb", 10)).toBe("a b")
 })

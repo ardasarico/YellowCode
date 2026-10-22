@@ -10,7 +10,17 @@ export function formatDuration(ms: number): string {
   return `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`
 }
 
-export function cut(text: string, max: number): string {
+// Escape sequences and other control characters would show as stray text.
+export function plain(text: string): string {
+  return Bun.stripANSI(text).replace(/\p{Cc}/gu, " ")
+}
+
+export function pad(text: string, width: number): string {
+  return text + " ".repeat(Math.max(0, width - Bun.stringWidth(text)))
+}
+
+export function cut(raw: string, max: number): string {
+  const text = plain(raw)
   if (Bun.stringWidth(text) <= max) return text
   if (max < 1) return ""
   let result = ""
@@ -30,11 +40,11 @@ const TITLE_MAX = 200
 
 // The terminal rejects a window title with control characters or of a few KB.
 export function windowTitle(text: string): string {
-  const plain = Bun.stripANSI(text)
+  const flat = Bun.stripANSI(text)
     .replace(/\p{Cc}/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
-  return cut(plain, TITLE_MAX)
+  return cut(flat, TITLE_MAX)
 }
 
 export function wrapLines(text: string, width: number, max: number): string[] {
