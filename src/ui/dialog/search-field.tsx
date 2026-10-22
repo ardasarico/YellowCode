@@ -8,7 +8,15 @@ import { fill, PAD_X } from "./list-view.tsx"
 export function SearchField(props: { query: string; placeholder: string; focused: boolean; width: number }) {
   const color = () => (props.focused ? theme.accent : theme.frame)
   const room = () => Math.max(0, props.width - 3)
-  const query = () => (Bun.stringWidth(props.query) > room() ? props.query.slice(-room()) : props.query)
+  const query = () => {
+    if (Bun.stringWidth(props.query) <= room()) return props.query
+    let tail = ""
+    for (const char of Array.from(props.query).toReversed()) {
+      if (Bun.stringWidth(char + tail) > room()) break
+      tail = char + tail
+    }
+    return tail
+  }
   const placeholder = () => cut(props.placeholder, props.width - 2)
 
   return (

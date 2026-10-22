@@ -2,7 +2,7 @@ import { TextAttributes } from "@opentui/core"
 import type { Rewound } from "../../session/rewind.ts"
 import { createSignal, For, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
-import { cut } from "../format.ts"
+import { cut, pad } from "../format.ts"
 
 const HINT = "/redo to bring back"
 // A longer list shows this many files and a "+N more" line.
@@ -56,7 +56,7 @@ export function RewoundBand(props: { rewound: Rewound; onRedo: () => void }) {
       <For each={shown()}>
         {(file) => (
           <text wrapMode="none">
-            <span style={{ fg: theme.muted }}>{`  ${cut(file.path, column()).padEnd(column())}  `}</span>
+            <span style={{ fg: theme.muted }}>{`  ${pad(cut(file.path, column()), column())}  `}</span>
             <Show when={file.plus > 0}>
               <span style={{ fg: theme.diffAddText }}>{`+${file.plus} `}</span>
             </Show>
