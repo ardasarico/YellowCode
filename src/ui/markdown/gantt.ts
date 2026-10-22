@@ -47,9 +47,10 @@ export function parseGantt(code: string): Gantt | null {
         start = after ? (byId.get(after[1] ?? "")?.end ?? null) : date(from)
       }
       const last = parts[0] ?? ""
-      const end = date(last) ?? (start === null ? null : start + (duration(last) ?? 0))
+      const span = duration(last)
+      const end = date(last) ?? (start === null || span === null ? null : start + span)
       if (start === null || end === null) continue
-      const task = { section, name: (match[1] ?? "").trim(), start, end, tags }
+      const task = { section, name: (match[1] ?? "").trim(), start, end: Math.max(start, end), tags }
       tasks.push(task)
       if (id) byId.set(id, task)
     }
