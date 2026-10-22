@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs"
+import { existsSync, mkdtempSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
@@ -13,14 +13,21 @@ import { Footer, PAD_X } from "./list-view.tsx"
 
 const MARGIN = 0.03
 
-let opened = 0
+let viewedDir: string | undefined
+
+export function removeViewedImages(): void {
+  if (viewedDir) rmSync(viewedDir, { recursive: true, force: true })
+  viewedDir = undefined
+}
 
 async function openInPreview(image: ChatImage): Promise<void> {
   try {
     let path = image.path && existsSync(image.path) ? image.path : null
     if (!path && image.data) {
-      path = join(tmpdir(), `yellowcode-image-${++opened}.${/^image\/(\w+)/.exec(image.mediaType)?.[1] ?? "png"}`)
-      await Bun.write(path, Uint8Array.fromBase64(image.data))
+      const bytes = Uint8Array.fromBase64(image.data)
+      viewedDir ??= mkdtempSync(join(tmpdir(), "yellowcode-viewed-"))
+      path = join(viewedDir, `${Bun.hash(bytes).toString(36)}.${/^image\/(\w+)/.exec(image.mediaType)?.[1] ?? "png"}`)
+      if (!existsSync(path)) await Bun.write(path, bytes)
     }
     if (!path) return log.warn("image not found", image.name)
     const child = Bun.spawn(["open", path], { stdout: "ignore", stderr: "pipe" })

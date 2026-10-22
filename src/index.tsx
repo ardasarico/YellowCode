@@ -50,6 +50,7 @@ import type { Requests } from "./source/requests.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { removeViewedImages } from "./ui/dialog/image-view.tsx"
 import { forgetRefs } from "./ui/markdown/refs.ts"
 import type { McpActions } from "./ui/mcp/mcp-tab.tsx"
 import type { PluginActions } from "./ui/settings/plugins-tab.tsx"
@@ -298,6 +299,7 @@ const QUIT_SIGNALS = ["SIGINT", "SIGTERM", "SIGQUIT", "SIGABRT", "SIGPIPE", "SIG
 process.on("exit", () => {
   source.close()
   stopTitles()
+  removeViewedImages()
 })
 for (const signal of QUIT_SIGNALS) process.on(signal, () => void quit(128 + constants.signals[signal]))
 process.on("SIGHUP", () => {
