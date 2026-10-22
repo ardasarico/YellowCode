@@ -50,8 +50,13 @@ export function SkillsDialog(props: {
 }) {
   const [notice, setNotice] = createSignal<string>()
   let timer: ReturnType<typeof setTimeout> | undefined
-  onCleanup(() => clearTimeout(timer))
+  let disposed = false
+  onCleanup(() => {
+    disposed = true
+    clearTimeout(timer)
+  })
   const showNotice = (text: string) => {
+    if (disposed) return
     clearTimeout(timer)
     setNotice(text)
     timer = setTimeout(() => setNotice(undefined), NOTICE_MS)
