@@ -38,10 +38,13 @@ function isTarget(path: string): boolean {
       if (isImagePath(path)) return true
       if (stat.size > MAX_BYTES) return false
       const fd = openSync(path, "r")
-      const head = new Uint8Array(Math.min(SNIFF, stat.size))
-      readSync(fd, head, 0, head.length, 0)
-      closeSync(fd)
-      return !head.includes(0)
+      try {
+        const head = new Uint8Array(Math.min(SNIFF, stat.size))
+        readSync(fd, head, 0, head.length, 0)
+        return !head.includes(0)
+      } finally {
+        closeSync(fd)
+      }
     } catch {
       return false
     }
