@@ -157,7 +157,9 @@ export function AgentPage(props: PageProps) {
   const agent = () => tool()?.agent ?? null
   const task = () => {
     const id = tool()?.taskId
-    return id ? props.session.tasks[id] : undefined
+    const found = id ? props.session.tasks[id] : undefined
+    // A resumed agent's task belongs to its newest run, not to the call it first started with.
+    return found && (found.toolUseId === null || found.toolUseId === props.node.id) ? found : undefined
   }
   const duration = useDuration(() => props.node)
   const running = () => props.node.state === "running"

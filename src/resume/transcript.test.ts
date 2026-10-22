@@ -192,3 +192,30 @@ test("work with no recorded outcome shows as stopped, in the first part and in e
     ["Agent", "done", "stopped"],
   ])
 })
+
+const agentCall = (id: string) => ({
+  type: "assistant",
+  message: {
+    id: `m${id}`,
+    role: "assistant",
+    content: [{ type: "tool_use", id: `t${id}`, name: "Agent", input: {} }],
+  },
+})
+
+test("a killed note marks its agent as stopped by the user, a stopped one does not", async () => {
+  const note = (status: string, id: string) =>
+    user(
+      `<task-notification>\n<task-id>a${id}</task-id>\n<tool-use-id>t${id}</tool-use-id>\n` +
+        `<status>${status}</status>\n<summary>s</summary>\n</task-notification>`,
+    )
+  const entries = [user("go"), agentCall("1"), agentCall("2"), note("killed", "1"), note("stopped", "2")]
+  const lines = entries.map((entry, index) =>
+    JSON.stringify({ ...entry, uuid: `u${index}`, parentUuid: index === 0 ? null : `u${index - 1}` }),
+  )
+  const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "killed.jsonl")
+  writeFileSync(path, lines.join("\n") + "\n")
+  const session = createSession()
+  loadTranscript(session, await readTranscript(path))
+  expect(session.state.byId.t1).toMatchObject({ agent: { state: "stopped", stoppedByUser: true } })
+  expect(session.state.byId.t2).toMatchObject({ agent: { state: "stopped", stoppedByUser: false } })
+})

@@ -146,6 +146,8 @@ function PromptInput(
     onLeaveDown: () => props.onLeaveDown?.(),
     onQuit: () => props.onQuit?.(),
     onEscape: () => props.onEscape?.(),
+    onBackspaceEmpty: () => props.onBackspaceEmpty?.() ?? false,
+    onRecall: (to) => props.onRecall?.(to),
     fill: () => props.fill,
   })
   onMount(() => {
@@ -188,6 +190,13 @@ function PromptInput(
         <text fg={theme.accent} flexShrink={0}>
           {"❯ "}
         </text>
+        <Show when={props.messageTo}>
+          {(to) => (
+            <text fg={theme.accent} flexShrink={0} wrapMode="none">
+              {`@${to().name} `}
+            </text>
+          )}
+        </Show>
         <textarea
           ref={completion.ref}
           flexGrow={1}
@@ -390,6 +399,9 @@ export function PromptBar(props: PromptBarProps) {
             onLeaveDown={props.onLeaveDown}
             onQuit={props.onQuit}
             onEscape={props.onEscape}
+            messageTo={props.messageTo}
+            onBackspaceEmpty={props.onBackspaceEmpty}
+            onRecall={props.onRecall}
             fill={props.fill}
             onUnfoldable={setUnfoldable}
           />

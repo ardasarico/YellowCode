@@ -102,6 +102,7 @@ function notification(text: string, at: number): SourceEvent[] {
             tool_use_id: toolUseId,
             status,
             summary: tag("summary") ?? "",
+            ...(tag("status") === "killed" ? { stopped_by_user: true } : {}),
           },
         ]
       : []

@@ -32,6 +32,7 @@ const user = (id: string, uuid: string): UserMessage => ({
   id,
   text: id,
   images: [],
+  to: null,
   queue: null,
   uuid,
 })

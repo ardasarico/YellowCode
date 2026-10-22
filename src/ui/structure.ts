@@ -57,6 +57,7 @@ export function buildRows(session: Session): Row[] {
     }
 
     if (item.kind === "ask") continue
+    if ((item.kind === "text" || item.kind === "tool") && item.quiet && !(item.kind === "tool" && item.agent)) continue
 
     if (item.kind === "turn-end") {
       if (lastEnd && !final(lastEnd.id) && !final(id)) {

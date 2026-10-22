@@ -58,6 +58,10 @@ export type CompletionOptions = {
   onQuit?: () => void
   // Called by Esc on an empty prompt with no list open.
   onEscape?: () => void
+  // Called by Backspace on an empty prompt; true when it took the key.
+  onBackspaceEmpty?: () => boolean
+  // Called when ↑ or ↓ puts back a message written to an agent.
+  onRecall?: (to: NonNullable<Draft["to"]> | null) => void
 }
 
 const cursorIndex = (area: TextareaRenderable) => stringIndexes(area.plainText, measureIn(area))(area.cursorOffset)
@@ -359,6 +363,7 @@ export function useCompletion(options: CompletionOptions) {
     chips.load(draft)
     area.cursorOffset = toBufferOffset(draft.text, step.cursor, measureIn(area))
     close()
+    options.onRecall?.(draft.to ?? null)
     return true
   }
 
@@ -383,6 +388,8 @@ export function useCompletion(options: CompletionOptions) {
       if (plain && key.name === "escape" && area?.plainText === "") {
         key.preventDefault()
         options.onEscape?.()
+      } else if (plain && key.name === "backspace" && area?.plainText === "" && options.onBackspaceEmpty?.()) {
+        key.preventDefault()
       } else if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
       else if (plain && key.name === "down" && options.onLeaveDown && leavesDown()) {
         key.preventDefault()

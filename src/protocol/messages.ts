@@ -183,6 +183,8 @@ const taskNotification = z.looseObject({
   summary: z.string(),
   output_file: z.string().optional(),
   usage: taskUsage.optional(),
+  // Only a transcript's "killed" sets it: the user stopped the task, and claude will not resume it.
+  stopped_by_user: z.boolean().optional(),
 })
 
 const textDelta = z.looseObject({ type: z.literal("text_delta"), text: z.string() })
@@ -255,6 +257,7 @@ const user = z.looseObject({
         type: z.string().optional(),
         structuredPatch: z.array(hunk).optional(),
         isAsync: z.boolean().optional(),
+        agentId: z.string().optional(),
         // The whole file before an Edit or Write; null when the Write made it.
         originalFile: z.string().nullable().optional(),
       }),

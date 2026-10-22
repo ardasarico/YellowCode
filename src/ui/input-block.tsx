@@ -32,6 +32,10 @@ export type InputBlockProps = {
   onLeaveDown?: () => void
   onQuit?: () => void
   onEscape?: () => void
+  // The agent the prompt writes to: its label and the keys that leave or restore the mode.
+  messageTo?: { id: string; name: string } | null
+  onBackspaceEmpty?: () => boolean
+  onRecall?: (to: { id: string; name: string } | null) => void
   fill?: { draft: Draft; seq: number; ifEmpty?: boolean }
   // Gets what the input still holds when it goes away.
   onDraft?: (draft: Draft) => void

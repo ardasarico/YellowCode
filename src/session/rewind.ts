@@ -1,3 +1,4 @@
+import { shownText } from "./agent-message.ts"
 import { relative } from "node:path"
 import { z } from "zod"
 import { fileInput, inputFile, WRITE_TOOLS } from "../rewind/common.ts"
@@ -116,7 +117,7 @@ export function rewindPoints(session: Session, extras: RewindExtras | null): Rew
     if (id === session.rewound?.userId) hidden = true
     const item = session.byId[id]
     if (item?.kind === "user") {
-      points.push({ userId: id, text: item.text, changes: [], hidden })
+      points.push({ userId: id, text: shownText(item), changes: [], hidden })
       tasks.push([])
     } else {
       const current = points.at(-1)

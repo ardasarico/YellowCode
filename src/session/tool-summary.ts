@@ -71,6 +71,7 @@ export function agentOf(toolName: string, input: unknown): Agent | null {
     report: "",
     error: null,
     activity: "",
+    stoppedByUser: false,
   }
 }
 
@@ -79,4 +80,16 @@ const writeFields = z.looseObject({ content: z.string() })
 export function writtenContent(input: unknown): string | null {
   const parsed = writeFields.safeParse(input)
   return parsed.success ? parsed.data.content : null
+}
+
+const messageFields = z.looseObject({ to: z.string().optional(), message: z.string().optional() })
+
+// An id no task knows stays as it is.
+export function sendMessageSummary(input: unknown, tasks: Record<string, { name: string } | undefined>): string {
+  const parsed = messageFields.safeParse(input)
+  if (!parsed.success || !parsed.data.to) return ""
+  const to = parsed.data.to
+  const line = oneLine((parsed.data.message ?? "").split("\n")[0])
+  const summary = line ? `${tasks[to]?.name || to} · ${line}` : tasks[to]?.name || to
+  return summary.length <= MAX_LENGTH ? summary : `${summary.slice(0, MAX_LENGTH - 1)}…`
 }

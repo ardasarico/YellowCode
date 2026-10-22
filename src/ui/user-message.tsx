@@ -120,9 +120,17 @@ export function UserMessageRow(props: {
         wrapMode="word"
         height={collapsed() ? COLLAPSED_ROWS : "auto"}
       >
+        <Show when={props.item.to}>{(to) => <span style={{ fg: theme.accent }}>{`@${to().name} `}</span>}</Show>
         <MessageText text={printable(props.item.text)} commands={props.commands} />
         <span style={{ fg: theme.muted }}>{props.item.queue ? `  ${props.item.queue}` : ""}</span>
       </text>
+      <Show when={props.item.delivery}>
+        {(delivery) => (
+          <text fg={theme.muted} wrapMode="none">
+            {delivery() === "resumed" ? `→ ${props.item.to?.name} resumed` : `→ sent to ${props.item.to?.name}`}
+          </text>
+        )}
+      </Show>
       <Show when={overflowing()}>
         <text
           fg={theme.muted}

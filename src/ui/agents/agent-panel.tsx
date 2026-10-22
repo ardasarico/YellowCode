@@ -15,6 +15,7 @@ const KEYS = [
   { key: "enter", word: "open" },
   { key: "esc", word: "back" },
 ]
+const MESSAGE_KEY = { key: "m", word: "message" }
 
 // Top-level agents and workflows that are running or started since the latest user message: running first, then
 // newest first.
@@ -107,6 +108,7 @@ export function AgentPanel(props: {
   selected: string | null
   width: number
   onOpen: (id: string) => void
+  canMessage?: boolean
 }) {
   const hidden = () => props.nodes.length - shownNodes(props.nodes, props.selected).length
   return (
@@ -122,7 +124,7 @@ export function AgentPanel(props: {
       <Show when={props.selected !== null}>
         <text wrapMode="none" marginTop={1}>
           <span> </span>
-          <Index each={KEYS}>
+          <Index each={props.canMessage ? [...KEYS.slice(0, -1), MESSAGE_KEY, ...KEYS.slice(-1)] : KEYS}>
             {(entry, index) => (
               <>
                 <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>

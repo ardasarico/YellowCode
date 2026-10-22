@@ -2,6 +2,7 @@ import { readdir, stat } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../protocol/json.ts"
+import { agentMessageLabel } from "../session/agent-message.ts"
 import { projectKey } from "./project-key.ts"
 
 const WHOLE_LIMIT = 128 * 1024
@@ -73,13 +74,15 @@ export function commandPrompt(text: string): string {
   return args === "" ? command : `${command} ${args}`
 }
 
+const listPrompt = (text: string) => agentMessageLabel(text) ?? commandPrompt(text)
+
 function promptOf(line: Line): string | null {
   if (line.type !== "user" || line.isMeta || line.isCompactSummary) return null
   const content = line.message?.content
-  if (typeof content === "string") return commandPrompt(content)
+  if (typeof content === "string") return listPrompt(content)
   if (!content || content.some((block) => block.type === "tool_result")) return null
   const text = content.find((block) => block.type === "text")?.text
-  if (text?.trim()) return commandPrompt(text)
+  if (text?.trim()) return listPrompt(text)
   const images = content.filter((block) => block.type === "image")
   if (images.length > 0) return images.map((_, index) => `[Image ${index + 1}]`).join(" ")
   return text ?? null
@@ -138,7 +141,8 @@ export function sessionEntry(path: string, lines: HeadTail, modified: number): S
     if (line.type === "custom-title" && line.customTitle !== undefined) fields.customTitle = line.customTitle
     else if (line.type === "ai-title" && line.aiTitle !== undefined) fields.aiTitle = line.aiTitle
     else if (line.type === "summary" && line.summary !== undefined) fields.summary = line.summary
-    else if (line.type === "last-prompt" && line.lastPrompt !== undefined) fields.lastPrompt = line.lastPrompt
+    else if (line.type === "last-prompt" && line.lastPrompt !== undefined)
+      fields.lastPrompt = listPrompt(line.lastPrompt)
     else if (line.type === "assistant" && line.message?.model !== undefined) model = line.message.model
   }
   const prompt = firstPrompt ?? fields.lastPrompt

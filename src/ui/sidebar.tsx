@@ -3,6 +3,7 @@ import { createMemo, createSignal, Index, Show } from "solid-js"
 import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
+import { shownText } from "../session/agent-message.ts"
 import { theme } from "../theme/theme.ts"
 import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, wrapLines } from "./format.ts"
 import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
@@ -36,7 +37,12 @@ type ServerActivity = { used: Set<string>; running: Set<string> }
 function firstUserLine(session: Session): string {
   for (const id of session.items) {
     const item = session.byId[id]
-    if (item?.kind === "user") return item.text.split("\n").find((line) => line.trim() !== "") ?? ""
+    if (item?.kind === "user")
+      return (
+        shownText(item)
+          .split("\n")
+          .find((line) => line.trim() !== "") ?? ""
+      )
   }
   return ""
 }

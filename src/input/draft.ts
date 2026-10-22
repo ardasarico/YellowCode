@@ -4,7 +4,8 @@ import type { ChatImage } from "../session/types.ts"
 
 export type Chip = { kind: "text"; n: number; content: string } | { kind: "image"; n: number; image: OutgoingImage }
 export type PlacedChip = { start: number; end: number; chip: Chip }
-export type Draft = { text: string; chips: PlacedChip[] }
+// `to` is the agent a draft was written to.
+export type Draft = { text: string; chips: PlacedChip[]; to?: { id: string; name: string } }
 
 type ClipboardContent =
   | { kind: "image"; image: OutgoingImage }
@@ -70,7 +71,7 @@ function mediaType(type: string): OutgoingImage["mediaType"] {
   return MEDIA_TYPES.find((known) => known === type) ?? "image/png"
 }
 
-export function draftFromMessage(text: string, images: ChatImage[]): Draft {
+export function draftFromMessage(text: string, images: ChatImage[], to?: Draft["to"]): Draft {
   const outgoing = images.map((image) => ({ mediaType: mediaType(image.mediaType), base64: image.data ?? "" }))
   const unlabeled = outgoing.flatMap((_, index) => (text.includes(`[Image ${index + 1}]`) ? [] : [index + 1]))
   const full = unlabeled.map((n) => `[Image ${n}] `).join("") + text
@@ -79,7 +80,7 @@ export function draftFromMessage(text: string, images: ChatImage[]): Draft {
     const start = full.indexOf(label)
     return { start, end: start + label.length, chip: { kind: "image", n: index + 1, image } }
   })
-  return { text: full, chips: chips.toSorted((a, b) => a.start - b.start) }
+  return { text: full, chips: chips.toSorted((a, b) => a.start - b.start), ...(to ? { to } : {}) }
 }
 
 export const graphemes = new Intl.Segmenter()

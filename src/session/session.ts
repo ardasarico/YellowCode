@@ -19,12 +19,14 @@ import {
 } from "../protocol/messages.ts"
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
+import { readAgentMessage } from "./agent-message.ts"
 import { answersInResult } from "./ask.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
-import { agentOf, summarizeToolInput } from "./tool-summary.ts"
+import { agentOf, sendMessageSummary, summarizeToolInput } from "./tool-summary.ts"
 import type {
+  Agent,
   Ask,
   Item,
   ItemId,
@@ -36,6 +38,7 @@ import type {
   ChatImage,
   Thinking,
   ToolCall,
+  UserMessage,
   Window,
   WorkflowProgress,
 } from "./types.ts"
@@ -117,10 +120,19 @@ function imagesOf(
 
 const numbered = (index: number) => `Image ${index + 1}`
 
-function describeUserContent(content: string | UserBlock[]): { text: string; images: ChatImage[] } {
-  if (typeof content === "string") return { text: content, images: [] }
-  const text = content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
-  return { text, images: imagesOf(content, numbered) }
+function describeUserContent(content: string | UserBlock[]): {
+  text: string
+  images: ChatImage[]
+  to: UserMessage["to"]
+} {
+  const raw =
+    typeof content === "string"
+      ? content
+      : content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
+  const images = typeof content === "string" ? [] : imagesOf(content, numbered)
+  const message = readAgentMessage(raw)
+  if (message) return { text: message.text, images, to: { id: message.id, name: message.name } }
+  return { text: raw, images, to: null }
 }
 
 function toolResultText(content: ResultContent): string {
@@ -335,7 +347,38 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   const idPrefix = options?.idPrefix ?? ""
   const newId = (prefix: string): ItemId => `${idPrefix}${prefix}-${++counter}`
 
+  // What the main model does to pass on a message to an agent stays out of the chat, unless the call fails.
+  // `own`: the message started its turn, so the model's whole turn is about passing it on. `touched`: the model has
+  // answered since, so the next result ends that turn.
+  const pendingMessages: { to: string; userId: ItemId; own: boolean; touched: boolean }[] = []
+  let quietIds: ItemId[] = []
+  let afterSend = false
+
+  function quietOnStart(item: Item): boolean {
+    const after = afterSend
+    afterSend = false
+    for (const pending of pendingMessages) pending.touched = true
+    if (item.kind === "text") return after
+    if (item.kind !== "tool" || pendingMessages.length === 0) return false
+    if (item.name !== "ToolSearch" && item.name !== "SendMessage") return false
+    quietIds.push(item.id)
+    return true
+  }
+
+  function unquiet(ids: ItemId[]): void {
+    for (const id of ids)
+      update(id, (item) => {
+        if (item.kind === "tool" || item.kind === "text") item.quiet = false
+      })
+  }
+
+  function messageIdOf(input: unknown): string | undefined {
+    const to = typeof input === "object" && input !== null && "to" in input ? input.to : undefined
+    return typeof to === "string" && pendingMessages.some((entry) => entry.to === to) ? to : undefined
+  }
+
   function add(item: Item, parent: string | null | undefined): void {
+    if (!parent && (item.kind === "text" || item.kind === "tool") && quietOnStart(item)) item.quiet = true
     const parentItem = parent ? state.byId[parent] : undefined
     // A subagent's message whose call is gone (a /clear took it) must not read as the main agent's.
     if (parent && parentItem?.kind !== "tool") {
@@ -424,17 +467,23 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   }
 
   function finalize(id: ItemId, block: ContentBlock): void {
+    const sent =
+      block.type === "tool_use" && block.name === "SendMessage" ? sendMessageSummary(block.input, state.tasks) : ""
     update(id, (item) => {
       if (item.kind === "text" && block.type === "text") {
         item.markdown = block.text
         item.streaming = false
+        if (item.quiet && (block.text.trim().includes("\n") || block.text.length > 160)) item.quiet = false
       } else if (item.kind === "thinking" && block.type === "thinking") {
         if (block.thinking) item.text = block.thinking
         endThinking(item)
       } else if (item.kind === "tool" && block.type === "tool_use") {
         item.input = block.input
         item.inputText = JSON.stringify(block.input)
-        item.summary = summarizeToolInput(block.input)
+        if (item.quiet && item.name === "ToolSearch" && !JSON.stringify(block.input).includes("SendMessage"))
+          item.quiet = false
+        if (item.quiet && item.name === "SendMessage" && messageIdOf(block.input) === undefined) item.quiet = false
+        item.summary = sent || summarizeToolInput(block.input)
         item.agent = agentOf(item.name, block.input)
       }
     })
@@ -583,7 +632,14 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (original !== undefined && !message.parent_tool_use_id)
         for (const listener of originalListeners) listener(block.tool_use_id, original)
       const tool = state.byId[block.tool_use_id]
+      // A call read back from a transcript saw no task_started; its result still names the agent.
+      const agentId = fileResult?.agentId
+      if (tool?.kind === "tool" && tool.name === "Agent" && !tool.taskId && agentId)
+        update(tool.id, (item) => {
+          if (item.kind === "tool") item.taskId = agentId
+        })
       const task = tool?.kind === "tool" && tool.taskId ? state.tasks[tool.taskId] : undefined
+      if (tool?.kind === "tool" && tool.name === "SendMessage") settleMessage(tool, block)
       const skipped = message.tool_result_meta?.find((meta) => meta.id === block.tool_use_id)?.non_execution_kind
       update(block.tool_use_id, (item) => {
         if (item.kind !== "tool") return
@@ -591,7 +647,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         if (skipped === "user-rejected" || skipped === "interrupted" || (agentStopped && block.is_error)) {
           item.status = "stopped"
           item.result = ""
-          if (item.agent) item.agent.state = "stopped"
+          if (item.agent) {
+            item.agent.state = "stopped"
+            item.agent.stoppedByUser = true
+          }
           return
         }
         // A background task's tool result only says it launched; its outcome arrives as a task_notification.
@@ -613,6 +672,25 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         }
       })
     }
+  }
+
+  function settleMessage(tool: ToolCall, block: { is_error?: boolean; content?: ResultContent }): void {
+    const to = messageIdOf(tool.input)
+    if (to === undefined) return
+    const [entry] = pendingMessages.splice(
+      pendingMessages.findIndex((pending) => pending.to === to),
+      1,
+    )
+    const text = toolResultText(block.content)
+    const refused = block.is_error === true || /"success"\s*:\s*false/.test(text)
+    const ids = quietIds
+    quietIds = []
+    if (refused) return unquiet(ids)
+    afterSend = entry?.own === true
+    if (entry)
+      update(entry.userId, (item) => {
+        if (item.kind === "user") item.delivery = /resumedAgentId|Resuming agent/.test(text) ? "resumed" : "sent"
+      })
   }
 
   // A tool of the ended turn that never got its result no longer runs, unless it goes on as a background task.
@@ -646,6 +724,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const cursor of cursors.values()) for (const id of cursor.blocks.values()) stopStreaming(id)
     cursors.clear()
     settleTurn()
+    // A message the model has not answered yet may wait for the next turn; a result before it is an earlier turn's.
+    for (let at = pendingMessages.length - 1; at >= 0; at--)
+      if (pendingMessages[at]?.touched) pendingMessages.splice(at, 1)
+    quietIds = []
+    afterSend = false
     const interrupted = state.interrupting
     if (interrupted) cutLastText()
     const errors = message.errors ?? []
@@ -762,6 +845,28 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const tool = message.tool_use_id ? state.byId[message.tool_use_id] : undefined
     const known = state.tasks[message.task_id] ?? blankTask(message.task_id)
     const parentId = knownParent(message.parent_task_id) ?? known.parentId
+    const earlier = known.toolUseId ? state.byId[known.toolUseId] : undefined
+    const resumes = tool?.kind === "tool" && tool.name === "SendMessage" && earlier?.kind === "tool" && !!earlier.agent
+    if (resumes && earlier.agent) {
+      const agent: Agent = {
+        ...earlier.agent,
+        prompt: message.prompt ?? "",
+        state: "running",
+        tokens: 0,
+        toolUses: 0,
+        durationMs: 0,
+        report: "",
+        error: null,
+        activity: "",
+        stoppedByUser: false,
+      }
+      update(tool.id, (item) => {
+        if (item.kind === "tool") {
+          item.agent = agent
+          item.quiet = false
+        }
+      })
+    }
     const task = {
       ...known,
       type: message.task_type ?? "",
@@ -769,14 +874,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       parentId,
       depth: message.spawn_depth ?? (parentId ? (state.tasks[parentId]?.depth ?? 0) + 1 : 1),
       state: "running" as const,
-      name: (tool?.kind === "tool" ? tool.agent?.name : undefined) ?? message.description ?? "",
+      name:
+        (tool?.kind === "tool" ? tool.agent?.name : undefined) ??
+        (resumes ? known.name : undefined) ??
+        message.description ??
+        "",
       description: message.description ?? "",
       prompt: message.prompt ?? "",
       workflowName: message.workflow_name ?? "",
       startedAt: now + shift,
       command: commandOf(tool) || known.command,
     }
-    task.background ||= message.is_backgrounded === true
+    task.background ||= message.is_backgrounded === true || resumes
     setState("tasks", message.task_id, task)
     updateTool(task, (item) => {
       item.taskId = task.id
@@ -915,6 +1024,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
           }
         })
         finishTask(message.task_id, message.status)
+        if (message.stopped_by_user)
+          update(state.tasks[message.task_id]?.toolUseId ?? message.tool_use_id ?? "", (item) => {
+            if (item.kind === "tool" && item.agent) item.agent.stoppedByUser = true
+          })
         // A task this session never saw start (a call read back from a transcript) still ends its call.
         if (!state.tasks[message.task_id] && message.tool_use_id)
           update(message.tool_use_id, (item) => {
@@ -1127,13 +1240,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       const span = hiddenSpan(state.items, state.rewound)
       if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
       if (state.rewound) setState("rewound", null)
-      const { text, images } = describeUserContent(message.message.content)
+      const { text, images, to } = describeUserContent(message.message.content)
       const id = newId("user")
       // Only a message sent during a turn waits; one sent while idle starts its own turn. A transcript's prompts all
       // ran already. One shown before it goes out waits until it does, but looks queued only behind a running turn.
       const running = state.status === "running"
       const queued = (running || shownEarly) && message.uuid !== undefined && !message.isReplay
-      add({ kind: "user", id, text, images, queue: queued && running ? "queued" : null, uuid: message.uuid }, null)
+      add({ kind: "user", id, text, images, to, queue: queued && running ? "queued" : null, uuid: message.uuid }, null)
+      if (to) pendingMessages.push({ to: to.id, userId: id, own: !running, touched: false })
+      else {
+        afterSend = false
+        for (const pending of pendingMessages) pending.own = false
+      }
       if (queued && message.uuid) waiting.set(message.uuid, id)
       if (shownEarly && message.uuid) early.set(message.uuid, !running)
       if (!queued || !running) setState("turn", "user")
@@ -1145,6 +1263,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (state.turn === null) return
       interruptId = message.request_id
       setState("interrupting", true)
+    } else if (message.type === "control_request" && message.request.subtype === "stop_task") {
+      const stopped = state.tasks[message.request.task_id]
+      updateTool(stopped, (tool) => {
+        if (tool.agent) tool.agent.stoppedByUser = true
+      })
     } else if (message.type === "control_request" && message.request.subtype === "get_task_output") {
       outputRequests.set(message.request_id, message.request.task_id)
     } else if (message.type === "control_response") {
@@ -1266,6 +1389,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     )
   }
 
+  // A resumed agent's lines still name its first Agent call; its run is the SendMessage call's row.
+  function resumedLines<M extends ProtocolMessage>(message: M): M {
+    const parent =
+      "parent_tool_use_id" in message && typeof message.parent_tool_use_id === "string"
+        ? message.parent_tool_use_id
+        : null
+    const call = parent ? state.byId[parent] : undefined
+    const task = call?.kind === "tool" && call.taskId ? state.tasks[call.taskId] : undefined
+    if (!parent || !task?.toolUseId || task.toolUseId === parent || task.state !== "running") return message
+    return { ...message, parent_tool_use_id: task.toolUseId }
+  }
+
   return {
     state,
     apply(dir, parsed, at) {
@@ -1275,7 +1410,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (state.usage.startedAt === null) setState("usage", "startedAt", Date.now())
       if (parsed.kind === "invalid") return unreadable(parsed.key)
       if (parsed.kind === "unknown") return
-      if (dir === "in") onIncoming(parsed.message)
+      if (dir === "in") onIncoming(resumedLines(parsed.message))
       else onOutgoing(parsed.message)
     },
     prepend(events) {

@@ -99,7 +99,8 @@ export function agentNode(
   colorIndex: number,
 ): TreeNode {
   const agent = tool.agent
-  const task = tool.taskId ? session.tasks[tool.taskId] : undefined
+  const found = tool.taskId ? session.tasks[tool.taskId] : undefined
+  const task = found && (found.toolUseId === null || found.toolUseId === tool.id) ? found : undefined
   const byId = unwrap(session.byId)
   const tools = tool.children.length === 0 ? 0 : unwrap(tool.children).filter((id) => byId[id]?.kind === "tool").length
   return {
@@ -326,4 +327,11 @@ export function activeNodes(session: Session): TreeNode[] {
   const lastUser = shown.findLastIndex((id) => byId[id]?.kind === "user")
   const recent = new Set(shown.slice(lastUser + 1))
   return nodes.filter((node) => node.state === "running" || recent.has(node.id))
+}
+
+// claude refuses to resume an agent the user stopped, so only top-level agents that ran or failed take messages.
+export function messageable(session: Session, node: TreeNode): boolean {
+  const tool = session.byId[node.id]
+  const stoppedByUser = tool?.kind === "tool" && tool.agent?.stoppedByUser === true
+  return node.kind === "agent" && node.depth === 1 && !stoppedByUser && taskIdOf(session, node) !== null
 }

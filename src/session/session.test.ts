@@ -11,6 +11,7 @@ import {
 } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
+import { agentMessage } from "./agent-message.ts"
 import { LOGIN_HINT } from "./login.ts"
 import { createSession, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
@@ -740,4 +741,162 @@ test("a message sent after a rewind drops the rewound prompts, and a redo before
   expect(shown).toHaveLength(3)
   expect(shown.includes(third)).toBe(false)
   expect(session.state.rewound).toBeNull()
+})
+
+const toolCall = (id: string, name: string, input: object) =>
+  assistant(`m-${id}`, { type: "tool_use", id, name, input })
+const taskStartedOn = (toolUseId: string, prompt: string) => ({
+  type: "system",
+  subtype: "task_started",
+  task_id: "a1",
+  tool_use_id: toolUseId,
+  description: "probe kilo",
+  prompt,
+  task_type: "local_agent",
+})
+
+test("a resumed agent keeps its name and runs as a new row on the SendMessage call", () => {
+  const session = feed(
+    toolCall("t-agent", "Agent", { name: "kilo", description: "probe kilo", prompt: "first job", subagent_type: "x" }),
+    taskStartedOn("t-agent", "first job"),
+    {
+      type: "system",
+      subtype: "task_notification",
+      task_id: "a1",
+      tool_use_id: "t-agent",
+      status: "completed",
+      summary: "first report",
+    },
+    toolCall("t-send", "SendMessage", { to: "a1", message: "second job\nmore", summary: "relay" }),
+    taskStartedOn("t-send", "second job"),
+  )
+
+  const { byId, tasks } = session.state
+  expect(tasks.a1).toMatchObject({ name: "kilo", toolUseId: "t-send", state: "running" })
+  expect(byId["t-send"]).toMatchObject({ summary: "kilo · second job", taskId: "a1" })
+  expect(byId["t-send"]).toMatchObject({ agent: { name: "kilo", prompt: "second job", state: "running" } })
+  expect(byId["t-agent"]).toMatchObject({ agent: { state: "completed" } })
+})
+
+test("an Agent call read back from a transcript takes its agent id from the result", () => {
+  const session = feed(
+    assistant("m1", { type: "tool_use", id: "t1", name: "Agent", input: { name: "kilo", prompt: "job" } }),
+    {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "done" }] },
+      tool_use_result: { agentId: "a9" },
+    },
+  )
+
+  expect(session.state.byId.t1).toMatchObject({ taskId: "a9" })
+})
+
+test("a message to an agent shows as its text with the agent, live and replayed", () => {
+  const content = agentMessage("a1", "kilo", "hello")
+  for (const isReplay of [false, true]) {
+    const session = createSession()
+    session.apply(
+      "out",
+      parse(
+        JSON.stringify({
+          type: "user",
+          parent_tool_use_id: null,
+          uuid: "u1",
+          isReplay,
+          message: { role: "user", content },
+        }),
+      ),
+      0,
+    )
+    expect(items(session)[0]).toMatchObject({ kind: "user", text: "hello", to: { id: "a1", name: "kilo" } })
+  }
+})
+
+const forAgent = (reply: string) => {
+  const session = createSession()
+  session.apply(
+    "out",
+    parse(
+      JSON.stringify({
+        type: "user",
+        parent_tool_use_id: null,
+        uuid: "u1",
+        message: { role: "user", content: agentMessage("a1", "kilo", "hello") },
+      }),
+    ),
+    0,
+  )
+  for (const message of [
+    assistant("m1", { type: "tool_use", id: "t1", name: "ToolSearch", input: { query: "select:SendMessage" } }),
+    assistant("m2", { type: "tool_use", id: "t2", name: "SendMessage", input: { to: "a1", message: "hello" } }),
+    {
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t2", content: reply }] },
+    },
+    assistant("m3", { type: "text", text: "Passed it on." }),
+  ])
+    session.apply("in", parse(JSON.stringify(message)), 0)
+  return session.state.byId
+}
+
+test("the main model's turn for a message to an agent stays quiet, with a muted delivery on the message", () => {
+  const byId = forAgent('{"success":true,"message":"Message queued for delivery to kilo"}')
+  expect(byId.t1).toMatchObject({ quiet: true })
+  expect(byId.t2).toMatchObject({ quiet: true })
+  expect(Object.values(byId).find((item) => item.kind === "text")).toMatchObject({ quiet: true })
+  expect(Object.values(byId).find((item) => item.kind === "user")).toMatchObject({ delivery: "sent" })
+})
+
+test("a refused message to an agent shows the turn in full", () => {
+  const byId = forAgent('{"success":false,"message":"no such agent"}')
+  expect(byId.t1).toMatchObject({ quiet: false })
+  expect(byId.t2).toMatchObject({ quiet: false })
+  expect(Object.values(byId).find((item) => item.kind === "user")?.delivery).toBeUndefined()
+})
+
+function wrapperTurn(sendWhileRunning: boolean, plainAfter?: string) {
+  const session = createSession()
+  const send = (message: object) => session.apply("out", parse(JSON.stringify(message)), 0)
+  const take = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const turnResult = {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    duration_ms: 1,
+    total_cost_usd: 0,
+    usage: { input_tokens: 1, output_tokens: 1 },
+  }
+  if (sendWhileRunning) send({ type: "user", uuid: "u0", message: { role: "user", content: "go slow" } })
+  send({ type: "user", uuid: "u1", message: { role: "user", content: agentMessage("a1", "kilo", "hello") } })
+  if (plainAfter) send({ type: "user", uuid: "u3", message: { role: "user", content: plainAfter } })
+  take(assistant("m1", { type: "tool_use", id: "t2", name: "SendMessage", input: { to: "a1", message: "hello" } }))
+  take({
+    type: "user",
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t2", content: '{"success":true}' }] },
+  })
+  return { session, take, turnResult }
+}
+
+test("a real answer in a turn the message was folded into is never hidden", () => {
+  const { session, take } = wrapperTurn(true)
+  take(assistant("m2", { type: "text", text: "slow turn done" }))
+  expect(items(session).find((item) => item.kind === "text")?.quiet).not.toBe(true)
+})
+
+test("nothing stays quiet after the turn ends", () => {
+  const { session, take, turnResult } = wrapperTurn(false)
+  take(turnResult)
+  session.apply(
+    "out",
+    parse(JSON.stringify({ type: "user", uuid: "u2", message: { role: "user", content: "time?" } })),
+    0,
+  )
+  take(assistant("m3", { type: "text", text: "Noon." }))
+  expect(items(session).find((item) => item.kind === "text")?.quiet).not.toBe(true)
+})
+
+test("a prompt folded into the message's own turn keeps its answer visible", () => {
+  const { session, take } = wrapperTurn(false, "also, what time is it?")
+  take(assistant("m2", { type: "text", text: "Passed on; it is noon." }))
+  expect(items(session).find((item) => item.kind === "text")?.quiet).not.toBe(true)
 })

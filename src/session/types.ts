@@ -11,11 +11,23 @@ export type UserMessage = {
   id: ItemId
   text: string
   images: ChatImage[]
+  // The background agent a message was written to; `text` is then the message itself.
+  to: { id: string; name: string } | null
+  // Set once claude took the message on to the agent.
+  delivery?: "sent" | "resumed"
   queue: "queued" | "not sent" | null
   uuid?: string
 }
 // `local` marks claude's own output for a local command (/context, /model), which belongs to no model turn.
-export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean; local?: boolean }
+// `quiet` marks what the main model does to pass a message on to an agent; the chat leaves it out.
+export type AssistantText = {
+  kind: "text"
+  id: ItemId
+  markdown: string
+  streaming: boolean
+  local?: boolean
+  quiet?: boolean
+}
 // `durationMs` is null when the block did not stream, as in a resumed session.
 export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number | null }
 export type ToolCall = {
@@ -34,6 +46,7 @@ export type ToolCall = {
   unchanged: boolean
   agent: Agent | null
   taskId: string | null
+  quiet?: boolean
 }
 export type Agent = {
   name: string
@@ -50,6 +63,8 @@ export type Agent = {
   error: string | null
   // What the running agent is doing now, from its latest task_progress.
   activity: string
+  // The user stopped it (x or an interrupt); claude does not resume such an agent.
+  stoppedByUser: boolean
 }
 export type TaskState = "running" | "completed" | "failed" | "stopped"
 // A background or foreground unit of work Claude reports with task_* messages: a subagent, a shell, a workflow.

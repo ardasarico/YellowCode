@@ -4,6 +4,7 @@ import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, u
 import { createStore } from "solid-js/store"
 import { untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
+import { agentMessage } from "../session/agent-message.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
@@ -26,7 +27,7 @@ import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
-import { isAgentCall, isWorkflowCall, topNodes } from "./agents/tree.ts"
+import { isAgentCall, isWorkflowCall, messageable, taskIdOf, topNodes } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
@@ -134,6 +135,13 @@ export function App(props: AppProps) {
     return open?.name === "rewind" && props.rewind ? open : null
   }
   const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean }>()
+  // The agent the prompt writes to, set by `m` on an agent.
+  const [messageTo, setMessageTo] = createSignal<{ id: string; name: string } | null>(null)
+  createEffect(
+    on(fill, (filled) => {
+      if (filled?.draft.to) setMessageTo(filled.draft.to)
+    }),
+  )
   const [selected, setSelected] = createSignal<string | null>(null)
   // The chat shows its selection only while it has the keys, so coming back starts from the newest item again.
   createEffect(
@@ -309,6 +317,7 @@ export function App(props: AppProps) {
         sent.splice(0, done.length)
         setCleared((before) => [...before, ...done.map((entry) => entry.draft)])
         drafts.clear()
+        setMessageTo(null)
         setSelected(null)
         setAgentView(null)
         setFocus("input")
@@ -320,7 +329,7 @@ export function App(props: AppProps) {
   const chatHistory = () =>
     userItems().map((item, index) => {
       const draft = drafts.get(index)
-      return draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images)
+      return draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images, item.to ?? undefined)
     })
   // A message sent after a /clear and still waiting is in both; the history skips repeats in a row.
   const history = () => [...cleared(), ...chatHistory()]
@@ -545,6 +554,20 @@ export function App(props: AppProps) {
     setPanelPick(first)
     setFocus("panel")
   }
+  // Starts a message to an agent, or says why it cannot be. Both the panel and the agent view come here.
+  const startMessage = (id: string): string | null => {
+    const tool = props.session.byId[id]
+    const node = topNodes(props.session).find((entry) => entry.id === id)
+    if (!node || node.kind !== "agent" || tool?.kind !== "tool") return null
+    if (!live()) return "Messaging agents comes with the live connection"
+    if (!messageable(props.session, node)) return `${node.name} was stopped; it cannot take messages`
+    const taskId = taskIdOf(props.session, node)
+    if (!taskId) return null
+    setMessageTo({ id: taskId, name: node.name })
+    setAgentView(null)
+    setFocus("input")
+    return null
+  }
   const openFromPanel = (id: string) => {
     setFocus("input")
     openAgentView(id)
@@ -648,6 +671,10 @@ export function App(props: AppProps) {
       setDialog({ name: "rewind", extras: extras ?? null, late: extras === undefined ? working : null })
   }
   const pressEscape = () => {
+    if (messageTo()) {
+      setMessageTo(null)
+      return
+    }
     if (!canRewind()) return
     if (rewindArmed()) {
       void openRewind()
@@ -747,6 +774,14 @@ export function App(props: AppProps) {
       setFocus("input")
       return
     }
+    if (focus() === "panel" && !key.ctrl && !key.meta && !key.shift && key.name === "m") {
+      key.preventDefault()
+      key.stopPropagation()
+      const id = panelSelected()
+      const why = id ? startMessage(id) : null
+      if (why) waitNotice(why)
+      return
+    }
     if (
       focus() === "panel" &&
       !key.ctrl &&
@@ -830,7 +865,13 @@ export function App(props: AppProps) {
 
   const submit = ({ text, images, draft }: Submission): boolean => {
     if (rushedSubmit()) return false
-    const command = text.trim()
+    const to = messageTo()
+    const command = to ? "" : text.trim()
+    if (to && images.length > 0) {
+      waitNotice("Images cannot go to an agent")
+      return false
+    }
+    if (to && !text.trim()) return false
     if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/theme") setDialog({ name: "theme" })
@@ -843,28 +884,41 @@ export function App(props: AppProps) {
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
       const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
-      const accepted = ended()
-        ? (props.onRestart?.(text, images, giveBack) ?? false)
-        : props.onSubmit(text, images, giveBack)
+      const out = to ? agentMessage(to.id, to.name, text) : text
+      const kept = to ? { ...draft, to } : draft
+      const back = to
+        ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
+        : giveBack
+      const accepted = ended() ? (props.onRestart?.(out, images, back) ?? false) : props.onSubmit(out, images, back)
       if (!accepted) return false
+      if (to) setMessageTo(null)
       if (draft.chips.length > 0) drafts.set(index, { text, draft })
       // An empty Enter (a restart, a replay's next message) leaves nothing to recall.
-      if (text.trim() || images.length > 0) sent.push({ conversation: props.session.conversation, draft })
+      if (text.trim() || images.length > 0) sent.push({ conversation: props.session.conversation, draft: kept })
     }
     return true
   }
 
   const input = () => ({
     focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
-    placeholder: props.readOnly
-      ? "Read-only · resuming needs the live connection"
-      : props.replay
-        ? "Enter sends the next recorded message"
-        : ended()
-          ? props.onRestart
-            ? "Claude Code is not running · Enter restarts it"
-            : "Claude Code is not running"
-          : "Message Claude Code",
+    messageTo: messageTo(),
+    onBackspaceEmpty: () => {
+      if (!messageTo()) return false
+      setMessageTo(null)
+      return true
+    },
+    onRecall: setMessageTo,
+    placeholder: messageTo()
+      ? `Message @${messageTo()?.name}…`
+      : props.readOnly
+        ? "Read-only · resuming needs the live connection"
+        : props.replay
+          ? "Enter sends the next recorded message"
+          : ended()
+            ? props.onRestart
+              ? "Claude Code is not running · Enter restarts it"
+              : "Claude Code is not running"
+            : "Message Claude Code",
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
@@ -968,6 +1022,7 @@ export function App(props: AppProps) {
               onSelect={setAgentView}
               onClose={() => setAgentView(null)}
               onStop={props.onStopTask}
+              onMessage={startMessage}
               width={dimensions().width}
               height={dimensions().height}
             />
@@ -1035,6 +1090,10 @@ export function App(props: AppProps) {
                   selected={panelSelected()}
                   width={chatWidth() - 2 * EDGE_GAP + 1}
                   onOpen={openFromPanel}
+                  canMessage={(() => {
+                    const node = panel().find((entry) => entry.id === panelSelected())
+                    return node !== undefined && messageable(props.session, node)
+                  })()}
                 />
               </box>
             </Show>

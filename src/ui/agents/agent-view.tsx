@@ -6,7 +6,7 @@ import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
-import { agentTree, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
+import { agentTree, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
 import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
@@ -18,6 +18,7 @@ const FOOTER = [
   { key: "x", word: "stop" },
   { key: "esc", word: "chat" },
 ]
+const MESSAGE_KEY = { key: "m", word: "message" }
 
 const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40, Math.floor(width * 0.26))))
 
@@ -114,7 +115,7 @@ function Tree(props: {
   )
 }
 
-function Footer(props: { notice: string | null; width: number }) {
+function Footer(props: { notice: string | null; width: number; message: boolean }) {
   return (
     <box flexDirection="column" flexShrink={0}>
       <text fg={theme.frame} wrapMode="none">
@@ -124,7 +125,7 @@ function Footer(props: { notice: string | null; width: number }) {
         when={props.notice}
         fallback={
           <text wrapMode="none">
-            <Index each={FOOTER}>
+            <Index each={props.message ? [...FOOTER.slice(0, -1), MESSAGE_KEY, ...FOOTER.slice(-1)] : FOOTER}>
               {(entry, index) => (
                 <>
                   <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
@@ -197,6 +198,8 @@ export function AgentView(props: {
   onSelect: (id: string) => void
   onClose: () => void
   onStop?: (taskId: string) => Promise<void>
+  // Starts a message to the agent and closes the view; returns why it cannot, if so.
+  onMessage?: (id: string) => string | null
   width: number
   height: number
 }) {
@@ -255,7 +258,11 @@ export function AgentView(props: {
     else if (key.name === "pageup") scroll?.scrollBy({ x: 0, y: -page() })
     else if (key.name === "pagedown") scroll?.scrollBy({ x: 0, y: page() })
     else if (key.name === "escape") props.onClose()
-    else if (key.name === "x") {
+    else if (key.name === "m") {
+      const current = node()
+      const why = current?.kind === "agent" ? props.onMessage?.(current.id) : null
+      if (why) showNotice(why)
+    } else if (key.name === "x") {
       const current = node()
       const taskId = current && stoppable(current) ? taskIdOf(props.session, current) : null
       if (current && taskId) stop(current, taskId)
@@ -290,7 +297,14 @@ export function AgentView(props: {
             )
           }}
         </Show>
-        <Footer notice={notice()} width={pageWidth()} />
+        <Footer
+          notice={notice()}
+          width={pageWidth()}
+          message={(() => {
+            const current = node()
+            return current !== undefined && messageable(props.session, current)
+          })()}
+        />
       </box>
     </box>
   )
