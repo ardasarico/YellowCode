@@ -44,7 +44,7 @@ export type StoredSettings = {
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
-  theme: "terminal",
+  theme: "default-dark",
   sidebar: "auto",
   thinking: "summarized",
   sessionTitle: "yellowcode",

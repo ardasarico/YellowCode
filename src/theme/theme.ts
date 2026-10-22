@@ -3,6 +3,7 @@ import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { claudeColor } from "./brand.ts"
 import { mix, type TerminalLook, type Tints } from "./palette.ts"
+import { defaultDark, defaultLight } from "./themes/default.ts"
 import { dusk } from "./themes/dusk.ts"
 import { ember } from "./themes/ember.ts"
 import { petal } from "./themes/petal.ts"
@@ -191,8 +192,10 @@ function syntaxStyles(t: Theme) {
   }
 }
 
-const painted: ThemeDefinition[] = [dusk, petal, ember]
-export const themes = [{ id: "terminal", name: "Terminal" }, ...painted.map(({ id, name }) => ({ id, name }))]
+const painted: ThemeDefinition[] = [defaultDark, defaultLight, dusk, petal, ember]
+export const themes = [defaultDark, defaultLight, { id: "terminal", name: "Terminal" }, dusk, petal, ember].map(
+  ({ id, name }) => ({ id, name }),
+)
 
 let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [], background: null, foreground: null }
 const [theme, setThemeStore] = createStore<Theme>(terminalTheme(terminal))
