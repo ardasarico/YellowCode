@@ -89,7 +89,7 @@ test("a rewind after one whose after-snapshot failed touches nothing", async () 
     snapshots: Promise.resolve(snapshots),
     before: async () => {},
     drop: () => {},
-    follow: () => {},
+    follow: () => () => {},
     settle: async () => {},
     stop: async () => {},
     snapshot: () => (calls++ === 1 ? Promise.resolve(null) : take()),

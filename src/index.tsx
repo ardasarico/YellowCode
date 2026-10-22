@@ -185,7 +185,8 @@ async function replayMode(file: string) {
 const mode = values.replay === undefined ? liveMode() : await replayMode(values.replay)
 // Snapshots of the project around each prompt, for rewinding its files; a replay touches no files.
 const capture = mode.kind === "live" ? createCapture(cwd) : null
-capture?.follow(firstSession)
+// Stops following the session of the current connection.
+let unfollow = capture?.follow(firstSession)
 const fileRewind = createFileRewind(capture, cwd)
 const preview = livePreview(capture, cwd, (session) => fileRewind.pending(session))
 const source =
@@ -355,7 +356,7 @@ async function openLive(entry: SessionEntry): Promise<void> {
   const spawn = copy ? { resume: entry.id, fork: true, sessionId: crypto.randomUUID() } : { resume: entry.id }
   const session = createSession({ starting: true })
   session.prepend(part.events)
-  capture?.follow(session)
+  const following = capture?.follow(session)
   // Prompts made in Claude Code itself rewind their Edit/Write files from its own backups.
   capture?.adopt(entry.path, entry.id)
   let next: Connection
@@ -363,10 +364,14 @@ async function openLive(entry: SessionEntry): Promise<void> {
     next = connect({ cwd, session, spawn, stored: settings, provider: claudeLists })
   } catch (error) {
     log.error("cannot start claude", error)
+    following?.()
     setControlProblem({ text: `Cannot start Claude Code: ${error instanceof Error ? error.message : String(error)}` })
     return
   }
-  void stop(current)
+  // Its background agents may write until its claude is gone, and those writes still go to its prompts.
+  const left = unfollow
+  unfollow = following
+  void stop(current).finally(() => left?.())
   fileRewind.release()
   // Opening another session starts from Claude Code's own model and effort.
   setKnobs({ model: null, effort: null, ultracode: false })

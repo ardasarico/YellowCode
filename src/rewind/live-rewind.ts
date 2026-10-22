@@ -77,8 +77,9 @@ export type Capture = {
   before(uuid: string, sessionId: string | null, session: SessionStore): Promise<void>
   // The prompt did not go out after all.
   drop(uuid: string): void
-  // Closes the session's prompts as its turns end.
-  follow(session: SessionStore): void
+  // Closes the session's prompts as its turns end. The function returned stops that, closing the agent segments still
+  // open first.
+  follow(session: SessionStore): () => void
   // Closes the background agents' open segments with a snapshot taken now; resolves once their manifests are written.
   settle(): Promise<void>
   // At quit: no take starts any more, and the snapshots no manifest names are dropped once the takes still running end.
@@ -586,7 +587,8 @@ export function createCapture(cwd: string): Capture {
         }
         return true
       }
-      followers.push({ waiting: () => unseen().length > 0, close })
+      const follower = { waiting: () => unseen().length > 0, close }
+      followers.push(follower)
 
       const turnEnded = () => {
         for (const call of agentWrites(state)) seen.add(call.id)
@@ -639,7 +641,7 @@ export function createCapture(cwd: string): Capture {
         open.set(last.uuid, last)
       }
 
-      createRoot(() =>
+      return createRoot((dispose) => {
         createEffect(
           on(
             () => state.turn,
@@ -649,8 +651,14 @@ export function createCapture(cwd: string): Capture {
             },
             { defer: true },
           ),
-        ),
-      )
+        )
+        return () => {
+          if (follower.waiting()) void take()
+          const index = followers.indexOf(follower)
+          if (index !== -1) followers.splice(index, 1)
+          dispose()
+        }
+      })
     },
   }
 }

@@ -62,24 +62,24 @@ const running: Agent = {
   stoppedByUser: false,
 }
 
-test("an agent segment keeps its snapshot when the prompt whose take closed it is dropped", async () => {
-  const dir = join(temp, "project")
+// A project whose session's prompt A started a background agent that wrote b.txt after A's turn ended. The test
+// writes the chat itself.
+async function agentWroteAfterTurn(name: string) {
+  const dir = join(temp, name)
   mkdirSync(dir)
   writeFileSync(join(dir, "a.txt"), "a\n")
   git(dir, "init", "-q", "-b", "main")
   git(dir, "add", "-A")
   git(dir, "commit", "-qm", "first")
 
-  // A session whose chat the test writes itself.
   const real = createSession()
   const [state, setState] = createStore<Session>({ ...real.state })
   const session: SessionStore = { ...real, state }
   const capture = createCapture(dir)
   const snapshots = await capture.snapshots
   if (!snapshots) throw new Error("snapshots off")
-  capture.follow(session)
+  const unfollow = capture.follow(session)
 
-  // Prompt A starts a background agent and its turn ends.
   await capture.before("A", null, session)
   const agent = tool("agent", "Agent", {}, { status: "running", agent: running })
   setState("byId", { u: { kind: "user", id: "u", text: "", images: [], to: null, queue: null, uuid: "A" }, agent })
@@ -87,10 +87,16 @@ test("an agent segment keeps its snapshot when the prompt whose take closed it i
   setState("turn", "user")
   setState("turn", null)
 
-  // The agent writes while no turn runs; prompt B's before closes that segment, then B is dropped.
   writeFileSync(join(dir, "b.txt"), "b\n")
   setState("byId", "w", tool("w", "Write", { file_path: join(dir, "b.txt"), content: "b\n" }, { createdFile: true }))
   setState("byId", "agent", { ...agent, children: ["w"] })
+  return { capture, snapshots, session, unfollow }
+}
+
+test("an agent segment keeps its snapshot when the prompt whose take closed it is dropped", async () => {
+  const { capture, snapshots, session } = await agentWroteAfterTurn("project")
+
+  // Prompt B's before closes the agent's segment, then B is dropped.
   await capture.before("B", null, session)
   capture.drop("B")
   await capture.settle()
@@ -103,4 +109,13 @@ test("an agent segment keeps its snapshot when the prompt whose take closed it i
   const after = segments?.[1]?.after?.id
   expect(after).toBeString()
   expect(await refsUnder(snapshots.store, `refs/yc/${after}`)).toEqual([`refs/yc/${after}`])
+})
+
+test("a session no longer followed still closes its agent's segment", async () => {
+  const { capture, snapshots, unfollow } = await agentWroteAfterTurn("left")
+
+  unfollow()
+  await capture.settle()
+
+  expect(readManifest(snapshots.store, "A")?.segments.map((segment) => segment.kind)).toEqual(["turn", "agent"])
 })
