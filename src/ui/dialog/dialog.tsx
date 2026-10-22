@@ -129,7 +129,7 @@ export function Dialog(props: DialogProps) {
       if (row) props.onEnter(row)
     } else if (key.name === "escape") props.onEscape()
     else if (!searching()) return
-    else if (key.name === "backspace") setQuery((text) => text.slice(0, -1))
+    else if (key.name === "backspace") setQuery((text) => Array.from(text).slice(0, -1).join(""))
     else if (printable(key)) setQuery((text) => text + key.sequence)
   })
 
