@@ -45,7 +45,7 @@ export type RestoreInput = {
   // Paths the undone turns created: createdIn(the undone turns' changes). For /redo, createdIn([changes(R0,
   // R_after)]).
   created: readonly string[]
-  // What Write and Edit reported in the undone turns.
+  // What Write and Edit reported in the undone turns, oldest first.
   writes: readonly Write[]
   // /redo: a file that differs from `after` changed after the rewind and is kept.
   keepChanged?: boolean
@@ -108,7 +108,10 @@ export async function planRestore(input: RestoreInput): Promise<RestorePlan> {
   const missing = await snapshots.missing(inside.flatMap((path) => regular(targets.get(path)) ?? []))
   const unknown = [...("files" in target ? [] : target.unknown), ...safety.unknown, ...after.unknown]
   const created = new Set(input.created)
-  const updated = new Set(input.writes.flatMap((write) => (write.kind === "update" ? [write.path] : [])))
+  // Write reports a create only when the file is absent, so a path whose first write is one held nothing of the user's.
+  const first = new Map<string, Write["kind"]>()
+  for (const write of input.writes) if (!first.has(write.path)) first.set(write.path, write.kind)
+  const updated = new Set([...first].flatMap(([path, kind]) => (kind === "update" ? [path] : [])))
   const steps = paths.map((path): Step => {
     const entry = outside(path) ? null : targets.get(path)
     return {

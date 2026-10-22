@@ -155,6 +155,18 @@ test("a file Write reported as an update is not deleted, though no snapshot held
   expect(read(dir, "w.txt")).toBe("written\n")
 })
 
+test("a file Write created and Edit then changed is deleted", async () => {
+  const { dir, snapshots } = await project({ "a.txt": "a\n" })
+  const undone = await turn(snapshots, () => writeFileSync(join(dir, "w.txt"), "written\nedited\n"))
+  const writes: Write[] = [
+    { path: "w.txt", kind: "create" },
+    { path: "w.txt", kind: "update" },
+  ]
+
+  expect(await rewind(snapshots, [undone], { writes })).toEqual({ restored: [], deleted: ["w.txt"], kept: [] })
+  expect(existsSync(join(dir, "w.txt"))).toBe(false)
+})
+
 test("a moved file goes back to its old name, and a moved file edited after the move stays", async () => {
   const { dir, snapshots } = await project({ "a.txt": "a\n", "c.txt": "c\n" })
   const undone = await turn(snapshots, () => {

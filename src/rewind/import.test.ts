@@ -110,7 +110,7 @@ test("imported prompts rewind their Edit/Write files and leave Bash changes alon
   expect(await rewind(1)).toEqual({ restored: ["README.md", "new.txt"], deleted: [], kept: [] })
   expect(readFileSync(join(dir, "README.md"), "utf8")).toBe("original\n")
   expect(readFileSync(join(dir, "new.txt"), "utf8")).toBe("new v1\n")
-  // p3's Write reported an update, so nothing tells that new.txt is new.
-  expect((await rewind(0)).kept).toEqual([{ path: "new.txt", reason: "could not tell it is new" }])
-  expect(existsSync(join(dir, "new.txt"))).toBe(true)
+  // p1's Write created new.txt, so p3's update does not keep it.
+  expect(await rewind(0)).toEqual({ restored: ["README.md"], deleted: ["new.txt"], kept: [] })
+  expect(existsSync(join(dir, "new.txt"))).toBe(false)
 })

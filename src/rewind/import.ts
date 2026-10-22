@@ -139,7 +139,7 @@ export function readHistory(text: string): PromptHistory[] | null {
       if (!call || result?.is_error || typeof reported !== "object" || reported === null) continue
       const created = call.name === "Write" && "type" in reported && reported.type === "create"
       const files = writes.get(call.prompt) ?? new Map<string, Write["kind"]>()
-      files.set(call.file, files.get(call.file) === "update" || !created ? "update" : "create")
+      files.set(call.file, files.get(call.file) ?? (created ? "create" : "update"))
       writes.set(call.prompt, files)
       const texts = left.get(call.prompt) ?? new Map<string, string | null>()
       texts.set(call.file, leftBy(call.name, call.input, reported))
