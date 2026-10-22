@@ -5,6 +5,7 @@ import { constants, homedir } from "node:os"
 import { basename, join } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
+import { forgetFiles } from "./input/files.ts"
 import { type InputProvider, liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
@@ -49,6 +50,7 @@ import type { Requests } from "./source/requests.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { forgetRefs } from "./ui/markdown/refs.ts"
 import type { McpActions } from "./ui/mcp/mcp-tab.tsx"
 import type { PluginActions } from "./ui/settings/plugins-tab.tsx"
 import type { SkillActions } from "./ui/skills/skills-dialog.tsx"
@@ -320,6 +322,16 @@ createRoot(() => {
       () => chat().session.state.permissionMode,
       () => (modePicked = false),
       { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => chat().session.state.turn,
+      (turn, before) => {
+        if (turn !== null || before === null || before === undefined) return
+        forgetFiles()
+        forgetRefs()
+      },
     ),
   )
 })

@@ -73,6 +73,10 @@ export function searchEntries(entries: FileEntry[], query: string): string[] {
   return ranked.slice(0, LIMIT).map((item) => item.entry)
 }
 
+export function forgetFiles(): void {
+  cached = null
+}
+
 export async function suggestFiles(query: string): Promise<string[]> {
   cached ??= gitFiles().then(fileEntries)
   return searchEntries(await cached, query)

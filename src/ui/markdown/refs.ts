@@ -25,6 +25,10 @@ export function refTarget(id: string): { itemId: string; index: number } | null 
 
 const readable = new Map<string, boolean>()
 
+export function forgetRefs(): void {
+  readable.clear()
+}
+
 // An image, or a text file small enough to preview: not a folder, not binary.
 function isTarget(path: string): boolean {
   return remember(readable, 5000, path, () => {
