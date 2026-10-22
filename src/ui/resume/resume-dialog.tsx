@@ -1,4 +1,5 @@
 import { createSignal, onMount } from "solid-js"
+import { log } from "../../log/log.ts"
 import { NO_PROMPT, type SessionEntry } from "../../resume/session-list.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
@@ -8,11 +9,16 @@ export type ResumeSessions = { list(): Promise<SessionEntry[]>; open(entry: Sess
 
 export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => void }) {
   const [entries, setEntries] = createSignal<SessionEntry[] | null>(null)
+  const [failed, setFailed] = createSignal(false)
   onMount(() => {
     props.sessions
       .list()
       .then(setEntries)
-      .catch(() => setEntries([]))
+      .catch((error: unknown) => {
+        log.warn("sessions could not be read", String(error))
+        setFailed(true)
+        setEntries([])
+      })
   })
 
   const sections = () => {
@@ -52,7 +58,10 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
       empty={
         entries() === null
           ? undefined
-          : (query) => (query === "" ? "No sessions in this project." : `No sessions match "${query}".`)
+          : (query) => {
+              if (failed()) return "Could not read the sessions"
+              return query === "" ? "No sessions in this project." : `No sessions match "${query}".`
+            }
       }
     />
   )
