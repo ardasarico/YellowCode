@@ -8,18 +8,39 @@ import { type Accessor, createEffect, createRoot, createSignal, on, type Setter,
 import { type InputProvider, liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
-import { permissionReply } from "./protocol/messages.ts"
-import { interruptRequest, type OutgoingImage, renameSession, userMessage } from "./protocol/outgoing.ts"
+import { permissionReply, rewindConversationReply } from "./protocol/messages.ts"
+import {
+  interruptRequest,
+  type OutgoingImage,
+  renameSession,
+  rewindConversationRequest,
+  userMessage,
+} from "./protocol/outgoing.ts"
 import { heldElsewhere } from "./resume/held.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
-import { loadTranscript, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
+import { loadTranscript, promptParent, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
-import { initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
+import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
-import { loadRewindExtras } from "./session/rewind.ts"
+import {
+  hiddenPrompts,
+  keptReplies,
+  loadRewindExtras,
+  onlyPaths,
+  type RewindPreview,
+  type RewindRecheck,
+  type Rewound,
+  rewoundTasks,
+} from "./session/rewind.ts"
+import type { Task } from "./session/types.ts"
+import { createCapture } from "./rewind/live-rewind.ts"
+import { pruneAtStart } from "./rewind/prune.ts"
+import { livePreview } from "./rewind/preview.ts"
+import { createFileRewind } from "./rewind/rewind-files.ts"
+import type { Spawn } from "./source/claude-args.ts"
 import { connect, type Connection, pump } from "./source/live.ts"
 import { loadRecording, RecordingError, recordedInfo } from "./source/recording.ts"
 import { createReplaySource, parseSpeed } from "./source/replay.ts"
@@ -130,6 +151,13 @@ function liveMode() {
     // A new session gets its id from here, so it is known before claude reports it.
     const spawn = { sessionId: crypto.randomUUID() }
     connection = connect({ cwd, session: firstSession, spawn, stored: settings, provider: claudeLists })
+    // After initialize, so claude's first request stays initialize.
+    connection.controls.follow({
+      initialized: () => {
+        if (capture) void pruneAtStart(capture.snapshots, liveRequests)
+      },
+      onMessage: () => {},
+    })
     return { kind: "live" as const, provider: claudeLists }
   } catch (error) {
     return fail(
@@ -147,10 +175,17 @@ async function replayMode(file: string) {
   const source = createReplaySource(recording, speed)
   const info = { file: basename(file), speed: speed === "instant" ? "instant" : `${speed}x`, status: source.status }
   const provider = replayProvider(recording)
-  return { kind: "replay" as const, source, recording, info, provider, rewindExtras: await loadRewindExtras(file) }
+  // A replay's Bash changes and conflicts are made up, in a sidecar next to the recording.
+  const preview: RewindPreview = () => loadRewindExtras(file)
+  return { kind: "replay" as const, source, recording, info, provider, preview }
 }
 
 const mode = values.replay === undefined ? liveMode() : await replayMode(values.replay)
+// Snapshots of the project around each prompt, for rewinding its files; a replay touches no files.
+const capture = mode.kind === "live" ? createCapture(cwd) : null
+capture?.follow(firstSession)
+const fileRewind = createFileRewind(capture, cwd)
+const preview = livePreview(capture, cwd, (session) => fileRewind.pending(session))
 const source =
   mode.kind === "live"
     ? { send: (line: string) => connection.source.send(line), close: () => void stop(connection) }
@@ -204,6 +239,9 @@ const QUIT_WAIT_MS = 8000
 async function quit(code = 0): Promise<void> {
   if (quitting) return
   quitting = true
+  // Files stay as a rewind left them, and claude hears nothing of it.
+  fileRewind.stop()
+  const sweeping = capture?.stop()
   source.close()
   stopTitles()
   try {
@@ -217,7 +255,8 @@ async function quit(code = 0): Promise<void> {
     }
     // The terminal comes back to its normal state asynchronously, and exiting before that leaves it broken.
     await renderer.closed.catch(() => {})
-    if (mode.kind === "live") await Promise.race([Promise.all(stopped.values()), Bun.sleep(QUIT_WAIT_MS)])
+    if (mode.kind === "live")
+      await Promise.race([Promise.all([...stopped.values(), sweeping]), Bun.sleep(QUIT_WAIT_MS)])
     process.exit(code)
   }
 }
@@ -314,6 +353,9 @@ async function openLive(entry: SessionEntry): Promise<void> {
   const spawn = copy ? { resume: entry.id, fork: true, sessionId: crypto.randomUUID() } : { resume: entry.id }
   const session = createSession({ starting: true })
   session.prepend(part.events)
+  capture?.follow(session)
+  // Prompts made in Claude Code itself rewind their Edit/Write files from its own backups.
+  capture?.adopt(entry.path, entry.id)
   let next: Connection
   try {
     next = connect({ cwd, session, spawn, stored: settings, provider: claudeLists })
@@ -323,6 +365,7 @@ async function openLive(entry: SessionEntry): Promise<void> {
     return
   }
   void stop(current)
+  fileRewind.release()
   // Opening another session starts from Claude Code's own model and effort.
   setKnobs({ model: null, effort: null, ultracode: false })
   connection = next
@@ -336,7 +379,7 @@ async function openLive(entry: SessionEntry): Promise<void> {
 let restarting = false
 
 // Claude Code went away on its own: a new claude continues the same conversation, and the message goes to it.
-function restart(text: string, images: OutgoingImage[]): boolean {
+function restart(text: string, images: OutgoingImage[], giveBack: () => void): boolean {
   if (quitting) return false
   const ended = connection
   const { code, signal } = ended.source.exitNow()
@@ -347,23 +390,31 @@ function restart(text: string, images: OutgoingImage[]): boolean {
     restarting = true
     void stop(ended).then(() => {
       restarting = false
-      if (!relaunch(ended, text, images)) log.warn("the restarted claude took no message")
+      if (!relaunch(ended, text, images, undefined, giveBack)) log.warn("the restarted claude took no message")
     })
     return true
   }
   void stop(ended)
-  return relaunch(ended, text, images)
+  return relaunch(ended, text, images, undefined, giveBack)
 }
 
-// False when no claude took the message, so the prompt keeps it.
-function relaunch(ended: Connection, text: string, images: OutgoingImage[]): boolean {
+const transcriptOf = (id: string) => join(projectFolder(CLAUDE_PROJECTS, cwd), `${id}.jsonl`)
+
+// False when no claude took the message, so the prompt keeps it. `chosen` is where the conversation goes on, when
+// not where the ended claude left it.
+function relaunch(
+  ended: Connection,
+  text: string,
+  images: OutgoingImage[],
+  chosen?: Spawn,
+  giveBack: () => void = () => {},
+): boolean {
   if (quitting || connection !== ended) return false
   const { session } = ended
   const id = session.state.info?.id
   // With nothing on disk the start is repeated, under a new id in case claude took the old one.
   const again = ended.spawn.sessionId ? { ...ended.spawn, sessionId: crypto.randomUUID() } : ended.spawn
-  const spawn =
-    id !== undefined && existsSync(join(projectFolder(CLAUDE_PROJECTS, cwd), `${id}.jsonl`)) ? { resume: id } : again
+  const spawn = chosen ?? (id !== undefined && existsSync(transcriptOf(id)) ? { resume: id } : again)
   const carry = { model: settings.model, effort: settings.effort, ultracode: settings.ultracode }
   // The session goes on in the mode it was in (a plan mode claude entered, edits allowed for the session), not the
   // saved one, unless the user picked one since.
@@ -378,7 +429,272 @@ function relaunch(ended: Connection, text: string, images: OutgoingImage[]): boo
   session.restart()
   connection.start()
   if (!text.trim() && images.length === 0) return true
-  return source.send(userMessage(text, images, crypto.randomUUID()))
+  // The resumed conversation still holds the prompts a rewind hid.
+  if (session.state.rewound)
+    void queueRewind(() => sendAfterRewinds(connection, text, images, giveBack)).catch(() => {})
+  else sendPrompt(connection, text, images, giveBack)
+  return true
+}
+
+// Prompts go out in the order they were typed, each once its snapshot is taken or BEFORE_CAP_MS has passed. The
+// chat shows each at once.
+let sending = Promise.resolve()
+// The latest send that starts a turn of its own; an interrupt goes out after it, so it stops that turn.
+let turnSend = Promise.resolve()
+
+// `giveBack` returns the text to an empty prompt when the message cannot go out. `told` goes out before the text but
+// is not shown.
+function sendPrompt(
+  live: Connection,
+  text: string,
+  images: OutgoingImage[],
+  giveBack?: () => void,
+  told: string[] = [],
+): void {
+  // A send makes a rewind final, so /redo has nothing to bring back.
+  fileRewind.release()
+  const uuid = crypto.randomUUID()
+  const line = userMessage([...told, text].filter((part) => part !== "").join("\n\n"), images, uuid)
+  const startsTurn = live.session.state.status !== "running"
+  live.session.showEarly(told.length > 0 ? userMessage(text, images, uuid) : line)
+  const ready = capture?.before(uuid, idOf(live) ?? null, live.session)
+  const unsent = () => {
+    capture?.drop(uuid)
+    live.session.notSent(uuid)
+    giveBack?.()
+  }
+  sending = sending
+    .then(() => ready)
+    .then(() => {
+      // A claude started since (a restart, another session) is not the one the message was typed for.
+      if (connection !== live) {
+        log.warn("claude changed before the message went out; dropped it")
+        return unsent()
+      }
+      // A knob change still waiting goes first, so the message runs under it.
+      live.controls.flush()
+      if (live.source.send(line)) return
+      unsent()
+      setControlProblem({ text: "Claude Code stopped before the message went out" })
+    })
+    .catch((error: unknown) => log.error("cannot send the message", error))
+  if (startsTurn) turnSend = sending
+}
+
+// claude takes no rewind while a turn runs, such as one a kept background task started.
+async function idle(live: Connection): Promise<void> {
+  // oxlint-disable-next-line no-await-in-loop
+  while (live.session.state.status === "running" && accepts(live)) await Bun.sleep(100)
+}
+
+// A turn a kept background task starts can come in between: claude refuses while it is queued (commands_queued) or
+// runs (turn_running), so the step waits for it and asks again.
+const BUSY_REASONS = new Set(["turn_running", "commands_queued"])
+
+async function stepOnce(live: Connection, uuid: string, tries = 10) {
+  const reply = await live.requests
+    .send((requestId) => rewindConversationRequest(requestId, uuid))
+    .catch((error: unknown) => ({ rewound: false, error: error instanceof Error ? error.message : String(error) }))
+  const answer = rewindConversationReply.safeParse(reply).data
+  if (!BUSY_REASONS.has(answer?.reason ?? "") || tries <= 1) return answer
+  await Bun.sleep(200)
+  await idle(live)
+  return stepOnce(live, uuid, tries - 1)
+}
+
+// claude takes only its latest remaining prompt, so it steps back over each, newest first. False at the first one it
+// does not take.
+async function stepBack(live: Connection, uuids: string[]): Promise<boolean> {
+  for (const uuid of uuids) {
+    // oxlint-disable-next-line no-await-in-loop -- one at a time, each needs the one before
+    const answer = await stepOnce(live, uuid)
+    if (!answer?.rewound) {
+      log.warn("claude did not rewind the conversation", { error: answer?.error, reason: answer?.reason })
+      return false
+    }
+  }
+  return true
+}
+
+// The first send after a rewind takes claude's conversation back to the same point: in the running claude, else in
+// one started again at what the first hidden prompt hangs from. The claude to send to, or null when the conversation
+// cannot go back and nothing was sent.
+async function rewindConversation(live: Connection): Promise<Connection | null> {
+  const prompts = hiddenPrompts(live.session.state)
+  if (prompts.length === 0) return live
+  setGoingBack(true)
+  try {
+    return await goBack(live, prompts)
+  } finally {
+    setGoingBack(false)
+  }
+}
+
+const [goingBack, setGoingBack] = createSignal(false)
+
+async function goBack(live: Connection, prompts: (string | undefined)[]): Promise<Connection | null> {
+  await idle(live)
+  const uuids = prompts.filter((uuid): uuid is string => uuid !== undefined)
+  if (uuids.length === prompts.length && (await stepBack(live, uuids))) {
+    log.info("conversation rewound", { prompts: uuids.length })
+    return live
+  }
+  const id = idOf(live)
+  const first = prompts.at(-1)
+  const cut = id && first ? await promptParent(transcriptOf(id), first) : undefined
+  if (!id || cut === undefined) {
+    noticeRewind("Cannot rewind the conversation to this prompt")
+    return null
+  }
+  log.info("conversation rewound by a restart", { at: cut })
+  // The claude that leaves writes its transcript until it ends, so the next one waits.
+  restarting = true
+  await stop(live)
+  restarting = false
+  const spawn = cut === null ? { sessionId: crypto.randomUUID() } : { resume: id, at: cut }
+  return relaunch(live, "", [], spawn) ? connection : null
+}
+
+// A message goes out after the rewinds before it, to the claude that runs its session by then: a restart keeps the
+// session.
+async function sendAfterRewinds(live: Connection, text: string, images: OutgoingImage[], giveBack: () => void) {
+  const current = connection.session === live.session ? connection : live
+  const steps = hiddenPrompts(current.session.state).length > 0
+  const target = current.session.state.rewound ? await rewindConversation(current) : current
+  if (!target) return giveBack()
+  // Stepping back took out the turns claude started while rewound because a kept background task finished, so it
+  // hears their replies again. A command has to start its message, so they wait for the next one.
+  const { session } = target
+  const held = untold?.session === session && untold.conversation === session.state.conversation ? untold.replies : []
+  const replies = [...held, ...(steps ? keptReplies(session.state) : [])]
+  untold = null
+  if (text.startsWith("/")) {
+    if (replies.length > 0) untold = { session, conversation: session.state.conversation, replies }
+    return sendPrompt(target, text, images, giveBack)
+  }
+  sendPrompt(
+    target,
+    text,
+    images,
+    giveBack,
+    replies.map((reply) => `${KEPT_REPLY}\n${reply}`),
+  )
+}
+
+let untold: { session: Connection["session"]; conversation: number; replies: string[] } | null = null
+
+const KEPT_REPLY = "While the conversation was rewound, a background task finished and you said:"
+
+// Rewinds and redos run one at a time; a message typed meanwhile goes out after them.
+let rewinding: Promise<unknown> = Promise.resolve()
+
+// The warning a rewind or /redo left; the next one replaces it, or clears it when it has nothing to say.
+let rewindNotice: string | null = null
+
+function noticeRewind(text: string | null): void {
+  if (text) setControlProblem({ text })
+  else if (rewindNotice !== null && controlProblem()?.text === rewindNotice) setControlProblem(null)
+  rewindNotice = text
+}
+
+function keptNotice(kept: string[]): string | null {
+  if (kept.length === 0) return null
+  return kept.length === 1
+    ? `1 file kept as it is: ${kept[0]}`
+    : `${kept.length} files kept as they are: ${kept.join(", ")}`
+}
+
+// Sentences of one notice; with more than one, each ends with a full stop.
+const sentences = (parts: (string | null)[]) => {
+  const said = parts.filter((part): part is string => part !== null)
+  return said.length === 0 ? null : said.length === 1 ? (said[0] ?? null) : `${said.join(". ")}.`
+}
+
+// Rewinds and redos run one at a time, and the dialog does not open meanwhile.
+const [rewindWork, setRewindWork] = createSignal(0)
+
+function queueRewind<T>(work: () => Promise<T>): Promise<T> {
+  setRewindWork((count) => count + 1)
+  const done = rewinding.then(work).finally(() => setRewindWork((count) => count - 1))
+  rewinding = done.catch((error: unknown) => log.error("rewind failed", error))
+  return done
+}
+
+// The turn claude starts by itself when a task from the rewound prompts ends, or when we stop it (stopping an agent
+// makes claude start one at once), is interrupted and never shown. The rewound prompts' running tasks.
+function hideTaskTurns(live: Connection, rewound: Rewound): Task[] {
+  const tasks = rewoundTasks(live.session.state, rewound.userId)
+  live.session.hideTurnsOf(
+    tasks.map((task) => task.id),
+    () =>
+      void live.requests.send(interruptRequest).then(
+        (reply) => log.info("hidden turn interrupted", reply),
+        (error: unknown) => log.warn("hidden turn not interrupted", error instanceof Error ? error.message : error),
+      ),
+  )
+  return tasks
+}
+
+// Enter in the rewind dialog: the background tasks the rewound prompts started stop, their files go back, and only
+// then does the session rewind. False when the files could not be touched and nothing was rewound; the ⚠ paths and
+// files when they changed since the dialog showed them, so it asks again.
+async function rewindLive(live: Connection, rewound: Rewound, seen: string[]): Promise<boolean | RewindRecheck> {
+  const { session } = live
+  const refused = fileRewind.refused(session.state)
+  if (refused) {
+    noticeRewind(`Cannot rewind the files: ${refused}`)
+    return false
+  }
+  // What comes after it is a turn a kept task started, not one the rewind hides.
+  const last = session.state.items.at(-1)
+  const tasks = hideTaskTurns(live, rewound)
+  const stops = await Promise.all(
+    tasks.map((task) =>
+      live.tasks.stop(task.id).then(
+        () => null,
+        (error: unknown) => {
+          log.warn("rewind did not stop a task", String(error))
+          return task.description || task.command || task.name
+        },
+      ),
+    ),
+  )
+  const failed = stops.filter((name): name is string => name !== null)
+  const stoppedCount = stops.length - failed.length
+  const notStopped = failed.length > 0 ? `Could not stop: ${failed.join(", ")}` : null
+  const files = await fileRewind.rewind(session.state, rewound.userId, new Set(seen))
+  log.info("rewind files", files.kind === "done" ? { changed: files.paths.length, kept: files.kept.length } : files)
+  if (files.kind === "failed") {
+    const tasksStopped =
+      stoppedCount > 0 ? `Stopped ${stoppedCount} background task${stoppedCount === 1 ? "" : "s"}` : null
+    noticeRewind(sentences([`Cannot rewind the files: ${files.reason}`, tasksStopped, notStopped]))
+    return false
+  }
+  if (files.kind === "changed") {
+    noticeRewind(notStopped)
+    return { conflicts: files.conflicts, paths: files.paths }
+  }
+  session.rewind(
+    files.kind === "done"
+      ? { ...rewound, last, files: onlyPaths(rewound.files, files.paths) }
+      : { ...rewound, last, keptFiles: true },
+  )
+  noticeRewind(sentences([notStopped, files.kind === "done" ? keptNotice(files.kept) : null]))
+  return true
+}
+
+// The conversation comes back even when the files cannot.
+async function redoLive(live: Connection): Promise<void> {
+  const files = await fileRewind.redo(live.session.state)
+  log.info("redo files", files.kind === "done" ? { changed: files.paths.length, kept: files.kept.length } : files)
+  live.session.redo()
+  if (files.kind === "failed") noticeRewind(`Cannot bring the files back: ${files.reason}`)
+  else noticeRewind(files.kind === "done" ? keptNotice(files.kept) : null)
+}
+
+function accepts(live: Connection): boolean {
+  const exit = live.source.exitNow()
+  return exit.code === null && exit.signal === null && !exit.closed
 }
 
 // A title claude already has (our last rename, or the user's /rename of the same words) is not written again. The
@@ -458,17 +774,20 @@ function Main() {
                   log.error("cannot load earlier conversation", error),
                 )
               }}
-              onSubmit={(text, images) => {
-                // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
-                const uuid = mode.kind === "live" ? crypto.randomUUID() : undefined
+              onSubmit={(text, images, giveBack) => {
                 if (!text.trim() && images.length === 0) {
                   // An empty Enter releases the next recorded message.
                   if (mode.kind === "replay") source.send("")
                   return true
                 }
-                // A knob change still waiting goes first, so the message runs under it.
-                if (mode.kind === "live") connection.controls.flush()
-                return source.send(userMessage(text, images, uuid))
+                // A recording has no lifecycle lines to settle a uuid, so a replay sends none.
+                if (mode.kind === "replay") return source.send(userMessage(text, images))
+                if (!accepts(connection)) return false
+                // The prompt clears once this returns; a chat item before that would take the welcome screen's draft
+                // with it.
+                const live = connection
+                void queueRewind(() => sendAfterRewinds(live, text, images, giveBack)).catch(() => {})
+                return true
               }}
               onRestart={mode.kind === "live" ? restart : undefined}
               onAnswer={(ask, response) => {
@@ -481,19 +800,30 @@ function Main() {
                   permissionReply.safeParse(reply?.response.response).data?.behavior ?? reply?.response.subtype
                 log.info(`answer to ${ask.toolName}`, { requestId: ask.requestId, behavior })
                 current.session.answer(response)
-                source.send(response)
+                // A file outside the project is read before the call may change it.
+                const reading =
+                  behavior === "allow" && !ask.agent ? capture?.asked(ask.toolUseId, ask.toolName, ask.input) : null
+                const asking = connection
+                // An answer for a claude that went away meanwhile is dropped.
+                if (reading) void reading.finally(() => connection === asking && source.send(response))
+                else source.send(response)
               }}
               onQuit={() => void quit()}
               onInterrupt={
                 requests
-                  ? () =>
-                      void requests.send(interruptRequest).then(
-                        (reply) => log.info("interrupted", reply),
-                        (error: unknown) => {
-                          log.warn("interrupt failed", error instanceof Error ? error.message : error)
-                          current.session.interruptFailed()
-                        },
-                      )
+                  ? () => {
+                      // The interrupt waits for a message that starts the turn, but the chat shows it at once.
+                      current.session.interrupting()
+                      void turnSend
+                        .then(() => requests.send(interruptRequest))
+                        .then(
+                          (reply) => log.info("interrupted", reply),
+                          (error: unknown) => {
+                            log.warn("interrupt failed", error instanceof Error ? error.message : error)
+                            current.session.interruptFailed()
+                          },
+                        )
+                    }
                   : undefined
               }
               onTitle={requests ? (title) => rename(requests, current.session, title) : undefined}
@@ -501,15 +831,33 @@ function Main() {
               rewind={
                 mode.kind === "replay"
                   ? {
-                      extras: mode.rewindExtras,
-                      // Restoring files and respawning claude at the prompt wait for the live connection.
+                      preview: mode.preview,
                       onRewind: (rewound) => {
-                        log.info("rewind", rewound)
                         current.session.rewind(rewound)
+                        return true
                       },
                       onRedo: () => current.session.redo(),
                     }
-                  : undefined
+                  : {
+                      preview: (session, selected) => rewinding.then(() => preview(session, selected)),
+                      working: () => rewindWork() > 0,
+                      goingBack,
+                      onRewind: (rewound, seen) => {
+                        log.info("rewind", { prompts: rewound.prompts, keptFiles: rewound.keptFiles })
+                        const live = connection
+                        if (rewound.keptFiles)
+                          return queueRewind(() => {
+                            hideTaskTurns(live, rewound)
+                            live.session.rewind(rewound)
+                            return Promise.resolve(true)
+                          })
+                        return queueRewind(() => rewindLive(live, rewound, seen)).catch(() => false)
+                      },
+                      onRedo: () => {
+                        const live = connection
+                        void queueRewind(() => redoLive(live)).catch(() => {})
+                      },
+                    }
               }
             />
           )}

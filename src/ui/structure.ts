@@ -1,7 +1,12 @@
+import { hiddenSpan } from "../session/rewind.ts"
+import { shownTools } from "../session/shells.ts"
 import type { Item, ItemId, Session } from "../session/types.ts"
 
+// The band that stands for the items a rewind hides.
+export const REWOUND_ROW = "rewound"
+
 export type Row =
-  | { kind: "user" | "markdown" | "thinking" | "tool" | "agent" | "system" | "shell-end"; id: ItemId }
+  | { kind: "user" | "markdown" | "thinking" | "tool" | "agent" | "system" | "shell-end" | "rewound"; id: ItemId }
   | { kind: "end"; id: ItemId; turnEnds: ItemId[] }
 
 type EndRow = Extract<Row, { kind: "end" }>
@@ -31,10 +36,25 @@ export function buildRows(session: Session): Row[] {
     endAhead[index] = ahead
   }
 
+  const span = hiddenSpan(session.items, session.rewound)
+  let shown: Set<ItemId> | null = null
   for (const [index, id] of session.items.entries()) {
-    if (id === session.rewound?.userId) break
+    if (span && index >= span.start && index < span.end) {
+      if (index === span.start) {
+        rows.push({ kind: "rewound", id: REWOUND_ROW })
+        lastEnd = null
+        carried = []
+      }
+      continue
+    }
     const item = session.byId[id]
     if (!item) continue
+    // A shell the rewound prompts started can end after the rewind, and stays out after the next send.
+    if (item.kind === "shell-end") {
+      shown ??= shownTools(session)
+      const call = session.tasks[item.taskId]?.toolUseId
+      if (call && session.byId[call] && !shown.has(call)) continue
+    }
 
     if (item.kind === "ask") continue
 

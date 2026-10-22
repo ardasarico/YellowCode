@@ -18,8 +18,8 @@ export function thinkingArg(thinking: StoredSettings["thinking"]): string {
 }
 
 // Which conversation claude runs: a new one under a given id, an earlier one (resume), or a copy of one under a new
-// id (fork).
-export type Spawn = { resume?: string; fork?: boolean; sessionId?: string }
+// id (fork). `at` cuts a resumed one after that message.
+export type Spawn = { resume?: string; at?: string; fork?: boolean; sessionId?: string }
 
 // The permission mode claude starts in, and whether it may switch to bypassPermissions.
 export type Launch = { mode: PermissionMode; bypass: boolean }
@@ -42,6 +42,7 @@ export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Lau
     thinkingArg(stored.thinking),
     // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.
     ...(spawn.resume ? ["--resume", spawn.resume] : []),
+    ...(spawn.resume && spawn.at ? ["--resume-session-at", spawn.at] : []),
     ...(spawn.fork ? ["--fork-session"] : []),
     ...(spawn.sessionId ? ["--session-id", spawn.sessionId] : []),
     "--permission-mode",

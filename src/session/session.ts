@@ -14,7 +14,7 @@ import {
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
-import type { Rewound } from "./rewind.ts"
+import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
 import { agentOf, summarizeToolInput } from "./tool-summary.ts"
 import type {
@@ -37,9 +37,15 @@ export type SessionStore = {
   apply(dir: "in" | "out", parsed: ParseResult, at: number): void
   prepend(events: SourceEvent[]): void
   answer(response: string): void
+  // A message shown at Enter, before it goes out; it waits until it does.
+  showEarly(line: string): void
+  // A message shown early never went out.
+  notSent(uuid: string): void
   stopRunning(): void
   setLists(lists: Partial<Pick<Session, "mcpServers" | "plugins">>): void
   setPermissionMode(mode: string): void
+  // The user asked to interrupt the turn; the request may wait for the message that starts it.
+  interrupting(): void
   // The interrupt was refused or timed out, so the turn goes on and may be interrupted again.
   interruptFailed(): void
   // An ended session gets a new claude; the chat stays as it was.
@@ -48,6 +54,13 @@ export type SessionStore = {
   end(problem?: SessionEnd): void
   rewind(rewound: Rewound): void
   redo(): void
+  // Called with the tasks a rewind stops or leaves running. A turn claude starts by itself because one of them ended is
+  // not shown, and `onStart` is called as it starts so it can be interrupted: stopping a background agent makes claude
+  // start one.
+  hideTurnsOf(taskIds: string[], onStart: () => void): void
+  // Called with what a main-thread Edit or Write found in its file (null: no file), for whoever needs to check it now;
+  // nothing keeps the text.
+  onFileOriginal(listener: (toolUseId: string, original: string | null) => void): void
 }
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
@@ -266,6 +279,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     carried: [],
   })
   const cursors = new Map<string, Cursor>()
+  const originalListeners: ((toolUseId: string, original: string | null) => void)[] = []
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
   let prepends = 0
@@ -280,6 +294,16 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   let interruptId: string | null = null
   // Messages sent during a turn that claude has not taken in yet: uuid → user item.
   const waiting = new Map<string, ItemId>()
+  // Messages shown at Enter that have not gone out yet, by uuid: true for one that starts its own turn.
+  const early = new Map<string, boolean>()
+  // Tasks from rewound prompts, stopped or left running, whose notification has not led to a turn yet.
+  const hideFor = new Set<string>()
+  // Tasks with a notification since the last init, and the latest one.
+  const noticed = new Set<string>()
+  let lastNoticed: string | null = null
+  let onHiddenStart: (() => void) | null = null
+  // A turn claude started by itself runs and is not shown.
+  let hiding = false
   // Shells whose end already has its row; a repeated notification adds no second one.
   const shellEnds = new Set<string>()
   // The live API retry row; it goes once a reply starts or the turn ends.
@@ -541,6 +565,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const agentStopped = parent?.kind === "tool" && parent.agent?.state === "stopped"
     for (const block of message.message.content) {
       if (block.type !== "tool_result") continue
+      const original = fileResult?.originalFile
+      if (original !== undefined && !message.parent_tool_use_id)
+        for (const listener of originalListeners) listener(block.tool_use_id, original)
       const tool = state.byId[block.tool_use_id]
       const task = tool?.kind === "tool" && tool.taskId ? state.tasks[tool.taskId] : undefined
       const skipped = message.tool_result_meta?.find((meta) => meta.id === block.tool_use_id)?.non_execution_kind
@@ -561,6 +588,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         item.images = toolImages(item, block.content)
         if (fileResult?.structuredPatch) item.patch = fileResult.structuredPatch
         if (fileResult?.type === "create") item.createdFile = true
+        // A subagent's lines carry no tool_use_result; Write's own reply says whether it made the file.
+        if (!fileResult && item.name === "Write" && item.result.startsWith("File created successfully"))
+          item.createdFile = true
         if (fileResult?.type === "file_unchanged") item.unchanged = true
         if (item.agent && !launched) {
           // An agent the user stopped ends with an error result, and it stays stopped.
@@ -890,7 +920,45 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     }
   }
 
+  // A turn is ours to hide when its init has no user_message_uuids, none of our messages waits, and the latest task
+  // notification before it is about a task from the rewound prompts (probe P6). Any init uses up the notifications
+  // before it, so each task hides one turn at most. The turn's lines go nowhere; the tasks' own lines still apply.
+  function hidden(message: ProtocolMessage): boolean {
+    if (message.type === "system" && message.subtype === "task_notification") {
+      noticed.add(message.task_id)
+      lastNoticed = message.task_id
+      return false
+    }
+    if (message.type === "system" && message.subtype === "init") {
+      const ours =
+        !message.user_message_uuids?.length &&
+        lastNoticed !== null &&
+        hideFor.has(lastNoticed) &&
+        state.turn === null &&
+        waiting.size === 0 &&
+        early.size === 0
+      for (const id of noticed) hideFor.delete(id)
+      noticed.clear()
+      lastNoticed = null
+      if (ours) {
+        hiding = true
+        log.info("hiding a turn claude started by itself")
+        onHiddenStart?.()
+      }
+      return false
+    }
+    if (!hiding) return false
+    if (message.type === "result") {
+      hiding = false
+      return true
+    }
+    if (message.type === "assistant" || message.type === "stream_event" || message.type === "user")
+      return !message.parent_tool_use_id
+    return message.type === "system" && (message.subtype === "status" || message.subtype === "api_retry")
+  }
+
   function onIncoming(message: ProtocolMessage): void {
+    if (hidden(message)) return
     switch (message.type) {
       case "system":
         return onSystem(message)
@@ -966,22 +1034,26 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     }
   }
 
-  function onOutgoing(message: ProtocolMessage): void {
-    if (message.type === "user") {
+  function onOutgoing(message: ProtocolMessage, shownEarly = false): void {
+    if (message.type === "user" && !shownEarly && message.uuid !== undefined && early.has(message.uuid)) {
+      // Shown already; one that starts a turn waits for nothing once it is out.
+      if (early.get(message.uuid)) settleQueued(message.uuid)
+      early.delete(message.uuid)
+    } else if (message.type === "user") {
       // A message sent after a rewind makes it final: the hidden prompts go for good.
-      const rewound = state.rewound
-      if (rewound) {
-        const cut = state.items.indexOf(rewound.userId)
-        if (cut >= 0) setState("items", state.items.slice(0, cut))
-        setState("rewound", null)
-      }
+      const span = hiddenSpan(state.items, state.rewound)
+      if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
+      if (state.rewound) setState("rewound", null)
       const { text, images } = describeUserContent(message.message.content)
       const id = newId("user")
-      // Only a message sent during a turn waits; one sent while idle starts its own turn.
-      const queued = state.status === "running" && message.uuid !== undefined
-      add({ kind: "user", id, text, images, queue: queued ? "queued" : null }, null)
+      // Only a message sent during a turn waits; one sent while idle starts its own turn. A transcript's prompts all
+      // ran already. One shown before it goes out waits until it does, but looks queued only behind a running turn.
+      const running = state.status === "running"
+      const queued = (running || shownEarly) && message.uuid !== undefined && !message.isReplay
+      add({ kind: "user", id, text, images, queue: queued && running ? "queued" : null, uuid: message.uuid }, null)
       if (queued && message.uuid) waiting.set(message.uuid, id)
-      else setState("turn", "user")
+      if (shownEarly && message.uuid) early.set(message.uuid, !running)
+      if (!queued || !running) setState("turn", "user")
       // A message queued during a turn keeps that turn's interrupt; a fresh turn drops one that raced the result.
       if (state.status !== "running") setState("interrupting", false)
       setState("status", "running")
@@ -1127,14 +1199,41 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       setState("items", (ids) => [...earlier.state.items, ...ids])
     },
     rewind(rewound) {
-      setState("rewound", rewound)
+      setState("rewound", { ...rewound, last: rewound.last ?? state.items.at(-1) })
     },
     redo() {
       setState("rewound", null)
+      // A task we stopped may still bring its turn; one still running belongs to the conversation again.
+      for (const id of hideFor) if (state.tasks[id]?.state === "running") hideFor.delete(id)
+    },
+    onFileOriginal(listener) {
+      originalListeners.push(listener)
+    },
+    hideTurnsOf(taskIds, onStart) {
+      for (const id of taskIds) hideFor.add(id)
+      onHiddenStart = onStart
     },
     answer(response) {
       const parsed = parse(response)
       if (parsed.kind === "message") onOutgoing(parsed.message)
+    },
+    showEarly(line) {
+      const parsed = parse(line)
+      if (parsed.kind === "message") onOutgoing(parsed.message, true)
+    },
+    notSent(uuid) {
+      const startsTurn = early.get(uuid)
+      early.delete(uuid)
+      const id = waiting.get(uuid)
+      if (!id) return
+      waiting.delete(uuid)
+      update(id, (item) => {
+        if (item.kind === "user") item.queue = "not sent"
+      })
+      if (startsTurn && waiting.size === 0) {
+        setState("turn", null)
+        setState("status", "idle")
+      }
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning,
@@ -1145,6 +1244,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     setPermissionMode(mode) {
       setState("permissionMode", mode)
     },
+    interrupting() {
+      if (state.turn !== null) setState("interrupting", true)
+    },
     interruptFailed() {
       interruptId = null
       setState("interrupting", false)
@@ -1153,6 +1255,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       // The new claude numbers its requests from the start again.
       interruptId = null
       outputRequests.clear()
+      hiding = false
+      hideFor.clear()
       setState("status", "starting")
     },
     end(problem) {
@@ -1175,6 +1279,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
           if (item.kind === "user") item.queue = "not sent"
         })
       waiting.clear()
+      early.clear()
+      hiding = false
       setState("turn", null)
       setState("interrupting", false)
       setState("compacting", false)

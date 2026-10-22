@@ -23,8 +23,12 @@ export type NoticeState = {
   settingsProblem: string | null
   asking: boolean
   compacting: boolean
+  // The first send after a rewind waits for claude to go back in the conversation.
+  goingBack: boolean
   quitArmed: boolean
   rewindArmed: boolean
+  // A short-lived message, such as why a command cannot run now.
+  note: string | null
   // Keys are held after claude took back the ask the user was typing for.
   held: boolean
   interruptible: boolean
@@ -78,6 +82,7 @@ function warningText(usage: Usage, now: number): Span | null {
 function leftSpans(state: NoticeState): Span[] {
   if (state.quitArmed) return [quitHint()]
   if (state.rewindArmed) return [rewindHint()]
+  if (state.note) return [{ text: state.note, fg: theme.muted }]
   if (state.held) return [{ text: "Claude Code withdrew the request", fg: theme.muted }]
   const live = state.replay === null && state.readOnly === null
   if (live && state.status === "ended") {
@@ -89,6 +94,7 @@ function leftSpans(state: NoticeState): Span[] {
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []
+  if (live && state.goingBack) return [{ text: "Going back in the conversation…", fg: theme.muted }]
   if (live && state.compacting) return [{ text: "Compacting conversation…", fg: theme.muted }]
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
   if (live) return state.status === "starting" ? [startingNotice()] : []

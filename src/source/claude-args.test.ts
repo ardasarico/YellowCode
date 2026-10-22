@@ -31,6 +31,7 @@ test("a new session gets its id, a resume only the id it continues, a fork both"
   expect(added({})).toEqual([])
   expect(added({ sessionId: "n" })).toEqual(["--session-id", "n"])
   expect(added({ resume: "a" })).toEqual(["--resume", "a"])
+  expect(added({ resume: "a", at: "u" })).toEqual(["--resume", "a", "--resume-session-at", "u"])
   expect(added({ resume: "a", fork: true, sessionId: "n" })).toEqual([
     "--resume",
     "a",

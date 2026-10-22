@@ -6,10 +6,18 @@ import { untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
+import { within } from "../rewind/common.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { currentInfo, currentServers } from "../session/lists.ts"
-import { type RewindExtras, type Rewound, rewindPoints } from "../session/rewind.ts"
+import {
+  type RewindExtras,
+  type RewindPreview,
+  type RewindRecheck,
+  type Rewound,
+  rewindPoints,
+  shownItems as itemsShown,
+} from "../session/rewind.ts"
 import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
@@ -50,6 +58,9 @@ import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
 
 const QUIT_WINDOW = 2000
+// Past this the rewind dialog opens without what the snapshots know.
+const PREVIEW_MS = 1000
+const NOTE_MS = 4000
 
 export type AppProps = {
   session: Session
@@ -74,9 +85,10 @@ export type AppProps = {
   earlier?: boolean
   onEarlier?: () => void
   // False when the message could not go out; the prompt keeps it.
-  onSubmit: (text: string, images: OutgoingImage[]) => boolean
+  // `giveBack` is called when an accepted message could not go out after all.
+  onSubmit: (text: string, images: OutgoingImage[], giveBack: () => void) => boolean
   // Enter once Claude Code has exited starts it again and sends what was typed, if anything. Live only.
-  onRestart?: (text: string, images: OutgoingImage[]) => boolean
+  onRestart?: (text: string, images: OutgoingImage[], giveBack: () => void) => boolean
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
   // Without it nothing can be interrupted (a replay or a read-only transcript).
@@ -85,14 +97,27 @@ export type AppProps = {
   onTitle?: (title: string) => void
   // Without it no task can be stopped from the agent view (a replay or a read-only transcript).
   onStopTask?: (taskId: string) => Promise<void>
-  // Without it the session cannot rewind (a read-only transcript).
-  rewind?: { extras: RewindExtras | null; onRewind: (rewound: Rewound) => void; onRedo: () => void }
+  // Without it the session cannot rewind (a read-only transcript). A live rewind puts the files back first and
+  // resolves false when the session was not rewound after all, or with the ⚠ that came up since the dialog showed
+  // it. `seen` are the ⚠ paths the dialog showed.
+  rewind?: {
+    preview: RewindPreview
+    onRewind: (rewound: Rewound, seen: string[]) => RewindAnswer | Promise<RewindAnswer>
+    onRedo: () => void
+    // A rewind or /redo is still putting files back.
+    working?: () => boolean
+    // A message waits for the conversation to go back.
+    goingBack?: () => boolean
+  }
 }
+
+type RewindAnswer = boolean | RewindRecheck
 
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab }
-  | { name: "resume" | "theme" | "skills" | "rewind" }
+  | { name: "resume" | "theme" | "skills" }
+  | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
 
@@ -104,7 +129,11 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "settings" ? open.tab : null
   }
-  const [fill, setFill] = createSignal<{ draft: Draft; seq: number }>()
+  const rewindDialog = () => {
+    const open = dialog()
+    return open?.name === "rewind" && props.rewind ? open : null
+  }
+  const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean }>()
   const [selected, setSelected] = createSignal<string | null>(null)
   // The chat shows its selection only while it has the keys, so coming back starts from the newest item again.
   createEffect(
@@ -384,12 +413,7 @@ export function App(props: AppProps) {
     messageParts.set(id, { markdown, open, images, ids })
     return ids
   }
-  // A rewind hides its prompt and everything after it.
-  const shownItems = () => {
-    const rewound = props.session.rewound
-    const cut = rewound ? props.session.items.indexOf(rewound.userId) : -1
-    return cut === -1 ? props.session.items : props.session.items.slice(0, cut)
-  }
+  const shownItems = () => itemsShown(props.session.items, props.session.rewound)
   const selectableIds = () =>
     shownItems().flatMap((id) => {
       const item = props.session.byId[id]
@@ -580,23 +604,71 @@ export function App(props: AppProps) {
     props.session.status !== "running" &&
     !pending() &&
     shownItems().some((id) => props.session.byId[id]?.kind === "user")
-  const openRewind = () => {
+  const [rewindNote, setRewindNote] = createSignal<string | null>(null)
+  let clearRewindNote: ReturnType<typeof setTimeout> | undefined
+  onCleanup(() => clearTimeout(clearRewindNote))
+  let previewing = false
+  // No rewind while a turn runs, one claude started by itself included.
+  const busy = () =>
+    props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
+  const waitNotice = (text = "Rewind waits until Claude Code is idle") => {
+    setRewindNote(text)
+    clearTimeout(clearRewindNote)
+    clearRewindNote = setTimeout(() => setRewindNote(null), NOTE_MS)
+  }
+  createEffect(
+    on(busy, (running) => {
+      if (!running || untrack(dialog)?.name !== "rewind") return
+      setDialog(null)
+      waitNotice()
+    }),
+  )
+  const openRewind = async () => {
     setRewindArmed(false)
-    if (canRewind()) setDialog({ name: "rewind" })
+    if (busy()) return waitNotice()
+    if (props.rewind?.working?.()) return waitNotice("Rewind waits until the files are back")
+    const rewind = props.rewind
+    if (!rewind || !canRewind() || previewing) return
+    previewing = true
+    // The dialog opens on the newest prompt an earlier rewind did not hide.
+    const users = userItems()
+    const hidden = users.findIndex((item) => item?.id === props.session.rewound?.userId)
+    const newest = (hidden === -1 ? users.length : hidden) - 1
+    const working = rewind.preview(props.session, newest).catch((error: unknown) => {
+      log.warn("rewind preview failed", String(error))
+      return null
+    })
+    const extras = await within(working, PREVIEW_MS).finally(() => {
+      previewing = false
+    })
+    if (extras === undefined) log.warn("rewind preview too slow", { ms: PREVIEW_MS })
+    // Something may have started or opened while the preview was worked out.
+    if (busy()) waitNotice()
+    else if (canRewind() && dialog() === null)
+      setDialog({ name: "rewind", extras: extras ?? null, late: extras === undefined ? working : null })
   }
   const pressEscape = () => {
     if (!canRewind()) return
-    if (rewindArmed()) return openRewind()
+    if (rewindArmed()) {
+      void openRewind()
+      return
+    }
     setRewindArmed(true)
     clearTimeout(disarmRewind)
     disarmRewind = setTimeout(() => setRewindArmed(false), QUIT_WINDOW)
   }
   onCleanup(() => clearTimeout(disarmRewind))
-  const rewind = (rewound: Rewound) => {
+  const rewind = async (rewound: Rewound, seen: string[]): Promise<RewindRecheck | null> => {
+    if (busy()) {
+      waitNotice()
+      return null
+    }
     const index = userItems().findIndex((item) => item.id === rewound.userId)
-    props.rewind?.onRewind(rewound)
     const draft = chatHistory()[index]
-    if (draft) setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1 }))
+    const answer = await props.rewind?.onRewind(rewound, seen)
+    // Typed meanwhile, the draft stays.
+    if (draft && answer === true) setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
+    return typeof answer === "object" ? answer : null
   }
   const redo = () => {
     if (props.session.rewound) props.rewind?.onRedo()
@@ -604,6 +676,8 @@ export function App(props: AppProps) {
 
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
+    // Only two Escapes in a row open the rewind; any other key in between starts over.
+    if (key.name !== "escape") setRewindArmed(false)
     if (heldKey(key)) {
       key.preventDefault()
       key.stopPropagation()
@@ -763,11 +837,15 @@ export function App(props: AppProps) {
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills") setDialog({ name: "skills" })
-    else if (command === "/rewind") openRewind()
+    else if (command === "/rewind") void openRewind()
     else if (command === "/redo") redo()
     else {
       const index = userItems().length
-      const accepted = ended() ? (props.onRestart?.(text, images) ?? false) : props.onSubmit(text, images)
+      // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
+      const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
+      const accepted = ended()
+        ? (props.onRestart?.(text, images, giveBack) ?? false)
+        : props.onSubmit(text, images, giveBack)
       if (!accepted) return false
       if (draft.chips.length > 0) drafts.set(index, { text, draft })
       // An empty Enter (a restart, a replay's next message) leaves nothing to recall.
@@ -833,7 +911,7 @@ export function App(props: AppProps) {
   // Armed quit and rewind hints sit on the notice row, so the pill gives way to them.
   const newLines = () => {
     const { atBottom, newLines: lines } = scrollState()
-    if (atBottom || lines === 0 || quitArmed() || rewindArmed()) return undefined
+    if (atBottom || lines === 0 || quitArmed() || rewindArmed() || rewindNote()) return undefined
     return { lines, onClick: jumpDown }
   }
   const notice = () => {
@@ -848,8 +926,10 @@ export function App(props: AppProps) {
       settingsProblem: pasteNotice() ?? settingsProblem(),
       asking: pending() !== null,
       compacting: props.session.compacting,
+      goingBack: props.rewind?.goingBack?.() ?? false,
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
+      note: rewindNote(),
       held: held(),
       interruptible: interruptible(),
       now: Date.now(),
@@ -1036,11 +1116,22 @@ export function App(props: AppProps) {
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />
       </Show>
-      <Show when={dialog()?.name === "rewind" && props.rewind}>
-        {(options) => {
+      <Show when={rewindDialog()}>
+        {(open) => {
           // Nothing can change the points while the dialog is open, so they are worked out once.
-          const points = untrack(() => rewindPoints(props.session, options().extras))
-          return <RewindDialog points={points} onRewind={rewind} onClose={() => setDialog(null)} />
+          const points = untrack(() => rewindPoints(props.session, open().extras))
+          const late = untrack(open).late?.then((extras) =>
+            extras ? { points: rewindPoints(props.session, extras), dryRun: extras.dryRun } : null,
+          )
+          return (
+            <RewindDialog
+              points={points}
+              dryRun={open().extras?.dryRun}
+              late={late}
+              onRewind={rewind}
+              onClose={() => setDialog(null)}
+            />
+          )
         }}
       </Show>
     </box>

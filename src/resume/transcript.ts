@@ -51,6 +51,30 @@ function wantedEntry(line: string, wanted: string): Entry | null {
   return entry?.uuid === wanted ? entry : null
 }
 
+// What the prompt hangs from in the transcript: null for a conversation's first prompt, undefined when it is not there.
+export async function promptParent(path: string, uuid: string): Promise<string | null | undefined> {
+  const file = Bun.file(path)
+  if (!(await file.exists())) return undefined
+  // A message folded into a running turn has no user entry, only the attachment that queued it.
+  let folded: string | null | undefined
+  for (const line of (await file.text()).split("\n")) {
+    const entry = wantedEntry(line, uuid)
+    if (entry) return entry.parentUuid ?? null
+    if (folded === undefined && line.includes(`"source_uuid":"${uuid}"`)) {
+      const json = parseJson(line)
+      const queued = json.ok ? QueuedCommand.safeParse(json.value).data : undefined
+      if (queued?.attachment.source_uuid === uuid) folded = queued.parentUuid ?? null
+    }
+  }
+  return folded
+}
+
+const QueuedCommand = z.looseObject({
+  type: z.literal("attachment"),
+  parentUuid: z.string().nullable().optional(),
+  attachment: z.looseObject({ type: z.literal("queued_command"), source_uuid: z.string() }),
+})
+
 function isCompactBoundary(entry: Entry): boolean {
   return entry.type === "system" && entry.subtype === "compact_boundary"
 }
@@ -117,7 +141,15 @@ export function toEvents(entry: Entry): SourceEvent[] {
   if (text.startsWith("<task-notification>")) return notification(text, at)
   if (text.startsWith("[Request interrupted by user")) return [{ dir: "in", line: INTERRUPTED, at }]
   const prompt = typeof content === "string" ? commandPrompt(content) : content
-  return [event("out", { type: "user", parent_tool_use_id: null, message: { role: "user", content: prompt } })]
+  return [
+    event("out", {
+      type: "user",
+      parent_tool_use_id: null,
+      uuid: entry.uuid,
+      isReplay: true,
+      message: { role: "user", content: prompt },
+    }),
+  ]
 }
 
 // An interrupted turn ends as a live one does: the interrupt goes out and its result comes back, after as long as

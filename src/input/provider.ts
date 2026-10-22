@@ -54,9 +54,7 @@ export type LiveProvider = InputProvider & {
 export function liveProvider(requests: Requests): LiveProvider {
   let raw: SlashCommand[] = []
   let terminalOnly: string[] = []
-  // Rewinding a live session waits for hidden git snapshots and --resume-session-at.
-  const shown = () =>
-    claudeCommands(raw, terminalOnly).filter((command) => command.name !== "rewind" && command.name !== "redo")
+  const shown = () => claudeCommands(raw, terminalOnly)
   const [commands, setCommands] = createSignal(shown())
   const [models, setModels] = createSignal<ArgumentValue[]>(MODELS.map((value) => ({ value, note: "" })))
   const [skillRows, setSkillRows] = createSignal<SkillRow[] | null>(null)

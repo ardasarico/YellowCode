@@ -65,6 +65,8 @@ const systemInit = z.looseObject({
   agents: z.array(z.string()).optional(),
   slash_commands: z.array(z.string()).optional(),
   terminal_slash_commands: z.array(z.string()).optional(),
+  // The prompts the turn takes in; none for a turn claude starts by itself.
+  user_message_uuids: z.array(z.string()).optional(),
 })
 
 const compactBoundary = z.looseObject({
@@ -243,7 +245,8 @@ const user = z.looseObject({
   type: z.literal("user"),
   parent_tool_use_id: z.string().nullable().optional(),
   uuid: z.string().optional(),
-  // claude's own echo of a local command's output (a model switch, a compaction), not something the user sent.
+  // claude's own echo of a local command's output (a model switch, a compaction), not something the user sent. A
+  // transcript's prompts carry it too: they ran before this process.
   isReplay: z.boolean().optional(),
   message: z.looseObject({ content: z.union([z.string(), z.array(userBlock)]) }),
   tool_use_result: z
@@ -252,6 +255,8 @@ const user = z.looseObject({
         type: z.string().optional(),
         structuredPatch: z.array(hunk).optional(),
         isAsync: z.boolean().optional(),
+        // The whole file before an Edit or Write; null when the Write made it.
+        originalFile: z.string().nullable().optional(),
       }),
       z.unknown().transform(() => undefined),
     ])
@@ -385,6 +390,15 @@ export const questionAnswers = z.looseObject({
 
 // claude takes back one of its own requests, such as a permission ask; it needs no reply.
 const controlCancelRequest = z.looseObject({ type: z.literal("control_cancel_request"), request_id: z.string() })
+
+// `reason` says why not: stale_target (not the latest prompt), target_not_found, turn_running.
+export const rewindConversationReply = z.looseObject({
+  rewound: z.boolean(),
+  prefillText: z.string().nullable().optional(),
+  precedingAssistantUuid: z.string().nullable().optional(),
+  error: z.string().optional(),
+  reason: z.string().optional(),
+})
 
 export const taskOutput = z.looseObject({ output: z.string(), total_bytes: z.number(), truncated: z.boolean() })
 

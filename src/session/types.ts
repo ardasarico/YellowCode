@@ -5,13 +5,14 @@ export type ItemId = string
 
 export type ChatImage = { name: string; mediaType: string; data: string | null; path: string | null }
 // `queue` is "queued" from a send during a turn until claude takes the message in, and "not sent" when claude
-// ended before that.
+// ended before that. `uuid` is the one the message went out with, or its transcript entry's.
 export type UserMessage = {
   kind: "user"
   id: ItemId
   text: string
   images: ChatImage[]
   queue: "queued" | "not sent" | null
+  uuid?: string
 }
 // `local` marks claude's own output for a local command (/context, /model), which belongs to no model turn.
 export type AssistantText = { kind: "text"; id: ItemId; markdown: string; streaming: boolean; local?: boolean }

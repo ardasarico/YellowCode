@@ -11,7 +11,7 @@ import { Markdown } from "./markdown/markdown.tsx"
 import { refTarget } from "./markdown/refs.ts"
 import { RewoundBand } from "./rewind/rewound-band.tsx"
 import { ShellEndRow } from "./shell-end-row.tsx"
-import { buildRows, type Row } from "./structure.ts"
+import { buildRows, REWOUND_ROW, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
@@ -261,6 +261,12 @@ export function ChatView(props: ChatViewProps) {
       </Show>
       <For each={rowIds()}>
         {(id) => {
+          if (id === REWOUND_ROW)
+            return (
+              <Show when={props.session.rewound}>
+                {(rewound) => <RewoundBand rewound={rewound()} onRedo={props.onRedo} />}
+              </Show>
+            )
           const ask = createMemo(() => askByTool().get(id) ?? null)
           const previous = createMemo(() => previousKind().get(id))
           const index = createMemo(() => agentIndex().get(id) ?? 0)
@@ -281,7 +287,6 @@ export function ChatView(props: ChatViewProps) {
           )
         }}
       </For>
-      <Show when={props.session.rewound}>{(rewound) => <RewoundBand rewound={rewound()} onRedo={props.onRedo} />}</Show>
     </scrollbox>
   )
 }

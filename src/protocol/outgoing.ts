@@ -113,6 +113,15 @@ export function stopTaskRequest(requestId: string, taskId: string): string {
   })
 }
 
+// Steps the conversation back to before this prompt; claude takes only its latest remaining prompt.
+export function rewindConversationRequest(requestId: string, uuid: string): string {
+  return JSON.stringify({
+    type: "control_request",
+    request_id: requestId,
+    request: { subtype: "rewind_conversation", target_message_uuid: uuid },
+  })
+}
+
 export function renameSession(requestId: string, title: string, sessionId?: string): string {
   return JSON.stringify({
     type: "control_request",

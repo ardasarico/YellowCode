@@ -1,4 +1,5 @@
 import { unwrap } from "solid-js/store"
+import { shownItems } from "../../session/rewind.ts"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
 import type { ItemId, Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
 import { workflowPlan } from "../../session/workflow-script.ts"
@@ -247,20 +248,17 @@ function subtree(
   const node = agentNode(session, tool, depth, parentId, colorIndex)
   return [
     node,
-    ...agentCalls(session, tool.children, undefined).flatMap((child) =>
-      subtree(session, child, depth + 1, node.id, colorIndex),
-    ),
+    ...agentCalls(session, tool.children).flatMap((child) => subtree(session, child, depth + 1, node.id, colorIndex)),
   ]
 }
 
-// The agent and workflow calls among `ids`, up to `end`. An item's kind and name never change once it is added, so
-// only how many ids there are is tracked.
-function agentCalls(session: Session, ids: ItemId[], end: ItemId | undefined): ToolCall[] {
+// The agent and workflow calls among `ids`. An item's kind and name never change once it is added, so only how many
+// ids there are is tracked.
+function agentCalls(session: Session, ids: ItemId[]): ToolCall[] {
   if (ids.length === 0) return []
   const byId = unwrap(session.byId)
   const calls: ToolCall[] = []
   for (const id of unwrap(ids)) {
-    if (id === end) break
     const raw = byId[id]
     if (raw?.kind !== "tool" || !(isAgentCall(raw) || isWorkflowCall(raw))) continue
     const tool = session.byId[id]
@@ -278,8 +276,8 @@ export function innerNodes(session: Session, tool: ToolCall, colorIndex: number)
 
 // Agents a /clear carried over come first.
 const topCalls = (session: Session) => [
-  ...agentCalls(session, session.carried, undefined),
-  ...agentCalls(session, session.items, session.rewound?.userId),
+  ...agentCalls(session, session.carried),
+  ...agentCalls(session, shownItems(session.items, session.rewound)),
 ]
 
 // Pre-order: every top-level agent or workflow followed by its descendants.
@@ -323,10 +321,8 @@ export function taskIdOf(session: Session, node: TreeNode): string | null {
 // Top-level agents and workflows that are running or started since the latest user message, in tree order.
 export function activeNodes(session: Session): TreeNode[] {
   const nodes = topNodes(session)
-  const items = unwrap(session.items)
   const byId = unwrap(session.byId)
-  const end = session.rewound ? items.indexOf(session.rewound.userId) : -1
-  const shown = end === -1 ? items : items.slice(0, end)
+  const shown = shownItems(unwrap(session.items), session.rewound)
   const lastUser = shown.findLastIndex((id) => byId[id]?.kind === "user")
   const recent = new Set(shown.slice(lastUser + 1))
   return nodes.filter((node) => node.state === "running" || recent.has(node.id))

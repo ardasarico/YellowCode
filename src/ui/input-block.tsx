@@ -32,7 +32,7 @@ export type InputBlockProps = {
   onLeaveDown?: () => void
   onQuit?: () => void
   onEscape?: () => void
-  fill?: { draft: Draft; seq: number }
+  fill?: { draft: Draft; seq: number; ifEmpty?: boolean }
   // Gets what the input still holds when it goes away.
   onDraft?: (draft: Draft) => void
   // What the input starts from, such as what the prompt bar held when a /clear brought the welcome screen back.
