@@ -324,7 +324,10 @@ export function createCapture(cwd: string): Capture {
       const taken = await snapshots.take(id)
       if (taken) ids.add(id)
       return taken && { id, ...taken }
-    })()
+    })().catch((error: unknown) => {
+      log.warn("snapshot not taken", String(error))
+      return null
+    })
     running.add(point)
     void point.finally(() => running.delete(point))
     const now = { point, at: Date.now() }
@@ -464,13 +467,8 @@ export function createCapture(cwd: string): Capture {
 
     async before(uuid, sessionId, session) {
       const beforeAt = Date.now()
-      const taking: Promise<Point | null> = (async () => {
-        if (delayMs > 0) await Bun.sleep(delayMs)
-        return take(() => prompt.current.before !== taking || !open.has(uuid))
-      })().catch((error: unknown) => {
-        log.warn("snapshot not taken", { uuid, reason: String(error) })
-        return null
-      })
+      // The check runs once the take starts, after `taking` and `prompt` are set.
+      const taking: Promise<Point | null> = take(() => prompt.current.before !== taking || !open.has(uuid), delayMs)
       const prompt: Prompt = {
         uuid,
         sessionId,
