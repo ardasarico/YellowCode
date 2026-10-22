@@ -32,8 +32,9 @@ export type Taken = { tree: string; unknown: string[] }
 export type Snapshots = {
   root: string
   store: string
-  // The snapshot's tree is kept under refs/yc/<id>; null when it could not be taken.
-  take: (id: string) => Promise<Taken | null>
+  // The snapshot's tree is kept under refs/yc/<id>; null when it could not be taken, or `skip` holds once its turn in
+  // the queue comes.
+  take: (id: string, skip?: () => boolean) => Promise<Taken | null>
   // Removes a snapshot nothing will use, so pruning has nothing left to find.
   drop: (id: string) => Promise<void>
   // Line counts are null for binary files.
@@ -587,8 +588,9 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
   return {
     root,
     store,
-    take: (id) =>
+    take: (id, skip) =>
       queued(store, async () => {
+        if (skip?.()) return null
         if (stopped !== null) {
           log.warn("snapshot not taken", { id, reason: stopped })
           return null

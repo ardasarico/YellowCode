@@ -319,9 +319,9 @@ export function createCapture(cwd: string): Capture {
     const point = (async () => {
       if (delay > 0) await Bun.sleep(delay)
       const snapshots = await opened
-      if (!snapshots || unwanted() || stopped) return null
+      if (!snapshots) return null
       const id = randomUUID()
-      const taken = await snapshots.take(id)
+      const taken = await snapshots.take(id, () => unwanted() || stopped)
       if (taken) ids.add(id)
       return taken && { id, ...taken }
     })().catch((error: unknown) => {
