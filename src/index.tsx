@@ -224,8 +224,30 @@ renderer.keyInput.on("keypress", noteKey)
 process.removeAllListeners("uncaughtException")
 process.removeAllListeners("unhandledRejection")
 process.removeAllListeners("warning")
-process.on("uncaughtException", (error) => log.error("uncaught exception", error))
-process.on("unhandledRejection", (reason) => log.error("unhandled rejection", reason))
+const NOTICE = "Something went wrong · details in ~/.yellowcode/logs"
+const reported = new Set<string>()
+
+function reportProblem(error: unknown): void {
+  try {
+    const message = error instanceof Error ? error.message : String(error)
+    if (reported.has(message)) return
+    reported.add(message)
+    const notice = { text: NOTICE }
+    setControlProblem(notice)
+    setTimeout(() => {
+      if (controlProblem() === notice) setControlProblem(null)
+    }, 5000).unref()
+  } catch {}
+}
+
+process.on("uncaughtException", (error) => {
+  log.error("uncaught exception", error)
+  reportProblem(error)
+})
+process.on("unhandledRejection", (reason) => {
+  log.error("unhandled rejection", reason)
+  reportProblem(reason)
+})
 process.on("warning", (warning) => log.warn("process warning", warning))
 
 async function applyTerminal(): Promise<void> {
