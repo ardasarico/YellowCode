@@ -225,7 +225,17 @@ export function hiddenPrompts(session: Session): (string | undefined)[] {
 }
 
 const extrasFile = z.object({
-  bash: z.array(z.object({ prompt: z.number(), path: z.string(), plus: z.number(), minus: z.number() })).default([]),
+  bash: z
+    .array(
+      z.object({
+        prompt: z.number(),
+        path: z.string(),
+        plus: z.number(),
+        minus: z.number(),
+        edit: z.boolean().optional(),
+      }),
+    )
+    .default([]),
   conflicts: z.array(z.string()).default([]),
   untracked: z.array(z.number()).default([]),
   imported: z.array(z.number()).default([]),
