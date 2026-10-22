@@ -57,7 +57,7 @@ import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
 const USAGE = [
-  "Usage: yellowcode [--sessions <folder>] [--skip-terminal-check]",
+  "Usage: yellowcode [--skip-terminal-check]",
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -86,6 +86,7 @@ function readArgs() {
 
 const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
+if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
 
 function gitBranch(): string | null {
   const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], { cwd: process.cwd(), stderr: "ignore" })
