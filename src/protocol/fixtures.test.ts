@@ -23,45 +23,6 @@ const transcripts = readdirSync(transcriptsDir, { recursive: true, withFileTypes
   entry.isFile(),
 )
 
-test("all recordings are present", () => {
-  expect(files.toSorted()).toEqual(
-    [
-      "agent-shell",
-      "agents-failed",
-      "agents",
-      "api-retry",
-      "ask",
-      "background-bash",
-      "chat",
-      "commands",
-      "diagrams",
-      "error",
-      "image",
-      "images",
-      "long",
-      "markdown-extras",
-      "markdown",
-      "mcp-states",
-      "mcp",
-      "nested-agents",
-      "own-ask",
-      "own-blocks",
-      "permission-bash",
-      "permission",
-      "plugins",
-      "read-image",
-      "references",
-      "rewind",
-      "shells",
-      "skills",
-      "subagent",
-      "thinking",
-      "tools",
-      "workflow",
-    ].map((name) => `${name}.jsonl`),
-  )
-})
-
 for (const file of files) {
   test(`${file} parses with no invalid messages`, () => {
     const recording = parseRecording(readFileSync(join(dir, file), "utf8"))

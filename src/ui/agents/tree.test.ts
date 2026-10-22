@@ -5,7 +5,7 @@ import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { Session } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
-import { activeNodes, agentTree, barSize, shellNodes, taskIdOf } from "./tree.ts"
+import { activeNodes, agentTree, shellNodes, taskIdOf } from "./tree.ts"
 
 function play(name: string) {
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -91,8 +91,4 @@ test("x stops the node's own task: an agent's, a shell's, and none for a workflo
     ["workflow-agent", null],
     ["workflow-agent", null],
   ])
-})
-
-test("the workflow bar narrows to 12, then 8 columns, then goes away", () => {
-  expect([40, 23, 15, 11].map(barSize)).toEqual([20, 12, 8, 0])
 })

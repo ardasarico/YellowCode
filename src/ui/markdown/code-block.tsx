@@ -3,7 +3,7 @@ import { createEffect, createSignal, on, onCleanup, onMount, Show, untrack } fro
 import { syntaxStyle, theme } from "../../theme/theme.ts"
 
 // One gutter row per visual line: the line number on a line's first row, blank on its wrapped rows.
-export function gutterText(lineSources: readonly number[], digits: number): string {
+function gutterText(lineSources: readonly number[], digits: number): string {
   return lineSources
     .map((source, index) => {
       const number = index > 0 && lineSources[index - 1] === source ? "" : String(source + 1)

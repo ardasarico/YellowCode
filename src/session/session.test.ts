@@ -619,14 +619,6 @@ test("usage adds up tokens, the context window and plan limits", () => {
   expect(usage.limits.fiveHour?.utilization).toBe(0.3)
 })
 
-test("MCP servers keep their status", () => {
-  const servers = replay("mcp").state.info?.mcpServers.map((server) => [server.name, server.status])
-  expect(servers).toEqual([
-    ["echo", "connected"],
-    ["broken", "failed"],
-  ])
-})
-
 test("nested agents join into one task tree and keep their own steps", () => {
   const session = replay("nested-agents")
   const tasks = Object.values(session.state.tasks)

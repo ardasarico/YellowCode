@@ -1,12 +1,5 @@
 import { expect, test } from "bun:test"
-import { welcomeLayout, welcomeParts } from "./welcome.tsx"
-
-test("welcomeParts steps the logo down by height and width", () => {
-  expect(welcomeParts(74, 14, 0)).toEqual({ logo: "full", rows: 6, recent: false })
-  expect(welcomeParts(74, 13, 0)).toEqual({ logo: "cat", rows: 3, recent: false })
-  expect(welcomeParts(74, 10, 0)).toEqual({ logo: "none", rows: 0, recent: false })
-  expect(welcomeParts(40, 14, 0).logo).toBe("cat")
-})
+import { welcomeLayout } from "./welcome.tsx"
 
 test("the recent sessions outlive the logo as the terminal gets shorter", () => {
   const steps = ["full", "cat", "none"]

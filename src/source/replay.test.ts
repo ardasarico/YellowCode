@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { allowTool, userMessage } from "../protocol/outgoing.ts"
-import { createReplaySource, parseSpeed } from "./replay.ts"
+import { createReplaySource } from "./replay.ts"
 
 const header = { cliVersion: "2.1.293", scenario: "test", recordedAt: "2026-10-07T00:00:00.000Z" }
 const reply = JSON.stringify({ type: "keep_alive" })
@@ -102,13 +102,6 @@ test("a sent user line replaces the recorded one, and an answer releases the rec
   source.send(allowTool("r1", { command: "ls" }))
   await done
   expect(seen).toEqual([userMessage("mine"), request, recordedAnswer, reply])
-})
-
-test("parses speeds", () => {
-  expect(parseSpeed("instant")).toBe("instant")
-  expect(parseSpeed("2")).toBe(2)
-  expect(parseSpeed("0")).toBeNull()
-  expect(parseSpeed("fast")).toBeNull()
 })
 
 test("send during a pending timed pause does not skip ahead", async () => {

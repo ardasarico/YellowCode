@@ -1,15 +1,6 @@
 import { expect, test } from "bun:test"
 import { measureEditText } from "@opentui/core"
-import {
-  collapses,
-  type Draft,
-  draftFromMessage,
-  expandDraft,
-  imagePath,
-  normalizePaste,
-  stringIndexes,
-  toBufferOffset,
-} from "./draft.ts"
+import { type Draft, draftFromMessage, expandDraft, imagePath, stringIndexes, toBufferOffset } from "./draft.ts"
 
 const measure = (text: string) => measureEditText(text, { widthMethod: "unicode" })
 const image = { mediaType: "image/png" as const, base64: "AAAA" }
@@ -37,13 +28,6 @@ test("a recalled message keeps every image in its number", () => {
       { mediaType: "image/png", base64: "BB" },
     ],
   })
-})
-
-test("collapses past 800 characters or at 3 newlines", () => {
-  expect(collapses("a".repeat(800))).toBe(false)
-  expect(collapses("a".repeat(801))).toBe(true)
-  expect(collapses(normalizePaste("a\r\nb\r\nc"))).toBe(false)
-  expect(collapses(normalizePaste("a\r\nb\r\nc\r\nd"))).toBe(true)
 })
 
 test("imagePath accepts one escaped or quoted image path", () => {

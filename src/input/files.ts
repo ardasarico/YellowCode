@@ -18,7 +18,7 @@ async function gitFiles(): Promise<string[]> {
   }
 }
 
-export function withFolders(files: string[]): string[] {
+function withFolders(files: string[]): string[] {
   const entries = new Set<string>()
   for (const file of files) {
     entries.add(file)

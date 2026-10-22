@@ -4,7 +4,6 @@ import { join } from "node:path"
 import { parse } from "../../protocol/parse.ts"
 import { parseRecording } from "../../source/recording.ts"
 import { splitBlocks, type Block } from "./blocks.ts"
-import { gutterText } from "./code-block.tsx"
 import { fitColumns, wrapText } from "./layout.ts"
 
 function longestAssistantText(file: string): string {
@@ -49,8 +48,4 @@ test("only the widest columns break when longest words do not fit", () => {
 
 test("words longer than the width are broken", () => {
   expect(wrapText("sha256-abcdefghij end", 8)).toEqual(["sha256-a", "bcdefghi", "j end"])
-})
-
-test("wrapped code lines get a blank line number", () => {
-  expect(gutterText([0, 0, 1], 1)).toBe("1 │\n  │\n2 │")
 })

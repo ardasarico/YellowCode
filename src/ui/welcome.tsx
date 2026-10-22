@@ -62,7 +62,7 @@ const LOGO_STEPS: { step: LogoStep; rows: number; width: number }[] = [
 
 // The recent sessions (a blank row, their heading and the rows) are placed first, and the logo takes the largest step
 // that fits what is left. Once there is no room for them even without a logo, the logo stays off as well.
-export function welcomeParts(
+function welcomeParts(
   width: number,
   height: number,
   recent: number,
