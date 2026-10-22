@@ -12,8 +12,9 @@ export const EDGE_GAP = 2
 // right edge looked cramped beside the sidebar's fill.
 export const SIDEBAR_GAP = 1
 
-// The sidebar takes at most half the terminal, and at least SIDEBAR_MIN_WIDTH columns. It narrows down to its minimum to dock beside a 60-column chat; in a
-// terminal narrower than that it never docks, and F3 lays it over the right side of the chat instead.
+// The sidebar takes at most half the terminal, and at least SIDEBAR_MIN_WIDTH columns. It narrows down to its minimum
+// to dock beside a 60-column chat; in a terminal narrower than that it never docks, and F3 lays it over the right side
+// of the chat instead.
 export function sidebarShown(
   width: number,
   preferred: number,
