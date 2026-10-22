@@ -508,7 +508,6 @@ export const settingsSources = z.looseObject({
       source: z.string(),
       settings: z.looseObject({
         enabledPlugins: z.record(z.string(), z.unknown()).optional(),
-        skillOverrides: z.record(z.string(), z.string()).optional(),
       }),
     }),
   ),

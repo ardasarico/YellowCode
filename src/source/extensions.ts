@@ -137,10 +137,7 @@ export function createExtensions(options: {
     provider.setSettingsSources(
       parsed.data.sources.map(({ source, settings }) => ({
         source,
-        settings: {
-          ...(settings.enabledPlugins ? { enabledPlugins: settings.enabledPlugins } : {}),
-          ...(settings.skillOverrides ? { skillOverrides: settings.skillOverrides } : {}),
-        },
+        settings: settings.enabledPlugins ? { enabledPlugins: settings.enabledPlugins } : {},
       })),
     )
   }
