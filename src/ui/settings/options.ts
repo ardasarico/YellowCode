@@ -77,7 +77,10 @@ export const currentOption = (setting: SettingDefinition) =>
 
 export function step(setting: SettingDefinition, by: 1 | -1) {
   const count = setting.options.length
-  const index = setting.options.findIndex((option) => option.value === settings[setting.key])
+  const index = Math.max(
+    0,
+    setting.options.findIndex((option) => option.value === settings[setting.key]),
+  )
   const next = setting.options[(index + by + count) % count]
   if (next) setSetting(setting.key, next.value)
 }
