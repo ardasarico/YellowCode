@@ -1,3 +1,5 @@
+import { spawnLimited } from "../spawn.ts"
+
 const LIMIT = 15
 
 export type FileEntry = { path: string; lower: string; lowerSegment: string }
@@ -6,13 +8,11 @@ let cached: Promise<FileEntry[]> | null = null
 
 async function gitFiles(): Promise<string[]> {
   try {
-    const proc = Bun.spawn(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
+    const result = await spawnLimited(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
       cwd: process.cwd(),
-      stdout: "pipe",
-      stderr: "ignore",
+      timeoutMs: 10_000,
     })
-    const [output, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
-    return code === 0 ? output.split("\0").filter(Boolean) : []
+    return result?.code === 0 ? result.stdout.split("\0").filter(Boolean) : []
   } catch {
     return []
   }

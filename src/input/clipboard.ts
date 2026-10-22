@@ -2,6 +2,7 @@ import { z } from "zod"
 import { log } from "../log/log.ts"
 import { parseJson } from "../protocol/json.ts"
 import type { ReadClipboard } from "./draft.ts"
+import { spawnLimited } from "../spawn.ts"
 import { fitImage } from "./image-file.ts"
 
 // Finder puts the copied file's icon in the clipboard as TIFF, so file URLs must win over image data.
@@ -45,10 +46,14 @@ const Output = z.union([
 
 export const readClipboard: ReadClipboard = async () => {
   if (process.platform !== "darwin") return null
-  const proc = Bun.spawn(["osascript", "-l", "JavaScript", "-e", SCRIPT], { stdout: "pipe", stderr: "pipe" })
-  const [stdout, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
+  const result = await spawnLimited(["osascript", "-l", "JavaScript", "-e", SCRIPT], { timeoutMs: 5000 })
+  if (result === null) {
+    log.warn("clipboard read timed out")
+    return null
+  }
+  const { code, stdout, stderr } = result
   if (code !== 0) {
-    log.warn("clipboard read failed", { code, stderr: await new Response(proc.stderr).text() })
+    log.warn("clipboard read failed", { code, stderr })
     return null
   }
   const json = parseJson(stdout)

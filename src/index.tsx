@@ -89,7 +89,11 @@ if (values.replay === undefined && (values.speed !== undefined || values.titles 
 if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
 
 function gitBranch(): string | null {
-  const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], { cwd: process.cwd(), stderr: "ignore" })
+  const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], {
+    cwd: process.cwd(),
+    stderr: "ignore",
+    timeout: 2000,
+  })
   if (result.exitCode !== 0) return null
   return result.stdout.toString().trim() || null
 }

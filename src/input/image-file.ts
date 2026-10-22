@@ -4,6 +4,7 @@ import { join } from "node:path"
 import { NativeImage } from "@opentui/core"
 import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
+import { spawnLimited } from "../spawn.ts"
 import type { LoadImage } from "./draft.ts"
 
 const MAX_SIDE = 2000
@@ -44,10 +45,9 @@ function decodes(bytes: Uint8Array): boolean {
 }
 
 async function sips(args: string[]): Promise<string | null> {
-  const proc = Bun.spawn(["sips", ...args], { stdout: "pipe", stderr: "pipe" })
-  const [output, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited])
-  if (code === 0) return output
-  log.warn("sips failed", { args, stderr: await new Response(proc.stderr).text() })
+  const result = await spawnLimited(["sips", ...args], { timeoutMs: 20_000 })
+  if (result?.code === 0) return result.stdout
+  log.warn("sips failed", { args, stderr: result?.stderr ?? "timed out" })
   return null
 }
 

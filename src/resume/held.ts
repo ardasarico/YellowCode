@@ -14,7 +14,10 @@ type Process = { pid: number; parent: number; args: string }
 // Null when the list cannot be read.
 function processes(): Process[] | null {
   try {
-    const result = Bun.spawnSync(["ps", "-Aww", "-o", "pid=", "-o", "ppid=", "-o", "args="], { stderr: "ignore" })
+    const result = Bun.spawnSync(["ps", "-Aww", "-o", "pid=", "-o", "ppid=", "-o", "args="], {
+      stderr: "ignore",
+      timeout: 2000,
+    })
     if (result.exitCode !== 0) return null
     return result.stdout
       .toString()
