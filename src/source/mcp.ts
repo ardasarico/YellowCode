@@ -2,6 +2,7 @@ import { statSync } from "node:fs"
 import { basename } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
+import { rowsOf } from "../protocol/json.ts"
 import { isOwnAskServer, mcpServerRows, mcpServerStatus, type ProtocolMessage } from "../protocol/messages.ts"
 import { mcpReconnectRequest, mcpStatusRequest, mcpToggleRequest } from "../protocol/outgoing.ts"
 import type { SessionStore } from "../session/session.ts"
@@ -102,12 +103,10 @@ function configOf(config: unknown): McpConfig | null {
 
 // Row by row, so one odd server does not empty the list.
 export function mcpServers(rows: unknown[]): McpServer[] {
-  let unreadable = 0
-  const servers = rows.flatMap((row): McpServer[] => {
-    const parsed = mcpServerStatus.safeParse(row)
-    if (!parsed.success) unreadable += 1
-    if (!parsed.success || isOwnAskServer(parsed.data)) return []
-    const { name, status, error, scope, source, serverInfo, config, tools } = parsed.data
+  const parsed = rowsOf(mcpServerStatus, rows)
+  const servers = parsed.rows.flatMap((row): McpServer[] => {
+    if (isOwnAskServer(row)) return []
+    const { name, status, error, scope, source, serverInfo, config, tools } = row
     return [
       {
         name,
@@ -121,7 +120,7 @@ export function mcpServers(rows: unknown[]): McpServer[] {
       },
     ]
   })
-  if (unreadable > 0) log.warn(`mcp status: dropped ${unreadable} of ${rows.length} rows`)
+  if (parsed.dropped > 0) log.warn(`mcp status: dropped ${parsed.dropped} of ${rows.length} rows`)
   return servers
 }
 

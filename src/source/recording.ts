@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { shownCommands } from "../input/commands.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson, rowsOf } from "../protocol/json.ts"
 import {
   initializeModels,
   hooksListing,
@@ -130,12 +130,7 @@ export function recordedSkillRows(recording: Recording): {
   const dialog = skillsDialog.safeParse(reply.response)
   if (!dialog.success) return { rows: [], problem: "no skills array", recorded: true }
 
-  const rows: SkillRow[] = []
-  for (const value of dialog.data.skills) {
-    const row = skillRow.safeParse(value)
-    if (row.success) rows.push(row.data)
-  }
-  const dropped = dialog.data.skills.length - rows.length
+  const { rows, dropped } = rowsOf(skillRow, dialog.data.skills)
   return {
     rows,
     problem: dropped > 0 ? `dropped ${dropped} of ${dialog.data.skills.length} rows` : null,
@@ -153,10 +148,7 @@ export function recordedPluginHooks(recording: Recording): PluginHook[] {
   const reply = recordedReply(recording, HOOKS_ID)
   const listing = hooksListing.safeParse(reply?.response)
   if (!listing.success) return []
-  return listing.data.hooks.flatMap((value) => {
-    const hook = pluginHook.safeParse(value)
-    return hook.success ? [hook.data] : []
-  })
+  return rowsOf(pluginHook, listing.data.hooks).rows
 }
 
 export function recordedInitLists(recording: Recording): { skills: string[]; slashCommands: string[] } | null {

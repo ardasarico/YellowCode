@@ -21,6 +21,7 @@ import {
   setPermissionModeRequest,
   thinkingDisplayRequest,
 } from "../protocol/outgoing.ts"
+import { rowsOf } from "../protocol/json.ts"
 import { modeLabel, protocolMode } from "../session/settings-file.ts"
 import type { SessionStore } from "../session/session.ts"
 import {
@@ -55,17 +56,9 @@ export type Controls = {
 
 export type Follower = Pick<Controls, "initialized" | "onMessage">
 
-export const commandsOf = (rows: unknown[]): SlashCommand[] =>
-  rows.flatMap((row) => {
-    const parsed = slashCommand.safeParse(row)
-    return parsed.success ? [parsed.data] : []
-  })
+export const commandsOf = (rows: unknown[]): SlashCommand[] => rowsOf(slashCommand, rows).rows
 
-const modelsOf = (rows: unknown[]): ModelInfo[] =>
-  rows.flatMap((row) => {
-    const parsed = modelInfo.safeParse(row)
-    return parsed.success ? [parsed.data] : []
-  })
+const modelsOf = (rows: unknown[]): ModelInfo[] => rowsOf(modelInfo, rows).rows
 
 const isEffort = (value: string | null | undefined): value is EffortLevel =>
   EFFORT_LEVELS.some((level) => level === value)

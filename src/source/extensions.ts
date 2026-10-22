@@ -1,7 +1,7 @@
 import { z } from "zod"
 import type { LiveProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson, rowsOf } from "../protocol/json.ts"
 import {
   hooksListing,
   pluginHook,
@@ -114,11 +114,7 @@ export function createExtensions(options: {
     if (disposed) return
     const dialog = skillsDialog.safeParse(reply)
     if (!dialog.success) return log.warn("skills reply", "no skills array")
-    const rows = dialog.data.skills.flatMap((value) => {
-      const row = skillRow.safeParse(value)
-      return row.success ? [row.data] : []
-    })
-    const dropped = dialog.data.skills.length - rows.length
+    const { rows, dropped } = rowsOf(skillRow, dialog.data.skills)
     if (dropped > 0) log.warn("skills reply", `dropped ${dropped} of ${dialog.data.skills.length} rows`)
     log.info("skills", { rows: rows.length, off: rows.filter((row) => row.state === "off").length })
     provider.setSkillRows(rows)
@@ -148,12 +144,11 @@ export function createExtensions(options: {
     const listing = hooksListing.safeParse(reply)
     if (!listing.success) return log.warn("hooks reply", "no hooks array")
     provider.setPluginHooks(
-      listing.data.hooks.flatMap((value) => {
-        const hook = pluginHook.safeParse(value)
-        return hook.success
-          ? [{ event: hook.data.event, matcher: hook.data.matcher, pluginName: hook.data.pluginName }]
-          : []
-      }),
+      rowsOf(pluginHook, listing.data.hooks).rows.map(({ event, matcher, pluginName }) => ({
+        event,
+        matcher,
+        pluginName,
+      })),
     )
   }
 
