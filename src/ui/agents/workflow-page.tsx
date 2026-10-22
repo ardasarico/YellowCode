@@ -2,7 +2,7 @@ import { Index, Match, Show, Switch } from "solid-js"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
-import { cut, formatDuration, modelName } from "../format.ts"
+import { cut, formatDuration, modelName, plain } from "../format.ts"
 import { MetaLine, PageHeader, type PageProps, PageScroll, PromptBlock, tokens } from "./agent-page.tsx"
 import { count, useDuration } from "./agent-line.tsx"
 import { agentColor } from "./tree-rows.tsx"
@@ -46,13 +46,13 @@ function Entry(props: { node: TreeNode; depth: number; width: number }) {
     <Switch>
       <Match when={props.node.kind === "phase"}>
         <text wrapMode="none">
-          <span style={{ fg: theme.text, bold: true }}>{" ".repeat(indent()) + props.node.name}</span>
+          <span style={{ fg: theme.text, bold: true }}>{" ".repeat(indent()) + plain(props.node.name)}</span>
           <span style={{ fg: theme.muted }}>{` ${props.node.detail}`}</span>
         </text>
       </Match>
       <Match when={props.node.kind === "queued"}>
         <text wrapMode="none" fg={theme.faint}>
-          {`${" ".repeat(indent())}○ ${props.node.name}`}
+          {`${" ".repeat(indent())}○ ${plain(props.node.name)}`}
         </text>
       </Match>
       <Match when={true}>

@@ -3,6 +3,7 @@ import { shownItems } from "../../session/rewind.ts"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
 import type { ItemId, Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
 import { workflowPlan } from "../../session/workflow-script.ts"
+import { plain } from "../format.ts"
 
 export type TreeNode = {
   id: string
@@ -299,7 +300,7 @@ export function shellNodes(session: Session): TreeNode[] {
     kind: "shell",
     depth: 1,
     parentId: null,
-    name: task.description || task.command,
+    name: plain(task.description || task.command),
     state: task.state,
     detail: task.command,
     toolUses: 0,
