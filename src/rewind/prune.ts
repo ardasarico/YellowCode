@@ -81,9 +81,6 @@ export async function pruneStore(snapshots: Snapshots, days: number, now = Date.
     const input = remove.map((ref) => `delete ${ref}\n`).join("")
     const deleted = await git(gitDir, ["update-ref", "--stdin"], input)
     if (deleted.code !== 0) throw new Error(`git update-ref failed: ${deleted.stderr}`)
-    for (const ref of remove)
-      if (ref.startsWith("refs/yc/"))
-        rmSync(join(store, "unknown", encodeURIComponent(ref.slice(8)).replaceAll(".", "%2E")), { force: true })
   }
 
   let gc: Pruned["gc"] = "skipped"

@@ -204,7 +204,6 @@ test("a file git cannot read is listed as unknown, untracked or with an edit, be
     const snapshot = await snapshots.take("unreadable")
 
     expect(snapshot?.unknown.toSorted()).toEqual(["secret.txt", "tracked.txt"])
-    expect((await snapshots.unknown("unreadable")).toSorted()).toEqual(["secret.txt", "tracked.txt"])
   } finally {
     chmodSync(join(dir, "tracked.txt"), 0o644)
     chmodSync(join(dir, "secret.txt"), 0o644)
@@ -221,7 +220,6 @@ test("a folder git cannot open is listed as unknown, with the tracked and untrac
     const snapshot = await snapshots.take("locked")
 
     expect(snapshot?.unknown).toContain("locked/")
-    expect(await snapshots.unknown("locked")).toContain("locked/")
   } finally {
     chmodSync(join(dir, "locked"), 0o755)
   }

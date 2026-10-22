@@ -36,8 +36,6 @@ export type Snapshots = {
   take: (id: string) => Promise<Taken | null>
   // Removes a snapshot nothing will use, so pruning has nothing left to find.
   drop: (id: string) => Promise<void>
-  // The unknown paths of a snapshot taken by any process.
-  unknown: (id: string) => Promise<string[]>
   // Line counts are null for binary files.
   changes: (from: string, to: string) => Promise<Change[]>
   entries: (tree: string, paths: readonly string[]) => Promise<Map<string, TreeEntry>>
@@ -490,8 +488,6 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
   })
   if (prepared !== null) return off(prepared)
 
-  const unknownFile = (id: string) => join(store, "unknown", encodeURIComponent(id).replaceAll(".", "%2E"))
-
   // Paths add left out because it could not read them, apart from the ones left out on purpose.
   const unread = async (deliberate: Set<string>): Promise<string[]> => {
     const others = await run(["ls-files", "-z", "--others", "--exclude-standard"])
@@ -578,12 +574,6 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
       for (const path of await unread(new Set([...big, ...nested, ...repos, ...kept]))) unknownPaths.add(path)
     const unknown = [...unknownPaths]
     if (unknown.length > 0) log.warn("snapshot could not read some files", { id, unknown: unknown.slice(0, 20) })
-    mkdirSync(join(store, "unknown"), { recursive: true })
-    if (unknown.length > 0) {
-      const temp = `${unknownFile(id)}.${process.pid}.tmp`
-      writeFileSync(temp, `${unknown.join("\0")}\0`)
-      renameSync(temp, unknownFile(id))
-    } else rmSync(unknownFile(id), { force: true })
     // Blobs of unchanged files stay in the project only, which a run without its objects counts as missing.
     const tree = await run(["write-tree", "--missing-ok"], { writes: true })
     if (tree.code !== 0) throw failed("write-tree", tree)
@@ -610,7 +600,6 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
           log.info("snapshot taken", { id, ms, trackedMs, bigCheckMs, nestedMs })
           return { tree, unknown }
         } catch (error) {
-          rmSync(unknownFile(id), { force: true })
           log.warn("snapshot not taken", { id, ms: Math.round(performance.now() - started), reason: String(error) })
           return null
         }
@@ -620,7 +609,6 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
       queued(store, async () => {
         const removed = await run(["update-ref", "-d", `refs/yc/${id}`])
         if (removed.code !== 0) throw failed("update-ref", removed)
-        rmSync(unknownFile(id), { force: true })
       }),
 
     changes: (from, to) =>
@@ -759,12 +747,6 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
         } finally {
           rmSync(temp, { force: true })
         }
-      }),
-
-    unknown: (id) =>
-      queued(store, async () => {
-        const file = Bun.file(unknownFile(id))
-        return (await file.exists()) ? (await file.text()).split("\0").filter(Boolean) : []
       }),
   }
 }
