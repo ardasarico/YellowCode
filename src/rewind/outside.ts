@@ -15,33 +15,15 @@ import {
 } from "node:fs"
 import { basename, dirname, isAbsolute, join } from "node:path"
 import { log } from "../log/log.ts"
+import { gitEnv, runGit } from "./common.ts"
 
 // Files outside the snapshots' root: what a main-thread Edit/Write said the file held before goes into the store as a
 // blob of its own, and only the file's hash is taken afterwards.
 
-const SAFE_CONFIG = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"]
-
-function gitEnv(store: string): Record<string, string> {
-  const env: Record<string, string> = {}
-  for (const [key, value] of Object.entries(process.env))
-    if (!key.startsWith("GIT_") && value !== undefined) env[key] = value
-  return { ...env, GIT_DIR: join(store, "git") }
-}
-
 async function git(store: string, args: string[], input?: Uint8Array): Promise<string | null> {
-  const proc = Bun.spawn(["git", ...SAFE_CONFIG, ...args], {
-    env: gitEnv(store),
-    stdin: input ?? "ignore",
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-  const [out, err, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
-  if (code === 0) return out.trim()
-  log.warn("git failed", { args: args.slice(0, 2), error: err.trim() })
+  const run = await runGit(args, { env: gitEnv({ GIT_DIR: join(store, "git") }), input })
+  if (run.code === 0) return new TextDecoder().decode(run.stdout).trim()
+  log.warn("git failed", { args: args.slice(0, 2), error: run.stderr })
   return null
 }
 
@@ -72,14 +54,8 @@ export async function refsUnder(store: string, prefix: string): Promise<string[]
 }
 
 async function blobBytes(store: string, sha: string): Promise<Uint8Array | null> {
-  const proc = Bun.spawn(["git", ...SAFE_CONFIG, "cat-file", "blob", sha], {
-    env: gitEnv(store),
-    stdin: "ignore",
-    stdout: "pipe",
-    stderr: "ignore",
-  })
-  const [bytes, code] = await Promise.all([new Response(proc.stdout).bytes(), proc.exited])
-  return code === 0 ? bytes : null
+  const run = await runGit(["cat-file", "blob", sha], { env: gitEnv({ GIT_DIR: join(store, "git") }) })
+  return run.code === 0 ? run.stdout : null
 }
 
 // A file outside the root as a rewind sees it: `before` is the blob it goes back to (null: no file), `after` the hash

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { log } from "../log/log.ts"
 import { getSettingsRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "../source/requests.ts"
+import { alive, gitEnv, runGit } from "./common.ts"
 import { type Manifest, readManifest } from "./live-rewind.ts"
 import type { Snapshots } from "./snapshots.ts"
 
@@ -12,7 +13,6 @@ export const DEFAULT_CLEANUP_DAYS = 30
 const WARM_UP_REF = "refs/yc/warm-up"
 // Objects written before their ref exists (a take, keepBytes, another process just starting) outlive the prune.
 const PRUNE_EXPIRE = "1.hour.ago"
-const SAFE_CONFIG = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"]
 
 const settingsReply = z.looseObject({
   effective: z.looseObject({ cleanupPeriodDays: z.unknown().optional() }).optional(),
@@ -132,36 +132,13 @@ function othersUsing(store: string): boolean {
   })
 }
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return error instanceof Error && "code" in error && error.code === "EPERM"
-  }
-}
-
 async function git(
   gitDir: string,
   args: string[],
   input?: string,
 ): Promise<{ code: number; stdout: string; stderr: string }> {
-  const env: Record<string, string> = {}
-  for (const [key, value] of Object.entries(process.env))
-    if (!key.startsWith("GIT_") && value !== undefined) env[key] = value
-  env["GIT_DIR"] = gitDir
-  const proc = Bun.spawn(["git", ...SAFE_CONFIG, ...args], {
-    env,
-    stdin: input === undefined ? "ignore" : new Blob([input]),
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
-  return { code, stdout, stderr }
+  const run = await runGit(args, { env: gitEnv({ GIT_DIR: gitDir }), input })
+  return { code: run.code, stdout: new TextDecoder().decode(run.stdout), stderr: run.stderr }
 }
 
 function sizeOf(dir: string): number {

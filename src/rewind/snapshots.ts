@@ -20,6 +20,7 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { log } from "../log/log.ts"
 import { projectKey } from "../resume/project-key.ts"
+import { alive, type GitRun, gitEnv, runGit } from "./common.ts"
 
 // Paths are relative to `root`, with `/` separators, as git prints them.
 export type Change = { path: string; status: "A" | "D" | "M" | "T"; plus: number | null; minus: number | null }
@@ -54,7 +55,6 @@ export type Snapshots = {
 export type Planted = { path: string; source: string; mode: "100644" | "100755" }
 
 type Project = { root: string; gitDir: string; commonDir: string; format: string }
-type Run = { code: number; stdout: Uint8Array; stderr: string; timedOut: boolean }
 
 const FIRST_LISTING_MS = 3000
 const UNTRACKED_LIMIT = 2 * 1024 * 1024
@@ -62,17 +62,6 @@ const DEPENDENCY_FOLDERS = ["node_modules/", ".venv/", "venv/", "__pycache__/", 
 const ATTRIBUTES = "* -text -filter -ident -working-tree-encoding\n"
 const CONFIG = "[gc]\n\tauto = 0\n[core]\n\tautocrlf = false\n"
 const ARGS_CHUNK = 500
-// No hook, fsmonitor or submodule status may run from any config the user has.
-const SAFE_CONFIG = [
-  "-c",
-  "core.hooksPath=/dev/null",
-  "-c",
-  "core.fsmonitor=false",
-  "-c",
-  "diff.ignoreSubmodules=dirty",
-  "-c",
-  "core.splitIndex=false",
-]
 
 const queues = new Map<string, Promise<unknown>>()
 
@@ -85,47 +74,17 @@ function queued<T>(store: string, task: () => Promise<T>): Promise<T> {
   return next
 }
 
-function cleanEnv(extra: Record<string, string>): Record<string, string> {
-  const env: Record<string, string> = {}
-  for (const [key, value] of Object.entries(process.env)) {
-    if (!key.startsWith("GIT_") && value !== undefined) env[key] = value
-  }
-  return { ...env, ...extra }
-}
-
 async function git(
   args: string[],
   options: { cwd: string; env: Record<string, string>; input?: string | Uint8Array; timeoutMs?: number },
-): Promise<Run> {
-  const proc = Bun.spawn(["git", ...SAFE_CONFIG, ...args], {
-    cwd: options.cwd,
-    env: options.env,
-    stdin: options.input === undefined ? "ignore" : new Blob([options.input]),
-    stdout: "pipe",
-    stderr: "pipe",
-  })
-  let timedOut = false
-  const timer =
-    options.timeoutMs === undefined
-      ? undefined
-      : setTimeout(() => {
-          timedOut = true
-          proc.kill()
-        }, options.timeoutMs)
-  const [stdout, stderr, code] = await Promise.all([
-    new Response(proc.stdout).bytes(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
-  clearTimeout(timer)
-  // Exit codes over 128 mean a signal. Some callers accept a non-zero code, so a killed git must not reach them.
-  if (!timedOut && (proc.signalCode !== null || code > 128)) {
-    throw new Error(`git ${args[0]} was killed (${proc.signalCode ?? code})`)
-  }
-  return { code, stdout, stderr: stderr.trim(), timedOut }
+): Promise<GitRun> {
+  const run = await runGit(args, options)
+  // Some callers accept a non-zero code, so a killed git must not reach them.
+  if (run.killed !== null) throw new Error(`git ${args[0]} was killed (${run.killed})`)
+  return run
 }
 
-const failed = (what: string, result: Run) => new Error(`git ${what} failed: ${result.stderr}`)
+const failed = (what: string, result: GitRun) => new Error(`git ${what} failed: ${result.stderr}`)
 const text = (bytes: Uint8Array) => new TextDecoder().decode(bytes)
 const fields = (bytes: Uint8Array) => text(bytes).split("\0").filter(Boolean)
 
@@ -138,7 +97,7 @@ function chunks<T>(items: readonly T[]): T[][] {
 async function findProject(cwd: string): Promise<Project | null> {
   const run = await git(
     ["rev-parse", "--path-format=absolute", "--show-toplevel", "--git-dir", "--git-common-dir", "--show-object-format"],
-    { cwd, env: cleanEnv({}) },
+    { cwd, env: gitEnv({}) },
   )
   if (run.code !== 0) return null
   const [root, gitDir, commonDir, format] = text(run.stdout).split("\n")
@@ -203,15 +162,6 @@ function unreadPaths(stderr: string): string[] {
   return paths
 }
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return error instanceof Error && "code" in error && error.code === "EPERM"
-  }
-}
-
 // Each process works in index-<pid>/. Our own pid's folder is left over from an earlier process too.
 function removeStaleIndexes(store: string): void {
   for (const name of readdirSync(store)) {
@@ -243,7 +193,7 @@ async function createRepo(gitDir: string, format: string | null): Promise<void> 
   const formatArg = format === null ? [] : [`--object-format=${format}`]
   const run = await git(["init", "--bare", "--quiet", "--template=", ...formatArg, temp], {
     cwd: dirname(gitDir),
-    env: cleanEnv({}),
+    env: gitEnv({}),
   })
   if (run.code !== 0) throw new Error(`git init failed: ${run.stderr}`)
   appendFileSync(join(temp, "config"), CONFIG)
@@ -282,7 +232,7 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
   const work = join(store, `index-${process.pid}`)
   const index = join(work, "index")
   const exclude = join(gitDir, "info", "exclude")
-  const own = cleanEnv({ GIT_DIR: gitDir, GIT_WORK_TREE: root, GIT_INDEX_FILE: index })
+  const own = gitEnv({ GIT_DIR: gitDir, GIT_WORK_TREE: root, GIT_INDEX_FILE: index })
   // Git refreshes the mtime of an object it would write that an alternate already holds, which would touch the
   // project's .git. So the project's objects are borrowed only by commands that write none.
   const borrowing = project

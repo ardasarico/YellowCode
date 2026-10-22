@@ -76,6 +76,68 @@ export function within<T>(promise: Promise<T>, ms: number): Promise<T | undefine
   return Promise.race([promise, late]).finally(() => clearTimeout(timer))
 }
 
+// No hook, fsmonitor or submodule status may run from any config the user has.
+const SAFE_CONFIG = [
+  "-c",
+  "core.hooksPath=/dev/null",
+  "-c",
+  "core.fsmonitor=false",
+  "-c",
+  "diff.ignoreSubmodules=dirty",
+  "-c",
+  "core.splitIndex=false",
+]
+
+export type GitRun = { code: number; stdout: Uint8Array; stderr: string; timedOut: boolean; killed: string | null }
+
+// The environment without any GIT_* variable of the user's, plus `extra`.
+export function gitEnv(extra: Record<string, string>): Record<string, string> {
+  const env: Record<string, string> = {}
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!key.startsWith("GIT_") && value !== undefined) env[key] = value
+  }
+  return { ...env, ...extra }
+}
+
+export async function runGit(
+  args: string[],
+  options: { cwd?: string; env: Record<string, string>; input?: string | Uint8Array; timeoutMs?: number },
+): Promise<GitRun> {
+  const proc = Bun.spawn(["git", ...SAFE_CONFIG, ...args], {
+    cwd: options.cwd,
+    env: options.env,
+    stdin: options.input === undefined ? "ignore" : new Blob([options.input]),
+    stdout: "pipe",
+    stderr: "pipe",
+  })
+  let timedOut = false
+  const timer =
+    options.timeoutMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          timedOut = true
+          proc.kill()
+        }, options.timeoutMs)
+  const [stdout, stderr, code] = await Promise.all([
+    new Response(proc.stdout).bytes(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+  clearTimeout(timer)
+  // Exit codes over 128 mean a signal. `killed` names it.
+  const killed = !timedOut && (proc.signalCode !== null || code > 128) ? (proc.signalCode ?? String(code)) : null
+  return { code, stdout, stderr: stderr.trim(), timedOut, killed }
+}
+
+export function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error instanceof Error && "code" in error && error.code === "EPERM"
+  }
+}
+
 export function writeManifest(store: string, manifest: Manifest): void {
   const folder = join(store, "prompts")
   mkdirSync(folder, { recursive: true, mode: 0o700 })
