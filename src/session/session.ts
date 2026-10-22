@@ -480,7 +480,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       } else if (item.kind === "tool" && block.type === "tool_use") {
         item.input = block.input
         item.inputText = JSON.stringify(block.input)
-        if (item.quiet && item.name === "ToolSearch" && !JSON.stringify(block.input).includes("SendMessage"))
+        if (item.quiet && item.name === "ToolSearch" && !(JSON.stringify(block.input) ?? "").includes("SendMessage"))
           item.quiet = false
         if (item.quiet && item.name === "SendMessage" && messageIdOf(block.input) === undefined) item.quiet = false
         item.summary = sent || summarizeToolInput(block.input)

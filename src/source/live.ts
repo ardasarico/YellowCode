@@ -57,44 +57,53 @@ export async function pump(
         else if (count % INVALID_LOG_EVERY === 0) log.warn(`invalid ${parsed.key} messages: ${count} so far`)
       }
       if (parsed.kind === "unknown" && event.dir === "in") log.debug(`unknown message ${parsed.key}`)
-      session.apply(event.dir, parsed, event.at)
-      if (event.dir === "in" && parsed.kind === "message") {
-        live?.controls.onMessage(parsed.message)
-        live?.asks.seen(parsed.message)
-      }
-      if (event.dir === "in" && parsed.kind === "message" && parsed.message.type === "control_response")
-        live?.requests.settle(parsed.message.response)
-      if (
-        live &&
-        event.dir === "in" &&
-        parsed.kind === "message" &&
-        parsed.message.type === "control_request" &&
-        parsed.message.request.subtype === "mcp_message"
-      )
-        live.asks.serve(parsed.message.request_id, parsed.message.request)
-      if (live && event.dir === "in" && parsed.kind !== "message" && parsed.key.startsWith("control_request/")) {
-        const subtype = parsed.key.slice("control_request/".length)
-        const reply = refusal(
-          event.line,
-          parsed.kind === "unknown"
-            ? `YellowCode does not support ${subtype}`
-            : `YellowCode could not read this ${subtype} request`,
-        )
-        if (reply) {
-          log.warn(`answered ${parsed.key} with an error`)
-          source.send(reply)
+      const key = parsed.kind === "message" ? parsed.message.type : parsed.key
+      try {
+        try {
+          session.apply(event.dir, parsed, event.at)
+        } catch (error) {
+          log.error(`cannot apply ${key}`, error)
         }
+        if (event.dir === "in" && parsed.kind === "message") {
+          live?.controls.onMessage(parsed.message)
+          live?.asks.seen(parsed.message)
+        }
+        if (event.dir === "in" && parsed.kind === "message" && parsed.message.type === "control_response")
+          live?.requests.settle(parsed.message.response)
+        if (
+          live &&
+          event.dir === "in" &&
+          parsed.kind === "message" &&
+          parsed.message.type === "control_request" &&
+          parsed.message.request.subtype === "mcp_message"
+        )
+          live.asks.serve(parsed.message.request_id, parsed.message.request)
+        if (live && event.dir === "in" && parsed.kind !== "message" && parsed.key.startsWith("control_request/")) {
+          const subtype = parsed.key.slice("control_request/".length)
+          const reply = refusal(
+            event.line,
+            parsed.kind === "unknown"
+              ? `YellowCode does not support ${subtype}`
+              : `YellowCode could not read this ${subtype} request`,
+          )
+          if (reply) {
+            log.warn(`answered ${parsed.key} with an error`)
+            source.send(reply)
+          }
+        }
+        // A user's settings rule can still ask about our own ask; its tools/call follows and opens it.
+        if (
+          live &&
+          event.dir === "in" &&
+          parsed.kind === "message" &&
+          parsed.message.type === "control_request" &&
+          parsed.message.request.subtype === "can_use_tool" &&
+          parsed.message.request.tool_name === OWN_ASK
+        )
+          source.send(allowTool(parsed.message.request_id, parsed.message.request.input))
+      } catch (error) {
+        log.error(`cannot handle ${key}`, error)
       }
-      // A user's settings rule can still ask about our own ask; its tools/call follows and opens it.
-      if (
-        live &&
-        event.dir === "in" &&
-        parsed.kind === "message" &&
-        parsed.message.type === "control_request" &&
-        parsed.message.request.subtype === "can_use_tool" &&
-        parsed.message.request.tool_name === OWN_ASK
-      )
-        source.send(allowTool(parsed.message.request_id, parsed.message.request.input))
       // Lines that are already waiting arrive without a macrotask, so a burst would not paint until it ends.
       if (performance.now() - yielded > 8) {
         await new Promise((resolve) => setImmediate(resolve))
