@@ -3,7 +3,7 @@ import { testRender } from "@opentui/solid"
 import { OWN_ASK, ownAskResult } from "../../protocol/messages.ts"
 import { allowAnswers, ownAskReply } from "../../protocol/outgoing.ts"
 import { parse } from "../../protocol/parse.ts"
-import { answersInResult, ownAskProblem } from "../../session/ask.ts"
+import { answersInResult, askKeys, ownAskProblem } from "../../session/ask.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
 import { alwaysChoice } from "./permission-band.tsx"
@@ -96,7 +96,7 @@ const sendOwn = (input: object, answers: Record<string, string>, notes: Record<s
   const line = parse(ownAskReply({ requestId: "r", input }, 7, allowAnswers("r", input, answers, notes)))
   const reply = line.kind === "message" && line.message.type === "control_response" ? line.message.response : null
   const text = ownAskResult.parse(reply?.response).mcp_response.result.content[0]?.text ?? ""
-  expect(answersInResult(text)).toEqual({ answers, notes })
+  expect(answersInResult(text, askKeys(input))).toEqual({ answers, notes })
   return text
 }
 
@@ -114,6 +114,16 @@ test("an own ask's answer reaches Claude in stock's words and reads back the sam
     'Your questions have been answered: "Keep?": "A"="Yes", "B"="No" notes: later. You can now continue with ' +
       "these answers in mind.",
   )
+})
+
+test("quotes in a question, a row or an answer keep every answer under its own key", () => {
+  const questions = [
+    { question: 'Use "strict" mode?', header: "Mode", options: numbered(2) },
+    { question: "Which?", header: "Format", options: numbered(2) },
+  ]
+  sendOwn({ questions }, { 'Use "strict" mode?': 'Yes, "always"', "Which?": 'a", "b' }, { "Which?": 'it said "no"' })
+  const matrix = { question: "Keep?", header: "File", rows: [{ label: 'The "A" file' }, { label: "B" }], scale: ["x"] }
+  sendOwn({ matrix }, { 'The "A" file': 'Yes, "b"="c"', B: '"No"' }, {})
 })
 
 test("the always-allow label reads as words and never comes out empty", () => {

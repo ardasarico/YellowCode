@@ -20,7 +20,7 @@ import {
 import { parse, type ParseResult } from "../protocol/parse.ts"
 import type { SourceEvent } from "../source/source.ts"
 import { readAgentMessage } from "./agent-message.ts"
-import { answersInResult } from "./ask.ts"
+import { answersInResult, askKeys } from "./ask.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { isShell } from "./shells.ts"
@@ -1223,7 +1223,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         item.denial = text
         return
       }
-      const { answers, notes } = answersInResult(text)
+      const { answers, notes } = answersInResult(text, askKeys(item.input))
       item.status = "answered"
       item.answers = answers
       item.notes = notes

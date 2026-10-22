@@ -3,7 +3,7 @@ import { extname } from "node:path"
 import { createSignal, Index, Show } from "solid-js"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
-import { answersInResult, severe } from "../session/ask.ts"
+import { answersInResult, askKeys, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
@@ -119,7 +119,7 @@ function settledQuestion(tool: ToolCall): string | null {
 }
 
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
-  const { answers, notes } = ask?.status === "answered" ? ask : answersInResult(tool.result)
+  const { answers, notes } = ask?.status === "answered" ? ask : answersInResult(tool.result, askKeys(tool.input))
   const questions = askUserQuestionInput.safeParse(tool.input).data?.questions ?? []
   return Object.entries(answers).map(([question, answer]) => {
     const header = questions.find((entry) => entry.question === question)?.header ?? question
