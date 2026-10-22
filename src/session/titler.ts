@@ -4,6 +4,7 @@ import { join } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
 import { parseJson } from "../protocol/json.ts"
+import { hostEnv } from "../source/claude-cli.ts"
 
 export type SessionTitle = { title: string; summary: string }
 
@@ -65,7 +66,7 @@ export async function titleSession(messages: readonly string[]): Promise<Session
   if (stopped || recent.length === 0) return null
   const proc = Bun.spawn(
     ["claude", "-p", "--model=haiku", "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
-    { cwd: neutralDir(), stdin: new Blob([instructions(recent)]), stdout: "pipe", stderr: "pipe" },
+    { cwd: neutralDir(), env: hostEnv(), stdin: new Blob([instructions(recent)]), stdout: "pipe", stderr: "pipe" },
   )
   running.add(proc)
   void proc.exited.then(() => running.delete(proc))
