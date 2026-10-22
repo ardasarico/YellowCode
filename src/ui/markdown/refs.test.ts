@@ -21,3 +21,10 @@ test("textParts keeps punctuation out of refs and finds image mentions", () => {
   expect(textParts("[Image 0]", cwd, 2).some((part) => part.target)).toBe(false)
   expect(textParts("[Image 3]", cwd, 2).some((part) => part.target)).toBe(false)
 })
+
+test("textParts splits a long run of punctuation in linear time", () => {
+  const word = `${"!".repeat(50_000)}x`
+  const start = performance.now()
+  textParts(word, cwd, 0)
+  expect(performance.now() - start).toBeLessThan(50)
+})

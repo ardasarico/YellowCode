@@ -70,18 +70,29 @@ export function parseRef(text: string, cwd: string): FileRef | null {
 const WORD = /(\S+)/
 const MENTION = /\[Image (\d+)\]/g
 
+const LEADING = "(\"'`"
+const TRAILING = ".,;:!?)\"'`"
+
+function splitPunctuation(word: string): { lead: string; core: string; tail: string } {
+  let start = 0
+  while (start < word.length && LEADING.includes(word[start] ?? "")) start++
+  let end = word.length
+  while (end > start && TRAILING.includes(word[end - 1] ?? "")) end--
+  return { lead: word.slice(0, start), core: word.slice(start, end), tail: word.slice(end) }
+}
+
 function wordParts(text: string, cwd: string): Part[] {
   const parts: Part[] = []
   text.split(WORD).forEach((piece, index) => {
-    const match = index % 2 === 1 ? /^([("'`]*)(.*?)([.,;:!?)"'`]*)$/.exec(piece) : null
-    const ref = match?.[2] ? parseRef(match[2], cwd) : null
-    if (!ref || !match) {
+    const split = index % 2 === 1 ? splitPunctuation(piece) : null
+    const ref = split?.core ? parseRef(split.core, cwd) : null
+    if (!ref || !split) {
       if (piece) parts.push({ text: piece })
       return
     }
-    if (match[1]) parts.push({ text: match[1] })
-    parts.push({ text: match[2] ?? "", target: { kind: "file", ref } })
-    if (match[3]) parts.push({ text: match[3] })
+    if (split.lead) parts.push({ text: split.lead })
+    parts.push({ text: split.core, target: { kind: "file", ref } })
+    if (split.tail) parts.push({ text: split.tail })
   })
   return parts
 }
