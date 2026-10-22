@@ -46,6 +46,11 @@ export function unifiedHunks(text: string): Hunk[] {
   let hunk: Hunk | undefined
   for (const line of text.replace(/\n$/, "").split("\n")) {
     const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line)
+    // A `diff --git` line starts the next file, so its headers are skipped again instead of read as hunk lines.
+    if (line.startsWith("diff ")) {
+      hunk = undefined
+      continue
+    }
     if (header) {
       const [oldStart, oldLines, newStart, newLines] = header.slice(1).map((value) => Number(value ?? 1))
       hunk = {
