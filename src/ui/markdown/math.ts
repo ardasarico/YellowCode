@@ -82,7 +82,9 @@ function script(text: string, map: Record<string, string>): string | null {
 // A best-effort TeX to Unicode conversion; whatever it does not know stays as written.
 export function toUnicode(tex: string): string {
   const whole = /^\\frac\{[^{}]*\}\{[^{}]*\}$/.test(tex.trim())
-  let text = tex.trim().replace(/\\([a-zA-Z]+)/g, (raw, name: string) => SYMBOLS[name] ?? raw)
+  let text = tex
+    .trim()
+    .replace(/\\([a-zA-Z]+)/g, (raw, name: string) => (Object.hasOwn(SYMBOLS, name) ? (SYMBOLS[name] ?? raw) : raw))
   text = text.replace(/([\^_])(?:\{([^{}]*)\}|([^\s{}\\]))/g, (raw, mark: string, group?: string, char?: string) => {
     return script(group ?? char ?? "", mark === "^" ? SUPERSCRIPT : SUBSCRIPT) ?? raw
   })
