@@ -3,6 +3,7 @@ import { useRenderer } from "@opentui/solid"
 import type { Cls, MermaidArt } from "grok-mermaid"
 import { createMemo, createSignal, For, Index, type JSX, onCleanup, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
+import { cut, pad } from "../format.ts"
 import { blank, type Cell, cellOf, sameCell, trackImage } from "../images.ts"
 import { axisLabels, bar, type Chart, columnCell, columnTop, lineCells } from "./chart.ts"
 import { chartImage, type XYChart } from "./chart-image.ts"
@@ -42,8 +43,6 @@ function toned(color: RGBA): RGBA {
   return RGBA.fromInts(mix(r, br), mix(g, bg), mix(b, bb))
 }
 
-const clip = (label: string, width: number) => (label.length > width ? `${label.slice(0, width - 1)}…` : label)
-
 function Title(props: { children: string }) {
   return (
     <Show when={props.children}>
@@ -72,14 +71,14 @@ export function DiagramArt(props: { art: MermaidArt }) {
 type BarRow = { label: string; value: number; shown: string; color: RGBA }
 
 function HorizontalBars(props: { rows: BarRow[]; width: number }) {
-  const labelWidth = () => Math.max(0, ...props.rows.map((row) => clip(row.label, LABEL_COLUMNS).length))
+  const labelWidth = () => Math.max(0, ...props.rows.map((row) => Bun.stringWidth(cut(row.label, LABEL_COLUMNS))))
   const barWidth = () => Math.max(4, Math.min(BAR_COLUMNS, props.width - labelWidth() - 10))
   const max = () => Math.max(0, ...props.rows.map((row) => row.value))
   return (
     <For each={props.rows}>
       {(row) => (
         <text wrapMode="none">
-          <span style={{ fg: theme.text }}>{clip(row.label, LABEL_COLUMNS).padEnd(labelWidth() + 2)}</span>
+          <span style={{ fg: theme.text }}>{pad(cut(row.label, LABEL_COLUMNS), labelWidth() + 2)}</span>
           <span style={{ fg: row.color }}>{bar(row.value, max(), barWidth()).padEnd(barWidth() + 2)}</span>
           <span style={{ fg: theme.muted }}>{row.shown}</span>
         </text>
@@ -96,7 +95,7 @@ function VerticalBars(props: { rows: BarRow[]; width: number }) {
   const barWidth = () => Math.max(1, Math.min(5, slot() - 2))
   const max = () => Math.max(0, ...props.rows.map((row) => row.value))
   const center = (text: string) => {
-    const room = slot() - text.length
+    const room = Math.max(0, slot() - Bun.stringWidth(text))
     return " ".repeat(Math.floor(room / 2)) + text + " ".repeat(Math.ceil(room / 2))
   }
   const cell = (row: BarRow, line: number) =>
@@ -150,7 +149,7 @@ export function ChartBars(props: { chart: Chart; width: number }) {
   const upright = () => {
     if (props.chart.type !== "xy" || props.chart.horizontal) return false
     const room = slotOf(rows(), props.width) - 1
-    return rows().every((item) => item.label.length <= room && item.shown.length <= room)
+    return rows().every((item) => Bun.stringWidth(item.label) <= room && Bun.stringWidth(item.shown) <= room)
   }
   return (
     <box flexDirection="column">
@@ -331,7 +330,8 @@ const lasting = (task: GanttTask) => {
 // Sections and their tasks against a dated axis, with dotted guides at weeks, months or years.
 export function GanttView(props: { gantt: Gantt; width: number }) {
   const tasks = () => props.gantt.tasks
-  const labelWidth = () => Math.min(LABEL_COLUMNS + 2, Math.max(...tasks().map((task) => task.name.length)) + 4)
+  const labelWidth = () =>
+    Math.min(LABEL_COLUMNS + 2, Math.max(...tasks().map((task) => Bun.stringWidth(task.name))) + 4)
   const first = () => Math.min(...tasks().map((task) => task.start))
   const last = () => Math.max(...tasks().map((task) => task.end))
   const columns = () => Math.max(10, Math.min(GANTT_COLUMNS, props.width - labelWidth() - 8))
@@ -375,9 +375,7 @@ export function GanttView(props: { gantt: Gantt; width: number }) {
           <box flexDirection="column">
             <Show when={section}>
               {ganttRow(
-                <span style={{ fg: theme.text, bold: true }}>
-                  {clip(section, labelWidth() - 1).padEnd(labelWidth())}
-                </span>,
+                <span style={{ fg: theme.text, bold: true }}>{pad(cut(section, labelWidth() - 1), labelWidth())}</span>,
                 <span style={{ fg: theme.frame }}>{blankRow(0, columns())}</span>,
               )}
             </Show>
@@ -390,7 +388,7 @@ export function GanttView(props: { gantt: Gantt; width: number }) {
                 const end = () => (milestone ? from() + 1 : to()) + note.length
                 return ganttRow(
                   <span style={{ fg: task.tags.includes("done") ? theme.muted : theme.text }}>
-                    {`  ${clip(task.name, labelWidth() - 3)}`.padEnd(labelWidth())}
+                    {pad(`  ${cut(task.name, labelWidth() - 3)}`, labelWidth())}
                   </span>,
                   <>
                     <span style={{ fg: theme.frame }}>{blankRow(0, from())}</span>

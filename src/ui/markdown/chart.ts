@@ -1,3 +1,5 @@
+import { cut } from "../format.ts"
+
 export type Slice = { label: string; value: number }
 export type Series = { kind: "bar" | "line"; values: number[] }
 export type Chart =
@@ -130,11 +132,23 @@ export function lineCells(series: number[][], width: number, height: number, low
 export function axisLabels(labels: string[], width: number): string {
   const cells = Array.from({ length: width }, () => " ")
   const every = Math.max(1, Math.ceil((labels.length * 6) / width))
-  labels.forEach((label, index) => {
+  labels.forEach((name, index) => {
     if (index % every !== 0 && index !== labels.length - 1) return
+    const label = cut(name, width)
+    const size = Bun.stringWidth(label)
     const at = Math.round((index / Math.max(1, labels.length - 1)) * (width - 1))
-    const start = Math.max(0, Math.min(width - label.length, at - Math.floor(label.length / 2)))
-    for (let offset = 0; offset < label.length; offset++) cells[start + offset] = label[offset] ?? " "
+    let column = Math.max(0, Math.min(width - size, at - Math.floor(size / 2)))
+    const first = column
+    for (const char of label) {
+      const span = Bun.stringWidth(char)
+      if (span === 0) {
+        if (column > first) cells[column - 1] += char
+        continue
+      }
+      cells[column] = char
+      for (let extra = 1; extra < span; extra++) cells[column + extra] = ""
+      column += span
+    }
   })
   return cells.join("").trimEnd()
 }
