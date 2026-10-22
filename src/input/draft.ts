@@ -74,7 +74,7 @@ function mediaType(type: string): OutgoingImage["mediaType"] {
 export function draftFromMessage(text: string, images: ChatImage[], to?: Draft["to"]): Draft {
   const outgoing = images.map((image) => ({ mediaType: mediaType(image.mediaType), base64: image.data ?? "" }))
   const unlabeled = outgoing.flatMap((_, index) => (text.includes(`[Image ${index + 1}]`) ? [] : [index + 1]))
-  const full = unlabeled.map((n) => `[Image ${n}] `).join("") + text
+  const full = [text, ...unlabeled.map((n) => `[Image ${n}]`)].filter(Boolean).join(" ")
   const chips = outgoing.map((image, index): PlacedChip => {
     const label = `[Image ${index + 1}]`
     const start = full.indexOf(label)

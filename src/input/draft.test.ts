@@ -3,6 +3,7 @@ import { measureEditText } from "@opentui/core"
 import {
   collapses,
   type Draft,
+  draftFromMessage,
   expandDraft,
   imagePath,
   normalizePaste,
@@ -20,6 +21,22 @@ test("expandDraft replaces chips by range and renumbers images", () => {
 
   const second: Draft = { text: "see [Image 2]", chips: [{ start: 4, end: 13, chip: { kind: "image", n: 2, image } }] }
   expect(expandDraft(second)).toEqual({ text: "see [Image 1]", images: [image] })
+})
+
+test("a recalled message keeps every image in its number", () => {
+  const images = [
+    { name: "a", mediaType: "image/png", data: "AA", path: null },
+    { name: "b", mediaType: "image/png", data: "BB", path: null },
+  ]
+  const draft = draftFromMessage("[Image 1] hi", images)
+  expect(draft.text).toBe("[Image 1] hi [Image 2]")
+  expect(expandDraft(draft)).toEqual({
+    text: "[Image 1] hi [Image 2]",
+    images: [
+      { mediaType: "image/png", base64: "AA" },
+      { mediaType: "image/png", base64: "BB" },
+    ],
+  })
 })
 
 test("collapses past 800 characters or at 3 newlines", () => {
