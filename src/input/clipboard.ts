@@ -54,7 +54,7 @@ export const readClipboard: ReadClipboard = async () => {
   const json = parseJson(stdout)
   const output = json.ok ? Output.safeParse(json.value) : null
   if (!output?.success) {
-    log.warn("clipboard read: unexpected output", stdout.slice(0, 200))
+    log.warn("clipboard read: unexpected output", { length: stdout.length })
     return null
   }
   const content = output.data
