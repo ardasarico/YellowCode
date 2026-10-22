@@ -150,7 +150,6 @@ function stop(old: Connection): Promise<void> {
   return gone
 }
 
-// The session claude runs: the id it reported, else the one it was started with.
 const idOf = (live: Connection) => live.session.state.info?.id ?? live.spawn.sessionId ?? live.spawn.resume
 
 function liveMode() {
@@ -192,7 +191,6 @@ async function replayMode(file: string) {
 const mode = values.replay === undefined ? liveMode() : await replayMode(values.replay)
 // Snapshots of the project around each prompt, for rewinding its files; a replay touches no files.
 const capture = mode.kind === "live" ? createCapture(cwd) : null
-// Stops following the session of the current connection.
 let unfollow = capture?.follow(firstSession)
 const fileRewind = createFileRewind(capture, cwd)
 const preview = livePreview(capture, cwd, (session) => fileRewind.pending(session))

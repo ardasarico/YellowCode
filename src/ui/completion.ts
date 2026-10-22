@@ -410,7 +410,6 @@ export function useCompletion(options: CompletionOptions) {
     }
   })
 
-  // The hint's left edge in the textarea, and the hint cut to the room after the typed text.
   const hint = () => {
     const current = ghost()
     if (!current) return null

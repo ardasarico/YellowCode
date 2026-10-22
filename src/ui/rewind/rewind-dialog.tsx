@@ -39,7 +39,6 @@ export function RewindDialog(
   // The points change only once, when a late preview lands; the prompts stay the same.
   const [points, setPoints] = createSignal(untrack(() => props.points))
   const shown = untrack(points).filter((point) => !point.hidden)
-  // The newest prompt is selected first.
   const [selected, setSelected] = createSignal(shown.at(-1)?.userId)
   const index = () => points().findIndex((point) => point.userId === selected())
   // Dry run results by prompt index; until a prompt's lands, its summary counts the chat's files.

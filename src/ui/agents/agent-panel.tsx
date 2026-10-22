@@ -102,7 +102,6 @@ export function NodeRow(props: { node: TreeNode; selected: boolean; width: numbe
   )
 }
 
-// One row per node below the info line, a `+N more` row when cut, and the key line while it has the keys.
 export function AgentPanel(props: {
   nodes: TreeNode[]
   selected: string | null

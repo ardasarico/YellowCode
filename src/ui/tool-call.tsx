@@ -93,7 +93,6 @@ function backToChat(ask: Ask): boolean {
 // claude's result for a call the user interrupted.
 const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool use."
 
-// The denials a question's row names in words.
 function knownDenial(denial: string): string | null {
   if (denial.startsWith(NOT_SHOWN)) return `rejected · ${denial.slice(NOT_SHOWN.length).replace(/\.$/, "")}`
   if (denial === QUESTION_TO_CHAT) return "back to chat"

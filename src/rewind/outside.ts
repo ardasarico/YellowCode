@@ -47,7 +47,6 @@ export async function fileHash(store: string, file: string): Promise<string | nu
   return (await git(store, ["hash-object", "--no-filters", "--", file])) ?? undefined
 }
 
-// The store's refs whose names start with the prefix.
 export async function refsUnder(store: string, prefix: string): Promise<string[]> {
   const listed = await git(store, ["for-each-ref", "--format=%(refname)"])
   return (listed ?? "").split("\n").filter((ref) => ref.startsWith(prefix))

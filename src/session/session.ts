@@ -316,7 +316,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   const outputRequests = new Map<string, string>()
   // Calls to our own ask not yet known to be the main agent's, by tool_use id.
   const heldAsks = new Map<string, Ask>()
-  // The request id of the interrupt that is out.
   let interruptId: string | null = null
   // Messages sent during a turn that claude has not taken in yet: uuid → user item.
   const waiting = new Map<string, ItemId>()

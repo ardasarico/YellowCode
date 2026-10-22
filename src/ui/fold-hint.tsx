@@ -6,7 +6,6 @@ export type FoldState = { open: boolean; selected: boolean; hidden?: number; ver
 
 type Part = { text: string; fg: () => RGBA | undefined }
 
-// A closed fold keeps its `+N lines`; the key hint shows only while it is selected.
 export function foldHintParts(state: FoldState): Part[] {
   const verb = (state.verbs ?? ["expand", "collapse"])[state.open ? 1 : 0]
   const count: Part[] = !state.open && state.hidden ? [{ text: `+${state.hidden} lines`, fg: () => theme.muted }] : []

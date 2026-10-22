@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test"
 import { createClaudeSource } from "./claude.ts"
 
-// Stands in for claude: echoes each line, ends when its input closes, and exits with code 3 on "quit".
 const ECHO = `
 for await (const line of console) {
   if (line === "quit") {

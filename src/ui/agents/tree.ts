@@ -74,7 +74,6 @@ function byPhase(workflow: WorkflowProgress): Map<number | null, WorkflowAgent[]
   return groups
 }
 
-// The latest phase with a started agent, as `Title done/total`; "" before any agent starts.
 function workflowStatus(workflow: WorkflowProgress | null, running: boolean): string {
   if (!workflow) return ""
   const groups = byPhase(workflow)
@@ -289,7 +288,6 @@ export function agentTree(session: Session): TreeNode[] {
   return topCalls(session).flatMap((tool, order) => subtree(session, tool, 1, null, order))
 }
 
-// The top-level agents and workflows alone, without their descendants.
 export function topNodes(session: Session): TreeNode[] {
   return topCalls(session).map((tool, order) =>
     isWorkflowCall(tool) ? workflowNode(session, tool, 1, null, order) : agentNode(session, tool, 1, null, order),

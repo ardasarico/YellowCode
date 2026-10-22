@@ -4,7 +4,6 @@ import { ImageTile } from "./image-tile.tsx"
 
 type ImageChip = Extract<Chip, { kind: "image" }>
 
-// The thumbnails of a draft's image chips, followed by one blank row; nothing while there is no image chip.
 export function ImageStrip(props: { chips: PlacedChip[]; marginLeft?: number; onRows?: (rows: number) => void }) {
   const images = () => props.chips.flatMap(({ chip }) => (chip.kind === "image" ? [chip] : []))
   return (

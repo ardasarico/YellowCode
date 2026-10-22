@@ -35,7 +35,6 @@ function agentRows(agents: WorkflowPlan["loose"], lead: string): PlanRow[] {
   return agents.map((agent) => ({ lead, name: agent.label ? `${agent.label}  ` : "", text: agent.prompt }))
 }
 
-// Each phase with its detail, then the prompts of the agents the script starts in it.
 function planRows(plan: WorkflowPlan): PlanRow[] {
   return [
     ...plan.phases.flatMap((phase, index) => [

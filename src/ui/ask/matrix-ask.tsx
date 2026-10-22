@@ -61,7 +61,7 @@ function Step(props: { text: string; on: boolean; here: boolean; focused: boolea
   )
 }
 
-// Rows answered on one shared scale, five to a page or four stacked; ↓ past a page's last row opens the next one.
+// Rows answered on one shared scale, eight to a page or six stacked; ↓ past a page's last row opens the next one.
 export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   const rows = () => props.matrix.rows
   const scale = () => props.matrix.scale
@@ -119,7 +119,6 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
     if (step >= 0) setState("cursor", step)
   }
   const cursor = () => state.cursor
-  // Picking the chosen step again clears the row.
   const toggle = (step: number) => answer(state.answers[state.row] === step ? -1 : step)
   const saveNote = () => {
     setState("notes", state.row, draft().trim())

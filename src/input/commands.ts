@@ -26,7 +26,6 @@ export function shownCommands(commands: SlashCommand[], terminalOnly: readonly s
   return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
 }
 
-// A name claude lists twice shows once, as its first row.
 export function claudeCommands(commands: SlashCommand[], terminalOnly: readonly string[]): Command[] {
   const seen = new Set<string>()
   const unique = shownCommands(commands, terminalOnly).filter(({ name }) => !seen.has(name) && seen.add(name))

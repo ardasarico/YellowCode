@@ -73,7 +73,6 @@ export function answersInResult(
   return { answers, notes }
 }
 
-// The keys a reply to this ask is written under: its questions, or its matrix rows.
 export function askKeys(input: unknown): string[] {
   const matrix = ownAskMatrix.safeParse(input).data?.matrix
   if (matrix) return matrix.rows.map((row) => row.label)

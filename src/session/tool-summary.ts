@@ -84,7 +84,6 @@ export function writtenContent(input: unknown): string | null {
 
 const messageFields = z.looseObject({ to: z.string().optional(), message: z.string().optional() })
 
-// An id no task knows stays as it is.
 export function sendMessageSummary(input: unknown, tasks: Record<string, { name: string } | undefined>): string {
   const parsed = messageFields.safeParse(input)
   if (!parsed.success || !parsed.data.to) return ""

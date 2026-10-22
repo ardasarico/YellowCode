@@ -75,7 +75,6 @@ export function shortError(error: string): string {
   return text.split(/(?<=[.!?])\s/)[0] ?? text
 }
 
-// `failed: <short error>` cut to `room` columns, or the bare state when there is no error or no room for it.
 export function failure(node: TreeNode, room: number): string {
   const reasonRoom = room - "failed: ".length
   if (node.state !== "failed" || !node.error || reasonRoom < 4) return node.state
@@ -145,7 +144,6 @@ function workflowParts(node: TreeNode, duration: number): Part[] {
   return parts
 }
 
-// A workflow's mark turns red once any of its agents failed, and a finished one shows a cross.
 export function workflowMark(node: TreeNode, color: RGBA): { color: RGBA; state: TaskState } {
   const failed = (node.progress?.failed ?? 0) > 0
   const state = failed && node.state === "completed" ? "failed" : node.state

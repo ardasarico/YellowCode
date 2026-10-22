@@ -20,7 +20,6 @@ import { type Change, openSnapshots, type Snapshots, type Taken } from "./snapsh
 export const BEFORE_CAP_MS = 3000
 // Larger files outside the root are not kept, so they are not put back.
 const OUTSIDE_LIMIT = 2 * 1024 * 1024
-// How long a quit waits for takes still running.
 const STOP_WAIT_MS = 1000
 // Each start takes this one again, so warm-ups leave a single ref behind.
 const WARM_UP = "warm-up"
@@ -229,7 +228,6 @@ const manifestFile = z.object({
   shells: z.array(z.string()),
 })
 
-// The prompt's manifest, null when it has none or cannot be read.
 // What an outside file holds before a call may change it: only a regular file up to OUTSIDE_LIMIT is read, never
 // through a symlink; null when it cannot be read that way.
 async function readBefore(file: string): Promise<Before | null> {
@@ -253,6 +251,7 @@ async function readBefore(file: string): Promise<Before | null> {
   }
 }
 
+// The prompt's manifest, null when it has none or cannot be read.
 export function readManifest(store: string, uuid: string): Manifest | null {
   let text: string
   try {

@@ -112,7 +112,6 @@ function notification(text: string, at: number): SourceEvent[] {
   ]
 }
 
-// The events of one transcript entry, in order.
 export function toEvents(entry: Entry): SourceEvent[] {
   const at = entry.timestamp === undefined ? 0 : Date.parse(entry.timestamp)
   const event = (dir: "in" | "out", message: object): SourceEvent => ({ dir, line: JSON.stringify(message), at })

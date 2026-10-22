@@ -46,7 +46,6 @@ function rowParts(row: DialogRow, value: string, room: number, tagColumn: number
   return { label, tag, pad: "", detail: "", gap, value: right }
 }
 
-// The tag follows the label, and the detail starts at `column`.
 function detailParts(row: DialogRow, value: string, room: number, column: number) {
   const right = value ? cut(value, room) : ""
   const left = Math.max(0, room - width(right) - (right ? 1 : 0))

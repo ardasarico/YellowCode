@@ -30,7 +30,6 @@ export function fact(id: string, label: string, value: string, width: number, fg
   )
 }
 
-// Names packed into lines of `width`, joined by ", ".
 function pack(list: string[], width: number): string[][] {
   const lines: string[][] = []
   for (const name of list) {

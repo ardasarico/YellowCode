@@ -152,7 +152,6 @@ function FoldLine(props: {
   )
 }
 
-// A paragraph that is only a `$$…$$` formula.
 function blockMath(entry: Entry): string | undefined {
   const paragraph = is(entry, "paragraph")
   return paragraph ? /^\$\$([\s\S]+)\$\$$/.exec(paragraph.text.trim())?.[1] : undefined

@@ -17,7 +17,6 @@ import { createSession, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
-// With `until`, stops before the first line that contains it.
 function replay(name: string, until?: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
   const session = createSession()

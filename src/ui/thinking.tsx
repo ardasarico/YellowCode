@@ -57,7 +57,6 @@ function ThinkingTrace(props: {
   )
 }
 
-// A live line shows while thinking runs; a muted trace stays once it ends, and Enter shows the text.
 export function ThinkingRow(props: {
   item: Thinking
   selected?: boolean

@@ -90,7 +90,6 @@ const SAFE_CONFIG = [
 
 export type GitRun = { code: number; stdout: Uint8Array; stderr: string; timedOut: boolean; killed: string | null }
 
-// The environment without any GIT_* variable of the user's, plus `extra`.
 export function gitEnv(extra: Record<string, string>): Record<string, string> {
   const env: Record<string, string> = {}
   for (const [key, value] of Object.entries(process.env)) {
