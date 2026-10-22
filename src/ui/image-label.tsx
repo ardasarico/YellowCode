@@ -2,6 +2,7 @@ import { NativeImage, RGBA } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
 import { type Accessor, createMemo, createSignal, Index, onCleanup, type Setter, Show } from "solid-js"
 import { shrunkCopy } from "../input/image-file.ts"
+import { log } from "../log/log.ts"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { remember } from "./markdown/cache.ts"
@@ -84,7 +85,11 @@ function settle(image: ChatImage, entry: Entry, decoded: NativeImage | null): vo
   if (decoded || !path || path.toLowerCase().endsWith(".svg")) return
   entry.size = undefined
   entry.setShrinking(true)
-  void shrunkCopy(path, SHOWN_SIDE).then((copy) => {
+  const shrunk = shrunkCopy(path, SHOWN_SIDE).catch((error: unknown) => {
+    log.warn("image could not be shrunk", String(error))
+    return null
+  })
+  void shrunk.then((copy) => {
     const pixels = copy && decodeImage(copy.bytes)
     if (copy && pixels) {
       if (files.get(keyOf(image)) === entry) cached += copy.bytes.length - entry.bytes.length

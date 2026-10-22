@@ -81,8 +81,9 @@ export async function shrunkCopy(
   path: string,
   side: number,
 ): Promise<{ bytes: Uint8Array; width: number; height: number } | null> {
-  const dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))
+  let dir: string | undefined
   try {
+    dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))
     const size = await pixelSize(path)
     const copy = join(dir, "copy.png")
     if (!size) return null
@@ -93,7 +94,7 @@ export async function shrunkCopy(
     log.warn("image could not be shrunk", String(error))
     return null
   } finally {
-    await rm(dir, { recursive: true, force: true })
+    if (dir) await rm(dir, { recursive: true, force: true })
   }
 }
 
