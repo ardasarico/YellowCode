@@ -32,7 +32,8 @@ export function useSessionTitle(
     running = true
     again = false
     const asked = untrack(conversation)
-    const next = await titleSession(messages())
+    // A request that throws must not leave `running` set, or no later message would ever refresh the title.
+    const next = await titleSession(messages()).catch(() => null)
     // A title for the conversation before a /clear would name the new one.
     if (next && asked === untrack(conversation)) setTitle(next)
     running = false
