@@ -8,8 +8,8 @@ const debugEnabled = process.env["YELLOWCODE_DEBUG"] === "1"
 let ready = false
 
 function write(level: string, message: string, detail?: unknown): void {
-  const suffix = detail === undefined ? "" : ` ${typeof detail === "string" ? detail : Bun.inspect(detail)}`
   try {
+    const suffix = detail === undefined ? "" : ` ${typeof detail === "string" ? detail : Bun.inspect(detail)}`
     if (!ready) {
       mkdirSync(dir, { recursive: true })
       ready = true
