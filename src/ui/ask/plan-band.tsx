@@ -1,8 +1,8 @@
-import { TextAttributes } from "@opentui/core"
+import { type InputRenderable, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
-import { createSignal, Index } from "solid-js"
+import { createSignal, Index, Show } from "solid-js"
 import { z } from "zod"
-import { allowTool, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
+import { allowTool, DECLINED_WITH_NOTE, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
 import { covered } from "../images.ts"
 import { Markdown } from "../markdown/markdown.tsx"
@@ -16,6 +16,7 @@ const CHOICES = ["Yes, start", "Keep planning"]
 const HINTS = "↑↓ choose · enter confirm · esc keep planning"
 const SCROLL_HINTS = "scroll for more · ↑↓ choose · enter confirm · esc keep planning"
 const SHORT_HINTS = "↑↓ · enter · esc"
+const NOTE_HINTS = "enter send · esc back"
 // Past this many lines the plan is taller than the band leaves room for.
 const LONG_PLAN = 12
 const planInput = z.looseObject({ plan: z.string().optional(), planFilePath: z.string().optional() })
@@ -31,19 +32,35 @@ export function PlanBand(props: AskViewProps) {
     return path ? `_The plan is in ${path}._` : "_Claude sent no plan text._"
   }
   const [cursor, setCursor] = createSignal(0)
+  const [noting, setNoting] = createSignal(false)
+  let field: InputRenderable | undefined
   const respond = (index: number) => {
     const { requestId, input } = props.ask
+    if (index === 0) props.onPlanApproved?.()
     props.onAnswer(index === 0 ? allowTool(requestId, input) : denyTool(requestId, TOOL_DECLINED))
+  }
+  const sendNote = (note: string) => {
+    const text = note.trim()
+    props.onAnswer(denyTool(props.ask.requestId, text ? DECLINED_WITH_NOTE + text : TOOL_DECLINED))
   }
   const typing = typingGuard()
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
+    if (noting()) {
+      if (key.name === "escape") setNoting(false)
+      return
+    }
+    const choose = (index: number) => {
+      key.preventDefault()
+      if (index === 0) respond(0)
+      else setNoting(true)
+    }
     if (key.name === "up") setCursor(0)
     else if (key.name === "down") setCursor(1)
-    else if (key.name === "return") respond(cursor())
+    else if (key.name === "return") choose(cursor())
     else if (key.name === "escape") respond(1)
-    else if (key.name === "1" || key.name === "2") respond(Number(key.name) - 1)
+    else if (key.name === "1" || key.name === "2") choose(Number(key.name) - 1)
   })
 
   return (
@@ -71,7 +88,7 @@ export function PlanBand(props: AskViewProps) {
       <box flexDirection="column" marginTop={1} flexShrink={0}>
         <Index each={CHOICES}>
           {(choice, index) => {
-            const focused = () => index === cursor()
+            const focused = () => !noting() && index === cursor()
             return (
               <text attributes={focused() ? TextAttributes.BOLD : TextAttributes.NONE}>
                 <span style={{ fg: theme.accent }}>{focused() ? "❯ " : "  "}</span>
@@ -81,9 +98,28 @@ export function PlanBand(props: AskViewProps) {
           }}
         </Index>
       </box>
+      <Show when={noting()}>
+        <box flexDirection="row" flexShrink={0}>
+          <text fg={theme.accent} flexShrink={0}>
+            {"  › "}
+          </text>
+          <input
+            focused
+            flexGrow={1}
+            placeholder="tell Claude what to change"
+            placeholderColor={theme.muted}
+            textColor={theme.text}
+            focusedTextColor={theme.text}
+            ref={(element: InputRenderable) => (field = element)}
+            onSubmit={() => sendNote(field?.value ?? "")}
+          />
+        </box>
+      </Show>
       <box flexDirection="row" justifyContent="flex-end" flexShrink={0}>
         <text fg={theme.faint} flexShrink={1}>
-          {fitHints(plan().split("\n").length > LONG_PLAN ? SCROLL_HINTS : HINTS, SHORT_HINTS, props.width - 4)}
+          {noting()
+            ? NOTE_HINTS
+            : fitHints(plan().split("\n").length > LONG_PLAN ? SCROLL_HINTS : HINTS, SHORT_HINTS, props.width - 4)}
         </text>
       </box>
     </box>

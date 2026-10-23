@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { agentMessage } from "../session/agent-message.ts"
+import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
@@ -28,7 +29,7 @@ import {
   stepModel,
   toggleUltracode,
 } from "../session/settings.ts"
-import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { failedSaves, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
 import { conversationMarkdown, exportFileName } from "../session/export.ts"
@@ -953,7 +954,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "tab" && key.shift) {
       key.preventDefault()
-      if (props.onInterrupt) setSessionMode(nextMode(props.session.permissionMode))
+      if (props.onInterrupt) chooseMode(nextMode(props.session.permissionMode))
       return
     }
     if (key.name === "tab") {
@@ -985,6 +986,24 @@ export function App(props: AppProps) {
 
   const live = () => props.replay === null && !props.readOnly
   const ended = () => live() && props.session.status === "ended"
+
+  const planBack = planReturn()
+  createEffect(
+    on(
+      () => props.session.permissionMode,
+      (mode) => {
+        const target = mode ? planBack.seen(mode) : null
+        if (target && props.onInterrupt) setSessionMode(target)
+      },
+    ),
+  )
+  const chooseMode = (mode: PermissionMode) => {
+    planBack.cancel()
+    setSessionMode(mode)
+  }
+  const planMode = () => {
+    if (props.onInterrupt) chooseMode("plan")
+  }
 
   const submit = ({ text, images, draft }: Submission): boolean => {
     if (rushedSubmit()) return false
@@ -1019,12 +1038,15 @@ export function App(props: AppProps) {
     else if (command === "/rewind" || command === "/timeline") void openRewind()
     else if (command === "/redo") redo()
     else if (command === "/export") setDialog({ name: "export" })
+    else if (command === "/plan") planMode()
     else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim())
     else {
+      const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
+      if (planned !== null) planMode()
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
       const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
-      const out = to ? agentMessage(to.id, to.name, text) : text
+      const out = to ? agentMessage(to.id, to.name, text) : (planned ?? text)
       const kept = to ? { ...draft, to } : draft
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
@@ -1093,6 +1115,7 @@ export function App(props: AppProps) {
             ask={ask}
             width={promptInnerWidth(chatWidth())}
             onAnswer={props.onAnswer}
+            onPlanApproved={() => planBack.approve()}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
             onOpenScript={(name, script) =>
               setDialog({ name: "code", refs: [{ path: `${name}.js`, text: script }], ids: [], index: 0 })

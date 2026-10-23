@@ -18,6 +18,7 @@ export type AskViewProps = {
   onAnswer: (response: string) => void
   onOpenImages?: (images: ChatImage[], index: number) => void
   onOpenScript?: (name: string, script: string) => void
+  onPlanApproved?: () => void
 }
 
 export type AskSurfaceProps = Omit<AskViewProps, "onAnswer" | "answered"> & {
@@ -66,7 +67,13 @@ export function AskSurface(props: AskSurfaceProps) {
       }
     >
       <Match when={props.ask.toolName === "ExitPlanMode"}>
-        <PlanBand ask={props.ask} width={props.width} answered={answered()} onAnswer={answer} />
+        <PlanBand
+          ask={props.ask}
+          width={props.width}
+          answered={answered()}
+          onAnswer={answer}
+          onPlanApproved={props.onPlanApproved}
+        />
       </Match>
       <Match when={view()?.matrix}>
         {(matrix) => (
