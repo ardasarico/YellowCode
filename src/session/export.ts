@@ -48,6 +48,9 @@ export function conversationMarkdown(
     } else if (item?.kind === "text" && !item.quiet && item.markdown.trim()) {
       say("claude")
       parts.push(item.markdown.trim())
+    } else if (item?.kind === "tool" && item.local) {
+      say("you")
+      parts.push(`! ${item.summary}`)
     } else if (item?.kind === "tool" && !item.quiet) {
       if (speaker !== "claude") say("claude")
       tools.push(toolLine(item, cwd))

@@ -32,7 +32,7 @@ export function RewindDialog(
     onRewind: (rewound: Rewound, seen: string[]) => Promise<RewindRecheck | null>
     // The chat shows the selected prompt; Go here leaves it there.
     onFocus: (userId: string) => void
-    onGo: (userId: string) => void
+    onGo: () => void
     onCopy: (text: string) => void
     onClose: () => void
   },
@@ -209,7 +209,7 @@ export function RewindDialog(
     if (id === "rewind") void enter()
     else if (id === "keep") {
       if (!entering) keep()
-    } else if (id === "go" && userId) props.onGo(userId)
+    } else if (id === "go" && userId) props.onGo()
     else if (id === "copy") props.onCopy(points()[index()]?.text ?? "")
   }
 

@@ -893,11 +893,11 @@ test("a prompt folded into the message's own turn keeps its answer visible", () 
   expect(items(session).find((item) => item.kind === "text")?.quiet).not.toBe(true)
 })
 
-test("a `!` command rides along with the next message and is told", () => {
+test("a `!` command rides along after the next message and is told", () => {
   const session = createSession()
   const id = session.startShell("git status", false)
   session.endShell(id, "clean\n", 0, false)
-  session.apply("out", parse(userMessage(`${shellContext("git status", "clean\n")}\n\nwhat changed?`)), 0)
+  session.apply("out", parse(userMessage(`what changed?\n\n${shellContext("git status", "clean\n")}`)), 0)
   const tool = session.state.byId[id]
   expect(tool?.kind === "tool" && tool.local?.told).toBe(true)
   const user = session.state.items.map((item) => session.state.byId[item]).find((item) => item?.kind === "user")

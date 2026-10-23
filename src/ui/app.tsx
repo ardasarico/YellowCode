@@ -965,6 +965,12 @@ export function App(props: AppProps) {
       return
     }
     if (focus() !== "chat") return
+    // Esc gives the keys back to the prompt.
+    if (key.name === "escape") {
+      key.preventDefault()
+      setFocus("input")
+      return
+    }
     if (key.name === "up") moveSelection(-1)
     else if (key.name === "down") moveSelection(1)
     else if (key.name === "return") {
@@ -1000,6 +1006,7 @@ export function App(props: AppProps) {
       // The input clears first: the row the command adds closes the welcome screen, which hands its text on.
       const run = props.onShell
       queueMicrotask(() => run(line))
+      jumpDown()
       sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
       return true
     }
@@ -1024,6 +1031,7 @@ export function App(props: AppProps) {
         : giveBack
       const accepted = ended() ? (props.onRestart?.(out, images, back) ?? false) : props.onSubmit(out, images, back)
       if (!accepted) return false
+      jumpDown()
       if (to) setMessageTo(null)
       if (draft.chips.length > 0) drafts.set(index, { text, draft })
       // An empty Enter (a restart, a replay's next message) leaves nothing to recall.
@@ -1349,11 +1357,9 @@ export function App(props: AppProps) {
               late={late}
               onRewind={rewind}
               onFocus={(userId) => scroll?.scrollChildIntoView(userId)}
-              onGo={(userId) => {
+              onGo={() => {
                 timelineFrom = null
                 setDialog(null)
-                setFocus("chat")
-                setSelected(userId)
               }}
               onCopy={(text) => {
                 closeTimeline()

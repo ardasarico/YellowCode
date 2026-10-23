@@ -125,7 +125,7 @@ function imagesOf(
 const numbered = (index: number) => `Image ${index + 1}`
 
 const SHELL_CONTEXT =
-  /^(?:<bash-input>[\s\S]*?<\/bash-input>\n<bash-stdout>[\s\S]*?<\/bash-stdout><bash-stderr>[\s\S]*?<\/bash-stderr>\s*)+/
+  /(?:\s*<bash-input>[\s\S]*?<\/bash-input>\n<bash-stdout>[\s\S]*?<\/bash-stdout><bash-stderr>[\s\S]*?<\/bash-stderr>)+\s*$/
 
 function describeUserContent(content: string | UserBlock[]): {
   text: string
@@ -138,7 +138,7 @@ function describeUserContent(content: string | UserBlock[]): {
       : content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
   const images = typeof content === "string" ? [] : imagesOf(content, numbered)
   const message = readAgentMessage(raw)
-  // `!` commands that went out ahead of the message are shown on their own rows.
+  // `!` commands that went out after the message are shown on their own rows.
   raw = raw.replace(SHELL_CONTEXT, "")
   if (message) return { text: message.text, images, to: { id: message.id, name: message.name } }
   return { text: raw, images, to: null }

@@ -498,13 +498,15 @@ function sendPrompt(
   images: OutgoingImage[],
   giveBack?: () => void,
   told: string[] = [],
+  // Goes after the message, so Claude Code does not name things (a plan file) after it.
+  after: string[] = [],
 ): void {
   // A send makes a rewind final, so /redo has nothing to bring back.
   fileRewind.release()
   const uuid = crypto.randomUUID()
-  const line = userMessage([...told, text].filter((part) => part !== "").join("\n\n"), images, uuid)
+  const line = userMessage([...told, text, ...after].filter((part) => part !== "").join("\n\n"), images, uuid)
   const startsTurn = live.session.state.status !== "running"
-  live.session.showEarly(told.length > 0 ? userMessage(text, images, uuid) : line)
+  live.session.showEarly(told.length + after.length > 0 ? userMessage(text, images, uuid) : line)
   const ready = capture?.before(uuid, idOf(live) ?? null, live.session)
   const unsent = () => {
     capture?.drop(uuid)
@@ -622,7 +624,14 @@ async function sendAfterRewinds(live: Connection, text: string, images: Outgoing
   }
   const shells = untoldShells?.session === session ? untoldShells.texts : []
   untoldShells = null
-  sendPrompt(target, text, images, giveBack, [...shells, ...replies.map((reply) => `${KEPT_REPLY}\n${reply}`)])
+  sendPrompt(
+    target,
+    text,
+    images,
+    giveBack,
+    replies.map((reply) => `${KEPT_REPLY}\n${reply}`),
+    shells,
+  )
 }
 
 // `!` commands Claude has yet to read; they go out ahead of the next message.
