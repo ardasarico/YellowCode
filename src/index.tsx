@@ -215,6 +215,8 @@ const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",
   openConsoleOnError: false,
+  // A click would otherwise focus the chat's scrollbox and take the keys from the prompt.
+  autoFocus: false,
   // OpenTUI sends an image again whenever an image above it scrolls in or out; a file path is cheap to send again.
   kittyImageTransport: "file",
 })
