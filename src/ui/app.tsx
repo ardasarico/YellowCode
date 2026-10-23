@@ -21,6 +21,9 @@ import {
 } from "../session/rewind.ts"
 import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { resolve } from "node:path"
+import { writeClipboard } from "../input/clipboard.ts"
+import { conversationMarkdown, exportFileName } from "../session/export.ts"
 import { skillUses } from "../session/skills.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
@@ -38,7 +41,7 @@ import type { Submission } from "./completion.ts"
 import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { openFile } from "./dialog/open-file.ts"
-import { windowTitle } from "./format.ts"
+import { modelName, windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
@@ -52,6 +55,8 @@ import { RewindDialog } from "./rewind/rewind-dialog.tsx"
 import type { PluginActions } from "./settings/plugins-tab.tsx"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
+import { relative } from "./tool-call.tsx"
+import { ExportDialog } from "./export/export-dialog.tsx"
 import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { hasThinkingText } from "./thinking.tsx"
@@ -121,7 +126,7 @@ type RewindAnswer = boolean | RewindRecheck
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab }
-  | { name: "resume" | "theme" | "skills" }
+  | { name: "resume" | "theme" | "skills" | "export" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
@@ -647,6 +652,28 @@ export function App(props: AppProps) {
   onCleanup(() => clearTimeout(clearRewindNote))
   let previewing = false
   // No rewind while a turn runs, one claude started by itself included.
+  const exportText = () =>
+    conversationMarkdown(props.session, {
+      title: title()?.title || "Conversation",
+      model: modelName(settings.model ?? props.model() ?? ""),
+      cwd: process.cwd(),
+      date: new Date(),
+    })
+  const exportTo = async (name: string) => {
+    setDialog(null)
+    const path = resolve(process.cwd(), name)
+    try {
+      await Bun.write(path, exportText())
+      waitNotice(`Exported to ${relative(path, process.cwd())}`)
+    } catch (error) {
+      waitNotice(`Could not save ${name}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  const exportToClipboard = async () => {
+    setDialog(null)
+    const copied = await writeClipboard(exportText(), (text) => renderer.copyToClipboardOSC52(text))
+    waitNotice(copied ? "Conversation copied" : "Could not copy the conversation")
+  }
   const busy = () =>
     props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
   const waitNotice = (text = "Rewind waits until Claude Code is idle") => {
@@ -901,6 +928,8 @@ export function App(props: AppProps) {
     else if (command === "/skills") setDialog({ name: "skills" })
     else if (command === "/rewind") void openRewind()
     else if (command === "/redo") redo()
+    else if (command === "/export") setDialog({ name: "export" })
+    else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim())
     else {
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
@@ -1158,6 +1187,14 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "theme"}>
         <ThemeDialog onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog()?.name === "export"}>
+        <ExportDialog
+          fileName={exportFileName(title()?.title ?? "", new Date())}
+          onCopy={() => void exportToClipboard()}
+          onSave={(name) => void exportTo(name)}
+          onClose={() => setDialog(null)}
+        />
       </Show>
       <Show when={dialog()?.name === "skills"}>
         <SkillsDialog

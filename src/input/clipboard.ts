@@ -75,3 +75,13 @@ export const readClipboard: ReadClipboard = async () => {
   }
   return { kind: "text", text: content.text }
 }
+
+// macOS has pbcopy; elsewhere the terminal takes the text through OSC 52.
+export async function writeClipboard(text: string, osc52: (text: string) => boolean): Promise<boolean> {
+  if (process.platform === "darwin") {
+    const result = await spawnLimited(["pbcopy"], { timeoutMs: 2000, stdin: text })
+    if (result?.code === 0) return true
+    log.warn("pbcopy failed", result?.stderr ?? "timed out")
+  }
+  return osc52(text)
+}

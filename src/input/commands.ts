@@ -18,6 +18,7 @@ export const OWN_COMMANDS: Command[] = [
   { name: "mcp", description: "See the MCP servers of this session", argumentHint: "", aliases: [] },
   { name: "skills", description: "See the skills of this session", argumentHint: "", aliases: [] },
   { name: "plugins", description: "See the plugins of this session", argumentHint: "", aliases: [] },
+  { name: "export", description: "Copy the conversation or save it as Markdown", argumentHint: "[file]", aliases: [] },
 ]
 
 // The / list leaves out help, internal commands (__x) and those that work only in claude's own terminal UI.
