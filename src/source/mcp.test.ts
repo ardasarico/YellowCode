@@ -58,6 +58,11 @@ test("server rows keep states, errors and tool names, and drop everything in a c
       status: "failed",
       error: "TypeError dialing http://user:secret-user@127.0.0.1:9[redacted]?api_key=REDACTED (ECONNREFUSED)",
     },
+    {
+      name: "bare",
+      status: "failed",
+      config: { type: "http", url: "secret-user:secret-pass@mcp.example.com/mcp" },
+    },
     { name: "odd", status: 3 },
   ])
 
@@ -69,6 +74,7 @@ test("server rows keep states, errors and tool names, and drop everything in a c
     ["broken-http", "failed", "ECONNREFUSED: Unable to connect. Is the computer able to access the url?", null],
     ["oauth", "failed", "OAuthError dialing https://mcp.example.com (invalid_target)", null],
     ["zap", "failed", "TypeError dialing http://127.0.0.1:9 (ECONNREFUSED)", null],
+    ["bare", "failed", null, null],
   ])
   expect(servers.map((server) => server.config)).toEqual([
     { command: "bun", package: null },
@@ -77,6 +83,7 @@ test("server rows keep states, errors and tool names, and drop everything in a c
     { command: "npx", package: null },
     { url: "https://mcp.example.com" },
     { url: "https://mcp.example.com" },
+    null,
     null,
   ])
   expect(JSON.stringify(servers)).not.toContain("secret")

@@ -98,7 +98,8 @@ function configOf(config: unknown): McpConfig | null {
   }
   const remote = remoteConfig.safeParse(config)
   const url = remote.success ? URL.parse(remote.data.url) : null
-  return url ? { url: safeUrl(url) } : null
+  // Without a scheme, user:pass@host parses as scheme "user" with no host.
+  return url?.host ? { url: safeUrl(url) } : null
 }
 
 // Row by row, so one odd server does not empty the list.

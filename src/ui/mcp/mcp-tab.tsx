@@ -67,12 +67,7 @@ function stateSpan(state: McpState): Span {
 
 function shownConfig(config: McpConfig): [string, string] {
   if ("command" in config) return ["Command", [config.command, config.package].filter(Boolean).join(" ")]
-  // A path can hold a key as well as the query, so only where the server is shows.
-  const url = URL.parse(config.url)
-  if (url && url.origin !== "null") return ["URL", url.origin]
-  const start = config.url.indexOf("://") === -1 ? 0 : config.url.indexOf("://") + 3
-  const end = config.url.slice(start).search(/[/?]/)
-  return ["URL", end === -1 ? config.url : config.url.slice(0, start + end)]
+  return ["URL", config.url]
 }
 
 function detailItems(entry: McpEntry, width: number, open: boolean): DialogItem[] {
