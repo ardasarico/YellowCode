@@ -21,6 +21,7 @@ import {
 } from "../session/rewind.ts"
 import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { skillUses } from "../session/skills.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
@@ -1161,6 +1162,7 @@ export function App(props: AppProps) {
       <Show when={dialog()?.name === "skills"}>
         <SkillsDialog
           skills={props.provider.skills()}
+          uses={skillUses(props.session, props.provider.skills())}
           actions={props.skillActions}
           onUse={(command) => {
             setDialog(null)

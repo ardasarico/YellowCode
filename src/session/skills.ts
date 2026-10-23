@@ -1,4 +1,5 @@
 import type { SettingsSource, SkillRow } from "../protocol/messages.ts"
+import type { Session } from "./types.ts"
 
 export type SkillGroup = "builtin" | "global" | "project" | "claude-ai"
 
@@ -93,4 +94,23 @@ export function matchSkills(skills: Skill[], query: string): Skill[] {
       (a, b) => groupIndex(a.skill.group) - groupIndex(b.skill.group) || a.tier - b.tier || compare(a.skill, b.skill),
     )
     .map(({ skill }) => skill)
+}
+
+// How often each skill ran this session, by name: Claude's Skill calls and the user's own /command prompts.
+export function skillUses(session: Session, skills: Skill[]): Map<string, number> {
+  const uses = new Map<string, number>()
+  const count = (name: string | undefined) => {
+    if (name) uses.set(name, (uses.get(name) ?? 0) + 1)
+  }
+  for (const item of Object.values(session.byId)) {
+    if (item.kind === "tool" && item.name === "Skill") {
+      const input = item.input
+      const name = typeof input === "object" && input !== null && "skill" in input ? input.skill : undefined
+      count(typeof name === "string" ? skills.find((skill) => skill.name === name)?.name : undefined)
+    } else if (item.kind === "user" && item.text.startsWith("/")) {
+      const command = item.text.slice(1).split(/\s/)[0]
+      count(skills.find((skill) => skill.command === command || skill.name === command)?.name)
+    }
+  }
+  return uses
 }

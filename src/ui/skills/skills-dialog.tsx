@@ -20,12 +20,13 @@ const footer = (query: string): FooterAction[] => [
   { key: "esc", action: "close" },
 ]
 
-function skillRow(skill: Skill): DialogRow {
+function skillRow(skill: Skill, uses: number): DialogRow {
   const row: DialogRow = {
     id: skill.name,
     label: skill.label,
     tag: skill.plugin ?? undefined,
     detail: skill.description,
+    ...(uses > 0 ? { value: `${uses}×` } : {}),
   }
   if (skill.enabled) return row
   return {
@@ -36,14 +37,17 @@ function skillRow(skill: Skill): DialogRow {
   }
 }
 
-const skillSections = (skills: Skill[]): DialogSection[] =>
-  SKILL_GROUPS.map(([group, title]) => ({
-    title,
-    rows: skills.filter((skill) => skill.group === group).map(skillRow),
-  })).filter((section) => section.rows.length > 0)
+// Without a search, the skills used this session come first in their group, the most used first.
+const skillSections = (skills: Skill[], uses: Map<string, number>, usedFirst: boolean): DialogSection[] =>
+  SKILL_GROUPS.map(([group, title]) => {
+    const inGroup = skills.filter((skill) => skill.group === group)
+    const ordered = usedFirst ? inGroup.toSorted((a, b) => (uses.get(b.name) ?? 0) - (uses.get(a.name) ?? 0)) : inGroup
+    return { title, rows: ordered.map((skill) => skillRow(skill, uses.get(skill.name) ?? 0)) }
+  }).filter((section) => section.rows.length > 0)
 
 export function SkillsDialog(props: {
   skills: Skill[]
+  uses: Map<string, number>
   actions?: SkillActions
   onUse: (command: string) => void
   onClose: () => void
@@ -67,8 +71,8 @@ export function SkillsDialog(props: {
     <Dialog
       title="Skills"
       width={WIDTH}
-      sections={skillSections(props.skills)}
-      filter={(_, query) => skillSections(matchSkills(props.skills, query))}
+      sections={skillSections(props.skills, props.uses, true)}
+      filter={(_, query) => skillSections(matchSkills(props.skills, query), props.uses, query === "")}
       searchPlaceholder="Search skills"
       footer={(_, query) => footer(query)}
       footerStyle="keys"

@@ -1,7 +1,13 @@
 import { expect, test } from "bun:test"
 import type { SettingsSource, SkillRow } from "../protocol/messages.ts"
 import { loadRecording, recordedInitLists, recordedSettingsSources, recordedSkillRows } from "../source/recording.ts"
-import { skillList } from "./skills.ts"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import { userMessage } from "../protocol/outgoing.ts"
+import { parse } from "../protocol/parse.ts"
+import { parseRecording } from "../source/recording.ts"
+import { createSession } from "./session.ts"
+import { skillList, skillUses } from "./skills.ts"
 
 const row = (name: string, source: string, extra: Partial<SkillRow> = {}): SkillRow => ({
   name,
@@ -68,4 +74,14 @@ test("the skills fixture parses whole and groups as recorded", async () => {
   ])
   expect(group("plugin-c:skill-1")).toBe("global")
   expect(skills.find((skill) => skill.name === "old-deploy")).toMatchObject({ group: "project", enabled: false })
+})
+
+test("counts Claude's Skill calls and typed commands", () => {
+  const session = createSession()
+  const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "skill-call.jsonl")
+  for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
+    session.apply(entry.dir, parse(entry.line), entry.t)
+  session.apply("out", parse(userMessage("/user-skill-1 again", [])), 0)
+  const skills = skillList([row("user-skill-1", "user"), row("other", "user")], null, [])
+  expect([...skillUses(session.state, skills)]).toEqual([["user-skill-1", 2]])
 })
