@@ -8,6 +8,7 @@ const fields = z.looseObject({
   path: z.string().optional(),
   url: z.string().optional(),
   query: z.string().optional(),
+  skill: z.string().optional(),
   description: z.string().optional(),
   prompt: z.string().optional(),
   questions: z.array(z.looseObject({ header: z.string().optional() })).optional(),
@@ -28,6 +29,7 @@ export function summarizeToolInput(input: unknown): string {
     f.path ??
     f.url ??
     f.query ??
+    f.skill ??
     f.description ??
     f.prompt ??
     (headers || undefined) ??
