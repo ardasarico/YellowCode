@@ -21,15 +21,19 @@ export type RewindLook = {
 const restoresOf = (points: RewindPoint[]) =>
   new Map(points.flatMap((point, at) => (point.restores ? [[at, point.restores] as const] : [])))
 
-// The prompts newest first; under them, one line on what rewinding to the selected one undoes, notes on what it
-// cannot undo or will stop, and one for files changed after Claude. Enter rewinds the code and the conversation,
-// `c` only the conversation.
+// The timeline: the prompts newest first, and the chat follows the selected one. Under them, one line on what rewinding
+// to it undoes, notes on what it cannot undo or will stop, and one for files changed after Claude. Enter opens what
+// can be done with the prompt; `r` rewinds the code and the conversation at once, `c` only the conversation.
 export function RewindDialog(
   props: RewindLook & {
     // What the snapshots know, when it came too late for the dialog to open with it.
     late?: Promise<RewindLook | null>
     // Resolves once the rewind is done, or with what changed since the dialog showed its ⚠; then it stays open.
     onRewind: (rewound: Rewound, seen: string[]) => Promise<RewindRecheck | null>
+    // The chat shows the selected prompt; Go here leaves it there.
+    onFocus: (userId: string) => void
+    onGo: (userId: string) => void
+    onCopy: (text: string) => void
     onClose: () => void
   },
 ) {
@@ -174,39 +178,81 @@ export function RewindDialog(
     props.onClose()
   }
 
-  const sections = () => [
-    {
-      title: "",
-      rows: shown
-        .toReversed()
-        .map((point) => ({ id: point.userId, label: cut(flat(point.text) || "(image)", inner() - 2) })),
-    },
-  ]
+  // The actions view is open for the selected prompt.
+  const [acting, setActing] = createSignal(false)
+  const promptText = () => flat(points()[index()]?.text ?? "") || "(image)"
+  const fileCount = () => (files().length > 0 ? plural(files().length, "file") : "no files")
+  const sections = () =>
+    acting()
+      ? [
+          {
+            title: "",
+            rows: [
+              { id: "rewind", label: "Rewind", value: `conversation and ${fileCount()}` },
+              { id: "keep", label: "Rewind, keep files", value: "conversation only" },
+              { id: "go", label: "Go here", value: "scroll the chat to it" },
+              { id: "copy", label: "Copy", value: "prompt text" },
+            ],
+          },
+        ]
+      : [
+          {
+            title: "",
+            rows: shown
+              .toReversed()
+              .map((point) => ({ id: point.userId, label: cut(flat(point.text) || "(image)", inner() - 2) })),
+          },
+        ]
+
+  const act = (id: string) => {
+    const userId = selected()
+    if (id === "rewind") void enter()
+    else if (id === "keep") {
+      if (!entering) keep()
+    } else if (id === "go" && userId) props.onGo(userId)
+    else if (id === "copy") props.onCopy(points()[index()]?.text ?? "")
+  }
 
   return (
     <Dialog
-      title="Rewind"
+      title={acting() ? cut(`Timeline › ${promptText()}`, inner()) : "Timeline"}
       width={WIDTH}
       sections={sections()}
       pinned={summary()}
-      footer={[
-        { action: "rewind", key: "enter", needsRow: true },
-        { action: "keep files", key: "c", needsRow: true },
-        { action: "close", key: "esc" },
-      ]}
+      footer={
+        acting()
+          ? [
+              { action: "select", key: "↑↓" },
+              { action: "run", key: "enter", needsRow: true },
+              { action: "back", key: "esc" },
+            ]
+          : [
+              { action: "actions", key: "enter", needsRow: true },
+              { action: "rewind", key: "r", needsRow: true },
+              { action: "keep files", key: "c", needsRow: true },
+              { action: "close", key: "esc" },
+            ]
+      }
       footerStyle="keys"
-      view="rewind"
-      initialSelected={selected()}
+      view={acting() ? "actions" : "list"}
+      initialSelected={acting() ? "rewind" : selected()}
       search={false}
-      onSelect={(row) => setSelected(row.id)}
-      onEnter={() => void enter()}
+      onSelect={(row) => {
+        if (acting()) return
+        setSelected(row.id)
+        props.onFocus(row.id)
+      }}
+      onEnter={(row) => (acting() ? act(row.id) : setActing(true))}
       onKey={(key) => {
-        if (key.name !== "c" || key.ctrl || key.meta) return false
-        if (!entering) keep()
+        if (acting() || key.ctrl || key.meta) return false
+        if (key.name === "r") void enter()
+        else if (key.name === "c") {
+          if (!entering) keep()
+        } else return false
         return true
       }}
-      onEscape={props.onClose}
-      empty={() => "Nothing to rewind yet."}
+      onEscape={() => (acting() ? setActing(false) : props.onClose())}
+      empty={() => "No prompts yet."}
     />
   )
 }

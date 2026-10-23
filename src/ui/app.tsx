@@ -36,7 +36,7 @@ import { skillUses } from "../session/skills.ts"
 import { TODO_TOOLS } from "../session/todos.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
-import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
+import type { Ask, ChatImage, Session, SessionInfo, UserMessage } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
@@ -358,6 +358,10 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
+  const userDraft = (item: UserMessage, index: number) => {
+    const draft = drafts.get(index)
+    return draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images, item.to ?? undefined)
+  }
   // `!` commands are in it too, where they ran.
   const chatHistory = () => {
     let index = -1
@@ -366,8 +370,7 @@ export function App(props: AppProps) {
       if (item?.kind === "tool" && item.local) return [draftFromMessage(`!${item.summary}`, [])]
       if (item?.kind !== "user") return []
       index++
-      const draft = drafts.get(index)
-      return [draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images, item.to ?? undefined)]
+      return [userDraft(item, index)]
     })
   }
   // A message sent after a /clear and still waiting is in both; the history skips repeats in a row.
@@ -718,12 +721,24 @@ export function App(props: AppProps) {
       waitNotice()
     }),
   )
+  // Where the chat was when the timeline opened; Esc goes back there.
+  let timelineFrom: number | null = null
+  const openTimeline = (extras: RewindExtras | null, late: Promise<RewindExtras | null> | null) => {
+    timelineFrom = scroll?.scrollTop ?? null
+    setDialog({ name: "rewind", extras, late })
+  }
+  const closeTimeline = () => {
+    if (timelineFrom !== null) scroll?.scrollTo(timelineFrom)
+    timelineFrom = null
+    setDialog(null)
+  }
   const openRewind = async () => {
     setRewindArmed(false)
-    if (busy()) return waitNotice()
-    if (props.rewind?.working?.()) return waitNotice("Rewind waits until the files are back")
     const rewind = props.rewind
-    if (!rewind || !canRewind() || previewing) return
+    const prompts = shownItems().some((id) => props.session.byId[id]?.kind === "user")
+    if (!rewind || !prompts || pending() || previewing || dialog() !== null) return
+    // While Claude Code works the list still opens; only rewinding waits.
+    if (busy() || rewind.working?.() || !canRewind()) return openTimeline(null, null)
     previewing = true
     // The dialog opens on the newest prompt an earlier rewind did not hide.
     const users = userItems()
@@ -737,10 +752,8 @@ export function App(props: AppProps) {
       previewing = false
     })
     if (extras === undefined) log.warn("rewind preview too slow", { ms: PREVIEW_MS })
-    // Something may have started or opened while the preview was worked out.
-    if (busy()) waitNotice()
-    else if (canRewind() && dialog() === null)
-      setDialog({ name: "rewind", extras: extras ?? null, late: extras === undefined ? working : null })
+    // Something may have opened while the preview was worked out.
+    if (dialog() === null) openTimeline(extras ?? null, extras === undefined ? working : null)
   }
   const pressEscape = () => {
     if (shellRunning()) {
@@ -770,8 +783,14 @@ export function App(props: AppProps) {
       waitNotice()
       return null
     }
+    if (props.rewind?.working?.()) {
+      waitNotice("Rewind waits until the files are back")
+      return null
+    }
+    timelineFrom = null
     const index = userItems().findIndex((item) => item.id === rewound.userId)
-    const draft = chatHistory()[index]
+    const user = userItems()[index]
+    const draft = user ? userDraft(user, index) : undefined
     const answer = await props.rewind?.onRewind(rewound, seen)
     // Typed meanwhile, the draft stays.
     if (draft && answer === true) setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
@@ -990,7 +1009,7 @@ export function App(props: AppProps) {
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills") setDialog({ name: "skills" })
-    else if (command === "/rewind") void openRewind()
+    else if (command === "/rewind" || command === "/timeline") void openRewind()
     else if (command === "/redo") redo()
     else if (command === "/export") setDialog({ name: "export" })
     else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim())
@@ -1329,7 +1348,20 @@ export function App(props: AppProps) {
               dryRun={open().extras?.dryRun}
               late={late}
               onRewind={rewind}
-              onClose={() => setDialog(null)}
+              onFocus={(userId) => scroll?.scrollChildIntoView(userId)}
+              onGo={(userId) => {
+                timelineFrom = null
+                setDialog(null)
+                setFocus("chat")
+                setSelected(userId)
+              }}
+              onCopy={(text) => {
+                closeTimeline()
+                void writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied)).then((copied) =>
+                  waitNotice(copied ? "Prompt copied" : "Could not copy the prompt"),
+                )
+              }}
+              onClose={closeTimeline}
             />
           )
         }}
