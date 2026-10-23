@@ -51,24 +51,26 @@ export function resultSummary(tool: ToolCall): string {
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
 }
 
-export function isBackgroundShell(tool: ToolCall): boolean {
+// Claude starts a shell in the background, or the user sends a running one there with Ctrl+B.
+export function isBackgroundShell(tool: ToolCall, task: Pick<Task, "background"> | null): boolean {
   const input = tool.input
-  const background = typeof input === "object" && input !== null && "run_in_background" in input
-  return tool.name === "Bash" && tool.taskId !== null && background && input.run_in_background === true
+  const asked = typeof input === "object" && input !== null && "run_in_background" in input
+  const background = (asked && input.run_in_background === true) || task?.background === true
+  return tool.name === "Bash" && tool.taskId !== null && background
 }
 
 // The result of a background Bash only says it was launched, so the line follows the shell's task instead.
 export function toolLines(
   tool: ToolCall,
   ask: Ask | null,
-  shell: Pick<Task, "state"> | null,
+  shell: Pick<Task, "state" | "background"> | null,
   elapsedMs: number,
 ): string[] {
   const question = tool.name === "AskUserQuestion" || tool.name === OWN_ASK
   if (ask?.status === "pending") return [question ? "waiting for your answer" : "waiting for your approval"]
   if (ask?.status === "denied") return [deniedLine(ask)]
   if (ask?.status === "cancelled") return ["cancelled"]
-  if (isBackgroundShell(tool)) {
+  if (isBackgroundShell(tool, shell)) {
     if (!shell) return ["in background"]
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
@@ -160,7 +162,7 @@ export function ToolCallRow(props: {
   const denied = () => props.ask?.status === "denied"
   const running = () => props.item.status === "running" && !waiting()
   const seconds = useElapsedSeconds(running)
-  const background = () => isBackgroundShell(props.item)
+  const background = () => isBackgroundShell(props.item, props.task ?? null)
   const shell = () => (background() ? (props.task ?? null) : null)
   const shellMs = useDuration(() => ({
     state: shell()?.state ?? "completed",

@@ -164,6 +164,11 @@ export function stopTaskRequest(requestId: string, taskId: string): string {
   return controlRequest(requestId, "stop_task", { task_id: taskId })
 }
 
+// Every foreground Bash command and agent goes to the background, as Ctrl+B does in Claude Code.
+export function backgroundTasksRequest(requestId: string): string {
+  return controlRequest(requestId, "background_tasks")
+}
+
 // Steps the conversation back to before this prompt; claude takes only its latest remaining prompt.
 export function rewindConversationRequest(requestId: string, uuid: string): string {
   return controlRequest(requestId, "rewind_conversation", { target_message_uuid: uuid })

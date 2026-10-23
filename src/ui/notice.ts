@@ -32,6 +32,8 @@ export type NoticeState = {
   // Keys are held after claude took back the ask the user was typing for.
   held: boolean
   interruptible: boolean
+  // A foreground command or agent has run long enough to be worth sending to the background.
+  backgroundable: boolean
   now: number
 }
 
@@ -106,6 +108,10 @@ function leftSpans(state: NoticeState): Span[] {
 export function noticeFor(state: NoticeState): Notice {
   const ended = state.replay === null && state.readOnly === null && state.status === "ended"
   const keys = ended ? ENDED_HINTS : HINTS
-  const hints = state.interruptible ? `esc interrupt · ${keys}` : keys
+  const hints = state.backgroundable
+    ? "ctrl+b runs it in the background"
+    : state.interruptible
+      ? `esc interrupt · ${keys}`
+      : keys
   return { left: leftSpans(state), right: state.asking ? [] : [{ text: hints, fg: theme.muted }] }
 }

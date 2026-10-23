@@ -55,8 +55,21 @@ test("a background Bash never shows its launch text", () => {
     result: "Command running in background with ID: b1x7k2. Output is being written to: /tmp/tasks/b1x7k2.output",
     taskId: "b1x7k2",
   }
-  for (const shell of [null, { state: "running" as const }, { state: "completed" as const }])
-    expect(toolLines(bash, null, shell, 0).join()).not.toContain("Command running in background")
+  for (const state of ["running", "completed"] as const)
+    expect(toolLines(bash, null, { state, background: true }, 0).join()).not.toContain("Command running in background")
+  expect(toolLines(bash, null, null, 0)).toEqual(["in background"])
+})
+
+test("a Bash sent to the background with Ctrl+B follows its shell", () => {
+  const bash = {
+    ...tool,
+    name: "Bash",
+    input: { command: "sleep 20" },
+    status: "done" as const,
+    result: "Command was manually backgrounded by user with ID: b2. Output is being written to: /tmp/tasks/b2.output",
+    taskId: "b2",
+  }
+  expect(toolLines(bash, null, { state: "running", background: true }, 0)).toEqual(["running in background · <1s"])
 })
 
 test("a question's denial reads the same live and read back from a transcript", () => {

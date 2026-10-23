@@ -31,6 +31,21 @@ function shownShells(session: Session): Task[] {
   return shells.filter((task) => !task.toolUseId || !byId[task.toolUseId] || shown.has(task.toolUseId))
 }
 
+// Foreground Bash commands and agents claude can send to the background, with the time each started.
+export function foregroundTasks(session: Session): Task[] {
+  const byId = unwrap(session.byId)
+  return Object.values(session.tasks).filter((task) => {
+    const call = task.toolUseId ? byId[task.toolUseId] : undefined
+    return (
+      task.state === "running" &&
+      !task.background &&
+      call?.kind === "tool" &&
+      call.status === "running" &&
+      (call.name === "Bash" || call.name === "Agent")
+    )
+  })
+}
+
 // Running shells newest start first, then finished shells latest end first.
 export function shellTasks(session: Session): Task[] {
   const shells = shownShells(session)

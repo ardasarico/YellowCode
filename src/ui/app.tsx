@@ -21,7 +21,7 @@ import {
 } from "../session/rewind.ts"
 import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
-import { runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
+import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
@@ -62,6 +62,7 @@ const QUIT_WINDOW = 2000
 // Past this the rewind dialog opens without what the snapshots know.
 const PREVIEW_MS = 1000
 const NOTE_MS = 4000
+const BACKGROUND_HINT_MS = 3000
 
 export type AppProps = {
   session: Session
@@ -94,6 +95,8 @@ export type AppProps = {
   onQuit: () => void
   // Without it nothing can be interrupted (a replay or a read-only transcript).
   onInterrupt?: () => void
+  // Without it nothing can be sent to the background (a replay or a read-only transcript).
+  onBackground?: () => void
   // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
   onTitle?: (title: string) => void
   // Without it no task can be stopped from the agent view (a replay or a read-only transcript).
@@ -597,6 +600,17 @@ export function App(props: AppProps) {
 
   const interruptible = () =>
     props.onInterrupt !== undefined && props.session.turn !== null && !props.session.interrupting
+  // The hint waits until a foreground command or agent has run a few seconds. Claude Code reports a command as a task
+  // only about that long after it starts, so a shell shows the hint as soon as it is a task.
+  const foreground = () => (props.onBackground ? foregroundTasks(props.session) : [])
+  const backgroundTick = useTicker(() => foreground().length > 0, 500)
+  const backgroundable = () => {
+    backgroundTick()
+    const now = Date.now()
+    return foreground().some(
+      (task) => task.type === "local_bash" || (task.startedAt !== null && now - task.startedAt >= BACKGROUND_HINT_MS),
+    )
+  }
   // Ctrl+C interrupts once per turn, so a claude that refuses the interrupt can still be quit; Esc can try again.
   let interruptedByCtrlC = false
   createEffect(
@@ -724,6 +738,12 @@ export function App(props: AppProps) {
       if (input().focused && !pending()) return
       key.stopPropagation()
       pressQuit()
+      return
+    }
+    if (key.ctrl && key.name === "b" && foreground().length > 0) {
+      key.preventDefault()
+      key.stopPropagation()
+      props.onBackground?.()
       return
     }
     if (dialog()) return
@@ -986,6 +1006,7 @@ export function App(props: AppProps) {
       note: rewindNote(),
       held: held(),
       interruptible: interruptible(),
+      backgroundable: backgroundable(),
       now: Date.now(),
     })
   }

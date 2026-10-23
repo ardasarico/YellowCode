@@ -11,6 +11,7 @@ import { log } from "./log/log.ts"
 import { parse } from "./protocol/parse.ts"
 import { permissionReply, rewindConversationReply } from "./protocol/messages.ts"
 import {
+  backgroundTasksRequest,
   interruptRequest,
   type OutgoingImage,
   ownAskReply,
@@ -878,6 +879,18 @@ function Main() {
                           },
                         )
                     }
+                  : undefined
+              }
+              onBackground={
+                requests
+                  ? () =>
+                      void requests.send(backgroundTasksRequest).then(
+                        () => log.info("sent foreground tasks to the background"),
+                        (error: unknown) => {
+                          log.warn("background failed", error instanceof Error ? error.message : error)
+                          setControlProblem({ text: "Claude Code did not send it to the background" })
+                        },
+                      )
                   : undefined
               }
               onTitle={requests ? (title) => rename(requests, current.session, title) : undefined}
