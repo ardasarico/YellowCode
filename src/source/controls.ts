@@ -216,6 +216,24 @@ export function createControls(options: {
     )
     createEffect(
       on(
+        () => settings.sessionMode,
+        (mode) => {
+          if (mode === null) return
+          modeChecked = true
+          change(
+            "permission",
+            (id) => setPermissionModeRequest(id, protocolMode(mode)),
+            (reply) => {
+              const current = permissionModeReply.safeParse(reply).data?.mode
+              if (current) session.setPermissionMode(current)
+            },
+          )
+        },
+        { defer: true },
+      ),
+    )
+    createEffect(
+      on(
         () => settings.permissionMode,
         (mode) => {
           // The mode is the user's choice from here on, not the launch's.

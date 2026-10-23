@@ -13,7 +13,7 @@ import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
 import { cut, formatTokens, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
-import { type InputBlockProps, PROMPT_KEY_BINDINGS, UNFOLD_HINT, UnfoldHint } from "./input-block.tsx"
+import { type InputBlockProps, modeWord, PROMPT_KEY_BINDINGS, UNFOLD_HINT, UnfoldHint } from "./input-block.tsx"
 import { levelColor } from "./meters.tsx"
 import { type NewLines, NewLinesPill } from "./new-lines-pill.tsx"
 import type { Notice, Span } from "./notice.ts"
@@ -258,9 +258,12 @@ function InfoLine(props: {
   shells?: Shells
   asking: boolean
   unfoldable: boolean
+  permissionMode?: string | null
 }) {
+  const mode = () => modeWord(props.permissionMode ?? null)
+  const modeWidth = () => (mode() ? Bun.stringWidth(mode()?.text ?? "") + 2 : 0)
   const label = () =>
-    props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - contextWidth(props.context)) : ""
+    props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - modeWidth() - contextWidth(props.context)) : ""
   const shells = () => (props.shells && props.shells.count > 0 ? props.shells : null)
   const counterWidth = () => {
     const counter = shells()
@@ -275,6 +278,7 @@ function InfoLine(props: {
     return fits ? level : null
   }
   const leftWidth = () =>
+    modeWidth() +
     Bun.stringWidth(label()) +
     (effort() ? `  effort ${effort()}`.length : 0) +
     (settings.ultracode ? "  ultracode".length : 0) +
@@ -295,6 +299,13 @@ function InfoLine(props: {
   return (
     <box flexDirection="row" justifyContent="space-between">
       <box flexDirection="row">
+        <Show when={mode()}>
+          {(word) => (
+            <text fg={word().color} wrapMode="none">
+              {`${word().text}  `}
+            </text>
+          )}
+        </Show>
         <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
           {label()}
         </text>
@@ -430,6 +441,7 @@ export function PromptBar(props: PromptBarProps) {
         width={inner()}
         agents={props.agents ?? false}
         shells={props.shells}
+        permissionMode={props.permissionMode}
         asking={props.ask !== undefined}
         unfoldable={unfoldable()}
       />

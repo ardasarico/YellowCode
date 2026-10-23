@@ -1,9 +1,10 @@
-import { type BoxRenderable, type KeyBinding, TextAttributes } from "@opentui/core"
+import { type BoxRenderable, type KeyBinding, type RGBA, TextAttributes } from "@opentui/core"
 import { type Accessor, onCleanup, onMount, Show } from "solid-js"
 import { readClipboard } from "../input/clipboard.ts"
 import { loadImage } from "../input/image-file.ts"
 import type { Draft } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
+import { modeLabel } from "../session/settings-file.ts"
 import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
@@ -46,6 +47,15 @@ export type InputBlockProps = {
   draft?: Draft
   // Earlier messages, for ↑ and ↓ on an empty input.
   history?: Accessor<Draft[]>
+  // The running session's permission mode; auto shows nothing.
+  permissionMode?: string | null
+}
+
+export function modeWord(mode: string | null): { text: string; color: RGBA } | null {
+  if (mode === null || mode === "auto") return null
+  if (mode === "acceptEdits") return { text: "⏵⏵ accept edits", color: theme.shell }
+  if (mode === "plan") return { text: "⏸ plan", color: theme.accent }
+  return { text: modeLabel(mode), color: theme.warning }
 }
 
 export const TILE_PADDING = 3
@@ -143,9 +153,18 @@ export function InputBlock(props: InputBlockProps) {
           </box>
           <box height={1} />
           <box flexDirection="row" justifyContent="space-between">
-            <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
-              {modelLabel()}
-            </text>
+            <box flexDirection="row">
+              <Show when={modeWord(props.permissionMode ?? null)}>
+                {(word) => (
+                  <text fg={word().color} wrapMode="none">
+                    {`${word().text}  `}
+                  </text>
+                )}
+              </Show>
+              <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
+                {modelLabel()}
+              </text>
+            </box>
             <box flexDirection="row">
               <Show when={unfold()}>
                 <UnfoldHint />

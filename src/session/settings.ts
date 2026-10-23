@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { EFFORT_LEVELS, type EffortLevel } from "../theme/brand.ts"
-import { DEFAULT_SETTINGS, saveSettings, type StoredSettings } from "./settings-file.ts"
+import { DEFAULT_SETTINGS, type PermissionMode, saveSettings, type StoredSettings } from "./settings-file.ts"
 
 import type { ModelInfo } from "../protocol/messages.ts"
 
@@ -38,13 +38,20 @@ export function modelChoices(models: ModelInfo[]): ModelChoice[] {
   })
 }
 
-export type Settings = StoredSettings & { model: string | null; effort: EffortLevel | null; ultracode: boolean }
+// `sessionMode` is a permission mode Shift+Tab set for the running session only; the saved one is `permissionMode`.
+export type Settings = StoredSettings & {
+  model: string | null
+  effort: EffortLevel | null
+  ultracode: boolean
+  sessionMode: PermissionMode | null
+}
 
 const [settings, setSettings] = createStore<Settings>({
   ...DEFAULT_SETTINGS,
   model: null,
   effort: "high",
   ultracode: false,
+  sessionMode: null,
 })
 
 export { settings }
@@ -85,6 +92,19 @@ export function stepModel(step: 1 | -1, current: string | null): void {
   const index = ids.includes(model) ? ids.indexOf(model) : ids.indexOf(plain)
   const next = index === -1 ? 0 : (index + step + ids.length) % ids.length
   setSettings("model", ids[next] ?? null)
+}
+
+const MODE_CYCLE: Partial<Record<string, PermissionMode>> = { auto: "acceptEdits", acceptEdits: "plan", plan: "auto" }
+
+// Shift+Tab: auto, accept edits, plan, and back to auto; any other mode goes to auto.
+export function nextMode(current: string | null): PermissionMode {
+  return MODE_CYCLE[current ?? "auto"] ?? "auto"
+}
+
+// Cleared first, so asking for the mode set last still goes out when claude moved away from it meanwhile.
+export function setSessionMode(mode: PermissionMode): void {
+  setSettings("sessionMode", null)
+  setSettings("sessionMode", mode)
 }
 
 export function toggleUltracode(): void {

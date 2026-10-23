@@ -34,6 +34,8 @@ export type NoticeState = {
   interruptible: boolean
   // A foreground command or agent has run long enough to be worth sending to the background.
   backgroundable: boolean
+  // Shift+Tab changes the permission mode only with Claude Code running.
+  modes: boolean
   now: number
 }
 
@@ -107,7 +109,7 @@ function leftSpans(state: NoticeState): Span[] {
 
 export function noticeFor(state: NoticeState): Notice {
   const ended = state.replay === null && state.readOnly === null && state.status === "ended"
-  const keys = ended ? ENDED_HINTS : HINTS
+  const keys = ended ? ENDED_HINTS : state.modes ? `shift+tab mode · ${HINTS}` : HINTS
   const hints = state.backgroundable
     ? "ctrl+b runs it in the background"
     : state.interruptible

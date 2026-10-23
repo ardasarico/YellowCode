@@ -3,6 +3,7 @@ import { type AskMatrix, askUserQuestionInput, OWN_ASK, ownAskMatrix, ownAskPage
 import { ownAskProblem } from "../../session/ask.ts"
 import type { Ask, ChatImage, Session } from "../../session/types.ts"
 import { MatrixAsk } from "./matrix-ask.tsx"
+import { PlanBand } from "./plan-band.tsx"
 import { PermissionBand } from "./permission-band.tsx"
 import { QuestionAsk } from "./question-ask.tsx"
 import type { QuestionInput } from "./question.ts"
@@ -64,6 +65,9 @@ export function AskSurface(props: AskSurfaceProps) {
         />
       }
     >
+      <Match when={props.ask.toolName === "ExitPlanMode"}>
+        <PlanBand ask={props.ask} width={props.width} answered={answered()} onAnswer={answer} />
+      </Match>
       <Match when={view()?.matrix}>
         {(matrix) => (
           <MatrixAsk ask={props.ask} matrix={matrix()} width={props.width} answered={answered()} onAnswer={answer} />

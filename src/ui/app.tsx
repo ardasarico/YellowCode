@@ -19,7 +19,15 @@ import {
   rewindPoints,
   shownItems as itemsShown,
 } from "../session/rewind.ts"
-import { controlProblem, settings, stepEffort, stepModel, toggleUltracode } from "../session/settings.ts"
+import {
+  controlProblem,
+  nextMode,
+  setSessionMode,
+  settings,
+  stepEffort,
+  stepModel,
+  toggleUltracode,
+} from "../session/settings.ts"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
@@ -924,6 +932,11 @@ export function App(props: AppProps) {
       jumpDown()
       return
     }
+    if (key.name === "tab" && key.shift) {
+      key.preventDefault()
+      if (props.onInterrupt) setSessionMode(nextMode(props.session.permissionMode))
+      return
+    }
     if (key.name === "tab") {
       if (welcome() || listOpen()) return
       key.preventDefault()
@@ -1004,6 +1017,7 @@ export function App(props: AppProps) {
     focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
     messageTo: messageTo(),
     shell: shellMode(),
+    permissionMode: props.onInterrupt ? props.session.permissionMode : null,
     onBang: () => {
       if (messageTo() || !props.onShell) return false
       setShellMode(true)
@@ -1100,6 +1114,7 @@ export function App(props: AppProps) {
       held: held(),
       interruptible: interruptible(),
       backgroundable: backgroundable(),
+      modes: props.onInterrupt !== undefined,
       now: Date.now(),
     })
   }
