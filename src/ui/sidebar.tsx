@@ -4,6 +4,8 @@ import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
 import { shownText } from "../session/agent-message.ts"
+import { type Todo, todoList } from "../session/todos.ts"
+import { todoMark } from "./todos/todo-row.tsx"
 import { theme } from "../theme/theme.ts"
 import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, plain, wrapLines } from "./format.ts"
 import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
@@ -217,6 +219,35 @@ function Mcp(props: { session: Session; width: number }) {
   )
 }
 
+function Tasks(props: { todos: Todo[]; width: number }) {
+  const [open, setOpen] = createSignal(true)
+  const done = () => props.todos.filter((todo) => todo.state === "done").length
+  return (
+    <box flexDirection="column" marginTop={SECTION_GAP} flexShrink={0}>
+      <Heading
+        left={open() ? "▾ Tasks" : "▸ Tasks"}
+        right={`${done()}/${props.todos.length}`}
+        onMouseDown={(event) => {
+          event.preventDefault()
+          setOpen((value) => !value)
+        }}
+      />
+      <Show when={open()}>
+        <Index each={props.todos}>
+          {(todo) => (
+            <text wrapMode="none">
+              <span style={{ fg: todoMark(todo().state).fg }}>{`${todoMark(todo().state).text} `}</span>
+              <span style={{ fg: todo().state === "done" ? theme.muted : theme.text }}>
+                {cut(todo().text, props.width - 2)}
+              </span>
+            </text>
+          )}
+        </Index>
+      </Show>
+    </box>
+  )
+}
+
 function Usage(props: { session: Session; model: string | null; width: number; now: number }) {
   const windows = () => {
     const limits = props.session.usage.limits
@@ -327,6 +358,9 @@ export function Sidebar(props: SidebarProps) {
         />
         {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
         <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
+          <Show when={todoList(props.session).length > 0}>
+            <Tasks todos={todoList(props.session)} width={inner()} />
+          </Show>
           <Show when={(currentServers(props.session, null) ?? []).some((server) => server.status !== "disabled")}>
             <Mcp session={props.session} width={inner()} />
           </Show>

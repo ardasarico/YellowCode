@@ -25,6 +25,7 @@ import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
 import { conversationMarkdown, exportFileName } from "../session/export.ts"
 import { skillUses } from "../session/skills.ts"
+import { TODO_TOOLS } from "../session/todos.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo } from "../session/types.ts"
@@ -57,6 +58,7 @@ import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { relative } from "./tool-call.tsx"
 import { ExportDialog } from "./export/export-dialog.tsx"
+import { TodoDialog } from "./todos/todo-dialog.tsx"
 import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { hasThinkingText } from "./thinking.tsx"
@@ -129,7 +131,7 @@ type RewindAnswer = boolean | RewindRecheck
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab }
-  | { name: "resume" | "theme" | "skills" | "export" }
+  | { name: "resume" | "theme" | "skills" | "export" | "tasks" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
@@ -150,6 +152,10 @@ export function App(props: AppProps) {
   // The agent the prompt writes to, set by `m` on an agent.
   const [messageTo, setMessageTo] = createSignal<{ id: string; name: string } | null>(null)
   const [shellMode, setShellMode] = createSignal(false)
+  const isTodoRow = (id: string) => {
+    const item = props.session.byId[id]
+    return item?.kind === "tool" && TODO_TOOLS.has(item.name)
+  }
   const shellRunning = () =>
     props.session.items.some((id) => {
       const item = props.session.byId[id]
@@ -934,6 +940,7 @@ export function App(props: AppProps) {
       if (id && labelTarget(id)) openImage(id)
       else if (id && refTarget(id)) openRef(id)
       else if (id && isAgentRow(id)) setAgentView(id)
+      else if (id && isTodoRow(id)) setDialog({ name: "tasks" })
       else if (id) toggle(id)
     }
   })
@@ -1243,6 +1250,9 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "theme"}>
         <ThemeDialog onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog()?.name === "tasks"}>
+        <TodoDialog session={props.session} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "export"}>
         <ExportDialog

@@ -1,5 +1,6 @@
 import { hiddenSpan } from "../session/rewind.ts"
 import { shownTools } from "../session/shells.ts"
+import { TODO_TOOLS, todoChange } from "../session/todos.ts"
 import type { Item, ItemId, Session } from "../session/types.ts"
 
 // The band that stands for the items a rewind hides.
@@ -58,6 +59,7 @@ export function buildRows(session: Session): Row[] {
 
     if (item.kind === "ask") continue
     if ((item.kind === "text" || item.kind === "tool") && item.quiet && !(item.kind === "tool" && item.agent)) continue
+    if (item.kind === "tool" && TODO_TOOLS.has(item.name) && !todoChange(session, id)) continue
 
     if (item.kind === "turn-end") {
       if (lastEnd && !final(lastEnd.id) && !final(id)) {

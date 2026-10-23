@@ -14,6 +14,8 @@ import { ShellEndRow } from "./shell-end-row.tsx"
 import { buildRows, REWOUND_ROW, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
+import { TODO_TOOLS } from "../session/todos.ts"
+import { TodoRow } from "./todos/todo-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
 import { UserMessageRow } from "./user-message.tsx"
@@ -98,6 +100,9 @@ function RowView(props: RowProps) {
               onOpenImage={props.onOpenImage}
             />
           )}
+        </Match>
+        <Match when={props.row.kind === "tool" && TODO_TOOLS.has(item("tool")?.name ?? "") && item("tool")}>
+          {(tool) => <TodoRow session={props.session} item={tool()} selected={props.selected === tool().id} />}
         </Match>
         <Match when={props.row.kind === "tool" && item("tool")}>
           {(tool) => (
