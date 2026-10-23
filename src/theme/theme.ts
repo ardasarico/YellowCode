@@ -27,6 +27,8 @@ export type Theme = {
   dimFrame: RGBA
   accent: RGBA
   dimAccent: RGBA
+  // The `!` shell mode.
+  shell: RGBA
   warning: RGBA
   error: RGBA
   warningBand: RGBA | null
@@ -59,6 +61,7 @@ export type ThemeColors = {
       | "dimFrame"
       | "dimTile"
       | "dimAccent"
+      | "shell"
       | "success"
       | "warningBand"
       | "warningLine"
@@ -105,6 +108,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     dimFrame: tint("dimFrame") ?? ansi(8),
     accent: ansi(4),
     dimAccent: tint("dimAccent") ?? text,
+    shell: ansi(5),
     warning: ansi(3),
     error: ansi(1),
     warningBand: tint("warningBand"),
@@ -142,6 +146,7 @@ function paintedTheme(c: ThemeColors): Theme {
     dimFrame: hex(mix(c.frame, c.background, 0.45)),
     accent: hex(c.accent),
     dimAccent: hex(mix(c.accent, c.text, 0.5)),
+    shell: hex(c.agents[1] ?? c.accent),
     warning: hex(c.warning),
     error: hex(c.error),
     warningBand: hex(mix(c.background, c.warning, 0.09)),

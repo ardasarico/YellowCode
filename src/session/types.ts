@@ -47,6 +47,8 @@ export type ToolCall = {
   agent: Agent | null
   taskId: string | null
   quiet?: boolean
+  // A `!` command YellowCode ran itself; told once it went out with a message Claude reads.
+  local?: { told: boolean }
 }
 export type Agent = {
   name: string

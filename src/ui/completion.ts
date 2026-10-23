@@ -60,6 +60,8 @@ export type CompletionOptions = {
   onEscape?: () => void
   // Called by Backspace on an empty prompt; true when it took the key.
   onBackspaceEmpty?: () => boolean
+  // Called when `!` is typed into an empty prompt; true takes the `!` away.
+  onBang?: () => boolean
   // Called when ↑ or ↓ puts back a message written to an agent.
   onRecall?: (to: NonNullable<Draft["to"]> | null) => void
 }
@@ -174,6 +176,10 @@ export function useCompletion(options: CompletionOptions) {
     // Only typing and pasting add text; an undo that brings a "/ " back must not have its quote closed again.
     const grew = text.length > seen.length
     seen = text
+    if (grew && text === "!" && options.onBang?.()) {
+      edit({ text: "", cursor: 0 })
+      return
+    }
     chips.sync()
     if (text !== ghost()?.text) setGhost(null)
     if (text === placed) return

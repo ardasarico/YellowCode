@@ -7,6 +7,7 @@ import {
   denyTool,
   interruptRequest,
   QUESTION_TO_CHAT,
+  shellContext,
   userMessage,
 } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
@@ -890,4 +891,15 @@ test("a prompt folded into the message's own turn keeps its answer visible", () 
   const { session, take } = wrapperTurn(false, "also, what time is it?")
   take(assistant("m2", { type: "text", text: "Passed on; it is noon." }))
   expect(items(session).find((item) => item.kind === "text")?.quiet).not.toBe(true)
+})
+
+test("a `!` command rides along with the next message and is told", () => {
+  const session = createSession()
+  const id = session.startShell("git status", false)
+  session.endShell(id, "clean\n", 0, false)
+  session.apply("out", parse(userMessage(`${shellContext("git status", "clean\n")}\n\nwhat changed?`)), 0)
+  const tool = session.state.byId[id]
+  expect(tool?.kind === "tool" && tool.local?.told).toBe(true)
+  const user = session.state.items.map((item) => session.state.byId[item]).find((item) => item?.kind === "user")
+  expect(user?.kind === "user" && user.text).toBe("what changed?")
 })

@@ -75,6 +75,9 @@ export function toolLines(
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
   if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
+  // A `!` command's short output is the point of running it, so it shows whole.
+  const output = tool.local && tool.result.trim() ? tool.result.trimEnd().split("\n") : []
+  if (output.length > 0 && output.length <= TAIL_LINES + 1) return output
   const settled = ask ? null : settledQuestion(tool)
   if (settled) return [settled]
   const answers = question ? answerLines(tool, ask) : []
@@ -248,13 +251,23 @@ export function ToolCallRow(props: {
         props.onOpenShell(taskId)
       }}
     >
-      <text wrapMode="none">
-        <span style={{ fg: color() }}>●</span>
-        <span style={{ fg: theme.muted }}>{` ${label().server}`}</span>
-        <span style={{ fg: theme.text, bold: true }}>{label().tool}</span>
-        <span style={{ fg: theme.text }}>{`(${target()})`}</span>
-        <span style={{ fg: theme.muted }}>{description() ? `  ${description()}` : ""}</span>
-      </text>
+      <Show
+        when={props.item.local}
+        fallback={
+          <text wrapMode="none">
+            <span style={{ fg: color() }}>●</span>
+            <span style={{ fg: theme.muted }}>{` ${label().server}`}</span>
+            <span style={{ fg: theme.text, bold: true }}>{label().tool}</span>
+            <span style={{ fg: theme.text }}>{`(${target()})`}</span>
+            <span style={{ fg: theme.muted }}>{description() ? `  ${description()}` : ""}</span>
+          </text>
+        }
+      >
+        <text wrapMode="none">
+          <span style={{ fg: theme.shell }}>!</span>
+          <span style={{ fg: theme.text, bold: true }}>{` ${cut(props.item.summary, width() - 2)}`}</span>
+        </text>
+      </Show>
       <Show
         when={tail()}
         fallback={
@@ -292,6 +305,11 @@ export function ToolCallRow(props: {
             </Show>
           </>
         )}
+      </Show>
+      <Show when={props.item.local?.told === false && props.item.status !== "running"}>
+        <text wrapMode="none" fg={theme.faint}>
+          {`${LINE_INDENT}Claude sees this with your next message`}
+        </text>
       </Show>
       <ImageLabels
         itemId={props.item.id}

@@ -13,6 +13,7 @@ import { permissionReply, rewindConversationReply } from "./protocol/messages.ts
 import {
   backgroundTasksRequest,
   interruptRequest,
+  shellContext,
   type OutgoingImage,
   ownAskReply,
   renameSession,
@@ -39,6 +40,7 @@ import {
   rewoundTasks,
 } from "./session/rewind.ts"
 import type { Task } from "./session/types.ts"
+import { runShell, type ShellRun } from "./source/shell-command.ts"
 import { createCapture } from "./rewind/live-rewind.ts"
 import { pruneAtStart } from "./rewind/prune.ts"
 import { livePreview } from "./rewind/preview.ts"
@@ -618,13 +620,28 @@ async function sendAfterRewinds(live: Connection, text: string, images: Outgoing
     if (replies.length > 0) untold = { session, conversation: session.state.conversation, replies }
     return sendPrompt(target, text, images, giveBack)
   }
-  sendPrompt(
-    target,
-    text,
-    images,
-    giveBack,
-    replies.map((reply) => `${KEPT_REPLY}\n${reply}`),
-  )
+  const shells = untoldShells?.session === session ? untoldShells.texts : []
+  untoldShells = null
+  sendPrompt(target, text, images, giveBack, [...shells, ...replies.map((reply) => `${KEPT_REPLY}\n${reply}`)])
+}
+
+// `!` commands Claude has yet to read; they go out ahead of the next message.
+let untoldShells: { session: Connection["session"]; texts: string[] } | null = null
+let shellRun: ShellRun | null = null
+
+// A replay sends nothing, so its commands are told from the start.
+function runShellCommand(session: Connection["session"], command: string): void {
+  const told = mode.kind !== "live"
+  const id = session.startShell(command, told)
+  const run = runShell(command, cwd, (output) => session.shellOutput(id, output))
+  shellRun = run
+  void run.done.then(({ output, code, stopped: byUser }) => {
+    if (shellRun === run) shellRun = null
+    session.endShell(id, output, code, byUser)
+    if (told) return
+    const texts = untoldShells?.session === session ? untoldShells.texts : []
+    untoldShells = { session, texts: [...texts, shellContext(command, output)] }
+  })
 }
 
 let untold: { session: Connection["session"]; conversation: number; replies: string[] } | null = null
@@ -864,6 +881,8 @@ function Main() {
                 else source.send(response)
               }}
               onQuit={() => void quit()}
+              onShell={(command) => runShellCommand(current.session, command)}
+              onShellStop={() => shellRun?.stop()}
               onInterrupt={
                 requests
                   ? () => {

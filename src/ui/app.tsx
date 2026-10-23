@@ -101,6 +101,9 @@ export type AppProps = {
   onQuit: () => void
   // Without it nothing can be interrupted (a replay or a read-only transcript).
   onInterrupt?: () => void
+  // Runs a `!` command, and stops the one running.
+  onShell?: (command: string) => void
+  onShellStop?: () => void
   // Without it nothing can be sent to the background (a replay or a read-only transcript).
   onBackground?: () => void
   // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
@@ -146,6 +149,12 @@ export function App(props: AppProps) {
   const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean }>()
   // The agent the prompt writes to, set by `m` on an agent.
   const [messageTo, setMessageTo] = createSignal<{ id: string; name: string } | null>(null)
+  const [shellMode, setShellMode] = createSignal(false)
+  const shellRunning = () =>
+    props.session.items.some((id) => {
+      const item = props.session.byId[id]
+      return item?.kind === "tool" && item.local !== undefined && item.status === "running"
+    })
   createEffect(
     on(fill, (filled) => {
       if (filled?.draft.to) setMessageTo(filled.draft.to)
@@ -335,11 +344,18 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  const chatHistory = () =>
-    userItems().map((item, index) => {
+  // `!` commands are in it too, where they ran.
+  const chatHistory = () => {
+    let index = -1
+    return props.session.items.flatMap((id) => {
+      const item = props.session.byId[id]
+      if (item?.kind === "tool" && item.local) return [draftFromMessage(`!${item.summary}`, [])]
+      if (item?.kind !== "user") return []
+      index++
       const draft = drafts.get(index)
-      return draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images, item.to ?? undefined)
+      return [draft?.text === item.text ? draft.draft : draftFromMessage(item.text, item.images, item.to ?? undefined)]
     })
+  }
   // A message sent after a /clear and still waiting is in both; the history skips repeats in a row.
   const history = () => [...cleared(), ...chatHistory()]
 
@@ -713,6 +729,14 @@ export function App(props: AppProps) {
       setDialog({ name: "rewind", extras: extras ?? null, late: extras === undefined ? working : null })
   }
   const pressEscape = () => {
+    if (shellRunning()) {
+      props.onShellStop?.()
+      return
+    }
+    if (shellMode()) {
+      setShellMode(false)
+      return
+    }
     if (messageTo()) {
       setMessageTo(null)
       return
@@ -750,6 +774,12 @@ export function App(props: AppProps) {
     if (heldKey(key)) {
       key.preventDefault()
       key.stopPropagation()
+      return
+    }
+    if (key.ctrl && key.name === "c" && shellRunning()) {
+      key.preventDefault()
+      key.stopPropagation()
+      props.onShellStop?.()
       return
     }
     if (key.ctrl && key.name === "c") {
@@ -920,6 +950,20 @@ export function App(props: AppProps) {
       return false
     }
     if (to && !text.trim()) return false
+    if (!to && (shellMode() || command.startsWith("!"))) {
+      const line = shellMode() ? text.trim() : command.slice(1).trim()
+      if (!line || !props.onShell) return false
+      if (shellRunning()) {
+        waitNotice("A shell command is still running · Esc stops it")
+        return false
+      }
+      setShellMode(false)
+      // The input clears first: the row the command adds closes the welcome screen, which hands its text on.
+      const run = props.onShell
+      queueMicrotask(() => run(line))
+      sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
+      return true
+    }
     if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/theme") setDialog({ name: "theme" })
@@ -952,23 +996,35 @@ export function App(props: AppProps) {
   const input = () => ({
     focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
     messageTo: messageTo(),
+    shell: shellMode(),
+    onBang: () => {
+      if (messageTo() || !props.onShell) return false
+      setShellMode(true)
+      return true
+    },
     onBackspaceEmpty: () => {
+      if (shellMode()) {
+        setShellMode(false)
+        return true
+      }
       if (!messageTo()) return false
       setMessageTo(null)
       return true
     },
     onRecall: setMessageTo,
-    placeholder: messageTo()
-      ? `Message @${messageTo()?.name}…`
-      : props.readOnly
-        ? "Read-only · resuming needs the live connection"
-        : props.replay
-          ? "Enter sends the next recorded message"
-          : ended()
-            ? props.onRestart
-              ? "Claude Code is not running · Enter restarts it"
-              : "Claude Code is not running"
-            : "Message Claude Code",
+    placeholder: shellMode()
+      ? "Run a shell command"
+      : messageTo()
+        ? `Message @${messageTo()?.name}…`
+        : props.readOnly
+          ? "Read-only · resuming needs the live connection"
+          : props.replay
+            ? "Enter sends the next recorded message"
+            : ended()
+              ? props.onRestart
+                ? "Claude Code is not running · Enter restarts it"
+                : "Claude Code is not running"
+              : "Message Claude Code",
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,

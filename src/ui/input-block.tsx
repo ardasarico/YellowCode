@@ -35,6 +35,9 @@ export type InputBlockProps = {
   // The agent the prompt writes to: its label and the keys that leave or restore the mode.
   messageTo?: { id: string; name: string } | null
   onBackspaceEmpty?: () => boolean
+  // `!` shell mode, and the call that turns it on when `!` starts an empty prompt (true when it did).
+  shell?: boolean
+  onBang?: () => boolean
   onRecall?: (to: { id: string; name: string } | null) => void
   fill?: { draft: Draft; seq: number; ifEmpty?: boolean }
   // Gets what the input still holds when it goes away.

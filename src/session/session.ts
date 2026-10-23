@@ -66,6 +66,10 @@ export type SessionStore = {
   // With a problem, Claude Code went away on its own: running work stops and the chat ends with an error row.
   end(problem?: SessionEnd): void
   rewind(rewound: Rewound): void
+  // A `!` command YellowCode runs itself, shown like a Bash call. `told` is false while Claude has yet to read it.
+  startShell(command: string, told: boolean): ItemId
+  shellOutput(id: ItemId, output: string): void
+  endShell(id: ItemId, output: string, code: number | null, stopped: boolean): void
   redo(): void
   // Called with the tasks a rewind stops or leaves running. A turn claude starts by itself because one of them ended is
   // not shown, and `onStart` is called as it starts so it can be interrupted: stopping a background agent makes claude
@@ -120,17 +124,22 @@ function imagesOf(
 
 const numbered = (index: number) => `Image ${index + 1}`
 
+const SHELL_CONTEXT =
+  /^(?:<bash-input>[\s\S]*?<\/bash-input>\n<bash-stdout>[\s\S]*?<\/bash-stdout><bash-stderr>[\s\S]*?<\/bash-stderr>\s*)+/
+
 function describeUserContent(content: string | UserBlock[]): {
   text: string
   images: ChatImage[]
   to: UserMessage["to"]
 } {
-  const raw =
+  let raw =
     typeof content === "string"
       ? content
       : content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
   const images = typeof content === "string" ? [] : imagesOf(content, numbered)
   const message = readAgentMessage(raw)
+  // `!` commands that went out ahead of the message are shown on their own rows.
+  raw = raw.replace(SHELL_CONTEXT, "")
   if (message) return { text: message.text, images, to: { id: message.id, name: message.name } }
   return { text: raw, images, to: null }
 }
@@ -1240,6 +1249,13 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
       if (state.rewound) setState("rewound", null)
       const { text, images, to } = describeUserContent(message.message.content)
+      for (const shown of state.items) {
+        const item = state.byId[shown]
+        if (item?.kind === "tool" && item.local && !item.local.told)
+          update(shown, (tool) => {
+            if (tool.kind === "tool" && tool.local) tool.local.told = true
+          })
+      }
       const id = newId("user")
       // Only a message sent during a turn waits; one sent while idle starts its own turn. A transcript's prompts all
       // ran already. One shown before it goes out waits until it does, but looks queued only behind a running turn.
@@ -1418,6 +1434,46 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       earlier.stopRunning()
       setState("byId", earlier.state.byId)
       setState("items", (ids) => [...earlier.state.items, ...ids])
+    },
+    startShell(command, told) {
+      const id = newId("shell")
+      add(
+        {
+          kind: "tool",
+          id,
+          name: "Bash",
+          inputText: "",
+          input: { command },
+          summary: command,
+          status: "running",
+          result: "",
+          children: [],
+          patch: null,
+          createdFile: false,
+          images: [],
+          unchanged: false,
+          agent: null,
+          taskId: null,
+          local: { told },
+        },
+        null,
+      )
+      return id
+    },
+    shellOutput(id, output) {
+      update(id, (item) => {
+        if (item.kind === "tool") item.result = output
+      })
+    },
+    endShell(id, output, code, stopped) {
+      update(id, (item) => {
+        if (item.kind !== "tool") return
+        const failed = !stopped && code !== 0
+        item.result = failed
+          ? `${output}${output && !output.endsWith("\n") ? "\n" : ""}exit code ${code ?? "?"}`
+          : output
+        item.status = stopped ? "stopped" : failed ? "error" : "done"
+      })
     },
     rewind(rewound) {
       setState("rewound", { ...rewound, last: rewound.last ?? state.items.at(-1) })

@@ -21,6 +21,11 @@ export function userMessage(text: string, images: OutgoingImage[] = [], uuid?: s
   return JSON.stringify({ type: "user", parent_tool_use_id: null, uuid, message: { role: "user", content } })
 }
 
+// A `!` command and its output, in the form Claude Code gives its own shell mode; it goes out ahead of the next message.
+export function shellContext(command: string, output: string): string {
+  return `<bash-input>${command}</bash-input>\n<bash-stdout>${output}</bash-stdout><bash-stderr></bash-stderr>`
+}
+
 export const TOOL_DECLINED = "The user declined this tool call."
 // A note on its own reads like the tool's output, so it goes out as what the user said.
 export const DECLINED_WITH_NOTE = "The user declined this tool call and said:\n"

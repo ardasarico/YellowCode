@@ -147,6 +147,7 @@ function PromptInput(
     onQuit: () => props.onQuit?.(),
     onEscape: () => props.onEscape?.(),
     onBackspaceEmpty: () => props.onBackspaceEmpty?.() ?? false,
+    onBang: () => props.onBang?.() ?? false,
     onRecall: (to) => props.onRecall?.(to),
     fill: () => props.fill,
   })
@@ -176,6 +177,7 @@ function PromptInput(
           frame={props.frame}
           glyph="─"
           label={edgeLabel()}
+          color={props.shell ? theme.shell : undefined}
         />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
       </box>
@@ -187,8 +189,8 @@ function PromptInput(
           completion.sampleCursor()
         }}
       >
-        <text fg={theme.accent} flexShrink={0}>
-          {"❯ "}
+        <text fg={props.shell ? theme.shell : theme.accent} flexShrink={0}>
+          {props.shell ? "! " : "❯ "}
         </text>
         <Show when={props.messageTo}>
           {(to) => (
@@ -224,7 +226,13 @@ function PromptInput(
           )}
         </Show>
       </box>
-      <InputEdge width={props.width} ultracode={settings.ultracode} frame={props.frame} glyph="─" />
+      <InputEdge
+        width={props.width}
+        ultracode={settings.ultracode}
+        frame={props.frame}
+        glyph="─"
+        color={props.shell ? theme.shell : undefined}
+      />
     </>
   )
 }
@@ -401,6 +409,8 @@ export function PromptBar(props: PromptBarProps) {
             onEscape={props.onEscape}
             messageTo={props.messageTo}
             onBackspaceEmpty={props.onBackspaceEmpty}
+            shell={props.shell}
+            onBang={props.onBang}
             onRecall={props.onRecall}
             fill={props.fill}
             onUnfoldable={setUnfoldable}

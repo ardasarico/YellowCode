@@ -50,7 +50,14 @@ const LABEL_INDENT = 2
 const range = (from: number, to: number) => Array.from({ length: Math.max(0, to - from) }, (_, x) => from + x)
 
 // `label` is drawn muted two cells into the rule, when it fits with two rule cells after it.
-export function InputEdge(props: { width: number; ultracode: boolean; frame: number; glyph?: string; label?: string }) {
+export function InputEdge(props: {
+  width: number
+  ultracode: boolean
+  frame: number
+  glyph?: string
+  label?: string
+  color?: RGBA
+}) {
   const glyph = () => props.glyph ?? EDGE
   const width = () => Math.max(0, props.width)
   const label = () => {
@@ -64,7 +71,7 @@ export function InputEdge(props: { width: number; ultracode: boolean; frame: num
         {(x) => <span style={{ fg: edgeColor(x(), width(), props.frame) }}>{glyph()}</span>}
       </Index>
     ) : (
-      <span style={{ fg: theme.frame }}>{glyph().repeat(Math.max(0, to - from))}</span>
+      <span style={{ fg: props.color ?? theme.frame }}>{glyph().repeat(Math.max(0, to - from))}</span>
     )
   return (
     <text flexShrink={0} wrapMode="none">
