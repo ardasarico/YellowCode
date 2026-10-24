@@ -51,6 +51,8 @@ function hasChildren(token: Token): token is Token & { tokens: Token[] } {
   return "tokens" in token && Array.isArray(token.tokens)
 }
 
+const closesKbd = (token: Token) => token.type === "html" && /^<\/kbd>$/i.test(token.raw)
+
 export function toRuns(
   tokens: readonly Token[],
   style: RunStyle,
@@ -109,9 +111,14 @@ export function toRuns(
     push(text, { ...style, fg: theme.syntax.string })
   }
   let inKbd = false
-  for (const token of tokens) {
-    if (token.type === "html" && /^<\/?kbd>$/i.test(token.raw)) {
-      inKbd = !token.raw.startsWith("</")
+  for (const [index, token] of tokens.entries()) {
+    if (closesKbd(token)) {
+      inKbd = false
+      continue
+    }
+    // A <kbd> nothing closes is shown as it was written.
+    if (token.type === "html" && /^<kbd>$/i.test(token.raw) && tokens.slice(index + 1).some(closesKbd)) {
+      inKbd = true
       continue
     }
     if (inKbd && (token.type === "text" || token.type === "escape")) {
