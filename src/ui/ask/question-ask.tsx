@@ -372,7 +372,11 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
                       noting={noting()}
                       draft={draft()}
                       onDraft={setDraft}
-                      onPick={(index) => setState("focus", state.page, index)}
+                      onPick={(index) => {
+                        if (index === focus()) return
+                        if (noting()) saveNote()
+                        setState("focus", state.page, index)
+                      }}
                       onOpen={openPictures}
                     />
                   </box>
