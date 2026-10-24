@@ -38,11 +38,14 @@ const LIST_FOOTER: FooterAction[] = [
 ]
 
 // Claude Code's own settings: what get_settings read, and the change that goes out as claude's own command.
+// `sent` holds the changes that went out while /settings is open, so a tab switch keeps showing them.
 export type ClaudeSettings = {
   effective: Record<string, unknown> | null
   model: string | null
+  sent: ReadonlyMap<string, string>
   busy: () => boolean
-  change: (command: string) => void
+  // False when the message could not go out.
+  change: (id: string, value: string, command: string) => boolean
 }
 
 const CLAUDE_PREFIX = "claude:"
@@ -66,15 +69,12 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
   const [claudeList, setClaudeList] = createSignal<ClaudeSetting | null>(null)
   const [query, setQuery] = createSignal("")
   const [chosen, setChosen] = createSignal<string | undefined>(untrack(() => props.row))
-  // A change shows at once; claude writes it when the message gets there.
-  const [sent, setSent] = createSignal(new Map<string, string>())
-
   const claudeValue = (setting: ClaudeSetting) => {
     const claude = props.claude
-    return sent().get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.model) : null)
+    return claude?.sent.get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.model) : null)
   }
   const claudeLabel = (setting: ClaudeSetting) => {
-    if (!props.claude?.effective && !sent().has(setting.id)) return "…"
+    if (!props.claude?.effective && !props.claude?.sent.has(setting.id)) return "…"
     const value = claudeValue(setting)
     if (value === null) return "default"
     return setting.options.find((option) => option.value === value)?.label ?? value
@@ -106,8 +106,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
     const claude = props.claude
     if (!claude || value === claudeValue(setting)) return
     if (claude.busy()) return props.api.notify("Claude Code settings change once it is idle")
-    setSent((previous) => new Map(previous).set(setting.id, value))
-    claude.change(setting.command(value))
+    if (!claude.change(setting.id, value, setting.command(value))) props.api.notify("Claude Code did not take it")
   }
   const stepClaude = (setting: ClaudeSetting, by: 1 | -1) => {
     const count = setting.options.length

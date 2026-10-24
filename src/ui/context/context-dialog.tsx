@@ -26,17 +26,21 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
   const colorOf = new Map<string, RGBA>(
     used.map((category, index) => [category.name, theme.agents[index % theme.agents.length] ?? theme.accent]),
   )
-  const bar = used.map((category) => ({
-    text: "█".repeat(Math.max(1, Math.round((category.tokens / usage.maxTokens) * BAR))),
-    fg: colorOf.get(category.name) ?? theme.accent,
-  }))
-  const filled = bar.reduce((sum, span) => sum + span.text.length, 0)
+  // Each used category takes a cell at least, and the bar stops at its width however small the rest is.
+  let left = BAR
+  const bar = used.map((category) => {
+    const share = usage.maxTokens > 0 ? Math.round((category.tokens / usage.maxTokens) * BAR) : 0
+    const cells = Math.min(left, Math.max(1, share))
+    left -= cells
+    return { text: "█".repeat(cells), fg: colorOf.get(category.name) ?? theme.accent }
+  })
+  const filled = BAR - left
   const rows: DialogItem[] = [
     {
       id: "total",
       spans: [
         {
-          text: `${modelName(usage.model)} · ${formatTokens(usage.totalTokens)} / ${formatTokens(usage.maxTokens)} (${usage.percentage}%)`,
+          text: `${modelName(usage.model)} · ${formatTokens(usage.totalTokens)} / ${formatTokens(usage.maxTokens)} (${Math.round(usage.percentage)}%)`,
           fg: theme.text,
         },
       ],

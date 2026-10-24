@@ -107,20 +107,21 @@ const CLAUDE_ROWS: Record<string, string> = {
 }
 const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
 
-// The skills the last /reload-skills reported; claude's other lists hold a different set, so only a reload before
+// `before` is what the last /reload-skills reported; claude's other lists hold a different set, so only a reload before
 // this one says which are new.
-let reloadedSkills: Set<string> | null = null
-
-async function reloadSkills(request: (build: (requestId: string) => string) => Promise<unknown>): Promise<string> {
+async function reloadSkills(
+  request: (build: (requestId: string) => string) => Promise<unknown>,
+  before: ReadonlySet<string> | null,
+): Promise<{ notice: string; names: Set<string> }> {
   const reply = await request(reloadSkillsRequest)
   const names = (reloadSkillsReply.safeParse(reply).data?.skills ?? [])
     .map((skill) => skill.name)
     .filter((name) => !BLOCKED_COMMANDS.includes(name))
-  const before = reloadedSkills
-  reloadedSkills = new Set(names)
   const fresh = before ? names.filter((name) => !before.has(name)).length : 0
-  return `Skills reloaded · ${names.length}${fresh > 0 ? `, ${fresh} new` : ""}`
+  return { notice: `Skills reloaded · ${names.length}${fresh > 0 ? `, ${fresh} new` : ""}`, names: new Set(names) }
 }
+// A bare /rename takes up the title Claude Code sets this soon after.
+const ADOPT_TITLE_MS = 10_000
 const BACKGROUND_HINT_MS = 3000
 
 export type AppProps = {
@@ -205,6 +206,7 @@ export function App(props: AppProps) {
   }
   // Claude Code's settings as get_settings reads them, each time /settings opens.
   const [claudeEffective, setClaudeEffective] = createSignal<Record<string, unknown> | null>(null)
+  const [claudeSent, setClaudeSent] = createSignal(new Map<string, string>())
   createEffect(
     on(
       () => settingsTab() !== null,
@@ -212,6 +214,7 @@ export function App(props: AppProps) {
         const request = props.request
         if (!open || !request) return
         setClaudeEffective(null)
+        setClaudeSent(new Map())
         request(getSettingsRequest).then(
           (reply) => setClaudeEffective(effectiveSettings.safeParse(reply).data?.effective ?? {}),
           (error: unknown) => log.warn("claude settings for /settings failed", String(error)),
@@ -328,20 +331,34 @@ export function App(props: AppProps) {
   )
   // A name given with /rename (or the one Claude Code makes for a bare /rename) wins over both sources until a /clear.
   const [renamed, setRenamed] = createSignal<string | null>(null)
-  let adoptClaudeTitle = false
+  let adoptTitleUntil = 0
+  let reloadedSkills: Set<string> | null = null
   createEffect(
     on(
       () => props.session.conversation,
-      () => setRenamed(null),
+      () => {
+        setRenamed(null)
+        adoptTitleUntil = 0
+        reloadedSkills = null
+      },
       { defer: true },
+    ),
+  )
+  // claude takes a title only once it has said the session's id, which can be after the /rename.
+  createEffect(
+    on(
+      () => [renamed(), props.session.info?.id] as const,
+      ([name, id]) => {
+        if (name && id) props.onTitle?.(name)
+      },
     ),
   )
   createEffect(
     on(
       () => props.session.claudeTitle,
       (text) => {
-        if (!adoptClaudeTitle || !text) return
-        adoptClaudeTitle = false
+        if (Date.now() > adoptTitleUntil || !text) return
+        adoptTitleUntil = 0
         setRenamed(text)
       },
       { defer: true },
@@ -624,6 +641,8 @@ export function App(props: AppProps) {
   // /model and /effort with a value YellowCode knows pick it here; any other value goes on to Claude Code.
   const typedKnob = (name: string, value: string): boolean => {
     if (!props.onInterrupt || (name !== "model" && name !== "effort")) return false
+    // A model without effort levels: Claude Code's own /effort says so.
+    if (name === "effort" && settings.effort === null) return false
     if (!value) {
       setDialog({ name: "choice", kind: name })
       return true
@@ -1192,15 +1211,19 @@ export function App(props: AppProps) {
       const name = commandArgs.trim()
       if (name) {
         setRenamed(name)
-        props.onTitle(name)
         return true
       }
       // Claude Code makes the name; its title change brings it here.
-      adoptClaudeTitle = true
+      adoptTitleUntil = Date.now() + ADOPT_TITLE_MS
     }
     if (command === "/reload-skills" && props.request) {
-      reloadSkills(props.request).then(waitNotice, (error: unknown) =>
-        waitNotice(`Could not reload the skills: ${error instanceof Error ? error.message : String(error)}`),
+      reloadSkills(props.request, reloadedSkills).then(
+        ({ notice, names }) => {
+          reloadedSkills = names
+          waitNotice(notice)
+        },
+        (error: unknown) =>
+          waitNotice(`Could not reload the skills: ${error instanceof Error ? error.message : String(error)}`),
       )
       return true
     }
@@ -1507,8 +1530,13 @@ export function App(props: AppProps) {
                 ? {
                     effective: claudeEffective(),
                     model: settings.model ?? props.model(),
+                    sent: claudeSent(),
                     busy: () => props.session.status === "running",
-                    change: (command) => props.onSubmit(command, [], () => {}),
+                    change: (id, value, command) => {
+                      if (!props.onSubmit(command, [], () => {})) return false
+                      setClaudeSent((previous) => new Map(previous).set(id, value))
+                      return true
+                    },
                   }
                 : undefined
             }

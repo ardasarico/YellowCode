@@ -95,7 +95,7 @@ export function UserMessageRow(props: {
           paddingLeft={2}
         >
           <text fg={theme.muted} wrapMode="none">
-            {`⚙ ${change()?.label} → ${change()?.value}`}
+            {`⚙ ${change()?.label} → ${change()?.value}${props.item.queue ? `  ${props.item.queue}` : ""}`}
           </text>
         </box>
       }
