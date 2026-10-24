@@ -30,7 +30,7 @@ import {
   toggleUltracode,
 } from "../session/settings.ts"
 import { failedSaves, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
-import { existsSync } from "node:fs"
+import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
 import { conversationMarkdown, exportFileName, freeExportName } from "../session/export.ts"
@@ -1332,7 +1332,7 @@ export function App(props: AppProps) {
       <Show when={dialog()?.name === "export"}>
         <ExportDialog
           fileName={freeExportName(process.cwd(), exportFileName(title()?.title ?? "", new Date()))}
-          exists={(name) => existsSync(resolve(process.cwd(), name))}
+          exists={(name) => statSync(resolve(process.cwd(), name), { throwIfNoEntry: false })?.isFile() ?? false}
           onCopy={() => void exportToClipboard()}
           onSave={(name) => void exportTo(name, true)}
           onClose={() => setDialog(null)}
