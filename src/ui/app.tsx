@@ -1031,6 +1031,12 @@ export function App(props: AppProps) {
       sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
       return true
     }
+    const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
+    const planning = command === "/plan" || command.startsWith("/plan ")
+    if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
+      waitNotice(REPLAY_NOTICE)
+      return false
+    }
     if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/theme") setDialog({ name: "theme" })
@@ -1132,6 +1138,8 @@ export function App(props: AppProps) {
     if (quitArmed()) return quitHint()
     const problem = pasteNotice() ?? settingsProblem()
     if (problem) return problemNotice(problem)
+    const note = rewindNote()
+    if (note) return { text: note, fg: theme.muted }
     return live() && props.session.status === "starting" ? startingNotice() : null
   }
   const openBackup = () => {
