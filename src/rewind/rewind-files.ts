@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { log } from "../log/log.ts"
 import type { ItemId, Session } from "../session/types.ts"
 import { covers, tildePath } from "./common.ts"
-import { type Capture, type Point, readManifest } from "./live-rewind.ts"
+import { type Capture, type Point, promptManifests } from "./live-rewind.ts"
 import { type OutsideFile, restoreOutside } from "./outside.ts"
 import { chatPaths, conflictsNow, outsideFiles, type Pending, restoreInput } from "./preview.ts"
 import { applyRestore, createdIn, planRestore, type RestoreResult } from "./restore.ts"
@@ -12,7 +12,7 @@ import type { Snapshots, Taken, TreeEntry } from "./snapshots.ts"
 
 // `paths` are what changed, as the chat names them; `kept` what stayed as it was although a rewind would change it.
 // "changed": the files changed since the dialog showed its ⚠, which now lists more; nothing was written.
-// `which` says whether a rewind's own prompt or a later one was not tracked.
+// `which` says whether a rewind's own prompt or a later one was not tracked; none when nothing is tracked here.
 export type FilesOutcome =
   | { kind: "untracked"; which?: "this" | "later" }
   | { kind: "failed"; reason: string }
@@ -153,12 +153,12 @@ export function createFileRewind(capture: Capture | null, cwd: string): FileRewi
 
     async rewind(session, userId, seen) {
       const snapshots = await capture?.snapshots
-      if (!capture || !snapshots) return { kind: "untracked", which: "this" }
+      if (!capture || !snapshots) return { kind: "untracked" }
       if (rewinds && rewinds.session !== session) release()
       await capture.settle()
       const all = prompts(session)
       const at = all.findIndex((item) => item.id === userId)
-      const manifests = all.map((item) => (item.uuid ? readManifest(snapshots.store, item.uuid) : null))
+      const manifests = promptManifests(snapshots.store, all)
       const input = await restoreInput(snapshots, manifests, at).catch((error: unknown) => {
         log.warn("rewind input not read", String(error))
         return undefined

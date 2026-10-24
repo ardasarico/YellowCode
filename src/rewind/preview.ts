@@ -5,7 +5,7 @@ import { log } from "../log/log.ts"
 import type { RewindExtras, RewindPreview } from "../session/rewind.ts"
 import type { Session } from "../session/types.ts"
 import { blobId, covers, fileInput, inRoot, tildePath } from "./common.ts"
-import { agentWrites, type Capture, type Manifest, type Point, readManifest, type Segment } from "./live-rewind.ts"
+import { agentWrites, type Capture, type Manifest, type Point, promptManifests, type Segment } from "./live-rewind.ts"
 import { type OutsideFile, outsideNow, refsUnder, restoreOutside } from "./outside.ts"
 import { applyRestore, createdIn, planRestore, type RestoreInput, type Target } from "./restore.ts"
 import type { Snapshots, Taken, TreeEntry } from "./snapshots.ts"
@@ -123,25 +123,21 @@ export function chatPaths(root: string, cwd: string): (path: string) => string {
 const dryRunDelayMs = Number(process.env["YELLOWCODE_SNAPSHOT_DELAY_MS"] ?? 0) || 0
 
 // What a rewind to the prompt would restore and delete now: the restore run dry, from the same input a rewind builds,
-// with a snapshot taken now as its safety snapshot. Null when the prompt has no full snapshots.
+// with a snapshot taken now as its safety snapshot. Null when the prompt has no full snapshots; a failure rejects, so
+// the dialog can say the files were not checked.
 async function dryRun(
   snapshots: Snapshots,
   manifests: (Manifest | null)[],
   safety: Taken,
   prompt: number,
 ): Promise<string[] | null> {
-  try {
-    const input = await restoreInput(snapshots, manifests, prompt)
-    if (!input) return null
-    if (dryRunDelayMs > 0) await Bun.sleep(dryRunDelayMs)
-    const plan = await planRestore({ ...input, safety, after: input.after ?? safety })
-    const result = await applyRestore(plan, { dryRun: true })
-    log.debug("rewind dry run", { prompt, ...result })
-    return [...result.restored, ...result.deleted]
-  } catch (error) {
-    log.warn("rewind dry run failed", { prompt, error: String(error) })
-    return null
-  }
+  const input = await restoreInput(snapshots, manifests, prompt)
+  if (!input) return null
+  if (dryRunDelayMs > 0) await Bun.sleep(dryRunDelayMs)
+  const plan = await planRestore({ ...input, safety, after: input.after ?? safety })
+  const result = await applyRestore(plan, { dryRun: true })
+  log.debug("rewind dry run", { prompt, ...result })
+  return [...result.restored, ...result.deleted]
 }
 
 // Paths a user (or anyone) changed after the last segment that changed them, or after an earlier rewind put them
@@ -208,7 +204,7 @@ async function preview(
     const item = session.byId[id]
     return item?.kind === "user" ? [item] : []
   })
-  const manifests = prompts.map((prompt) => (prompt.uuid ? readManifest(snapshots.store, prompt.uuid) : null))
+  const manifests = promptManifests(snapshots.store, prompts)
   const shown = chatPaths(snapshots.root, cwd)
 
   const extras: RewindExtras = {
@@ -268,7 +264,8 @@ async function preview(
     }
     return run
   }
-  const first = await extras.dryRun(selected)
+  // A failed one is left for the dialog, which asks again and says so.
+  const first = await extras.dryRun(selected).catch(() => null)
   if (first) extras.restores.push({ prompt: selected, paths: first })
   return extras
 }

@@ -67,7 +67,7 @@ export function RewindDialog(
     let failed = false
     const found = dryRun
       ? await dryRun(at).catch((error: unknown) => {
-          log.warn("rewind dry run failed", String(error))
+          log.warn("rewind dry run failed", { prompt: at, error: String(error) })
           failed = true
           return null
         })
@@ -189,6 +189,8 @@ export function RewindDialog(
       const answer = await props.onRewind(asked, shownNow)
       if (work.closed) return
       if (!answer) return props.onClose()
+      // Enter checked the files itself.
+      setUnchecked((previous) => new Set([...previous].filter((prompt) => prompt !== at)))
       setRestores((previous) => new Map(previous).set(at, answer.paths))
       setAtEnter((previous) => new Set([...previous, ...answer.conflicts]))
     } finally {

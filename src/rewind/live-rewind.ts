@@ -9,7 +9,7 @@ import { parseJson } from "../protocol/json.ts"
 import { CLAUDE_PROJECTS } from "../resume/project-key.ts"
 import type { SessionStore } from "../session/session.ts"
 import { isShell } from "../session/shells.ts"
-import type { ItemId, Session, ToolCall } from "../session/types.ts"
+import type { ItemId, Session, ToolCall, UserMessage } from "../session/types.ts"
 import type { Write } from "./restore.ts"
 import { blobId, inRoot, inputFile, WRITE_TOOLS, within, writeManifest } from "./common.ts"
 import { importBackups } from "./import.ts"
@@ -249,6 +249,16 @@ async function readBefore(file: string): Promise<Before | null> {
   } finally {
     await handle.close()
   }
+}
+
+// Each prompt's manifest. A prompt that never went out changed nothing, so it gets an empty one rather than the null
+// of a prompt whose snapshots are missing.
+export function promptManifests(store: string, prompts: UserMessage[]): (Manifest | null)[] {
+  return prompts.map((prompt) => {
+    if (prompt.queue === "not sent")
+      return { uuid: prompt.uuid ?? "", sessionId: null, sentAt: 0, segments: [], latest: {}, shells: [] }
+    return prompt.uuid ? readManifest(store, prompt.uuid) : null
+  })
 }
 
 // The prompt's manifest, null when it has none or cannot be read.
