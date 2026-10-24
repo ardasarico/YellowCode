@@ -16,6 +16,8 @@ export function runShell(command: string, cwd: string, onOutput: (output: string
     stdin: "ignore",
     stdout: "pipe",
     stderr: "ignore",
+    // Its own process group, so stopping it reaches the commands it started too.
+    detached: true,
   })
   let stopped = false
   let output = ""
@@ -26,12 +28,19 @@ export function runShell(command: string, cwd: string, onOutput: (output: string
       onOutput(output)
     }
   })()
+  const signal = (name: NodeJS.Signals) => {
+    try {
+      process.kill(-proc.pid, name)
+    } catch {
+      // The whole group has ended.
+    }
+  }
   return {
     stop() {
       if (stopped) return
       stopped = true
-      proc.kill()
-      setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS).unref()
+      signal("SIGTERM")
+      setTimeout(() => signal("SIGKILL"), KILL_AFTER_MS).unref()
     },
     done: Promise.all([proc.exited, read]).then(([code]) => ({ output, code, stopped })),
   }

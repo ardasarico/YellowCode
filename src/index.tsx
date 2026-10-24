@@ -268,6 +268,7 @@ startTheme(renderer.nativeScene, settings.theme)
 renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
 
 let quitting = false
+let shellRun: ShellRun | null = null
 // Each close() is bounded on its own; this bounds the quit as a whole.
 const QUIT_WAIT_MS = 8000
 
@@ -277,6 +278,8 @@ async function quit(code = 0): Promise<void> {
   // Files stay as a rewind left them, and claude hears nothing of it.
   fileRewind.stop()
   const sweeping = capture?.stop()
+  const shell = shellRun
+  shell?.stop()
   source.close()
   stopTitles()
   try {
@@ -290,8 +293,8 @@ async function quit(code = 0): Promise<void> {
     }
     // The terminal comes back to its normal state asynchronously, and exiting before that leaves it broken.
     await renderer.closed.catch(() => {})
-    if (mode.kind === "live")
-      await Promise.race([Promise.all([...stopped.values(), sweeping]), Bun.sleep(QUIT_WAIT_MS)])
+    const ending = mode.kind === "live" ? [...stopped.values(), sweeping] : []
+    await Promise.race([Promise.all([...ending, shell?.done]), Bun.sleep(QUIT_WAIT_MS)])
     process.exit(code)
   }
 }
@@ -638,7 +641,6 @@ async function sendAfterRewinds(live: Connection, text: string, images: Outgoing
 
 // `!` commands Claude has yet to read; they go out ahead of the next message.
 let untoldShells: { session: Connection["session"]; texts: string[] } | null = null
-let shellRun: ShellRun | null = null
 
 // A replay sends nothing, so its commands are told from the start.
 function runShellCommand(session: Connection["session"], command: string): void {
