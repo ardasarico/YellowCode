@@ -42,13 +42,17 @@ test("an ask sends only its first response", async () => {
   expect(sent[0]).toContain('"behavior":"allow"')
   setup.renderer.destroy()
 
-  const risky = await testRender(
-    () => <AskSurface ask={{ ...ask, defaultToNo: true }} width={80} onAnswer={(_, line) => sent.push(line)} />,
-    { width: 80, height: 20 },
-  )
-  risky.mockInput.pressKey("1")
+  const pressOne = async (severe: Partial<Ask>) => {
+    const risky = await testRender(
+      () => <AskSurface ask={{ ...ask, ...severe }} width={80} onAnswer={(_, line) => sent.push(line)} />,
+      { width: 80, height: 20 },
+    )
+    risky.mockInput.pressKey("1")
+    risky.renderer.destroy()
+  }
+  await pressOne({ defaultToNo: true })
+  await pressOne({ safetyCheck: true })
   expect(sent).toHaveLength(1)
-  risky.renderer.destroy()
 })
 
 test("the first key still typed into the prompt as an ask appears does not answer it", async () => {

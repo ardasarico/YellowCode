@@ -204,7 +204,7 @@ export function PermissionBand(props: AskViewProps) {
     } else if (key.name === "n" && !plan()) {
       key.preventDefault()
       setNoting(true)
-    } else if (!props.ask.defaultToNo && /^[1-9]$/.test(key.name)) {
+    } else if (!severe(props.ask) && /^[1-9]$/.test(key.name)) {
       const choice = choices()[Number(key.name) - 1]
       if (choice) respond(choice)
     }
