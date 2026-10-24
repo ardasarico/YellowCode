@@ -75,6 +75,22 @@ export function resetSetting(key: keyof StoredSettings): void {
   setSetting(key, DEFAULT_SETTINGS[key])
 }
 
+export const pickModel = (id: string) => setSettings("model", id)
+export const pickEffort = (level: EffortLevel) => setSettings("effort", level)
+
+// The models /model and Shift+←→ offer, as ids.
+export const modelIds = () => (choices.length > 0 ? choices.map(({ id }) => id) : MODELS)
+
+// The id a typed /model name stands for: an alias such as "opus", or an id; null when YellowCode does not list it.
+export function modelFor(name: string): string | null {
+  const needle = name.toLowerCase()
+  return (
+    choices.find((choice) => choice.value.toLowerCase() === needle || choice.id.toLowerCase() === needle)?.id ??
+    MODELS.find((id) => id === needle) ??
+    null
+  )
+}
+
 // Nothing to step from while claude has not said what it uses (or the model has no effort levels).
 export function stepEffort(step: 1 | -1): void {
   if (settings.effort === null) return

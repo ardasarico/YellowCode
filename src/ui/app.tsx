@@ -22,13 +22,20 @@ import {
 } from "../session/rewind.ts"
 import {
   controlProblem,
+  modelFor,
+  modelIds,
+  modelValue,
   nextMode,
+  pickEffort,
+  pickModel,
   setSessionMode,
   settings,
   stepEffort,
   stepModel,
   toggleUltracode,
 } from "../session/settings.ts"
+import { EFFORT_LEVELS } from "../theme/brand.ts"
+import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
 import { pluginEntries } from "../session/plugins.ts"
 import { failedSaves, modeLabel, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
@@ -149,6 +156,7 @@ type DialogName =
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
+  | { name: "choice"; kind: "model" | "effort" }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -530,6 +538,26 @@ export function App(props: AppProps) {
   const codeView = () => {
     const open = dialog()
     return open?.name === "code" ? open : null
+  }
+  const choiceKind = () => {
+    const open = dialog()
+    return open?.name === "choice" ? open.kind : null
+  }
+  // /model and /effort with a value YellowCode knows pick it here; any other value goes on to Claude Code.
+  const typedKnob = (name: string, value: string): boolean => {
+    if (!props.onInterrupt || (name !== "model" && name !== "effort")) return false
+    if (!value) {
+      setDialog({ name: "choice", kind: name })
+      return true
+    }
+    if (name === "model") {
+      const id = modelFor(value)
+      if (id) pickModel(id)
+      return id !== null
+    }
+    const level = EFFORT_LEVELS.find((known) => known === value.toLowerCase())
+    if (level) pickEffort(level)
+    return level !== undefined
   }
 
   const imageView = () => {
@@ -1076,10 +1104,12 @@ export function App(props: AppProps) {
       sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
       return true
     }
-    if (BLOCKED_COMMANDS.includes(command.match(/^\/(\S+)/)?.[1] ?? "")) {
+    const [, commandName = "", commandArgs = ""] = /^\/(\S+)\s*(.*)$/.exec(command) ?? []
+    if (BLOCKED_COMMANDS.includes(commandName)) {
       waitNotice("Not available in YellowCode")
       return false
     }
+    if (typedKnob(commandName, commandArgs.trim())) return true
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
     if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
@@ -1409,6 +1439,36 @@ export function App(props: AppProps) {
             onClose={() => setDialog(null)}
           />
         )}
+      </Show>
+      <Show when={choiceKind() === "model"}>
+        <ChoiceDialog
+          title="Model"
+          choices={modelIds().map((id) => ({
+            id,
+            label: modelName(id),
+            note: props.provider.models().find((model) => model.value === modelValue(id))?.note,
+          }))}
+          current={settings.model ?? props.model()}
+          onChoose={pickModel}
+          onClose={() => setDialog(null)}
+        />
+      </Show>
+      <Show when={choiceKind() === "effort"}>
+        <ChoiceDialog
+          title="Effort"
+          choices={[
+            ...EFFORT_LEVELS.map((level) => ({ id: level, label: level })),
+            { id: "auto", label: "auto", note: "Claude Code picks the level" },
+          ]}
+          current={settings.effort}
+          onChoose={(id) => {
+            const level = EFFORT_LEVELS.find((known) => known === id)
+            // auto is Claude Code's own, so its /effort sets it.
+            if (level) pickEffort(level)
+            else props.onSubmit("/effort auto", [], () => {})
+          }}
+          onClose={() => setDialog(null)}
+        />
       </Show>
       <Show when={codeView()}>
         {(view) => (
