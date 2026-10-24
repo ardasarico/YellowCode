@@ -165,6 +165,8 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
       .send(mcpStatusRequest)
       .then(
         (reply) => {
+          // A claude that was replaced shares the session; its late list would overwrite the new one's.
+          if (disposed) return
           const rows = mcpServerRows.safeParse(reply).data?.mcpServers
           if (!rows) return log.warn("mcp status: no server list in the reply")
           for (const row of rows) {
