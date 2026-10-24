@@ -9,7 +9,9 @@ import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import type { OutgoingImage } from "../protocol/outgoing.ts"
+import { contextUsage } from "../protocol/messages.ts"
+import { getContextUsageRequest, type OutgoingImage } from "../protocol/outgoing.ts"
+import { ContextDialog } from "./context/context-dialog.tsx"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { currentInfo, currentServers } from "../session/lists.ts"
 import {
@@ -131,6 +133,8 @@ export type AppProps = {
   onBackground?: () => void
   // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
   onTitle?: (title: string) => void
+  // A control request to the running claude; none in a replay or a read-only transcript.
+  request?: (build: (requestId: string) => string) => Promise<unknown>
   // Without it no task can be stopped from the agent view (a replay or a read-only transcript).
   onStopTask?: (taskId: string) => Promise<void>
   // Without it the session cannot rewind (a read-only transcript). A live rewind puts the files back first and
@@ -157,6 +161,7 @@ type DialogName =
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
   | { name: "choice"; kind: "model" | "effort" }
+  | { name: "context" }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -1110,6 +1115,10 @@ export function App(props: AppProps) {
       return false
     }
     if (typedKnob(commandName, commandArgs.trim())) return true
+    if (command === "/context" && props.request) {
+      setDialog({ name: "context" })
+      return true
+    }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
     if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
@@ -1436,6 +1445,20 @@ export function App(props: AppProps) {
             images={view().images}
             index={view().index}
             onIndex={(index) => setDialog({ ...view(), index })}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
+      <Show when={dialog()?.name === "context" && props.request}>
+        {(request) => (
+          <ContextDialog
+            load={() =>
+              request()(getContextUsageRequest).then((reply) => {
+                const usage = contextUsage.safeParse(reply)
+                if (!usage.success) throw new Error("unexpected reply")
+                return usage.data
+              })
+            }
             onClose={() => setDialog(null)}
           />
         )}

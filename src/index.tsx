@@ -945,6 +945,7 @@ function Main() {
                   : undefined
               }
               onTitle={requests ? (title) => rename(requests, current.session, title) : undefined}
+              request={requests ? (build) => requests.send(build) : undefined}
               onStopTask={mode.kind === "live" ? (taskId) => connection.tasks.stop(taskId) : undefined}
               rewind={
                 mode.kind === "replay"

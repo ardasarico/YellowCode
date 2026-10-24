@@ -477,6 +477,19 @@ export const appliedSettings = z.looseObject({
   }),
 })
 
+// get_context_usage: what fills the context window, by category, with the memory files and MCP tools in it.
+export const contextUsage = z.looseObject({
+  categories: z.array(
+    z.looseObject({ id: z.string().optional(), name: z.string(), tokens: z.number(), kind: z.string() }),
+  ),
+  totalTokens: z.number(),
+  maxTokens: z.number(),
+  percentage: z.number(),
+  model: z.string(),
+  memoryFiles: z.array(z.looseObject({ path: z.string(), tokens: z.number() })).default([]),
+  mcpTools: z.array(z.looseObject({ name: z.string(), serverName: z.string(), tokens: z.number() })).default([]),
+})
+
 export const initializeMode = z.looseObject({ current_permission_mode: z.string() })
 export const permissionModeReply = z.looseObject({ mode: z.string() })
 

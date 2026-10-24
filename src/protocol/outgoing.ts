@@ -146,6 +146,8 @@ function controlRequest(requestId: string, subtype: string, fields: object = {})
   return JSON.stringify({ type: "control_request", request_id: requestId, request: { subtype, ...fields } })
 }
 
+export const getContextUsageRequest = (requestId: string) => controlRequest(requestId, "get_context_usage")
+
 export function interruptRequest(requestId: string): string {
   return controlRequest(requestId, "interrupt")
 }
