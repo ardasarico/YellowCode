@@ -1,4 +1,13 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { dirname } from "node:path"
 import { createSignal } from "solid-js"
 import { z } from "zod"
@@ -71,6 +80,7 @@ export type LoadedSettings = {
 }
 
 export const SAVE_PROBLEM = "cannot save settings.json, changes last until you quit"
+export const UNREADABLE_PROBLEM = "cannot read settings.json, changes last until you quit"
 // Counts failed saves, so every failure can show the notice again after it was cleared.
 const [failedSaves, setFailedSaves] = createSignal(0)
 export { failedSaves }
@@ -116,12 +126,19 @@ function readStored(stored: Record<string, unknown>) {
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 
+// Files that exist but could not be read: saving would replace what the user still has there.
+const unreadable = new Set<string>()
+
 export function loadSettings(path = configPath("settings.json")): LoadedSettings {
   let text: string
   try {
     text = readFileSync(path, "utf8")
-  } catch {
-    return { settings: { ...DEFAULT_SETTINGS }, problem: null, backup: null }
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT")
+      return { settings: { ...DEFAULT_SETTINGS }, problem: null, backup: null }
+    log.warn("cannot read the settings", error)
+    unreadable.add(path)
+    return { settings: { ...DEFAULT_SETTINGS }, problem: UNREADABLE_PROBLEM, backup: null }
   }
   text = text.replace(/^\uFEFF/, "")
   const parsed = parseJson(text)
@@ -135,7 +152,8 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
   const backup = `${path}.bak`
   let fixed = false
   try {
-    copyFileSync(path, backup)
+    // The first backup holds the user's own bytes; a later repair would only copy over them.
+    if (!existsSync(backup)) copyFileSync(path, backup)
     fixed = saveSettings(found, path)
   } catch (error) {
     log.warn("cannot archive the settings", error)
@@ -147,12 +165,27 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
 
 export function saveSettings(settings: Partial<StoredSettings>, path = configPath("settings.json")): boolean {
   const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications } = settings
+  if (unreadable.has(path)) {
+    setFailedSaves((count) => count + 1)
+    return false
+  }
+  // Written beside the file and renamed over it, so a failed write leaves the old one whole; a symlinked file keeps
+  // its link.
+  let target = path
   try {
-    mkdirSync(dirname(path), { recursive: true })
+    target = realpathSync(path)
+  } catch {
+    // Not there yet.
+  }
+  const temp = `${target}.${process.pid}.tmp`
+  try {
+    mkdirSync(dirname(target), { recursive: true })
     const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications }
-    writeFileSync(path, `${JSON.stringify(stored, null, 2)}\n`)
+    writeFileSync(temp, `${JSON.stringify(stored, null, 2)}\n`)
+    renameSync(temp, target)
     return true
   } catch (error) {
+    rmSync(temp, { force: true })
     log.warn("cannot save the settings", error)
     setFailedSaves((count) => count + 1)
     return false
