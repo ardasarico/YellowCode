@@ -73,9 +73,12 @@ export function createClaudeSource(cwd: string, running: () => boolean, command:
     })
 
   const stderr: string[] = []
+  let stderrLines = 0
   const errors = (async () => {
     for await (const line of splitLines(proc.stderr)) {
-      log.warn("claude stderr", line)
+      // Its text can quote the conversation, so only debug logging keeps it.
+      if (stderrLines++ === 0) log.warn("claude wrote to stderr")
+      log.debug("claude stderr", line)
       // A progress line redraws itself after each \r, so only its last state is kept.
       const shown = printable(line.slice(line.lastIndexOf("\r") + 1)).replaceAll("\t", " ")
       if (!shown.trim()) continue
@@ -88,7 +91,7 @@ export function createClaudeSource(cwd: string, running: () => boolean, command:
   const exitNow = (): ClaudeExit => ({ code: proc.exitCode, signal: proc.signalCode, stderr: [...stderr], closed })
   const exited = Promise.all([proc.exited, output, errors]).then(() => {
     const exit = exitNow()
-    log.info("claude exited", { code: exit.code, signal: exit.signal, closed })
+    log.info("claude exited", { code: exit.code, signal: exit.signal, closed, stderrLines })
     return exit
   })
 

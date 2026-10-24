@@ -86,13 +86,15 @@ export async function titleSession(messages: readonly string[]): Promise<Session
   clearTimeout(timer)
   clearTimeout(kill)
   if (late || code !== 0) {
-    log.warn("session title failed", { code, late, stderr })
+    log.warn("session title failed", { code, late, stderrChars: stderr.length })
+    log.debug("session title stderr", stderr)
     return null
   }
   const json = parseJson(output)
   const result = json.ok ? Result.safeParse(json.value) : null
   if (!result?.success) {
-    log.warn("session title: unexpected output", output.slice(0, 500))
+    log.warn("session title: unexpected output", { chars: output.length })
+    log.debug("session title output", output.slice(0, 500))
     return null
   }
   const title = /TITLE:\s*(.+)/i.exec(result.data.result)?.[1]?.trim()

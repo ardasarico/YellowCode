@@ -53,8 +53,10 @@ export async function pump(
       if (parsed.kind === "invalid") {
         const count = (invalidCounts.get(parsed.key) ?? 0) + 1
         invalidCounts.set(parsed.key, count)
-        if (count === 1) log.warn(`invalid ${parsed.key} message: ${parsed.error}`, parsed.raw)
-        else if (count % INVALID_LOG_EVERY === 0) log.warn(`invalid ${parsed.key} messages: ${count} so far`)
+        if (count === 1) {
+          log.warn(`invalid ${parsed.key} message: ${parsed.error}`)
+          log.debug(`invalid ${parsed.key} message line`, parsed.raw)
+        } else if (count % INVALID_LOG_EVERY === 0) log.warn(`invalid ${parsed.key} messages: ${count} so far`)
       }
       if (parsed.kind === "unknown" && event.dir === "in") log.debug(`unknown message ${parsed.key}`)
       const key = parsed.kind === "message" ? parsed.message.type : parsed.key
