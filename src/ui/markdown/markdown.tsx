@@ -579,11 +579,14 @@ function DiffBlock(props: { token: Tokens.Code }) {
   const fold = useFold(() => props.token)
   const rows = () => codeDiffRows(props.token)
   const count = (kind: "add" | "del") => rows().filter((row) => row.kind === kind).length
+  const header = () => <span style={{ fg: theme.muted }}>{`diff · +${count("add")} −${count("del")}`}</span>
   return (
     <box flexDirection="column" paddingLeft={2}>
-      <FoldLine fold={fold} gap="  ">
-        <span style={{ fg: theme.muted }}>{`diff · +${count("add")} −${count("del")}`}</span>
-      </FoldLine>
+      <Show when={rows().length > HEAD_LIMIT} fallback={<text wrapMode="none">{header()}</text>}>
+        <FoldLine fold={fold} gap="  ">
+          {header()}
+        </FoldLine>
+      </Show>
       <DiffView rows={rows()} tail={false} expanded={rows().length <= HEAD_LIMIT || fold.open()} />
     </box>
   )
