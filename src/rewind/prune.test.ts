@@ -94,3 +94,32 @@ test("old manifests and their refs go, recent snapshots still read", async () =>
   expect(own.exitCode).toBe(0)
   expect(await pruneStore(snapshots, 30, now)).toBeNull()
 })
+
+const record = (pid: number, id: string) => JSON.stringify({ id, pid, refs: [id], blobs: [] })
+
+test("a pending /redo of a running process keeps its snapshots; one of an ended process goes", async () => {
+  const dir = join(temp, "project-redo")
+  mkdirSync(dir)
+  writeFileSync(join(dir, "file.txt"), "one\n")
+  git(dir, "init", "-q", "-b", "main")
+  const snapshots = await openSnapshots(dir)
+  if (!snapshots) throw new Error("snapshots off")
+  await snapshots.take("pending")
+  writeFileSync(join(dir, "file.txt"), "two\n")
+  await snapshots.take("gone")
+
+  const now = Date.now()
+  const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000)
+  for (const id of ["pending", "gone"])
+    utimesSync(join(snapshots.store, "git", "refs", "yc", id), twoDaysAgo, twoDaysAgo)
+  const ended = Bun.spawn(["true"])
+  await ended.exited
+  const records = join(snapshots.store, "rewinds")
+  mkdirSync(records, { recursive: true })
+  writeFileSync(join(records, "live.json"), record(process.pid, "pending"))
+  writeFileSync(join(records, "dead.json"), record(ended.pid, "gone"))
+
+  expect(await pruneStore(snapshots, 30, now)).toEqual({ manifests: 0, refs: 1, gc: "done" })
+  expect(await refsUnder(snapshots.store, "refs/yc/")).toEqual(["refs/yc/pending"])
+  expect(readdirSync(records)).toEqual(["live.json"])
+})

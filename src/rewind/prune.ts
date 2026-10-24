@@ -2,6 +2,7 @@ import { lstatSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
+import { parseJson } from "../protocol/json.ts"
 import { getSettingsRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "../source/requests.ts"
 import { alive, gitEnv, runGit } from "./common.ts"
@@ -17,6 +18,9 @@ const PRUNE_EXPIRE = "1.hour.ago"
 const settingsReply = z.looseObject({
   effective: z.looseObject({ cleanupPeriodDays: z.unknown().optional() }).optional(),
 })
+
+// What rewind-files writes for a pending /redo.
+const rewindRecord = z.looseObject({ pid: z.number(), refs: z.array(z.string()), blobs: z.array(z.string()) })
 
 export type Pruned = { manifests: number; refs: number; gc: "done" | "failed" | "skipped" }
 
@@ -68,6 +72,25 @@ export async function pruneStore(snapshots: Snapshots, days: number, now = Date.
     if (manifest) for (const ref of refsOf(manifest)) oldRefs.add(ref)
     rmSync(file, { force: true })
     manifests++
+  }
+
+  // A pending /redo of a running process needs its snapshots, which no manifest names.
+  const records = join(store, "rewinds")
+  for (const name of listDir(records)) {
+    if (!name.endsWith(".json")) continue
+    const file = join(records, name)
+    const json = parseJson(readText(file))
+    const record = json.ok ? rewindRecord.safeParse(json.value).data : undefined
+    if (!record) {
+      unreadRecent = true
+      continue
+    }
+    if (!alive(record.pid)) {
+      rmSync(file, { force: true })
+      continue
+    }
+    for (const id of record.refs) keptRefs.add(`refs/yc/${id}`)
+    for (const blob of record.blobs) keptRefs.add(`refs/yc-outside/${blob}`)
   }
 
   // Refs of a process still running may not be in a manifest yet, so strays are swept only when none is.
