@@ -2,7 +2,7 @@ import type { RGBA } from "@opentui/core"
 import { createSignal, Index, Match, Show, Switch } from "solid-js"
 import type { Retry, SystemEvent } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { cut } from "./format.ts"
+import { cut, formatTokens } from "./format.ts"
 import { useTicker } from "./ticker.ts"
 
 const REASONS: Record<string, string> = {
@@ -34,6 +34,11 @@ export function Divider(props: { text: string }) {
     </box>
   )
 }
+
+const sizes = (tokens: SystemEvent["tokens"]) =>
+  tokens
+    ? ` · ${formatTokens(tokens.before)}${tokens.after === undefined ? "" : ` → ${formatTokens(tokens.after)}`}`
+    : ""
 
 const secondsLeft = (retry: Retry) => Math.max(0, Math.ceil((retry.at + retry.delayMs - Date.now()) / 1000))
 
@@ -94,7 +99,7 @@ export function SystemRow(props: { item: SystemEvent }) {
       }
     >
       <Match when={props.item.level === "info"}>
-        <Divider text={props.item.text} />
+        <Divider text={`${props.item.text}${sizes(props.item.tokens)}`} />
       </Match>
       <Match when={props.item.level === "error"}>
         <ErrorRow text={props.item.text} detail={props.item.detail ?? []} />

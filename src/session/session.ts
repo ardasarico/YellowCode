@@ -960,9 +960,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         setState("claudeTitle", message.title)
         return
       case "compact_boundary": {
-        add({ kind: "system", id: newId("system"), text: "context compacted", level: "info" }, null)
+        const { pre_tokens: before, post_tokens: left } = message.compact_metadata
+        const tokens = before === undefined ? undefined : { before, after: left }
+        add({ kind: "system", id: newId("system"), text: "context compacted", level: "info", tokens }, null)
         setState("compacting", false)
-        const left = message.compact_metadata.post_tokens
         if (left !== undefined) setState("usage", "context", "used", left)
         return
       }

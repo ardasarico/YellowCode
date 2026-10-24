@@ -121,7 +121,17 @@ export function UserMessageRow(props: {
         height={collapsed() ? COLLAPSED_ROWS : "auto"}
       >
         <Show when={props.item.to}>{(to) => <span style={{ fg: theme.accent }}>{`@${to().name} `}</span>}</Show>
-        <MessageText text={printable(props.item.text)} commands={props.commands} />
+        <Show
+          when={/^\/goal\s+(\S[\s\S]*)$/.exec(props.item.text)?.[1]}
+          fallback={<MessageText text={printable(props.item.text)} commands={props.commands} />}
+        >
+          {(condition) => (
+            <>
+              <span style={{ fg: theme.accent }}>{"◎ Goal: "}</span>
+              <span style={{ fg: theme.text }}>{printable(condition())}</span>
+            </>
+          )}
+        </Show>
         <span style={{ fg: theme.muted }}>{props.item.queue ? `  ${props.item.queue}` : ""}</span>
       </text>
       <Show when={props.item.delivery}>

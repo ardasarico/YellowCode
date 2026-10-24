@@ -73,7 +73,11 @@ const compactBoundary = z.looseObject({
   type: z.literal("system"),
   subtype: z.literal("compact_boundary"),
   // post_tokens is the context left after the summary.
-  compact_metadata: z.looseObject({ trigger: z.string(), post_tokens: z.number().optional() }),
+  compact_metadata: z.looseObject({
+    trigger: z.string(),
+    pre_tokens: z.number().optional(),
+    post_tokens: z.number().optional(),
+  }),
 })
 
 // Output of a local command that claude shows as its own text (/usage and others).
@@ -510,6 +514,8 @@ export const usageReply = z.looseObject({
   }),
   subscription_type: z.string().nullable().optional(),
 })
+
+export const reloadSkillsReply = z.looseObject({ skills: z.array(z.looseObject({ name: z.string() })) })
 
 export const initializeMode = z.looseObject({ current_permission_mode: z.string() })
 export const permissionModeReply = z.looseObject({ mode: z.string() })

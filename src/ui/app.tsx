@@ -9,8 +9,13 @@ import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import { contextUsage, usageReply } from "../protocol/messages.ts"
-import { getContextUsageRequest, getUsageRequest, type OutgoingImage } from "../protocol/outgoing.ts"
+import { contextUsage, reloadSkillsReply, usageReply } from "../protocol/messages.ts"
+import {
+  getContextUsageRequest,
+  getUsageRequest,
+  type OutgoingImage,
+  reloadSkillsRequest,
+} from "../protocol/outgoing.ts"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
 import type { SessionEntry } from "../resume/session-list.ts"
@@ -94,6 +99,21 @@ const PREVIEW_MS = 1000
 const NOTE_MS = 4000
 const REPORT_COPIED = "Copied the report · ctrl+o view"
 const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
+
+// The skills the last /reload-skills reported; claude's other lists hold a different set, so only a reload before
+// this one says which are new.
+let reloadedSkills: Set<string> | null = null
+
+async function reloadSkills(request: (build: (requestId: string) => string) => Promise<unknown>): Promise<string> {
+  const reply = await request(reloadSkillsRequest)
+  const names = (reloadSkillsReply.safeParse(reply).data?.skills ?? [])
+    .map((skill) => skill.name)
+    .filter((name) => !BLOCKED_COMMANDS.includes(name))
+  const before = reloadedSkills
+  reloadedSkills = new Set(names)
+  const fresh = before ? names.filter((name) => !before.has(name)).length : 0
+  return `Skills reloaded · ${names.length}${fresh > 0 ? `, ${fresh} new` : ""}`
+}
 const BACKGROUND_HINT_MS = 3000
 
 export type AppProps = {
@@ -279,7 +299,28 @@ export function App(props: AppProps) {
     untrack(() => props.readOnly ?? props.title),
     runsBuiltin,
   )
-  createEffect(on(haikuTitle, (next) => next && props.onTitle?.(next.title), { defer: true }))
+  // A name given with /rename (or the one Claude Code makes for a bare /rename) wins over both sources until a /clear.
+  const [renamed, setRenamed] = createSignal<string | null>(null)
+  let adoptClaudeTitle = false
+  createEffect(
+    on(
+      () => props.session.conversation,
+      () => setRenamed(null),
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => props.session.claudeTitle,
+      (text) => {
+        if (!adoptClaudeTitle || !text) return
+        adoptClaudeTitle = false
+        setRenamed(text)
+      },
+      { defer: true },
+    ),
+  )
+  createEffect(on(haikuTitle, (next) => next && !renamed() && props.onTitle?.(next.title), { defer: true }))
   // Claude Code's own title has no summary, so the sidebar shows the first message under it.
   const claudeTitle = () => {
     const text = props.session.claudeTitle
@@ -288,10 +329,14 @@ export function App(props: AppProps) {
   // A resumed session shows the title it was listed under until claude reports one, or a /clear starts over.
   const listedTitle = untrack(() => props.title) ?? null
   // claude carries a title over into the session a /clear starts, so YellowCode's own source shows only its own.
-  const title = () =>
+  const sourceTitle = () =>
     props.readOnly || settings.sessionTitle === "yellowcode"
       ? haikuTitle()
       : (claudeTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
+  const title = () => {
+    const name = renamed()
+    return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()
+  }
   const flagged = untrack(() => props.readOnly)
     ? () => false
     : useAttention(
@@ -1116,6 +1161,22 @@ export function App(props: AppProps) {
       return false
     }
     if (typedKnob(commandName, commandArgs.trim())) return true
+    if (commandName === "rename" && props.onTitle) {
+      const name = commandArgs.trim()
+      if (name) {
+        setRenamed(name)
+        props.onTitle(name)
+        return true
+      }
+      // Claude Code makes the name; its title change brings it here.
+      adoptClaudeTitle = true
+    }
+    if (command === "/reload-skills" && props.request) {
+      reloadSkills(props.request).then(waitNotice, (error: unknown) =>
+        waitNotice(`Could not reload the skills: ${error instanceof Error ? error.message : String(error)}`),
+      )
+      return true
+    }
     if ((command === "/context" || command === "/usage") && props.request) {
       setDialog({ name: command === "/context" ? "context" : "usage" })
       return true

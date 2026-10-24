@@ -166,6 +166,8 @@ export type SystemEvent = {
   level: "info" | "warning" | "error"
   retry?: Retry
   detail?: string[]
+  // A compaction's context size before and after.
+  tokens?: { before: number; after: number | undefined }
 }
 // Why Claude Code went away, for the row that ends the chat; `detail` is the tail of its stderr.
 export type SessionEnd = { text: string; detail: string[] }
