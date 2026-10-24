@@ -515,6 +515,9 @@ export const usageReply = z.looseObject({
   subscription_type: z.string().nullable().optional(),
 })
 
+// get_settings' merged view of claude's settings files, read by the Claude Code rows of /settings.
+export const effectiveSettings = z.looseObject({ effective: z.record(z.string(), z.unknown()) })
+
 export const reloadSkillsReply = z.looseObject({ skills: z.array(z.looseObject({ name: z.string() })) })
 
 export const initializeMode = z.looseObject({ current_permission_mode: z.string() })

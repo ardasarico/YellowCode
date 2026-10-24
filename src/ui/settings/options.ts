@@ -67,7 +67,7 @@ export const SETTINGS: SettingDefinition[] = [
   },
 ]
 
-const LONG = 3
+export const LONG = 3
 
 export const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
 export const opensList = (setting: SettingDefinition) => setting.options.length > LONG

@@ -1,6 +1,7 @@
 import type { BorderCharacters, TextRenderable } from "@opentui/core"
 import { createEffect, createSignal, Index, onCleanup, onMount, Show } from "solid-js"
 import type { Command } from "../input/commands.ts"
+import { claudeChange } from "../session/claude-settings.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -82,76 +83,93 @@ export function UserMessageRow(props: {
   onCleanup(() => text?.off("line-info-change", update))
   createEffect(() => props.onOverflow(props.item.id, overflowing()))
 
+  const change = () => (props.item.images.length === 0 ? claudeChange(props.item.text.trim()) : null)
+
   return (
-    <box
-      id={props.item.id}
-      flexDirection="column"
-      backgroundColor={(props.selected ? theme.selection : theme.band) ?? undefined}
-      border={["left"]}
-      borderColor={theme.accent}
-      customBorderChars={barChars}
-      paddingLeft={1}
-    >
-      <Show when={props.item.images.length > 0}>
-        <box flexDirection="row" flexWrap="wrap" gap={1}>
-          <Index each={props.item.images}>
-            {(image, index) => {
-              const id = labelId(props.item.id, index)
-              return (
-                <Show when={image().data}>
-                  {(data) => (
-                    <ImageTile
-                      id={id}
-                      image={{ data: data() }}
-                      caption={`Image ${index + 1}`}
-                      selected={props.selection === id}
-                      onOpen={props.onOpenImage && (() => props.onOpenImage?.(id))}
-                    />
-                  )}
-                </Show>
-              )
-            }}
-          </Index>
-        </box>
-      </Show>
-      <text
-        ref={(element) => (text = element)}
-        fg={theme.text}
-        wrapMode="word"
-        height={collapsed() ? COLLAPSED_ROWS : "auto"}
-      >
-        <Show when={props.item.to}>{(to) => <span style={{ fg: theme.accent }}>{`@${to().name} `}</span>}</Show>
-        <Show
-          when={/^\/goal\s+(\S[\s\S]*)$/.exec(props.item.text)?.[1]}
-          fallback={<MessageText text={printable(props.item.text)} commands={props.commands} />}
+    <Show
+      when={!change()}
+      fallback={
+        <box
+          id={props.item.id}
+          backgroundColor={(props.selected ? theme.selection : null) ?? undefined}
+          paddingLeft={2}
         >
-          {(condition) => (
-            <>
-              <span style={{ fg: theme.accent }}>{"◎ Goal: "}</span>
-              <span style={{ fg: theme.text }}>{printable(condition())}</span>
-            </>
+          <text fg={theme.muted} wrapMode="none">
+            {`⚙ ${change()?.label} → ${change()?.value}`}
+          </text>
+        </box>
+      }
+    >
+      <box
+        id={props.item.id}
+        flexDirection="column"
+        backgroundColor={(props.selected ? theme.selection : theme.band) ?? undefined}
+        border={["left"]}
+        borderColor={theme.accent}
+        customBorderChars={barChars}
+        paddingLeft={1}
+      >
+        <Show when={props.item.images.length > 0}>
+          <box flexDirection="row" flexWrap="wrap" gap={1}>
+            <Index each={props.item.images}>
+              {(image, index) => {
+                const id = labelId(props.item.id, index)
+                return (
+                  <Show when={image().data}>
+                    {(data) => (
+                      <ImageTile
+                        id={id}
+                        image={{ data: data() }}
+                        caption={`Image ${index + 1}`}
+                        selected={props.selection === id}
+                        onOpen={props.onOpenImage && (() => props.onOpenImage?.(id))}
+                      />
+                    )}
+                  </Show>
+                )
+              }}
+            </Index>
+          </box>
+        </Show>
+        <text
+          ref={(element) => (text = element)}
+          fg={theme.text}
+          wrapMode="word"
+          height={collapsed() ? COLLAPSED_ROWS : "auto"}
+        >
+          <Show when={props.item.to}>{(to) => <span style={{ fg: theme.accent }}>{`@${to().name} `}</span>}</Show>
+          <Show
+            when={/^\/goal\s+(\S[\s\S]*)$/.exec(props.item.text)?.[1]}
+            fallback={<MessageText text={printable(props.item.text)} commands={props.commands} />}
+          >
+            {(condition) => (
+              <>
+                <span style={{ fg: theme.accent }}>{"◎ Goal: "}</span>
+                <span style={{ fg: theme.text }}>{printable(condition())}</span>
+              </>
+            )}
+          </Show>
+          <span style={{ fg: theme.muted }}>{props.item.queue ? `  ${props.item.queue}` : ""}</span>
+        </text>
+        <Show when={props.item.delivery}>
+          {(delivery) => (
+            <text fg={theme.muted} wrapMode="none">
+              {delivery() === "resumed" ? `→ ${props.item.to?.name} resumed` : `→ sent to ${props.item.to?.name}`}
+            </text>
           )}
         </Show>
-        <span style={{ fg: theme.muted }}>{props.item.queue ? `  ${props.item.queue}` : ""}</span>
-      </text>
-      <Show when={props.item.delivery}>
-        {(delivery) => (
-          <text fg={theme.muted} wrapMode="none">
-            {delivery() === "resumed" ? `→ ${props.item.to?.name} resumed` : `→ sent to ${props.item.to?.name}`}
+        <Show when={overflowing()}>
+          <text
+            fg={theme.muted}
+            onMouseDown={(event) => {
+              event.preventDefault()
+              props.onToggle(props.item.id)
+            }}
+          >
+            <FoldHint open={!collapsed()} selected={props.selected} hidden={rows() - COLLAPSED_ROWS} />
           </text>
-        )}
-      </Show>
-      <Show when={overflowing()}>
-        <text
-          fg={theme.muted}
-          onMouseDown={(event) => {
-            event.preventDefault()
-            props.onToggle(props.item.id)
-          }}
-        >
-          <FoldHint open={!collapsed()} selected={props.selected} hidden={rows() - COLLAPSED_ROWS} />
-        </text>
-      </Show>
-    </box>
+        </Show>
+      </box>
+    </Show>
   )
 }

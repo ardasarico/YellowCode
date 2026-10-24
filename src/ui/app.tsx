@@ -9,9 +9,10 @@ import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import { contextUsage, reloadSkillsReply, usageReply } from "../protocol/messages.ts"
+import { contextUsage, effectiveSettings, reloadSkillsReply, usageReply } from "../protocol/messages.ts"
 import {
   getContextUsageRequest,
+  getSettingsRequest,
   getUsageRequest,
   type OutgoingImage,
   reloadSkillsRequest,
@@ -98,6 +99,12 @@ const QUIT_WINDOW = 2000
 const PREVIEW_MS = 1000
 const NOTE_MS = 4000
 const REPORT_COPIED = "Copied the report · ctrl+o view"
+// Bare, these open their row in /settings; with a value they go to Claude Code as typed.
+const CLAUDE_ROWS: Record<string, string> = {
+  "/config": "claude:outputStyle",
+  "/output-style": "claude:outputStyle",
+  "/autocompact": "claude:autoCompactWindow",
+}
 const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
 
 // The skills the last /reload-skills reported; claude's other lists hold a different set, so only a reload before
@@ -176,7 +183,7 @@ type RewindAnswer = boolean | RewindRecheck
 
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
-  | { name: "settings"; tab: SettingsTab }
+  | { name: "settings"; tab: SettingsTab; row?: string }
   | { name: "resume" | "theme" | "skills" | "export" | "tasks" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
@@ -192,6 +199,26 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "settings" ? open.tab : null
   }
+  const settingsRow = () => {
+    const open = dialog()
+    return open?.name === "settings" ? open.row : undefined
+  }
+  // Claude Code's settings as get_settings reads them, each time /settings opens.
+  const [claudeEffective, setClaudeEffective] = createSignal<Record<string, unknown> | null>(null)
+  createEffect(
+    on(
+      () => settingsTab() !== null,
+      (open) => {
+        const request = props.request
+        if (!open || !request) return
+        setClaudeEffective(null)
+        request(getSettingsRequest).then(
+          (reply) => setClaudeEffective(effectiveSettings.safeParse(reply).data?.effective ?? {}),
+          (error: unknown) => log.warn("claude settings for /settings failed", String(error)),
+        )
+      },
+    ),
+  )
   const rewindDialog = () => {
     const open = dialog()
     return open?.name === "rewind" && props.rewind ? open : null
@@ -1177,6 +1204,11 @@ export function App(props: AppProps) {
       )
       return true
     }
+    const claudeRow = CLAUDE_ROWS[command]
+    if (claudeRow && props.request) {
+      setDialog({ name: "settings", tab: "config", row: claudeRow })
+      return true
+    }
     if ((command === "/context" || command === "/usage") && props.request) {
       setDialog({ name: command === "/context" ? "context" : "usage" })
       return true
@@ -1469,6 +1501,17 @@ export function App(props: AppProps) {
             skillRows={props.provider.skillRows()}
             pluginHooks={props.provider.pluginHooks()}
             sources={props.provider.settingsSources()}
+            row={settingsRow()}
+            claude={
+              props.request
+                ? {
+                    effective: claudeEffective(),
+                    model: settings.model ?? props.model(),
+                    busy: () => props.session.status === "running",
+                    change: (command) => props.onSubmit(command, [], () => {}),
+                  }
+                : undefined
+            }
             onTab={(next) => setDialog({ name: "settings", tab: next })}
             onClose={() => setDialog(null)}
           />

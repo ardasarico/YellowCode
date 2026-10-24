@@ -6,7 +6,7 @@ import { modeLabel } from "../../session/settings-file.ts"
 import type { McpServer, SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
 import { type McpActions, McpTab } from "../mcp/mcp-tab.tsx"
-import { ConfigTab } from "./config-tab.tsx"
+import { type ClaudeSettings, ConfigTab } from "./config-tab.tsx"
 import { type PluginActions, PluginsTab } from "./plugins-tab.tsx"
 import { type StatusFacts, StatusTab } from "./status-tab.tsx"
 
@@ -16,6 +16,9 @@ const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
 
 export function SettingsDialog(props: {
   tab: SettingsTab
+  // The row the Config tab opens on, as /config, /output-style and /autocompact ask.
+  row?: string
+  claude?: ClaudeSettings
   info: SessionInfo | null
   // Live, claude lists them before the first message, when there is no info yet.
   servers: McpServer[] | null
@@ -58,7 +61,7 @@ export function SettingsDialog(props: {
 
   const tabs: Tab<SettingsTab>[] = [
     { id: "status", label: "Status", render: (api) => <StatusTab api={api} facts={facts()} /> },
-    { id: "config", label: "Config", render: (api) => <ConfigTab api={api} /> },
+    { id: "config", label: "Config", render: (api) => <ConfigTab api={api} claude={props.claude} row={props.row} /> },
     {
       id: "mcp",
       label: "MCP",
