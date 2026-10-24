@@ -31,14 +31,16 @@ function agentChanged(session: Session, callId: string | undefined, after: strin
 
 // What a rewind to the prompt restores, as Enter and the dialog's dry run both build it; the safety snapshot is added
 // by the caller, and stands in for `after` when only imported segments are undone. Null when the prompt has no full
-// snapshots.
+// snapshots, or it or a later prompt has no manifest.
 export async function restoreInput(
   snapshots: Snapshots,
   manifests: (Manifest | null)[],
   prompt: number,
 ): Promise<(Omit<RestoreInput, "safety" | "after"> & { target: Target; after: Point | null }) | null> {
+  const undone = manifests.slice(prompt)
+  if (undone.includes(null)) return null
   const first = manifests[prompt]?.segments[0]
-  const segments = manifests.slice(prompt).flatMap((later) => later?.segments ?? [])
+  const segments = undone.flatMap((later) => later?.segments ?? [])
   const after = segments.findLast((segment) => segment.after)?.after ?? null
   if (!first?.before || (!after && first.kind !== "imported")) return null
   const input = {

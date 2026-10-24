@@ -12,8 +12,9 @@ import type { Snapshots, Taken, TreeEntry } from "./snapshots.ts"
 
 // `paths` are what changed, as the chat names them; `kept` what stayed as it was although a rewind would change it.
 // "changed": the files changed since the dialog showed its ⚠, which now lists more; nothing was written.
+// `which` says whether a rewind's own prompt or a later one was not tracked.
 export type FilesOutcome =
-  | { kind: "untracked" }
+  | { kind: "untracked"; which?: "this" | "later" }
   | { kind: "failed"; reason: string }
   | { kind: "changed"; conflicts: string[]; paths: string[] }
   | { kind: "done"; paths: string[]; kept: string[] }
@@ -152,7 +153,7 @@ export function createFileRewind(capture: Capture | null, cwd: string): FileRewi
 
     async rewind(session, userId, seen) {
       const snapshots = await capture?.snapshots
-      if (!capture || !snapshots) return { kind: "untracked" }
+      if (!capture || !snapshots) return { kind: "untracked", which: "this" }
       if (rewinds && rewinds.session !== session) release()
       await capture.settle()
       const all = prompts(session)
@@ -163,7 +164,10 @@ export function createFileRewind(capture: Capture | null, cwd: string): FileRewi
         return undefined
       })
       if (input === undefined) return { kind: "failed", reason: "could not read the snapshots" }
-      if (at === -1 || !input) return { kind: "untracked" }
+      if (at === -1 || !input) {
+        const later = manifests[at]?.segments[0]?.before && manifests.slice(at + 1).includes(null)
+        return { kind: "untracked", which: later ? "later" : "this" }
+      }
       const reason = refused(session)
       if (reason) return { kind: "failed", reason }
       const previous = rewinds?.done.at(-1)

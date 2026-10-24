@@ -755,7 +755,11 @@ async function rewindLive(live: Connection, rewound: Rewound, seen: string[]): P
       ? { ...rewound, last, files: onlyPaths(rewound.files, files.paths) }
       : { ...rewound, last, keptFiles: true },
   )
-  noticeRewind(sentences([notStopped, files.kind === "done" ? keptNotice(files.kept) : null]))
+  const untracked =
+    files.kind === "untracked"
+      ? `Files were not rewound: ${files.which === "later" ? "a later" : "this"} prompt was not tracked`
+      : null
+  noticeRewind(sentences([untracked, notStopped, files.kind === "done" ? keptNotice(files.kept) : null]))
   return true
 }
 

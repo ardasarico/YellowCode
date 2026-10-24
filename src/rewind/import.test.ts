@@ -113,4 +113,6 @@ test("imported prompts rewind their Edit/Write files and leave Bash changes alon
   // p1's Write created new.txt, so p3's update does not keep it.
   expect(await rewind(0)).toEqual({ restored: ["README.md"], deleted: ["new.txt"], kept: [] })
   expect(existsSync(join(dir, "new.txt"))).toBe(false)
+  // A later prompt without a manifest leaves the files alone instead of skipping it.
+  expect(await restoreInput(snapshots, [...manifests.slice(0, 2), null], 0)).toBeNull()
 })
