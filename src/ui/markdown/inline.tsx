@@ -112,11 +112,11 @@ export function toRuns(
   }
   let inKbd = false
   for (const [index, token] of tokens.entries()) {
-    if (closesKbd(token)) {
+    if (inKbd && closesKbd(token)) {
       inKbd = false
       continue
     }
-    // A <kbd> nothing closes is shown as it was written.
+    // A <kbd> nothing closes, and a </kbd> nothing opened, are shown as they were written.
     if (token.type === "html" && /^<kbd>$/i.test(token.raw) && tokens.slice(index + 1).some(closesKbd)) {
       inKbd = true
       continue
