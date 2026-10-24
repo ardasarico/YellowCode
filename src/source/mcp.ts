@@ -185,6 +185,7 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
       )
       .finally(() => {
         asking = false
+        if (disposed) return
         if (again) {
           again = false
           ask()
