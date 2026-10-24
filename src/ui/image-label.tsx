@@ -1,6 +1,6 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
-import { type Accessor, createMemo, createSignal, Index, onCleanup, type Setter, Show } from "solid-js"
+import { type Accessor, createEffect, createMemo, createSignal, Index, onCleanup, type Setter, Show } from "solid-js"
 import { shrunkCopy } from "../input/image-file.ts"
 import { log } from "../log/log.ts"
 import type { ChatImage, Item } from "../session/types.ts"
@@ -23,9 +23,12 @@ export type ImageFile = { bytes: Uint8Array; size: Size | null } | null
 type Entry = { bytes: Uint8Array; size?: Size | null; shrinking: Accessor<boolean>; setShrinking: Setter<boolean> }
 
 // A decoded photo takes tens of MB, so only the bytes are kept here, and pixels only while shown (`createDecoded`).
-const files = new Map<string, Entry | null>()
+const files = new Map<string, Entry>()
 let cached = 0
 const found = new Map<string, boolean>()
+// When a file was last not there; it is read again after RETRY_MS, as Claude may write it later.
+const missing = new Map<string, number>()
+const RETRY_MS = 5000
 
 function read(image: ChatImage): Uint8Array | null {
   try {
@@ -48,17 +51,23 @@ function entryOf(image: ChatImage): Entry | null {
   const key = keyOf(image)
   let entry = files.get(key)
   if (entry === undefined) {
+    if (Date.now() - (missing.get(key) ?? -Infinity) < RETRY_MS) return null
     const bytes = read(image)
+    if (!bytes) {
+      missing.set(key, Date.now())
+      return null
+    }
+    missing.delete(key)
     const [shrinking, setShrinking] = createSignal(false)
-    entry = bytes && { bytes, shrinking, setShrinking }
-    cached += bytes?.length ?? 0
+    entry = { bytes, shrinking, setShrinking }
+    cached += bytes.length
   }
   files.delete(key)
   files.set(key, entry)
   for (const [oldest, old] of files) {
     if (oldest === key || (cached <= MAX_CACHED && files.size <= MAX_FILES)) break
     files.delete(oldest)
-    cached -= old?.bytes.length ?? 0
+    cached -= old.bytes.length
   }
   return entry
 }
@@ -114,7 +123,9 @@ export function loadImage(image: ChatImage): ImageFile {
 
 // Whether the image is there to select or open; remembered, as the keyboard selection asks on every key.
 export function hasImage(image: ChatImage): boolean {
-  return remember(found, 5000, keyOf(image), () => entryOf(image) !== null)
+  const key = keyOf(image)
+  if (found.get(key) === false) found.delete(key)
+  return remember(found, 5000, key, () => entryOf(image) !== null)
 }
 
 // The image's pixels while the caller is mounted, freed with it.
@@ -151,7 +162,16 @@ export function ImageLabel(props: {
   selected: boolean
   onOpen?: () => void
 }) {
-  const file = createMemo(() => loadImage(props.image))
+  const [tries, setTries] = createSignal(0)
+  const file = createMemo(() => {
+    tries()
+    return loadImage(props.image)
+  })
+  createEffect(() => {
+    if (file()) return
+    const timer = setTimeout(() => setTries((count) => count + 1), RETRY_MS)
+    onCleanup(() => clearTimeout(timer))
+  })
   const size = () => {
     const known = file()?.size
     return known ? ` · ${known.width}×${known.height}` : ""
