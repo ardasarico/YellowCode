@@ -738,16 +738,16 @@ async function rewindLive(live: Connection, rewound: Rewound, seen: string[]): P
   const failed = stops.filter((name): name is string => name !== null)
   const stoppedCount = stops.length - failed.length
   const notStopped = failed.length > 0 ? `Could not stop: ${failed.join(", ")}` : null
+  const tasksStopped =
+    stoppedCount > 0 ? `Stopped ${stoppedCount} background task${stoppedCount === 1 ? "" : "s"}` : null
   const files = await fileRewind.rewind(session.state, rewound.userId, new Set(seen))
   log.info("rewind files", files.kind === "done" ? { changed: files.paths.length, kept: files.kept.length } : files)
   if (files.kind === "failed") {
-    const tasksStopped =
-      stoppedCount > 0 ? `Stopped ${stoppedCount} background task${stoppedCount === 1 ? "" : "s"}` : null
     noticeRewind(sentences([`Cannot rewind the files: ${files.reason}`, tasksStopped, notStopped]))
     return false
   }
   if (files.kind === "changed") {
-    noticeRewind(notStopped)
+    noticeRewind(sentences([tasksStopped, notStopped]))
     return { conflicts: files.conflicts, paths: files.paths }
   }
   session.rewind(
