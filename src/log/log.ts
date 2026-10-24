@@ -7,24 +7,31 @@ const file = join(dir, "yellowcode.log")
 const debugEnabled = process.env["YELLOWCODE_DEBUG"] === "1"
 const MAX_BYTES = 5 * 1024 * 1024
 let ready = false
+let size = 0
 
-function rotate(): void {
+// The file's size, 0 once it is moved aside past MAX_BYTES.
+function rotate(): number {
   try {
-    if (statSync(file).size > MAX_BYTES) renameSync(file, `${file}.1`)
+    const now = statSync(file).size
+    if (now <= MAX_BYTES) return now
+    renameSync(file, `${file}.1`)
   } catch {
     // No log file yet.
   }
+  return 0
 }
 
 function write(level: string, message: string, detail?: unknown): void {
   try {
     const suffix = detail === undefined ? "" : ` ${typeof detail === "string" ? detail : Bun.inspect(detail)}`
-    if (!ready) {
+    if (!ready || size > MAX_BYTES) {
       mkdirSync(dir, { recursive: true, mode: 0o700 })
-      rotate()
+      size = rotate()
       ready = true
     }
-    appendFileSync(file, `${new Date().toISOString()} ${level} ${message}${suffix}\n`, { mode: 0o600 })
+    const line = `${new Date().toISOString()} ${level} ${message}${suffix}\n`
+    appendFileSync(file, line, { mode: 0o600 })
+    size += Buffer.byteLength(line)
   } catch {
     // The TUI owns the terminal, so a failed write is dropped rather than printed or thrown.
     ready = false
