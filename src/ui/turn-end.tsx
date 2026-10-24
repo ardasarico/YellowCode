@@ -7,6 +7,7 @@ import { theme } from "../theme/theme.ts"
 import { cut, formatClock, formatDuration } from "./format.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 
+// The Claude mark is Anthropic's; it is shown only to say that Claude answered. YellowCode is not an Anthropic product.
 const SPARK = NativeImage.decode(readFileSync(join(import.meta.dir, "..", "..", "assets", "claude-spark.png")))
 
 export function TurnEndRow(props: { parts: TurnEnd[] }) {

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "license": "GPL-3.0-only",
+  "author": "Arda Sarı",
   "bin": {
     "yellowcode": "bin/yellowcode"
   },
