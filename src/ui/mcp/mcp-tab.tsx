@@ -26,6 +26,7 @@ const look = (state: McpState) =>
     connecting: { mark: "◌", word: "connecting", color: theme.accent },
     connected: { mark: "", word: "connected", color: theme.text },
     off: { mark: "", word: "off", color: theme.panelFaint },
+    unknown: { mark: "", word: "unknown", color: theme.panelMuted },
   })[state]
 
 const toolCount = (count: number) => (count === 1 ? "1 tool" : `${count} tools`)
@@ -56,7 +57,7 @@ const listSections = (entries: McpEntry[]): DialogSection[] =>
 function stateSpan(state: McpState): Span {
   const { mark, word, color } = look(state)
   if (state === "connected") return { text: `● ${word}`, fg: theme.success }
-  if (state === "off") return { text: `◯ ${word}`, fg: theme.panelFaint }
+  if (state === "off" || state === "unknown") return { text: `◯ ${word}`, fg: color }
   return { text: `${mark} ${word}`, fg: color }
 }
 

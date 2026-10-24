@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
+import type { McpServer } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
 import { mcpEntries } from "./servers.ts"
 
@@ -33,4 +34,15 @@ test("servers group by where they come from, problems first, with short names an
     ["other", "Connector B", "claude.ai", "connected", 8],
     ["other", "Connector C", "claude.ai", "off", 0],
   ])
+  const odd: McpServer = {
+    name: "odd",
+    status: "warming-up",
+    source: null,
+    scope: null,
+    error: null,
+    config: null,
+    serverInfo: null,
+    tools: null,
+  }
+  expect(mcpEntries([odd], [])[0]?.state).toBe("unknown")
 })

@@ -1,6 +1,6 @@
 import type { McpServer } from "../../session/types.ts"
 
-export type McpState = "failed" | "needs-login" | "connecting" | "connected" | "off"
+export type McpState = "failed" | "needs-login" | "connecting" | "connected" | "off" | "unknown"
 export type McpGroup = "project" | "user" | "other"
 
 export type McpEntry = {
@@ -26,9 +26,17 @@ const STATES: Record<string, McpState> = {
   failed: "failed",
   "needs-auth": "needs-login",
   pending: "connecting",
+  connected: "connected",
   disabled: "off",
 }
-const RANK: Record<McpState, number> = { failed: 0, "needs-login": 1, connecting: 2, connected: 2, off: 3 }
+const RANK: Record<McpState, number> = {
+  failed: 0,
+  "needs-login": 1,
+  connecting: 2,
+  connected: 2,
+  unknown: 2,
+  off: 3,
+}
 
 // Claude Code lists the dynamic scope as its built-in servers.
 const TAGS: Record<string, string> = { claudeai: "claude.ai", dynamic: "built-in", enterprise: "managed" }
@@ -60,7 +68,7 @@ export function mcpEntries(servers: McpServer[] | null, tools: string[]): McpEnt
         tag,
         group,
         where,
-        state: STATES[server.status] ?? "connected",
+        state: STATES[server.status] ?? "unknown",
         tools: own,
       }
     })
