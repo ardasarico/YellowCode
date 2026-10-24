@@ -628,7 +628,6 @@ export type PermissionUpdate = z.infer<typeof permissionUpdate>
 export type AskUserQuestionInput = z.infer<typeof askUserQuestionInput>
 export type AskMatrix = z.infer<typeof ownAskMatrix>["matrix"]
 export type SlashCommand = z.infer<typeof slashCommand>
-export type InitializeResponse = z.infer<typeof initializeResponse>
 export type ModelInfo = z.infer<typeof modelInfo>
 export type SkillRow = z.infer<typeof skillRow>
 export type SettingsSource = z.infer<typeof settingsSources>["sources"][number]
