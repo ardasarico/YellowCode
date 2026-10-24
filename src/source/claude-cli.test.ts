@@ -26,6 +26,18 @@ test("claude's editors run without the marks of a Claude Code session, and with 
   })
 })
 
+test("output read before a leftover child holds the pipes is kept", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "yc-claude-cli-"))
+  writeFileSync(join(dir, "claude"), `#!/bin/sh\necho ok\nsleep 5 &\n`, { mode: 0o755 })
+  const path = process.env.PATH
+  process.env.PATH = `${dir}:${path}`
+  try {
+    expect(await runClaude(["edit"], { cwd: dir })).toMatchObject({ code: 0, stdout: "ok\n" })
+  } finally {
+    process.env.PATH = path
+  }
+}, 10_000)
+
 test("a claude that ignores SIGTERM is killed, so the run queued behind it still goes", async () => {
   const dir = mkdtempSync(join(tmpdir(), "yc-claude-cli-"))
   writeFileSync(

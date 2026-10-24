@@ -41,6 +41,16 @@ export function runClaude(args: string[], options: { cwd: string; stdin?: string
   return run
 }
 
+function collect(stream: ReadableStream<Uint8Array>) {
+  const decoder = new TextDecoder()
+  const read = { text: "", done: Promise.resolve() }
+  read.done = (async () => {
+    for await (const chunk of stream) read.text += decoder.decode(chunk, { stream: true })
+    read.text += decoder.decode()
+  })().catch(() => {})
+  return read
+}
+
 async function runNow(
   args: string[],
   options: { cwd: string; stdin?: string; timeoutMs?: number },
@@ -61,7 +71,8 @@ async function runNow(
     proc.kill()
     kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
   }, timeoutMs)
-  const output = Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  const stdout = collect(proc.stdout)
+  const stderr = collect(proc.stderr)
   // The next run waits for this one, so it always ends.
   const code = await Promise.race([
     proc.exited,
@@ -69,9 +80,9 @@ async function runNow(
   ])
   clearTimeout(timer)
   clearTimeout(kill)
-  // A process claude left behind could keep the pipes open.
-  const [stdout, stderr] = await Promise.race([output, Bun.sleep(OUTPUT_WAIT_MS).then(() => ["", ""])])
-  const result = { code: late ? null : code, stdout, stderr: Bun.stripANSI(stderr).trim() }
+  // A process claude left behind could keep the pipes open; what came until then is kept.
+  await Promise.race([Promise.all([stdout.done, stderr.done]), Bun.sleep(OUTPUT_WAIT_MS)])
+  const result = { code: late ? null : code, stdout: stdout.text, stderr: Bun.stripANSI(stderr.text).trim() }
   log.info(`claude ${args.join(" ")}`, { code: result.code, ms: Math.round(performance.now() - started) })
   return result
 }
