@@ -27,6 +27,7 @@ import { loadTranscript, promptParent, readTranscript, type TranscriptCursor } f
 import { tildePath } from "./rewind/common.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
+import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
@@ -65,6 +66,7 @@ import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal
 
 const USAGE = [
   "Usage: yellowcode [--skip-terminal-check]",
+  "       yellowcode --report",
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -84,6 +86,7 @@ function readArgs() {
         titles: { type: "boolean" },
         sessions: { type: "string" },
         "skip-terminal-check": { type: "boolean", default: false },
+        report: { type: "boolean" },
       },
     }).values
   } catch (error) {
@@ -94,6 +97,18 @@ function readArgs() {
 const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
 if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
+if (values.report && values.replay !== undefined) fail(USAGE)
+if (values.report) {
+  const loaded = loadSettings()
+  process.stdout.write(
+    reportMarkdown({
+      environment: [...hostFacts(claudeCliVersion()), ...terminalFacts(null)],
+      settings: settingsFacts(loaded.settings, loaded.problem),
+      log: logTail(50),
+    }),
+  )
+  process.exit(0)
+}
 
 function gitBranch(): string | null {
   const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], {

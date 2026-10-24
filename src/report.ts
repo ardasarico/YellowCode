@@ -5,6 +5,7 @@ import { basename, join } from "node:path"
 import packageJson from "../package.json"
 import { logFile } from "./log/log.ts"
 import type { StoredSettings } from "./session/settings-file.ts"
+import { hostEnv } from "./source/claude-cli.ts"
 
 // A label and its value; a row without a value is left out of the report.
 export type Row = [string, string | null | undefined]
@@ -17,9 +18,9 @@ export type ReportFacts = {
   log: string[]
 }
 
-const run = (command: string[], cwd?: string) => {
+const run = (command: string[], cwd?: string, env?: Record<string, string>) => {
   try {
-    const result = Bun.spawnSync(command, { cwd, stdout: "pipe", stderr: "ignore", timeout: 2000 })
+    const result = Bun.spawnSync(command, { cwd, env, stdout: "pipe", stderr: "ignore", timeout: 2000 })
     return result.exitCode === 0 ? result.stdout.toString().trim() || null : null
   } catch {
     return null
@@ -65,11 +66,16 @@ export function hostFacts(claudeVersion: string | null): Row[] {
   ]
 }
 
+// Outside the app no claude runs, so its version is asked for; "2.1.305 (Claude Code)" gives "2.1.305".
+export const claudeCliVersion = () => run(["claude", "--version"], undefined, hostEnv())?.split(" ")[0] ?? null
+
 // The terminal as the environment names it; the running app also knows what it answered to its queries.
 export function terminalFacts(capabilities: TerminalCapabilities | null): Row[] {
   const name = capabilities?.terminal.name || process.env["TERM_PROGRAM"]
   const version = capabilities?.terminal.version || process.env["TERM_PROGRAM_VERSION"]
-  const size = process.stdout.columns ? `${process.stdout.columns}×${process.stdout.rows}` : null
+  // `--report | pbcopy` leaves stdout no terminal; stderr still is one.
+  const tty = process.stdout.columns ? process.stdout : process.stderr
+  const size = tty.columns ? `${tty.columns}×${tty.rows}` : null
   const rows: Row[] = [
     ["Terminal", joined([name, version].filter(Boolean).join(" ") || null, process.env["TERM"], size)],
   ]
