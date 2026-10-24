@@ -6,6 +6,7 @@ import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
 import type { FooterAction } from "../dialog/list-view.tsx"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
+import { REPLAY_NOTICE } from "../format.ts"
 import type { Span } from "../notice.ts"
 import { MCP_GROUPS, type McpEntry, type McpState, mcpEntries } from "./servers.ts"
 
@@ -16,12 +17,6 @@ export type McpActions = {
   login(name: string): Promise<void>
 }
 
-const ON_OFF_NOTICE = "On/off comes with the live connection"
-const NOTICES: Record<string, string> = {
-  reconnect: "Reconnecting comes with the live connection",
-  restart: "Restarting comes with the live connection",
-  login: "Logging in comes with the live connection",
-}
 const MORE_TOOLS = "tools-more"
 
 const look = (state: McpState) =>
@@ -123,7 +118,7 @@ export function McpTab(props: {
   const run = (entry: McpEntry, id: string) => {
     const actions = props.actions
     const name = entry.server.name
-    if (!actions) return props.api.notify(NOTICES[id] ?? ON_OFF_NOTICE)
+    if (!actions) return props.api.notify(REPLAY_NOTICE)
     const done =
       id === "reconnect" || id === "restart"
         ? actions.reconnect(name)

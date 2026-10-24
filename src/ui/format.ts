@@ -1,3 +1,6 @@
+// What an action Claude Code would run says in a replay or a read-only transcript.
+export const REPLAY_NOTICE = "Not available in a replay"
+
 export function formatClock(ms: number): string {
   const date = new Date(ms)
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`

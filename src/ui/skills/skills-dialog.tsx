@@ -3,6 +3,7 @@ import { matchSkills, SKILL_GROUPS, type Skill } from "../../session/skills.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog, type FooterAction } from "../dialog/dialog.tsx"
 import type { DialogRow, DialogSection } from "../dialog/list.ts"
+import { REPLAY_NOTICE } from "../format.ts"
 
 // The live connection runs this; without it Space only shows the notice. A rejection says what went wrong.
 export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): Promise<void> }
@@ -10,7 +11,6 @@ export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): Promise
 const WIDTH = 96
 const MIN_HEIGHT = 14
 const NOTICE_MS = 4000
-const REPLAY_NOTICE = "On/off comes with the live connection"
 
 // Space types into the search once it has text.
 const footer = (query: string): FooterAction[] => [

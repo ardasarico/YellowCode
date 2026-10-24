@@ -3,7 +3,7 @@ import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, Index, Match, onCleanup, Show, Switch } from "solid-js"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
-import { cut } from "../format.ts"
+import { cut, REPLAY_NOTICE } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
 import { agentTree, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
@@ -11,7 +11,6 @@ import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
 const NOTICE_MS = 4000
-const STOP_NOTICE = "Stopping comes with the live connection"
 const FOOTER = [
   { key: "↑↓", word: "select" },
   { key: "pgup/pgdn", word: "scroll" },
@@ -242,7 +241,7 @@ export function AgentView(props: {
   }
   // The row changes when claude reports the task stopped, so only a failed request shows anything.
   const stop = (target: TreeNode, taskId: string) => {
-    if (!props.onStop) return showNotice(STOP_NOTICE)
+    if (!props.onStop) return showNotice(REPLAY_NOTICE)
     props.onStop(taskId).catch((error: unknown) => {
       showNotice(`Cannot stop ${target.name}: ${error instanceof Error ? error.message : String(error)}`)
     })

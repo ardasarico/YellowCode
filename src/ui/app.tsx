@@ -52,7 +52,7 @@ import type { Submission } from "./completion.ts"
 import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { openFile } from "./dialog/open-file.ts"
-import { modelName, windowTitle } from "./format.ts"
+import { modelName, REPLAY_NOTICE, windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
@@ -603,7 +603,7 @@ export function App(props: AppProps) {
     const tool = props.session.byId[id]
     const node = topNodes(props.session).find((entry) => entry.id === id)
     if (!node || node.kind !== "agent" || tool?.kind !== "tool") return null
-    if (!live()) return "Messaging agents comes with the live connection"
+    if (!live()) return REPLAY_NOTICE
     if (!messageable(props.session, node)) return `${node.name} was stopped; it cannot take messages`
     const taskId = taskIdOf(props.session, node)
     if (!taskId) return null
@@ -1089,7 +1089,7 @@ export function App(props: AppProps) {
       : messageTo()
         ? `Message @${messageTo()?.name}…`
         : props.readOnly
-          ? "Read-only · resuming needs the live connection"
+          ? "Read-only · a saved conversation"
           : props.replay
             ? "Enter sends the next recorded message"
             : ended()
