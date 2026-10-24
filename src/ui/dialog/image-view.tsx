@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { Show } from "solid-js"
+import { createEffect, createSignal, on, Show } from "solid-js"
 import { log } from "../../log/log.ts"
 import { tildePath } from "../../rewind/common.ts"
 import type { ChatImage } from "../../session/types.ts"
@@ -21,7 +21,8 @@ export function removeViewedImages(): void {
   viewedDir = undefined
 }
 
-async function openInPreview(image: ChatImage): Promise<void> {
+// False when Preview could not open it.
+async function openInPreview(image: ChatImage): Promise<boolean> {
   try {
     let path = image.path && existsSync(image.path) ? image.path : null
     if (!path && image.data) {
@@ -30,12 +31,17 @@ async function openInPreview(image: ChatImage): Promise<void> {
       path = join(viewedDir, `${Bun.hash(bytes).toString(36)}.${/^image\/(\w+)/.exec(image.mediaType)?.[1] ?? "png"}`)
       if (!existsSync(path)) await Bun.write(path, bytes)
     }
-    if (!path) return log.warn("image not found", image.name)
+    if (!path) {
+      log.warn("image not found", image.name)
+      return false
+    }
     const child = Bun.spawn(["open", path], { stdout: "ignore", stderr: "pipe" })
-    if ((await child.exited) !== 0) log.warn("open failed", await new Response(child.stderr).text())
+    if ((await child.exited) === 0) return true
+    log.warn("open failed", await new Response(child.stderr).text())
   } catch (error) {
     log.warn("open failed", error)
   }
+  return false
 }
 
 function Rule(props: { width: number }) {
@@ -54,6 +60,13 @@ export function ImageView(props: {
   onIndex: (index: number) => void
   onClose: () => void
 }) {
+  const [notice, setNotice] = createSignal("")
+  createEffect(
+    on(
+      () => props.index,
+      () => setNotice(""),
+    ),
+  )
   const dimensions = useTerminalDimensions()
   const panel = () => {
     const { width, height } = dimensions()
@@ -96,7 +109,12 @@ export function ImageView(props: {
     else if (key.name === "right") props.onIndex(Math.min(props.images.length - 1, props.index + 1))
     else if (key.name === "o") {
       const shown = image()
-      if (shown) void openInPreview(shown)
+      if (shown) {
+        setNotice("")
+        void openInPreview(shown).then((opened) => {
+          if (!opened) setNotice("Could not open it in Preview")
+        })
+      }
     } else if (key.name === "escape") props.onClose()
   })
 
@@ -119,8 +137,8 @@ export function ImageView(props: {
       <box height={1} flexDirection="row" paddingRight={PAD_X}>
         <Footer items={actions()} keys width={inner()} />
         <box flexGrow={1} />
-        <text wrapMode="none" flexShrink={0} fg={theme.panelFaint}>
-          {path()}
+        <text wrapMode="none" flexShrink={0} fg={notice() ? theme.panelMuted : theme.panelFaint}>
+          {notice() || path()}
         </text>
       </box>
     </Frame>
