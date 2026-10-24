@@ -15,7 +15,7 @@ export type ReportFacts = {
   settings: Row[]
   session?: Row[]
   extensions?: Row[]
-  log: string[]
+  log: string[][]
 }
 
 const run = (command: string[], cwd?: string, env?: Record<string, string>) => {
@@ -97,12 +97,21 @@ export function settingsFacts(settings: StoredSettings, problem: string | null):
   ]
 }
 
-export function logTail(count: number): string[] {
+// The last `count` entries; an entry starts at its timestamp and may go on over several lines.
+export function logTail(count: number): string[][] {
+  let text: string
   try {
-    return readFileSync(logFile, "utf8").trimEnd().split("\n").slice(-count)
+    text = readFileSync(logFile, "utf8").trimEnd()
   } catch {
     return []
   }
+  const entries: string[][] = []
+  for (const line of text.split("\n")) {
+    const last = entries.at(-1)
+    if (last && !/^\d{4}-\d{2}-\d{2}T/.test(line)) last.push(line)
+    else entries.push([line])
+  }
+  return entries.slice(-count)
 }
 
 // The home folder and the user name do not go into a report someone pastes in public.
@@ -136,10 +145,10 @@ export function reportMarkdown(facts: ReportFacts): string {
   ]
   if (facts.log.length > 0)
     lines.push(
-      `<details><summary>Log (last ${facts.log.length} lines)</summary>`,
+      `<details><summary>Log (last ${facts.log.length} entries)</summary>`,
       "",
       "```text",
-      ...facts.log,
+      ...facts.log.flat(),
       "```",
       "",
       "</details>",
