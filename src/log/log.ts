@@ -3,7 +3,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 
 const dir = process.env["YELLOWCODE_LOG_DIR"] ?? join(homedir(), ".yellowcode", "logs")
-const file = join(dir, "yellowcode.log")
+export const logFile = join(dir, "yellowcode.log")
 const debugEnabled = process.env["YELLOWCODE_DEBUG"] === "1"
 const MAX_BYTES = 5 * 1024 * 1024
 let ready = false
@@ -12,9 +12,9 @@ let size = 0
 // The file's size, 0 once it is moved aside past MAX_BYTES.
 function rotate(): number {
   try {
-    const now = statSync(file).size
+    const now = statSync(logFile).size
     if (now <= MAX_BYTES) return now
-    renameSync(file, `${file}.1`)
+    renameSync(logFile, `${logFile}.1`)
   } catch {
     // No log file yet.
   }
@@ -30,7 +30,7 @@ function write(level: string, message: string, detail?: unknown): void {
       ready = true
     }
     const line = `${new Date().toISOString()} ${level} ${message}${suffix}\n`
-    appendFileSync(file, line, { mode: 0o600 })
+    appendFileSync(logFile, line, { mode: 0o600 })
     size += Buffer.byteLength(line)
   } catch {
     // The TUI owns the terminal, so a failed write is dropped rather than printed or thrown.
