@@ -54,7 +54,8 @@ function entryOf(image: ChatImage): Entry | null {
     if (Date.now() - (missing.get(key) ?? -Infinity) < RETRY_MS) return null
     const bytes = read(image)
     if (!bytes) {
-      missing.set(key, Date.now())
+      // Only a file can turn up later; bytes that do not decode stay that way.
+      missing.set(key, image.data ? Infinity : Date.now())
       return null
     }
     missing.delete(key)
@@ -168,7 +169,7 @@ export function ImageLabel(props: {
     return loadImage(props.image)
   })
   createEffect(() => {
-    if (file()) return
+    if (file() || props.image.data || !props.image.path) return
     const timer = setTimeout(() => setTries((count) => count + 1), RETRY_MS)
     onCleanup(() => clearTimeout(timer))
   })
