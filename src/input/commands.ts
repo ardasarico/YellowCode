@@ -11,6 +11,7 @@ export type CommandRow = Pick<Command, "name" | "description" | "argumentHint"> 
 
 export const OWN_COMMANDS: Command[] = [
   { name: "settings", description: "Open YellowCode settings", argumentHint: "", aliases: [] },
+  { name: "report", description: "Copy a summary of your setup for a bug report", argumentHint: "", aliases: [] },
   { name: "resume", description: "Resume a session from this project", argumentHint: "", aliases: [] },
   { name: "rewind", description: "Go back to before a prompt", argumentHint: "", aliases: [] },
   { name: "timeline", description: "Move through the prompts of this session", argumentHint: "", aliases: [] },

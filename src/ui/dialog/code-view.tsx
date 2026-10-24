@@ -71,6 +71,8 @@ export function CodeView(props: {
   index: number
   onIndex: (index: number) => void
   onClose: () => void
+  // Copies a reference's own text (a report, a workflow script); false when the clipboard refused it.
+  onCopy?: (text: string) => Promise<boolean>
 }) {
   let scroll: ScrollBoxRenderable | undefined
   let code: CodeRenderable | undefined
@@ -123,7 +125,9 @@ export function CodeView(props: {
     ...(several() ? [{ key: "←→", action: "other references" }] : []),
     ...(ref()?.text === undefined
       ? [{ key: "o", action: settings.editor === "default" ? "open" : "open in editor" }]
-      : []),
+      : props.onCopy
+        ? [{ key: "c", action: "copy" }]
+        : []),
     { key: "esc", action: "close" },
   ]
   const marked = createMemo(() => {
@@ -185,6 +189,12 @@ export function CodeView(props: {
         void openFile(shown.path, shown.line).then((inEditor) => {
           if (!inEditor) setNotice(`${editorName(settings.editor)} could not open it`)
         })
+      }
+    } else if (key.name === "c") {
+      const own = ref()?.text
+      if (own !== undefined && props.onCopy) {
+        setNotice("")
+        void props.onCopy(own).then((copied) => setNotice(copied ? "Copied" : "Could not copy it"))
       }
     } else if (key.name === "escape") props.onClose()
   })

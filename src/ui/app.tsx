@@ -29,7 +29,9 @@ import {
   stepModel,
   toggleUltracode,
 } from "../session/settings.ts"
-import { failedSaves, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { pluginEntries } from "../session/plugins.ts"
+import { failedSaves, modeLabel, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
@@ -80,6 +82,8 @@ const QUIT_WINDOW = 2000
 // Past this the rewind dialog opens without what the snapshots know.
 const PREVIEW_MS = 1000
 const NOTE_MS = 4000
+const REPORT_COPIED = "Copied the report · ctrl+o view"
+const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
 const BACKGROUND_HINT_MS = 3000
 
 export type AppProps = {
@@ -710,6 +714,41 @@ export function App(props: AppProps) {
     const copied = await writeClipboard(exportText(), (text) => renderer.copyToClipboardOSC52(text))
     waitNotice(copied ? "Conversation copied" : "Could not copy the conversation")
   }
+  const copyText = (text: string) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied))
+  // ctrl+o shows the copied report while its notice is up.
+  let copiedReport = ""
+  const copyReport = async () => {
+    const info = currentInfo(props.session, props.firstInfo ?? null)
+    const servers = currentServers(props.session, props.firstInfo ?? null) ?? []
+    const plugins = info
+      ? pluginEntries(
+          info,
+          props.provider.settingsSources(),
+          props.provider.skillRows() ?? [],
+          props.provider.pluginHooks(),
+        )
+      : []
+    const mode = props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null
+    const text = reportMarkdown({
+      environment: [...hostFacts(info?.cliVersion ?? null), ...terminalFacts(renderer.capabilities)],
+      settings: settingsFacts(settings, settingsProblem()),
+      session: [
+        ["Model", modelName(settings.model ?? props.model() ?? "")],
+        ["Effort", settings.effort],
+        ["Permission mode", mode === null ? null : modeLabel(mode)],
+        ["Skills", String(props.provider.skills().length)],
+        ["Tools", info ? String(info.tools.length) : null],
+      ],
+      extensions: [
+        ["MCP", namesWithCount(servers.map((server) => server.name))],
+        ["Plugins", namesWithCount(plugins.map((plugin) => plugin.name))],
+      ],
+      log: logTail(50),
+    })
+    const copied = await copyText(text)
+    copiedReport = copied ? text : ""
+    waitNotice(copied ? REPORT_COPIED : "Could not copy the report")
+  }
   const busy = () =>
     props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
   const waitNotice = (text = "Rewind waits until Claude Code is idle") => {
@@ -841,6 +880,12 @@ export function App(props: AppProps) {
       return
     }
     if (dialog()) return
+    if (key.ctrl && key.name === "o" && copiedReport && rewindNote() === REPORT_COPIED) {
+      key.preventDefault()
+      key.stopPropagation()
+      setDialog({ name: "code", refs: [{ path: "report.md", text: copiedReport }], ids: [], index: 0 })
+      return
+    }
     if (key.ctrl && key.name === "t") {
       key.preventDefault()
       key.stopPropagation()
@@ -1037,7 +1082,8 @@ export function App(props: AppProps) {
       waitNotice(REPLAY_NOTICE)
       return false
     }
-    if (command === "/settings") setDialog({ name: "settings", tab: "config" })
+    if (command === "/report") void copyReport()
+    else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
@@ -1371,6 +1417,7 @@ export function App(props: AppProps) {
               setDialog({ ...view(), index })
             }}
             onClose={() => setDialog(null)}
+            onCopy={copyText}
           />
         )}
       </Show>
