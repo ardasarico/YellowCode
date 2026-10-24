@@ -1,6 +1,6 @@
-import { homedir } from "node:os"
 import { createMemo, createSignal, untrack } from "solid-js"
 import { configPath } from "../../config-path.ts"
+import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { type DialogItem, dialogLines, moveSelection, selectableIds } from "../dialog/list.ts"
 import { type FooterAction, ListView } from "../dialog/list-view.tsx"
@@ -40,12 +40,10 @@ const fact = (label: string, value: string | number | null): DialogItem => ({
 
 const blank = (id: string): DialogItem => ({ id, spans: [] })
 
-const home = (path: string) => (path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path)
-
 const settingsFile = (): DialogItem => ({
   id: "settings-file",
   label: "Settings file",
-  detail: home(configPath("settings.json")),
+  detail: tildePath(configPath("settings.json")),
   selectedValue: "enter open",
   labelColor: theme.panelMuted,
   valueColor: theme.text,

@@ -1,9 +1,10 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs"
-import { homedir, tmpdir } from "node:os"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
 import { Show } from "solid-js"
 import { log } from "../../log/log.ts"
+import { tildePath } from "../../rewind/common.ts"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cutPath } from "../format.ts"
@@ -36,8 +37,6 @@ async function openInPreview(image: ChatImage): Promise<void> {
     log.warn("open failed", error)
   }
 }
-
-const home = (path: string) => (path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path)
 
 function Rule(props: { width: number }) {
   return (
@@ -86,7 +85,7 @@ export function ImageView(props: {
     actions().reduce((sum, item, index) => sum + Bun.stringWidth(`${item.key} ${item.action}`) + (index ? 3 : 0), 0)
   const path = () => {
     const shown = image()?.path
-    return shown ? cutPath(home(shown), Math.max(0, inner() - actionsWidth() - 2)) : ""
+    return shown ? cutPath(tildePath(shown), Math.max(0, inner() - actionsWidth() - 2)) : ""
   }
 
   useKeyboard((key) => {

@@ -1,7 +1,7 @@
 import { CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
 import { existsSync, realpathSync } from "node:fs"
-import { constants, homedir } from "node:os"
+import { constants } from "node:os"
 import { basename, join } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
@@ -24,6 +24,7 @@ import { heldElsewhere } from "./resume/held.ts"
 import { CLAUDE_PROJECTS, projectFolder } from "./resume/project-key.ts"
 import { listSessions, type SessionEntry } from "./resume/session-list.ts"
 import { loadTranscript, promptParent, readTranscript, type TranscriptCursor } from "./resume/transcript.ts"
+import { tildePath } from "./rewind/common.ts"
 import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
@@ -105,9 +106,8 @@ function gitBranch(): string | null {
 }
 
 const cwd = process.cwd()
-const home = (path: string) => (path.startsWith(homedir()) ? `~${path.slice(homedir().length)}` : path)
 const workspace = {
-  cwd: home(cwd),
+  cwd: tildePath(cwd),
   branch: gitBranch(),
   version: packageJson.version,
 }
@@ -971,7 +971,7 @@ function Main() {
         <App
           session={shown.session.state}
           model={() => shown.entry.model ?? firstModel}
-          workspace={{ ...workspace, cwd: home(shown.entry.cwd), branch: shown.entry.branch }}
+          workspace={{ ...workspace, cwd: tildePath(shown.entry.cwd), branch: shown.entry.branch }}
           replay={null}
           readOnly={{ title: shown.entry.title, summary: shown.entry.firstPrompt, modified: shown.entry.modified }}
           titles={false}
