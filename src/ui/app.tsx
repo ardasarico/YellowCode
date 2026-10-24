@@ -2,7 +2,7 @@ import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { untitledCommand } from "../input/commands.ts"
+import { BLOCKED_COMMANDS, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { agentMessage } from "../session/agent-message.ts"
 import { planReturn } from "../session/plan-mode.ts"
@@ -1075,6 +1075,10 @@ export function App(props: AppProps) {
       jumpDown()
       sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
       return true
+    }
+    if (BLOCKED_COMMANDS.includes(command.match(/^\/(\S+)/)?.[1] ?? "")) {
+      waitNotice("Not available in YellowCode")
+      return false
     }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")

@@ -83,8 +83,8 @@ test("an own command hides a recorded alias with its name", () => {
 
 const cliRow = (name: string, aliases?: string[]) => ({ name, description: "", argumentHint: "", aliases })
 
-test("Claude Code's commands keep their aliases and drop help, internal and terminal-only names", () => {
-  const rows = ["help", "__debug", "doctor", "mcp"]
+test("Claude Code's commands keep their aliases and drop help, internal, blocked and terminal-only names", () => {
+  const rows = ["help", "__debug", "doctor", "fast", "mcp"]
     .map((name) => cliRow(name))
     .concat(cliRow("clear", ["reset", "new"]))
   const merged = claudeCommands(rows, ["doctor"])

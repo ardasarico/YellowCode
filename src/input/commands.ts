@@ -23,9 +23,23 @@ export const OWN_COMMANDS: Command[] = [
   { name: "export", description: "Copy the conversation or save it as Markdown", argumentHint: "[file]", aliases: [] },
 ]
 
-// The / list leaves out help, internal commands (__x) and those that work only in claude's own terminal UI.
+// Claude Code's commands YellowCode does not offer: broken over stream-json, internal, or covered by its own views.
+export const BLOCKED_COMMANDS = [
+  "debug",
+  "doctor",
+  "heapdump",
+  "fast",
+  "agents",
+  "workflow-launch-exec",
+  "auto-mode-setup",
+  "recap",
+  "list-agents",
+]
+
+// The / list leaves out help, internal commands (__x), blocked ones and those that work only in claude's own
+// terminal UI.
 export function shownCommands(commands: SlashCommand[], terminalOnly: readonly string[]): SlashCommand[] {
-  const dropped = new Set(terminalOnly)
+  const dropped = new Set([...terminalOnly, ...BLOCKED_COMMANDS])
   return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
 }
 
