@@ -1,5 +1,6 @@
 import { useTerminalDimensions } from "@opentui/solid"
 import { createMemo, createSignal, onCleanup, onMount, untrack } from "solid-js"
+import { log } from "../../log/log.ts"
 import { type RewindPoint, type RewindRecheck, type Rewound, undone } from "../../session/rewind.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
@@ -58,8 +59,25 @@ export function RewindDialog(
   onCleanup(() => {
     work.closed = true
   })
+  // Prompts whose last dry run failed; Enter still checks the files itself.
+  const [unchecked, setUnchecked] = createSignal(new Set<number>())
+  // Enter waits for a late preview or a dry run.
+  const [waiting, setWaiting] = createSignal(false)
   const runDry = async (at: number) => {
-    const found = dryRun ? await dryRun(at).catch(() => null) : null
+    let failed = false
+    const found = dryRun
+      ? await dryRun(at).catch((error: unknown) => {
+          log.warn("rewind dry run failed", String(error))
+          failed = true
+          return null
+        })
+      : null
+    setUnchecked((previous) => {
+      const next = new Set(previous)
+      if (failed) next.add(at)
+      else next.delete(at)
+      return next
+    })
     setDone((previous) => new Set(previous).add(at))
     if (found) setRestores((previous) => new Map(previous).set(at, found))
   }
@@ -135,6 +153,11 @@ export function RewindDialog(
           : `⚠ ${conflicts.length} files changed after Claude: ${conflicts.map((file) => file.path).join(", ")}`
       lines.push({ id: "conflicts", spans: [{ text: cut(text, inner()), fg: theme.warning }] })
     }
+    if (unchecked().has(at)) {
+      const text = "Could not check the files · Enter checks them again"
+      lines.push({ id: "unchecked", spans: [{ text: cut(text, inner()), fg: theme.warning }] })
+    }
+    if (waiting()) note("waiting", "Checking files…")
     return lines
   }
 
@@ -154,8 +177,10 @@ export function RewindDialog(
     const at = index()
     try {
       const seen = new Set(conflictFiles().map((file) => file.path))
+      setWaiting(true)
       await late
       if (dryRun && !untrack(done).has(at)) await runDry(at)
+      setWaiting(false)
       if (work.closed || index() !== at) return
       const shownNow = conflictFiles().map((file) => file.path)
       if (shownNow.some((path) => !seen.has(path))) return
@@ -167,6 +192,7 @@ export function RewindDialog(
       setRestores((previous) => new Map(previous).set(at, answer.paths))
       setAtEnter((previous) => new Set([...previous, ...answer.conflicts]))
     } finally {
+      setWaiting(false)
       entering = false
     }
   }
