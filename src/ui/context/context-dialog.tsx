@@ -7,6 +7,7 @@ import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { formatTokens, modelName } from "../format.ts"
+import { toolPrefix } from "../mcp/servers.ts"
 
 export type ContextUsage = z.infer<typeof contextUsage>
 
@@ -54,7 +55,10 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
       id === "memory_files"
         ? usage.memoryFiles.map((file) => [tildePath(file.path), file.tokens] as const)
         : id === "mcp_tools"
-          ? usage.mcpTools.map((tool) => [`${tool.serverName} · ${tool.name}`, tool.tokens] as const)
+          ? usage.mcpTools.map(
+              (tool) =>
+                [`${tool.serverName} · ${tool.name.replace(toolPrefix(tool.serverName), "")}`, tool.tokens] as const,
+            )
           : []
     const opens = OPENS.has(id) && entries.length > 0
     const color = colorOf.get(category.name)

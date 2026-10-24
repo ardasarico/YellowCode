@@ -12,7 +12,7 @@ import { resetTime } from "../sidebar.tsx"
 export type Usage = z.infer<typeof usageReply>
 
 const WIDTH = 72
-const BAR = 20
+const BAR = 12
 const LABEL = 16
 
 const line = (id: string, label: string, value: string): DialogItem => ({
