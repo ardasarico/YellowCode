@@ -9,9 +9,10 @@ import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import { contextUsage } from "../protocol/messages.ts"
-import { getContextUsageRequest, type OutgoingImage } from "../protocol/outgoing.ts"
+import { contextUsage, usageReply } from "../protocol/messages.ts"
+import { getContextUsageRequest, getUsageRequest, type OutgoingImage } from "../protocol/outgoing.ts"
 import { ContextDialog } from "./context/context-dialog.tsx"
+import { UsageDialog } from "./usage/usage-dialog.tsx"
 import type { SessionEntry } from "../resume/session-list.ts"
 import { currentInfo, currentServers } from "../session/lists.ts"
 import {
@@ -161,7 +162,7 @@ type DialogName =
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
   | { name: "choice"; kind: "model" | "effort" }
-  | { name: "context" }
+  | { name: "context" | "usage" }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
@@ -1115,8 +1116,8 @@ export function App(props: AppProps) {
       return false
     }
     if (typedKnob(commandName, commandArgs.trim())) return true
-    if (command === "/context" && props.request) {
-      setDialog({ name: "context" })
+    if ((command === "/context" || command === "/usage") && props.request) {
+      setDialog({ name: command === "/context" ? "context" : "usage" })
       return true
     }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
@@ -1459,6 +1460,21 @@ export function App(props: AppProps) {
                 return usage.data
               })
             }
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
+      <Show when={dialog()?.name === "usage" && props.request}>
+        {(request) => (
+          <UsageDialog
+            load={() =>
+              request()(getUsageRequest).then((reply) => {
+                const usage = usageReply.safeParse(reply)
+                if (!usage.success) throw new Error("unexpected reply")
+                return usage.data
+              })
+            }
+            limits={props.session.usage.limits}
             onClose={() => setDialog(null)}
           />
         )}

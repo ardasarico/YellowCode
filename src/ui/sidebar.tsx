@@ -81,7 +81,7 @@ function serverStatus(server: Server, activity: ServerActivity): ServerStatus {
 const serverRank = (row: { server: Server; status: ServerStatus }) =>
   row.status.problem ? 0 : row.server.status === "disabled" ? 2 : 1
 
-function resetTime(resetsAt: number, now: number): string {
+export function resetTime(resetsAt: number, now: number): string {
   const clock = formatClock(resetsAt)
   return resetsAt - now < DAY_MS ? clock : `${WEEKDAYS[new Date(resetsAt).getDay()]} ${clock}`
 }

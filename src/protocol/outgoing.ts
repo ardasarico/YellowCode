@@ -147,6 +147,7 @@ function controlRequest(requestId: string, subtype: string, fields: object = {})
 }
 
 export const getContextUsageRequest = (requestId: string) => controlRequest(requestId, "get_context_usage")
+export const getUsageRequest = (requestId: string) => controlRequest(requestId, "get_usage")
 
 export function interruptRequest(requestId: string): string {
   return controlRequest(requestId, "interrupt")

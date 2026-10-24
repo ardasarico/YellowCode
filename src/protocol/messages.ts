@@ -490,6 +490,27 @@ export const contextUsage = z.looseObject({
   mcpTools: z.array(z.looseObject({ name: z.string(), serverName: z.string(), tokens: z.number() })).default([]),
 })
 
+// get_usage: the session's cost, times, changed lines and tokens per model, and the plan.
+export const usageReply = z.looseObject({
+  session: z.looseObject({
+    total_cost_usd: z.number(),
+    total_api_duration_ms: z.number(),
+    total_duration_ms: z.number(),
+    total_lines_added: z.number(),
+    total_lines_removed: z.number(),
+    model_usage: z.record(
+      z.string(),
+      z.looseObject({
+        inputTokens: z.number(),
+        outputTokens: z.number(),
+        cacheReadInputTokens: z.number(),
+        cacheCreationInputTokens: z.number(),
+      }),
+    ),
+  }),
+  subscription_type: z.string().nullable().optional(),
+})
+
 export const initializeMode = z.looseObject({ current_permission_mode: z.string() })
 export const permissionModeReply = z.looseObject({ mode: z.string() })
 
