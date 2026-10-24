@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs"
+import { resolve } from "node:path"
 import { shownItems } from "./rewind.ts"
 import type { Hunk, Session, ToolCall } from "./types.ts"
 
@@ -67,4 +69,13 @@ export function exportFileName(title: string, date: Date): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48)
   return `${slug || "conversation"}-${date.toISOString().slice(0, 10)}.md`
+}
+
+// The name, or the first `<stem>-<n><ext>` from 2 on that no file in `cwd` has.
+export function freeExportName(cwd: string, name: string): string {
+  const dot = name.lastIndexOf(".")
+  const [stem, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""]
+  let free = name
+  for (let n = 2; existsSync(resolve(cwd, free)); n++) free = `${stem}-${n}${ext}`
+  return free
 }

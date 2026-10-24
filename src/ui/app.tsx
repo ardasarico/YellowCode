@@ -30,9 +30,10 @@ import {
   toggleUltracode,
 } from "../session/settings.ts"
 import { failedSaves, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
+import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
-import { conversationMarkdown, exportFileName } from "../session/export.ts"
+import { conversationMarkdown, exportFileName, freeExportName } from "../session/export.ts"
 import { skillUses } from "../session/skills.ts"
 import { TODO_TOOLS } from "../session/todos.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
@@ -693,9 +694,10 @@ export function App(props: AppProps) {
       cwd: process.cwd(),
       date: new Date(),
     })
-  const exportTo = async (name: string) => {
+  const exportTo = async (name: string, replace: boolean) => {
     setDialog(null)
     const path = resolve(process.cwd(), name)
+    if (!replace && existsSync(path)) return waitNotice(`${name} exists, nothing saved`)
     try {
       await Bun.write(path, exportText())
       waitNotice(`Exported to ${relative(path, process.cwd())}`)
@@ -1039,7 +1041,7 @@ export function App(props: AppProps) {
     else if (command === "/redo") redo()
     else if (command === "/export") setDialog({ name: "export" })
     else if (command === "/plan") planMode()
-    else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim())
+    else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim(), false)
     else {
       const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
       if (planned !== null) planMode()
@@ -1321,9 +1323,10 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "export"}>
         <ExportDialog
-          fileName={exportFileName(title()?.title ?? "", new Date())}
+          fileName={freeExportName(process.cwd(), exportFileName(title()?.title ?? "", new Date()))}
+          exists={(name) => existsSync(resolve(process.cwd(), name))}
           onCopy={() => void exportToClipboard()}
-          onSave={(name) => void exportTo(name)}
+          onSave={(name) => void exportTo(name, true)}
           onClose={() => setDialog(null)}
         />
       </Show>

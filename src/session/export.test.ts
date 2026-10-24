@@ -1,10 +1,19 @@
 import { expect, test } from "bun:test"
-import { readFileSync } from "node:fs"
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
-import { conversationMarkdown } from "./export.ts"
+import { conversationMarkdown, freeExportName } from "./export.ts"
 import { createSession } from "./session.ts"
+
+test("a default export name skips the files already there", () => {
+  const dir = mkdtempSync(join(tmpdir(), "yc-export-"))
+  expect(freeExportName(dir, "a.md")).toBe("a.md")
+  writeFileSync(join(dir, "a.md"), "")
+  writeFileSync(join(dir, "a-2.md"), "")
+  expect(freeExportName(dir, "a.md")).toBe("a-3.md")
+})
 
 test("exports messages, replies and one line per tool call", () => {
   const session = createSession()
