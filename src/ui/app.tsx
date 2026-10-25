@@ -225,7 +225,6 @@ export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
-  createEffect(() => setAppDialogOpen(dialog() !== null))
   createEffect(
     on(modDialog, (request) => {
       if (request) setDialog({ name: "mod" })
@@ -484,6 +483,13 @@ export function App(props: AppProps) {
     if (focusedKey !== null && !placed.has(focusedKey)) setFocusedPane(null)
   })
   const pending = createMemo(() => pendingAsk(props.session))
+  // A question from claude counts as a dialog for mods: a mod's dialog closes and new ones resolve as cancelled.
+  createEffect(() => setAppDialogOpen(dialog() !== null || pending() !== null))
+  createEffect(
+    on(pending, (ask) => {
+      if (ask) untrack(modDialog)?.close(null)
+    }),
+  )
   createEffect(
     on(
       () => pending() !== null,
@@ -1054,7 +1060,7 @@ export function App(props: AppProps) {
     }
     // A focused mod pane takes every key but the shortcuts mods registered.
     const pane = focusedPane()
-    if (pane !== null && !dialog()) {
+    if (pane !== null && !dialog() && !pending()) {
       key.preventDefault()
       key.stopPropagation()
       const owner = pane.slice(0, pane.indexOf("/"))
@@ -1062,7 +1068,10 @@ export function App(props: AppProps) {
         (entry) => (entry.when !== "pane" || entry.mod === owner) && matches(entry.binding, key),
       )
       if (shortcut) shortcut.run()
-      else paneKeys(pane)?.(key)
+      else {
+        const sink = paneKeys(pane)
+        if (sink) guarded(owner, () => sink(key))
+      }
       return
     }
     if (key.ctrl && key.name === "c" && shellRunning()) {

@@ -104,7 +104,25 @@ function setVisible(pane: string, visible: boolean): void {
 
 export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; dispose: Dispose } {
   const key = `${mod}/${options.id}`
-  const entry: RegisteredPane = { ...options, mod, key, visible: () => shown().has(key) }
+  // The app reads these while laying out; a throw turns the mod off and the pane falls back until it is gone.
+  const read =
+    <T>(get: () => T, fallback: T) =>
+    () => {
+      try {
+        return get()
+      } catch (error) {
+        queueMicrotask(() => failure(mod, error))
+        return fallback
+      }
+    }
+  const entry: RegisteredPane = {
+    ...options,
+    position: read(options.position, "bottom"),
+    size: read(options.size, 0),
+    mod,
+    key,
+    visible: () => shown().has(key),
+  }
   setPanes((list) => [...list.filter((pane) => pane.key !== key), entry])
   const pane: ModPane = {
     show: () => setVisible(key, true),
