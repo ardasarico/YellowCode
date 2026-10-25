@@ -2,6 +2,7 @@ import { EmbeddedTerminalRenderable } from "@opentui/core"
 import { extend } from "@opentui/solid/components"
 import { type Dispose, defineMod } from "yellowcode/mod"
 import { TerminalPane } from "./pane.tsx"
+import { addRows } from "./rows.tsx"
 import { createTerminals } from "./terminals.ts"
 import { addTools } from "./tools.ts"
 
@@ -92,6 +93,7 @@ export default defineMod({
     })
 
     addTools(mod, terminals)
+    addRows(mod)
     return () => terminals.closeAll()
   },
 })
