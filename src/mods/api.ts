@@ -207,3 +207,5 @@ export function isDefinedMod(value: unknown): value is DefinedMod {
     typeof value.setup === "function"
   )
 }
+
+export { Code, Diff, Rule, theme } from "./kit.tsx"

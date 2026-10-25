@@ -1,12 +1,10 @@
 import { createSignal, For, Show } from "solid-js"
-import { defineMod } from "yellowcode/mod"
+import { defineMod, theme } from "yellowcode/mod"
 import { type Change, type GitState, readState } from "./status.ts"
 
 const MAX_ROWS = 8
-const MUTED = "#808080"
-const ADDED = "#6fcf97"
-const REMOVED = "#eb5757"
-const LETTERS: Record<string, string> = { M: "#e2b93d", A: ADDED, D: REMOVED, R: "#5ab8ff" }
+const letterColor = (letter: string) =>
+  ({ M: theme.warning, A: theme.success, D: theme.error, R: theme.accent })[letter] ?? theme.muted
 
 // Cuts a path from the left so the end, the file name, stays: "…/login.ts".
 function cutPath(path: string, width: number): string {
@@ -23,10 +21,10 @@ function Row(props: { change: Change; width: number }) {
   const room = () => Math.max(1, props.width - 2 - Bun.stringWidth(added() + removed()))
   return (
     <text wrapMode="none">
-      <span style={{ fg: LETTERS[props.change.letter] ?? MUTED }}>{`${props.change.letter} `}</span>
-      <span>{cutPath(props.change.path, room())}</span>
-      <span style={{ fg: ADDED }}>{added()}</span>
-      <span style={{ fg: REMOVED }}>{removed()}</span>
+      <span style={{ fg: letterColor(props.change.letter) }}>{`${props.change.letter} `}</span>
+      <span style={{ fg: theme.text }}>{cutPath(props.change.path, room())}</span>
+      <span style={{ fg: theme.success }}>{added()}</span>
+      <span style={{ fg: theme.error }}>{removed()}</span>
     </text>
   )
 }
@@ -70,7 +68,7 @@ export default defineMod({
           <box flexDirection="column">
             <For each={changes().slice(0, MAX_ROWS)}>{(change) => <Row change={change} width={props.width} />}</For>
             <Show when={hidden() > 0}>
-              <text fg={MUTED}>{`+${hidden()} more`}</text>
+              <text fg={theme.muted}>{`+${hidden()} more`}</text>
             </Show>
           </box>
         )

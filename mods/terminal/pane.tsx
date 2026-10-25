@@ -1,11 +1,8 @@
 import type { BoxRenderable } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import { createEffect, For, on, onCleanup, untrack } from "solid-js"
-import type { PaneViewProps } from "yellowcode/mod"
+import { type PaneViewProps, theme } from "yellowcode/mod"
 import type { Terminals } from "./terminals.ts"
-
-const ACCENT = "#5ab8ff"
-const MUTED = "#808080"
 
 // A strip of tabs over the active terminal. Every terminal stays mounted at full size, stacked, with the active one on
 // top: a hidden renderable is laid out at zero size, which would wipe its screen.
@@ -34,14 +31,14 @@ export function TerminalPane(props: PaneViewProps & { terminals: Terminals }) {
         <For each={props.terminals.list()}>
           {(terminal, index) => (
             <text
-              fg={props.terminals.active() === terminal ? ACCENT : MUTED}
+              fg={props.terminals.active() === terminal ? theme.accent : theme.muted}
               onMouseDown={() => props.terminals.selectId(terminal.id)}
             >
               {`${index() + 1} ${terminal.title}`}
             </text>
           )}
         </For>
-        <text fg={MUTED} onMouseDown={() => props.terminals.add()}>
+        <text fg={theme.muted} onMouseDown={() => props.terminals.add()}>
           +
         </text>
       </box>
