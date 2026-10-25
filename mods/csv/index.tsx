@@ -85,10 +85,15 @@ export default defineMod({
       // A block that does not read as a table, or has a single column, stays code.
       accept: (block) => {
         const rows = parseRows(block.code, separatorOf(block.lang))
-        return rows !== null && rows.length > 0 && Math.max(...rows.map((row) => row.length)) > 1
+        return rows !== null && rows.some((row) => row.length > 1)
       },
       view: (props) => {
-        const rows = createMemo(() => parseRows(props.code, separatorOf(props.lang)) ?? [])
+        // A quoted cell can hold line breaks; the table keeps one line per row.
+        const rows = createMemo(() =>
+          (parseRows(props.code, separatorOf(props.lang)) ?? []).map((row) =>
+            row.map((cell) => cell.replaceAll(/\s*\r?\n\s*/g, " ")),
+          ),
+        )
         return <Table rows={rows()} width={props.width} />
       },
     })
