@@ -6,6 +6,7 @@ import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefi
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
 import {
   addCommand,
+  addFence,
   addKey,
   addListener,
   addPane,
@@ -176,6 +177,7 @@ export function createModHost(options: {
         },
         sidebar: { add: (section) => own(addSection(id, section, storage)) },
         dialogs: dialogs.dialogs,
+        fences: { add: (fence) => own(addFence({ ...fence, mod: id })) },
         toolRows: { add: (renderer) => own(addRowRenderer({ render: (tool) => renderer.render(tool), mod: id })) },
         events: { on: (event, handler) => own(addListener(id, event, handler)) },
         panes: {

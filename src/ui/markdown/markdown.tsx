@@ -3,9 +3,11 @@ import type { Tokens } from "marked"
 import { diagramKind } from "grok-mermaid"
 import {
   type Accessor,
+  createComponent,
   createContext,
   createMemo,
   createSignal,
+  ErrorBoundary,
   Index,
   Match,
   type JSX,
@@ -14,6 +16,8 @@ import {
   untrack,
   useContext,
 } from "solid-js"
+import type { ModFence } from "../../mods/api.ts"
+import { fenceFor, type Owned, reportModError } from "../../mods/registry.ts"
 import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { DiffView, HEAD_LIMIT } from "../diff-view.tsx"
@@ -251,6 +255,9 @@ function BlockView(props: BlockProps) {
           </box>
         )}
       </Case>
+      <Case when={modFence(props.token, props.streaming)}>
+        {(found) => <ModFenceView {...found()} width={props.width} />}
+      </Case>
       <Case when={statsCode(props.token)}>
         {(token) => <StatsBlock token={token()} streaming={props.streaming} width={props.width} />}
       </Case>
@@ -311,6 +318,39 @@ function DetailsView(props: { entry: Details; width: number; fg: RGBA; depth: nu
         </box>
       </Show>
     </box>
+  )
+}
+
+// A finished block a mod draws; while it streams the app's own drawing shows.
+function modFence(token: Entry, streaming: boolean) {
+  const code = is(token, "code")
+  if (!code || streaming) return null
+  const lang = code.lang ?? ""
+  const fence = fenceFor(lang, code.text)
+  return fence ? { fence, code: code.text, lang: lang.trim().toLowerCase() } : null
+}
+
+function ModFenceView(props: { fence: Owned<ModFence>; code: string; lang: string; width: number }) {
+  const mod = untrack(() => props.fence.mod)
+  return (
+    <ErrorBoundary
+      fallback={(error: unknown) => {
+        queueMicrotask(() => reportModError(mod, error))
+        return null
+      }}
+    >
+      {createComponent(props.fence.view, {
+        get code() {
+          return props.code
+        },
+        get lang() {
+          return props.lang
+        },
+        get width() {
+          return props.width
+        },
+      })}
+    </ErrorBoundary>
   )
 }
 

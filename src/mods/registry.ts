@@ -10,6 +10,7 @@ import type {
   ModDialogOptions,
   ModDialogs,
   ModEvents,
+  ModFence,
   ModInputOptions,
   ModRowParts,
   ModRowRenderer,
@@ -73,6 +74,7 @@ export function counts(mod: string): string[] {
     ...count(tools().filter((tool) => tool.mod === mod).length, "tool"),
     ...count(sections().filter((section) => section.mod === mod).length, "section"),
     ...count(rowRenderers().filter((renderer) => renderer.mod === mod).length, "row renderer"),
+    ...count(fences().filter((fence) => fence.mod === mod).length, "fence"),
   ]
 }
 
@@ -245,6 +247,23 @@ export function rowPartsFor(tool: ModToolInfo): { mod: string; parts: ModRowPart
       if (parts) return { mod: renderer.mod, parts }
     } catch (error) {
       queueMicrotask(() => failure(renderer.mod, error))
+    }
+  }
+  return null
+}
+
+const [fences, setFences] = createSignal<Owned<ModFence>[]>([])
+export const addFence = adder<Owned<ModFence>>(setFences)
+
+// The first mod, in load order, that draws a finished block in this language.
+export function fenceFor(lang: string, code: string): Owned<ModFence> | null {
+  const name = lang.trim().toLowerCase()
+  for (const fence of fences()) {
+    try {
+      const takes = Array.isArray(fence.langs) ? fence.langs.includes(name) : fence.langs(name)
+      if (takes && (fence.accept?.({ code, lang: name }) ?? true)) return fence
+    } catch (error) {
+      queueMicrotask(() => failure(fence.mod, error))
     }
   }
   return null

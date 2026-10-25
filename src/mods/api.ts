@@ -180,6 +180,17 @@ export type ModRowParts = {
 // Null leaves the row to the next mod, and in the end to the app.
 export type ModRowRenderer = { render(tool: ModToolInfo): ModRowParts | null }
 
+// A fenced code block in Claude's reply, drawn once it is finished.
+export type ModFenceBlock = { code: string; lang: string }
+
+export type ModFence = {
+  // The info strings it draws, like ["csv", "tsv"], or a test on one.
+  langs: string[] | ((lang: string) => boolean)
+  // False leaves a block it cannot draw to the next mod, and in the end to the app.
+  accept?(block: ModFenceBlock): boolean
+  view: (props: ModFenceBlock & { width: number }) => JSX.Element
+}
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -203,6 +214,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly tools: { add(tool: ModTool): Dispose }
   readonly sidebar: { add(section: ModSectionOptions): Dispose }
   readonly dialogs: ModDialogs
+  readonly fences: { add(fence: ModFence): Dispose }
   readonly toolRows: { add(renderer: ModRowRenderer): Dispose }
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
