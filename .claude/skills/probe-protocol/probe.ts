@@ -1,7 +1,7 @@
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-import { allowTool, answerQuestions } from "../../../src/protocol/outgoing.ts"
+import { allowTool, answerQuestions, mcpAck, mcpResponse } from "../../../src/protocol/outgoing.ts"
 
 type Message = Record<string, any>
 type Step =
@@ -28,6 +28,8 @@ type Scenario = {
   model?: string | null
   // A shell command run in the project before claude starts.
   setup?: string
+  // In-process MCP servers the probe answers mcp_message for, by server name: their tools echo their input.
+  sdkServers?: Record<string, { name: string; description: string }[]>
 }
 
 const skillFile = (name: string, description: string) =>
@@ -100,6 +102,18 @@ const bigRepo =
   `git init -q && mkdir big && cd big && seq -f 'f%.0f.txt' 1 ${bigFiles} | xargs touch && cd .. && git add -A`
 
 const scenarios: Record<string, Scenario> = {
+  "mcp-set": {
+    sdkServers: { "mod-probe": [{ name: "echo", description: "Returns the text it is given." }] },
+    steps: [
+      ...turn(ready),
+      control("mcp_set_servers", { servers: { "mod-probe": { type: "sdk", name: "mod-probe" } } }),
+      control("mcp_status"),
+      ...turn("Call the echo tool of the mod-probe MCP server with the text hi, then reply with what it returned."),
+      control("mcp_set_servers", { servers: {} }),
+      control("mcp_status"),
+      ...turn("Is a tool named echo from the mod-probe server still available to you? Reply yes or no."),
+    ],
+  },
   text: { prompt: "Reply with the single word: ready" },
   tool: { prompt: "Run `ls` with the Bash tool, then reply with one word." },
   permission: { prompt: "Use the Write tool to create notes.txt containing 'hello'. Do nothing else." },
@@ -681,6 +695,25 @@ read: for await (const chunk of proc.stdout) {
     if (message.type === "control_request" && message.request?.subtype === "can_use_tool") {
       const answer = (scenario.answer ?? ((request) => allowTool(request.request_id, request.request.input)))(message)
       if (answer) sendLine(answer)
+    }
+    const sdkTools = message.type === "control_request" && scenario.sdkServers?.[message.request?.server_name]
+    if (sdkTools && message.request.subtype === "mcp_message") {
+      const { id, method, params } = message.request.message
+      const reply =
+        id === undefined
+          ? mcpAck(message.request_id)
+          : mcpResponse(
+              message.request_id,
+              id,
+              method === "initialize"
+                ? { protocolVersion: params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: message.request.server_name, version: "0" } }
+                : method === "tools/list"
+                  ? { tools: sdkTools.map((tool) => ({ ...tool, inputSchema: { type: "object", properties: { text: { type: "string" } } } })) }
+                  : method === "tools/call"
+                    ? { content: [{ type: "text", text: `echo: ${params.arguments?.text ?? ""}` }] }
+                    : {},
+            )
+      sendLine(reply)
     }
     if (requestId) pendingControls.delete(requestId)
     if (message.type === "system" && message.subtype === "task_notification") {
