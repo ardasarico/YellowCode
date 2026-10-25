@@ -76,7 +76,8 @@ import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
+import { clearModNotice, modNotice } from "../mods/mods.ts"
+import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
@@ -1179,6 +1180,7 @@ export function App(props: AppProps) {
 
   const submit = ({ text, images, draft }: Submission): boolean => {
     if (rushedSubmit()) return false
+    clearModNotice()
     const to = messageTo()
     const command = to ? "" : text.trim()
     if (to && images.length > 0) {
@@ -1344,6 +1346,8 @@ export function App(props: AppProps) {
     if (quitArmed()) return quitHint()
     const problem = pasteNotice() ?? settingsProblem()
     if (problem) return problemNotice(problem)
+    const mod = modNotice()
+    if (mod) return modSpan(mod)
     const note = rewindNote()
     if (note) return { text: note, fg: theme.muted }
     return live() && props.session.status === "starting" ? startingNotice() : null
@@ -1371,6 +1375,7 @@ export function App(props: AppProps) {
       restartable: props.onRestart !== undefined,
       mcpFailure: mcpFailure(),
       settingsProblem: pasteNotice() ?? settingsProblem(),
+      mod: modNotice(),
       asking: pending() !== null,
       compacting: props.session.compacting,
       goingBack: props.rewind?.goingBack?.() ?? false,

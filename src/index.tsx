@@ -29,6 +29,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
+import { startMods } from "./mods/mods.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import {
@@ -65,9 +66,9 @@ import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
 
 const USAGE = [
-  "Usage: yellowcode [--skip-terminal-check]",
+  "Usage: yellowcode [--skip-terminal-check] [--no-mods]",
   "       yellowcode --report",
-  "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check]",
+  "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
 
@@ -86,6 +87,7 @@ function readArgs() {
         titles: { type: "boolean" },
         sessions: { type: "string" },
         "skip-terminal-check": { type: "boolean", default: false },
+        "no-mods": { type: "boolean", default: false },
         report: { type: "boolean" },
       },
     }).values
@@ -133,6 +135,7 @@ const firstSession = createSession({ starting: values.replay === undefined })
 // claude starts with flags from the saved settings, so they are read first.
 const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
+await startMods(values["no-mods"])
 
 // The claude YellowCode talks to now; a restart or another session replaces it. Never set in a replay.
 let connection: Connection

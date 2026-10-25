@@ -1,4 +1,5 @@
 import type { RGBA } from "@opentui/core"
+import type { ModNotice } from "../mods/mods.ts"
 import type { SessionStatus, Usage, Window } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { formatUntil } from "./format.ts"
@@ -21,6 +22,7 @@ export type NoticeState = {
   restartable: boolean
   mcpFailure: string | null
   settingsProblem: string | null
+  mod: ModNotice | null
   asking: boolean
   compacting: boolean
   // The first send after a rewind waits for claude to go back in the conversation.
@@ -48,6 +50,8 @@ const STATUS_TEXT = {
 export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: theme.muted })
 export const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
 export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
+export const modSpan = (notice: ModNotice): Span =>
+  notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }
 export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
 
 const HINTS = "F3 sidebar · F4 ultracode"
@@ -95,6 +99,7 @@ function leftSpans(state: NoticeState): Span[] {
   }
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
+  if (state.mod) return [modSpan(state.mod)]
   const warning = warningText(state.usage, state.now)
   if (warning) return [warning]
   if (state.asking) return []
