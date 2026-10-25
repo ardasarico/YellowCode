@@ -31,6 +31,11 @@ export type TwoPaneProps = {
   onKey?: (key: KeyEvent, row: DialogRow | undefined, query: string) => boolean
   // The list pane's footer; the actions have their own.
   footer: (row: DialogRow) => FooterAction[]
+  // The actions go under the detail's first line instead of at the bottom.
+  actionsOnTop?: boolean
+  // Sees the keys of the detail pane first, with the row or action that has the focus there.
+  onDetailKey?: (key: KeyEvent, row: DialogRow, focused: DialogRow | undefined) => boolean
+  detailFooter?: (row: DialogRow, focused: DialogRow | undefined) => FooterAction[] | null
 }
 
 const NARROW_BELOW = 90
@@ -146,6 +151,9 @@ export function TwoPane(props: TwoPaneProps) {
 
   // ←→ move along the actions, ↑↓ between them and the rows above them.
   const detailKeys = (key: KeyEvent) => {
+    const owner = selectedRow()
+    if (owner && props.onDetailKey?.(key, owner, focusedItem())) return true
+    if (props.actionsOnTop) return topDetailKeys(key)
     const id = focusId()
     const onActions = id !== undefined && actionIds().includes(id)
     const body = bodyIds()
@@ -166,10 +174,33 @@ export function TwoPane(props: TwoPaneProps) {
     return true
   }
 
+  // With the actions on top, ↓ leaves them for the rows under them and ↑ from the first row comes back.
+  const topDetailKeys = (key: KeyEvent) => {
+    const id = focusId()
+    const onActions = id !== undefined && actionIds().includes(id)
+    const body = bodyIds()
+    if (key.name === "escape") setPane("list")
+    else if (key.name === "left") {
+      if (onActions && actionIds().indexOf(id) > 0) setFocus(moveSelection(actionIds(), id, -1))
+      else setPane("list")
+    } else if (key.name === "right") {
+      if (onActions) setFocus(moveSelection(actionIds(), id, 1))
+    } else if (key.name === "down") setFocus(onActions ? (body[0] ?? id) : moveSelection(body, id, 1))
+    else if (key.name === "up") {
+      if (!onActions) setFocus(id === body[0] ? (actionIds()[0] ?? id) : moveSelection(body, id, -1))
+    } else if (key.name === "return") {
+      const row = selectedRow()
+      const item = focusedItem()
+      if (row && item) props.onAction(row, item)
+    }
+    return true
+  }
+
   untrack(() => props.api).bind({
     keys: (key) => (pane() === "list" ? listKeys(key) : detailKeys(key)),
     footer: () => {
-      if (pane() === "detail") return DETAIL_FOOTER
+      const owner = selectedRow()
+      if (pane() === "detail") return (owner && props.detailFooter?.(owner, focusedItem())) ?? DETAIL_FOOTER
       const row = selectedRow()
       return row ? props.footer(row) : searchFooter("close")
     },
@@ -221,28 +252,68 @@ export function TwoPane(props: TwoPaneProps) {
     </text>
   )
 
+  const Rule = (ruleProps: { pad: number }) => (
+    <box height={1} paddingLeft={ruleProps.pad}>
+      <text fg={theme.frame} wrapMode="none">
+        {"─".repeat(detailList())}
+      </text>
+    </box>
+  )
+
+  // On top, the first detail line (the header) stays above the actions and the rest scrolls under them.
+  const topLines = createMemo(() => detailLines().slice(0, 1))
+  const restLines = createMemo(() => detailLines().slice(1))
+
   const Detail = (detailProps: { width: number; pad: number }) => (
     <box width={detailProps.width} flexDirection="column">
       <Show when={selectedRow()}>
-        <ListView
-          sections={detailSections()}
-          lines={detailLines()}
-          selected={bodySelected()}
-          view={selectedId() ?? ""}
-          rows={Math.max(0, props.api.rows() - ACTION_ROWS)}
-          width={detailList()}
-          pad={detailProps.pad}
-          inset
-        />
-        <box height={1} />
-        <box height={1} paddingLeft={detailProps.pad}>
-          <text fg={theme.frame} wrapMode="none">
-            {"─".repeat(detailList())}
-          </text>
-        </box>
-        <box height={1} paddingLeft={detailProps.pad}>
-          <Actions />
-        </box>
+        <Show
+          when={props.actionsOnTop}
+          fallback={
+            <>
+              <ListView
+                sections={detailSections()}
+                lines={detailLines()}
+                selected={bodySelected()}
+                view={selectedId() ?? ""}
+                rows={Math.max(0, props.api.rows() - ACTION_ROWS)}
+                width={detailList()}
+                pad={detailProps.pad}
+                inset
+              />
+              <box height={1} />
+              <Rule pad={detailProps.pad} />
+              <box height={1} paddingLeft={detailProps.pad}>
+                <Actions />
+              </box>
+            </>
+          }
+        >
+          <ListView
+            sections={detailSections()}
+            lines={topLines()}
+            selected={undefined}
+            view={`${selectedId() ?? ""}-top`}
+            rows={1}
+            width={detailList()}
+            pad={detailProps.pad}
+            inset
+          />
+          <box height={1} paddingLeft={detailProps.pad}>
+            <Actions />
+          </box>
+          <box height={1} />
+          <ListView
+            sections={detailSections()}
+            lines={restLines()}
+            selected={bodySelected()}
+            view={selectedId() ?? ""}
+            rows={Math.max(0, props.api.rows() - ACTION_ROWS)}
+            width={detailList()}
+            pad={detailProps.pad}
+            inset
+          />
+        </Show>
       </Show>
     </box>
   )

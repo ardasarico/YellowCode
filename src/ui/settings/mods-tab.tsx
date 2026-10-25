@@ -1,4 +1,9 @@
+import type { KeyEvent } from "@opentui/core"
+import { createSignal } from "solid-js"
+import type { SettingDefinition, SettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
+import { counts } from "../../mods/registry.ts"
+import type { SettingsHandle } from "../../mods/settings.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, text, title } from "../dialog/detail.ts"
@@ -7,10 +12,18 @@ import type { FooterAction } from "../dialog/list-view.tsx"
 import { openFolder } from "../dialog/open-file.ts"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
+import { printable } from "../dialog/list-view.tsx"
 import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
 
 const STACK_LINES = 8
+const SETTING = "setting:"
+
+// A text setting being typed: its key and the text so far.
+type Editing = { key: string; draft: string }
+
+const settingKey = (item: DialogRow | undefined) =>
+  item?.id.startsWith(SETTING) ? item.id.slice(SETTING.length) : null
 
 const look = (status: ModStatus) =>
   ({
@@ -71,20 +84,48 @@ function errorLines(entry: ModEntry, width: number): DialogItem[] {
   ]
 }
 
-function detailItems(entry: ModEntry, width: number): DialogItem[] {
+function shownValue(definition: SettingDefinition, value: SettingValue): string {
+  if (definition.type === "choice") return `‹ ${String(value)} ›`
+  if (definition.type === "boolean") return value ? "on" : "off"
+  if (definition.type === "number") return `${String(value)}${definition.unit ? ` ${definition.unit}` : ""}`
+  return String(value)
+}
+
+function settingItems(settings: SettingsHandle | null, editing: Editing | null, width: number): DialogItem[] {
+  const entries = Object.entries(settings?.definitions ?? {})
+  if (!settings || entries.length === 0) return []
+  return [
+    blank("gap-settings"),
+    text("rule", [{ text: "─".repeat(width), fg: theme.frame }]),
+    title("settings", "Settings"),
+    ...entries.map(([key, definition]): DialogRow => {
+      const typing = editing?.key === key
+      return {
+        id: `${SETTING}${key}`,
+        label: definition.label,
+        value: typing ? `${editing.draft}▏` : shownValue(definition, settings.get(key)),
+        note: definition.type === "number" ? undefined : definition.note,
+        valueColor: typing ? theme.accent : undefined,
+      }
+    }),
+  ]
+}
+
+function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | null, editing: Editing | null) {
   const manifest = entry.manifest
   const heading = manifest ? `${manifest.name} ${manifest.version}` : entry.id
   const description = manifest?.description
     ? [text("description", [{ text: manifest.description, fg: theme.text }])]
     : []
+  const adds = counts(entry.id)
   return [
     header(heading, statusSpan(entry)),
     ...description,
-    blank("gap-head"),
     ...fact("source", "Source", tildePath(entry.folder), width),
-    ...fact("adds", "Adds", "nothing yet", width),
+    ...fact("adds", "Adds", adds.length > 0 ? adds.join(" · ") : "nothing", width),
     ...fact("load", "Load time", entry.loadMs === null ? "—" : `${entry.loadMs} ms`, width),
     ...errorLines(entry, width),
+    ...settingItems(settings, editing, width),
   ]
 }
 
@@ -96,6 +137,34 @@ function actions(entry: ModEntry): DialogRow[] {
   return [{ id: "off", label: "Turn off" }, reload, folder]
 }
 
+const SETTING_FOOTER: FooterAction[] = [
+  { key: "↑↓", action: "select" },
+  { key: "←→", action: "change" },
+  { key: "esc", action: "back" },
+]
+const TEXT_FOOTER: FooterAction[] = [
+  { key: "↑↓", action: "select" },
+  { key: "enter", action: "edit" },
+  { key: "esc", action: "back" },
+]
+const TYPING_FOOTER: FooterAction[] = [
+  { key: "enter", action: "save" },
+  { key: "esc", action: "cancel" },
+]
+
+// ←→ and space change a choice, a switch or a number in place; a text setting is typed after Enter.
+function changeSetting(settings: SettingsHandle, key: string, step: 1 | -1): void {
+  const definition = settings.definitions[key]
+  const value = settings.get(key)
+  if (definition?.type === "choice") {
+    const index = definition.options.indexOf(String(value))
+    const next = definition.options[(index + step + definition.options.length) % definition.options.length]
+    if (next !== undefined) settings.set(key, next)
+  } else if (definition?.type === "boolean") settings.set(key, !value)
+  else if (definition?.type === "number")
+    settings.set(key, Math.min(definition.max, Math.max(definition.min, Number(value) + step * definition.step)))
+}
+
 const FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
   { key: "space", action: "on/off" },
@@ -105,6 +174,35 @@ const FOOTER: FooterAction[] = [
 ]
 
 export function ModsTab(props: { api: TabApi; host: ModHost }) {
+  const [editing, setEditing] = createSignal<Editing | null>(null)
+
+  const detailKey = (key: KeyEvent, row: DialogRow, focused: DialogRow | undefined): boolean => {
+    const settings = props.host.settings(row.id)
+    const name = settingKey(focused)
+    const typing = editing()
+    if (typing) {
+      if (key.name === "return") {
+        settings?.set(typing.key, typing.draft)
+        setEditing(null)
+      } else if (key.name === "escape") setEditing(null)
+      else if (key.name === "backspace")
+        setEditing({ ...typing, draft: Array.from(typing.draft).slice(0, -1).join("") })
+      else if (printable(key)) setEditing({ ...typing, draft: typing.draft + key.sequence })
+      return true
+    }
+    if (!settings || name === null) return false
+    const definition = settings.definitions[name]
+    if (definition?.type === "text") {
+      if (key.name !== "return") return false
+      setEditing({ key: name, draft: String(settings.get(name)) })
+      return true
+    }
+    if (key.name === "left" || key.name === "right") changeSetting(settings, name, key.name === "left" ? -1 : 1)
+    else if (key.name === "space" && definition?.type === "boolean") changeSetting(settings, name, 1)
+    else return false
+    return true
+  }
+
   const entryFor = (row: DialogRow | undefined) => props.host.entries.find((entry) => entry.id === row?.id)
   const sections = (): DialogSection[] => [
     { title: "", rows: props.host.entries.toSorted((a, b) => nameOf(a).localeCompare(nameOf(b))).map(listRow) },
@@ -132,7 +230,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       empty={(query) => (query ? `No mods match "${query}".` : "No mods yet. Put one in ~/.config/yellowcode/mods/.")}
       detail={(row, width) => {
         const entry = entryFor(row)
-        return entry ? detailItems(entry, width) : []
+        return entry ? detailItems(entry, width, props.host.settings(entry.id), editing()) : []
       }}
       actions={(row) => {
         const entry = entryFor(row)
@@ -153,6 +251,14 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
         return true
       }}
       footer={() => FOOTER}
+      actionsOnTop
+      onDetailKey={detailKey}
+      detailFooter={(row, focused) => {
+        const name = settingKey(focused)
+        if (editing()) return TYPING_FOOTER
+        if (name === null) return null
+        return props.host.settings(row.id)?.definitions[name]?.type === "text" ? TEXT_FOOTER : SETTING_FOOTER
+      }}
     />
   )
 }
