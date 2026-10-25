@@ -67,8 +67,8 @@ export function setKnobs(knobs: Partial<Pick<Settings, "model" | "effort" | "ult
 
 export function setSetting<K extends keyof StoredSettings>(key: K, value: StoredSettings[K]): void {
   setSettings({ [key]: value })
-  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications } = settings
-  saveSettings({ theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications })
+  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods } = settings
+  saveSettings({ theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods })
 }
 
 export function resetSetting(key: keyof StoredSettings): void {

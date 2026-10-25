@@ -6,14 +6,17 @@ import { editorChoices, editorName } from "../dialog/open-file.ts"
 
 export type SettingOption<V extends string = string> = { value: V; label: string; note?: string }
 
-type Definition<K extends keyof StoredSettings> = {
+// The settings picked from a list; disabledMods is changed in /mods.
+type ChoiceKey = { [K in keyof StoredSettings]: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]
+
+type Definition<K extends ChoiceKey> = {
   key: K
   section: string
   label: string
   options: SettingOption<StoredSettings[K]>[]
 }
 
-export type SettingDefinition = { [K in keyof StoredSettings]: Definition<K> }[keyof StoredSettings]
+export type SettingDefinition = { [K in ChoiceKey]: Definition<K> }[ChoiceKey]
 
 const NOTES: Partial<Record<PermissionMode, string>> = {
   bypassPermissions: "Every tool runs without asking.",

@@ -50,6 +50,7 @@ export type StoredSettings = {
   permissionMode: PermissionMode
   editor: Editor
   notifications: NotificationSetting
+  disabledMods: string[]
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -60,6 +61,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   permissionMode: "auto",
   editor: "default",
   notifications: "all",
+  disabledMods: [],
 }
 
 const Stored = z.record(z.string(), z.unknown())
@@ -72,6 +74,7 @@ const SessionTitle = z.enum(["yellowcode", "claude-code"])
 const Permission = z.preprocess((mode) => (mode === "default" ? "manual" : mode), z.enum(PERMISSION_MODES))
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
+const DisabledMods = z.array(z.string())
 
 export type LoadedSettings = {
   settings: StoredSettings
@@ -123,6 +126,7 @@ function readStored(stored: Record<string, unknown>) {
   read("permissionMode", Permission)
   read("editor", EditorSchema)
   read("notifications", Notifications)
+  read("disabledMods", DisabledMods)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 
@@ -164,7 +168,7 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
 }
 
 export function saveSettings(settings: Partial<StoredSettings>, path = configPath("settings.json")): boolean {
-  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications } = settings
+  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods } = settings
   if (unreadable.has(path)) {
     setFailedSaves((count) => count + 1)
     return false
@@ -180,7 +184,7 @@ export function saveSettings(settings: Partial<StoredSettings>, path = configPat
   const temp = `${target}.${process.pid}.tmp`
   try {
     mkdirSync(dirname(target), { recursive: true })
-    const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications }
+    const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods }
     writeFileSync(temp, `${JSON.stringify(stored, null, 2)}\n`)
     renameSync(temp, target)
     return true

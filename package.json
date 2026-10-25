@@ -8,6 +8,9 @@
     "yellowcode": "bin/yellowcode"
   },
   "type": "module",
+  "exports": {
+    "./mod": "./src/mods/api.ts"
+  },
   "scripts": {
     "dev": "bun src/index.tsx",
     "record": "bun tools/record/record.ts",
