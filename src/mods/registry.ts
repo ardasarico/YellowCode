@@ -5,6 +5,7 @@ import { log } from "../log/log.ts"
 import type {
   Dispose,
   ModCommand,
+  ModEvents,
   ModKey,
   ModPane,
   ModPaneOptions,
@@ -138,4 +139,23 @@ export function addSection(mod: string, options: ModSectionOptions, storage: Mod
   }
   setSections((list) => [...list.filter((section) => section.key !== entry.key), entry])
   return () => setSections((list) => list.filter((section) => section !== entry))
+}
+
+type Listeners = { [E in keyof ModEvents]: Set<{ mod: string; handler: (data: ModEvents[E]) => void }> }
+const listeners: Listeners = { "tool-done": new Set(), "turn-end": new Set(), focus: new Set() }
+
+export function addListener<E extends keyof ModEvents>(
+  mod: string,
+  event: E,
+  handler: (data: ModEvents[E]) => void,
+): Dispose {
+  const listener = { mod, handler }
+  const set: Listeners[E] = listeners[event]
+  set.add(listener)
+  return () => set.delete(listener)
+}
+
+export function emitModEvent<E extends keyof ModEvents>(event: E, data: ModEvents[E]): void {
+  const set: Listeners[E] = listeners[event]
+  for (const listener of set) guarded(listener.mod, () => listener.handler(data))
 }

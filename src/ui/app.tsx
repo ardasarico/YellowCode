@@ -1,3 +1,4 @@
+import { useModEvents } from "./mod-events.ts"
 import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -403,6 +404,7 @@ export function App(props: AppProps) {
     const name = renamed()
     return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()
   }
+  if (!untrack(() => props.readOnly)) useModEvents(renderer, () => props.session)
   const flagged = untrack(() => props.readOnly)
     ? () => false
     : useAttention(

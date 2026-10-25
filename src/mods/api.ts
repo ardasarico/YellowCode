@@ -102,6 +102,16 @@ export type ModSectionOptions = {
   view: (props: { width: number }) => JSX.Element
 }
 
+// What a mod can listen to, with what each event carries.
+export type ModEvents = {
+  // One of Claude's tools finished during a turn.
+  "tool-done": { name: string; status: "done" | "error" | "stopped" }
+  // Claude's turn ended; error is null when it went well.
+  "turn-end": { error: string | null }
+  // The terminal window got the focus back.
+  focus: Record<string, never>
+}
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -124,6 +134,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly panes: { add(pane: ModPaneOptions): ModPane }
   readonly tools: { add(tool: ModTool): Dispose }
   readonly sidebar: { add(section: ModSectionOptions): Dispose }
+  readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
 }
