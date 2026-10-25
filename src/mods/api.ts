@@ -1,7 +1,12 @@
 // What a mod imports as "yellowcode/mod". Additions only: a mod written against an older version keeps working.
 
 import type { KeyEvent } from "@opentui/core"
-import type { JSX } from "solid-js"
+import type { Component, JSX } from "solid-js"
+import type { PromptBarProps, StatusLineProps } from "../ui/prompt-bar.tsx"
+import type { SystemRowProps } from "../ui/system-row.tsx"
+import type { ThinkingRowProps } from "../ui/thinking.tsx"
+import type { TurnEndRowProps } from "../ui/turn-end.tsx"
+import type { UserMessageRowProps } from "../ui/user-message.tsx"
 
 export type ModStorage = {
   get(key: string): unknown
@@ -191,6 +196,27 @@ export type ModFence = {
   view: (props: ModFenceBlock & { width: number }) => JSX.Element
 }
 
+// The parts of the screen a mod may wrap, with what each one is given.
+export type ModOverridePoints = {
+  "user-message": Readonly<UserMessageRowProps>
+  thinking: Readonly<ThinkingRowProps>
+  "turn-end": Readonly<TurnEndRowProps>
+  "system-row": Readonly<SystemRowProps>
+  prompt: Readonly<PromptBarProps>
+  "status-line": Readonly<StatusLineProps>
+}
+
+// Gets the part as it is drawn now, the original or an earlier mod's wrap, and returns what to draw instead. A point's
+// props only ever gain fields.
+export type ModWrap<P extends ModOverridePoints[keyof ModOverridePoints]> = (Original: Component<P>) => Component<P>
+
+export type ModOverrides = {
+  wrap<K extends keyof ModOverridePoints>(point: K, wrap: ModWrap<ModOverridePoints[K]>): Dispose
+  // Runs on a message the user typed, not on /commands or ! shell commands. Returns the text to send, or null to keep
+  // the message in the prompt.
+  beforeSend(change: (text: string) => string | null): Dispose
+}
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -214,6 +240,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly tools: { add(tool: ModTool): Dispose }
   readonly sidebar: { add(section: ModSectionOptions): Dispose }
   readonly dialogs: ModDialogs
+  readonly overrides: ModOverrides
   readonly fences: { add(fence: ModFence): Dispose }
   readonly toolRows: { add(renderer: ModRowRenderer): Dispose }
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }

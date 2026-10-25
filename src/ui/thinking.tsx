@@ -1,3 +1,4 @@
+import { overridable } from "../mods/overridable.tsx"
 import { RGBA } from "@opentui/core"
 import { Show } from "solid-js"
 import type { Thinking } from "../session/types.ts"
@@ -57,12 +58,14 @@ function ThinkingTrace(props: {
   )
 }
 
-export function ThinkingRow(props: {
+export type ThinkingRowProps = {
   item: Thinking
   selected?: boolean
   expanded?: boolean
   onToggle?: (id: string) => void
-}) {
+}
+
+function ThinkingRowBase(props: ThinkingRowProps) {
   return (
     <Show when={!props.item.streaming} fallback={<ThinkingLine />}>
       <ThinkingTrace
@@ -74,3 +77,5 @@ export function ThinkingRow(props: {
     </Show>
   )
 }
+
+export const ThinkingRow = overridable("thinking", ThinkingRowBase)

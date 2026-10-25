@@ -1,3 +1,4 @@
+import { overridable } from "../mods/overridable.tsx"
 import { RGBA, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
 import { type Accessor, createEffect, createSignal, Index, type JSX, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -249,7 +250,7 @@ function shellsLabel(count: number): string {
   return count === 1 ? "1 shell" : `${count} shells`
 }
 
-function InfoLine(props: {
+export type StatusLineProps = {
   model: string | null
   context: Usage["context"]
   frame: number
@@ -259,7 +260,9 @@ function InfoLine(props: {
   asking: boolean
   unfoldable: boolean
   permissionMode?: string | null
-}) {
+}
+
+function InfoLineBase(props: StatusLineProps) {
   const mode = () => modeWord(props.permissionMode ?? null)
   const modeWidth = () => (mode() ? Bun.stringWidth(mode()?.text ?? "") + 2 : 0)
   const label = () =>
@@ -367,7 +370,7 @@ export function promptInnerWidth(width: number): number {
   return Math.max(0, width - 2 * EDGE_GAP)
 }
 
-export function PromptBar(props: PromptBarProps) {
+function PromptBarBase(props: PromptBarProps) {
   const frame = useTicker(() => settings.ultracode, 60)
   const inner = () => promptInnerWidth(props.width)
   const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
@@ -448,3 +451,7 @@ export function PromptBar(props: PromptBarProps) {
     </box>
   )
 }
+
+export const PromptBar = overridable("prompt", PromptBarBase)
+
+const InfoLine = overridable("status-line", InfoLineBase)

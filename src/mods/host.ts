@@ -11,8 +11,10 @@ import {
   addListener,
   addPane,
   addRowRenderer,
+  addSender,
   addSection,
   addTool,
+  addWrap,
   guarded,
   modDialogs,
 } from "./registry.ts"
@@ -177,6 +179,10 @@ export function createModHost(options: {
         },
         sidebar: { add: (section) => own(addSection(id, section, storage)) },
         dialogs: dialogs.dialogs,
+        overrides: {
+          wrap: (point, wrap) => own(addWrap(id, point, wrap)),
+          beforeSend: (change) => own(addSender({ mod: id, change })),
+        },
         fences: { add: (fence) => own(addFence({ ...fence, mod: id })) },
         toolRows: { add: (renderer) => own(addRowRenderer({ render: (tool) => renderer.render(tool), mod: id })) },
         events: { on: (event, handler) => own(addListener(id, event, handler)) },

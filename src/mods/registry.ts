@@ -1,5 +1,5 @@
 import type { KeyEvent } from "@opentui/core"
-import { type Accessor, createSignal } from "solid-js"
+import { type Accessor, createSignal, type Signal } from "solid-js"
 import { z } from "zod"
 import { log } from "../log/log.ts"
 import type {
@@ -12,6 +12,7 @@ import type {
   ModEvents,
   ModFence,
   ModInputOptions,
+  ModOverridePoints,
   ModRowParts,
   ModRowRenderer,
   ModKey,
@@ -21,6 +22,7 @@ import type {
   ModStorage,
   ModTool,
   ModToolInfo,
+  ModWrap,
 } from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
 
@@ -75,6 +77,7 @@ export function counts(mod: string): string[] {
     ...count(sections().filter((section) => section.mod === mod).length, "section"),
     ...count(rowRenderers().filter((renderer) => renderer.mod === mod).length, "row renderer"),
     ...count(fences().filter((fence) => fence.mod === mod).length, "fence"),
+    ...count(wrapCount(mod) + senders().filter((send) => send.mod === mod).length, "override"),
   ]
 }
 
@@ -267,4 +270,61 @@ export function fenceFor(lang: string, code: string): Owned<ModFence> | null {
     }
   }
   return null
+}
+
+type WrapEntry<K extends keyof ModOverridePoints> = { mod: string; wrap: ModWrap<ModOverridePoints[K]> }
+type Wraps = { [K in keyof ModOverridePoints]: Signal<WrapEntry<K>[]> }
+function wrapList<K extends keyof ModOverridePoints>(): Signal<WrapEntry<K>[]> {
+  const [list, setList] = createSignal<WrapEntry<K>[]>([])
+  return [list, setList]
+}
+const wraps: Wraps = {
+  "user-message": wrapList(),
+  thinking: wrapList(),
+  "turn-end": wrapList(),
+  "system-row": wrapList(),
+  prompt: wrapList(),
+  "status-line": wrapList(),
+}
+
+export function addWrap<K extends keyof ModOverridePoints>(
+  mod: string,
+  point: K,
+  wrap: ModWrap<ModOverridePoints[K]>,
+): Dispose {
+  const entry: WrapEntry<K> = { mod, wrap }
+  const [, setList]: Wraps[K] = wraps[point]
+  setList((list) => [...list, entry])
+  return () => setList((list) => list.filter((other) => other !== entry))
+}
+
+// In load order: the first wraps the original, a later one wraps that.
+export function wrapsOf<K extends keyof ModOverridePoints>(point: K): WrapEntry<K>[] {
+  const [list]: Wraps[K] = wraps[point]
+  return list()
+}
+
+function wrapCount(mod: string): number {
+  const lists: Accessor<{ mod: string }[]>[] = Object.values(wraps).map(([list]) => list)
+  return lists.flatMap((list) => list()).filter((wrap) => wrap.mod === mod).length
+}
+
+type Sender = { mod: string; change: (text: string) => string | null }
+const [senders, setSenders] = createSignal<Sender[]>([])
+export const addSender = adder<Sender>(setSenders)
+
+// The text after every mod's before-send, in load order, or null when one of them stops the message. A mod that throws
+// is turned off and skipped.
+export function beforeSend(text: string): string | null {
+  let current = text
+  for (const sender of senders()) {
+    try {
+      const next = sender.change(current)
+      if (next === null) return null
+      current = next
+    } catch (error) {
+      queueMicrotask(() => failure(sender.mod, error))
+    }
+  }
+  return current
 }

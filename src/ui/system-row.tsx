@@ -1,3 +1,4 @@
+import { overridable } from "../mods/overridable.tsx"
 import type { RGBA } from "@opentui/core"
 import { createSignal, Index, Match, Show, Switch } from "solid-js"
 import type { Retry, SystemEvent } from "../session/types.ts"
@@ -89,7 +90,9 @@ function ErrorRow(props: { text: string; detail: string[] }) {
 }
 
 // An info event marks a turning point in the session, so it spans the width; a warning or an error is a glyph row.
-export function SystemRow(props: { item: SystemEvent }) {
+export type SystemRowProps = { item: SystemEvent }
+
+function SystemRowBase(props: SystemRowProps) {
   return (
     <Switch
       fallback={
@@ -107,3 +110,5 @@ export function SystemRow(props: { item: SystemEvent }) {
     </Switch>
   )
 }
+
+export const SystemRow = overridable("system-row", SystemRowBase)

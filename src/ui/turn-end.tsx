@@ -1,3 +1,4 @@
+import { overridable } from "../mods/overridable.tsx"
 import { NativeImage } from "@opentui/core"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -10,7 +11,9 @@ import { blank, onBackground, trackImage } from "./images.ts"
 // The Claude mark is Anthropic's; it is shown only to say that Claude answered. YellowCode is not an Anthropic product.
 const SPARK = NativeImage.decode(readFileSync(join(import.meta.dir, "..", "..", "assets", "claude-spark.png")))
 
-export function TurnEndRow(props: { parts: TurnEnd[] }) {
+export type TurnEndRowProps = { parts: TurnEnd[] }
+
+function TurnEndRowBase(props: TurnEndRowProps) {
   const [width, setWidth] = createSignal(0)
   const last = () => props.parts.at(-1)
   const duration = () => formatDuration(props.parts.reduce((sum, part) => sum + part.durationMs, 0))
@@ -60,3 +63,5 @@ export function TurnEndRow(props: { parts: TurnEnd[] }) {
     </box>
   )
 }
+
+export const TurnEndRow = overridable("turn-end", TurnEndRowBase)

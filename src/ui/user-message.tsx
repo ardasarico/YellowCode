@@ -1,3 +1,4 @@
+import { overridable } from "../mods/overridable.tsx"
 import type { BorderCharacters, TextRenderable } from "@opentui/core"
 import { createEffect, createSignal, Index, onCleanup, onMount, Show } from "solid-js"
 import type { Command } from "../input/commands.ts"
@@ -60,7 +61,7 @@ function MessageText(props: { text: string; commands: Command[] }) {
   )
 }
 
-export function UserMessageRow(props: {
+export type UserMessageRowProps = {
   item: UserMessage
   commands: Command[]
   selected: boolean
@@ -69,7 +70,9 @@ export function UserMessageRow(props: {
   onOverflow: (id: string, overflowing: boolean) => void
   onToggle: (id: string) => void
   onOpenImage?: (id: string) => void
-}) {
+}
+
+function UserMessageRowBase(props: UserMessageRowProps) {
   let text: TextRenderable | undefined
   const [rows, setRows] = createSignal(0)
   const update = () => setRows(text?.virtualLineCount ?? 0)
@@ -173,3 +176,5 @@ export function UserMessageRow(props: {
     </Show>
   )
 }
+
+export const UserMessageRow = overridable("user-message", UserMessageRowBase)
