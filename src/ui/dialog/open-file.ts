@@ -28,9 +28,9 @@ export function editorChoices(current: Editor): Editor[] {
 export const editorUrl = (scheme: string, path: string, line?: number) =>
   `${scheme}://file${path.split("/").map(encodeURIComponent).join("/")}${line ? `:${line}` : ""}`
 
-async function open(args: string[]): Promise<boolean> {
+async function open(args: string[], command = "open"): Promise<boolean> {
   try {
-    const child = Bun.spawn(["open", ...args], { stdout: "ignore", stderr: "pipe" })
+    const child = Bun.spawn([command, ...args], { stdout: "ignore", stderr: "pipe" })
     if ((await child.exited) === 0) return true
     log.warn("open failed", await new Response(child.stderr).text())
   } catch (error) {
@@ -38,6 +38,8 @@ async function open(args: string[]): Promise<boolean> {
   }
   return false
 }
+
+export const openFolder = (path: string) => open([path], process.platform === "darwin" ? "open" : "xdg-open")
 
 // False when the chosen editor could not open the file and the default app was used instead.
 export async function openFile(path: string, line?: number): Promise<boolean> {

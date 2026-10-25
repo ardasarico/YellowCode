@@ -38,7 +38,7 @@ export type ModHost = {
 type Running = { disposers: (() => void)[]; cleanup: Cleanup | null }
 
 function asError(error: unknown): ModError {
-  if (error instanceof Error) return { message: error.message || error.name, stack: error.stack ?? null }
+  if (error instanceof Error) return { message: String(error), stack: error.stack ?? null }
   return { message: String(error), stack: null }
 }
 

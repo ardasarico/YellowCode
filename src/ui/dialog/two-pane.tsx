@@ -28,7 +28,7 @@ export type TwoPaneProps = {
   // Enter on an action or on a row of the detail.
   onAction: (row: DialogRow, action: DialogRow) => void
   // Sees the keys of the list pane first; returning true keeps the pane from handling them.
-  onKey?: (key: KeyEvent, row: DialogRow | undefined) => boolean
+  onKey?: (key: KeyEvent, row: DialogRow | undefined, query: string) => boolean
   // The list pane's footer; the actions have their own.
   footer: (row: DialogRow) => FooterAction[]
 }
@@ -126,7 +126,7 @@ export function TwoPane(props: TwoPaneProps) {
 
   const listKeys = (key: KeyEvent) => {
     const row = selectedRow()
-    if (props.onKey?.(key, row)) return true
+    if (props.onKey?.(key, row, query())) return true
     const id = selectedId()
     if (key.name === "up") {
       if (id === undefined) props.api.toStrip()
@@ -171,7 +171,7 @@ export function TwoPane(props: TwoPaneProps) {
     footer: () => {
       if (pane() === "detail") return DETAIL_FOOTER
       const row = selectedRow()
-      return row ? props.footer(row) : searchFooter("close")
+      return row ? props.footer(row) : searchFooter("close", props.api.tabs() > 1)
     },
   })
 
