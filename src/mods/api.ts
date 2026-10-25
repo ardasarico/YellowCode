@@ -1,5 +1,8 @@
 // What a mod imports as "yellowcode/mod". Additions only: a mod written against an older version keeps working.
 
+import type { KeyEvent } from "@opentui/core"
+import type { JSX } from "solid-js"
+
 export type ModStorage = {
   get(key: string): unknown
   set(key: string, value: unknown): void
@@ -52,6 +55,37 @@ export type ModKey = {
   when?: "always" | "pane"
 }
 
+export type PanePosition = "bottom" | "right"
+
+export type PaneViewProps = {
+  // Rows and columns inside the pane, its edge left out.
+  width: number
+  height: number
+  focused: boolean
+  // While the pane has the focus, every key but the mods' shortcuts comes here, ctrl+c and Esc included.
+  onKey(handler: (key: KeyEvent) => void): void
+}
+
+export type ModPaneOptions = {
+  id: string
+  title: string
+  position: () => PanePosition
+  // Rows for a bottom pane, columns for a right one.
+  size: () => number
+  // The user dragged the pane's edge to this size.
+  onResize?(size: number): void
+  view: (props: PaneViewProps) => JSX.Element
+}
+
+export type ModPane = {
+  show(): void
+  hide(): void
+  // Shows the pane and gives it the focus.
+  focus(): void
+  visible(): boolean
+  focused(): boolean
+}
+
 export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly id: string
   readonly storage: ModStorage
@@ -59,6 +93,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly settings: ModSettings<S>
   readonly commands: { add(command: ModCommand): Dispose }
   readonly keys: { add(key: ModKey): Dispose }
+  readonly panes: { add(pane: ModPaneOptions): ModPane }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
 }

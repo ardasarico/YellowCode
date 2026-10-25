@@ -1,6 +1,7 @@
-import { createSignal } from "solid-js"
+import type { KeyEvent } from "@opentui/core"
+import { type Accessor, createSignal } from "solid-js"
 import { log } from "../log/log.ts"
-import type { Dispose, ModCommand, ModKey } from "./api.ts"
+import type { Dispose, ModCommand, ModKey, ModPane, ModPaneOptions } from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
 
 // What every running mod added, so the app can show and run it and /mods can count it.
@@ -13,6 +14,7 @@ export { commands as modCommands, keys as modKeys }
 
 let failure: (mod: string, error: unknown) => void = (mod, error) => log.warn(`mod ${mod} failed`, error)
 export const onModError = (handler: typeof failure) => (failure = handler)
+export const reportModError = (mod: string, error: unknown) => failure(mod, error)
 
 // Runs a mod's code; a throw or a rejected promise turns the mod off.
 export function guarded(mod: string, run: () => unknown): void {
@@ -44,7 +46,51 @@ const count = (n: number, word: string) => (n === 0 ? [] : [`${n} ${word}${n ===
 
 export function counts(mod: string): string[] {
   return [
+    ...count(panes().filter((pane) => pane.mod === mod).length, "pane"),
     ...count(commands().filter((command) => command.mod === mod).length, "command"),
     ...count(keys().filter((key) => key.mod === mod).length, "shortcut"),
   ]
+}
+
+export type RegisteredPane = Owned<ModPaneOptions> & { key: string; visible: Accessor<boolean> }
+
+const [panes, setPanes] = createSignal<RegisteredPane[]>([])
+const [focusedPane, setFocusedPane] = createSignal<string | null>(null)
+const [shown, setShown] = createSignal<ReadonlySet<string>>(new Set())
+const keySinks = new Map<string, (key: KeyEvent) => void>()
+export { panes as modPanes, focusedPane, setFocusedPane }
+
+export const setPaneKeys = (pane: string, handler: (key: KeyEvent) => void) => keySinks.set(pane, handler)
+export const paneKeys = (pane: string) => keySinks.get(pane)
+
+function setVisible(pane: string, visible: boolean): void {
+  setShown((current) => {
+    const next = new Set(current)
+    if (visible) next.add(pane)
+    else next.delete(pane)
+    return next
+  })
+  if (!visible && focusedPane() === pane) setFocusedPane(null)
+}
+
+export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; dispose: Dispose } {
+  const key = `${mod}/${options.id}`
+  const entry: RegisteredPane = { ...options, mod, key, visible: () => shown().has(key) }
+  setPanes((list) => [...list.filter((pane) => pane.key !== key), entry])
+  const pane: ModPane = {
+    show: () => setVisible(key, true),
+    hide: () => setVisible(key, false),
+    focus() {
+      setVisible(key, true)
+      setFocusedPane(key)
+    },
+    visible: entry.visible,
+    focused: () => focusedPane() === key,
+  }
+  const dispose = () => {
+    setVisible(key, false)
+    keySinks.delete(key)
+    setPanes((list) => list.filter((other) => other !== entry))
+  }
+  return { pane, dispose }
 }

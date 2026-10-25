@@ -4,7 +4,7 @@ import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
-import { addCommand, addKey, guarded } from "./registry.ts"
+import { addCommand, addKey, addPane, guarded } from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modStorage } from "./storage.ts"
 
@@ -155,6 +155,13 @@ export function createModHost(options: {
           },
         },
         keys: { add: (key) => own(addKey(id, { ...key, run: () => guarded(id, () => key.run()) })) },
+        panes: {
+          add(paneOptions) {
+            const { pane, dispose } = addPane(id, paneOptions)
+            own(dispose)
+            return pane
+          },
+        },
         onDispose: (dispose) => void state.disposers.push(dispose),
       }
       const cleanup = await definition.setup(api)

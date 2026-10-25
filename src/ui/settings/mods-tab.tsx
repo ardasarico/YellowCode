@@ -2,7 +2,7 @@ import type { KeyEvent } from "@opentui/core"
 import { createSignal } from "solid-js"
 import type { SettingDefinition, SettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
-import { counts } from "../../mods/registry.ts"
+import { counts, modPanes } from "../../mods/registry.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
@@ -13,6 +13,7 @@ import { openFolder } from "../dialog/open-file.ts"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
 import { printable } from "../dialog/list-view.tsx"
+import { crowded } from "../mod-pane.tsx"
 import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
 
@@ -124,6 +125,9 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
     ...fact("source", "Source", tildePath(entry.folder), width),
     ...fact("adds", "Adds", adds.length > 0 ? adds.join(" · ") : "nothing", width),
     ...fact("load", "Load time", entry.loadMs === null ? "—" : `${entry.loadMs} ms`, width),
+    ...(modPanes().some((pane) => pane.mod === entry.id && crowded().has(pane.key))
+      ? fact("room", "Pane", "no room in this window", width, theme.warning)
+      : []),
     ...errorLines(entry, width),
     ...settingItems(settings, editing, width),
   ]

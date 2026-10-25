@@ -4,6 +4,10 @@ export type SidebarOverride = "open" | "closed" | null
 export type SidebarMode = "docked" | "overlay" | "hidden"
 
 export const MIN_CHAT_WIDTH = 60
+// The chat keeps this many rows beside a mod's bottom pane; the panes keep at least these sizes, or are not shown.
+export const MIN_CHAT_ROWS = 8
+export const PANE_MIN_HEIGHT = 3
+export const PANE_MIN_WIDTH = 20
 export const SIDEBAR_MIN_WIDTH = 30
 // The empty cells between content and the window or sidebar edge, the same on both sides of the chat, the prompt and
 // the sidebar.

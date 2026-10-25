@@ -75,10 +75,29 @@ import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
-import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
+import {
+  EDGE_GAP,
+  MIN_CHAT_ROWS,
+  MIN_CHAT_WIDTH,
+  overrideFor,
+  PANE_MIN_HEIGHT,
+  PANE_MIN_WIDTH,
+  SIDEBAR_GAP,
+  SIDEBAR_MIN_WIDTH,
+  sidebarShown,
+} from "./layout.ts"
 import { matches } from "../mods/keys.ts"
 import { clearModNotice, modNotice } from "../mods/mods.ts"
-import { modKeys } from "../mods/registry.ts"
+import {
+  focusedPane,
+  guarded,
+  modKeys,
+  modPanes,
+  paneKeys,
+  type RegisteredPane,
+  setFocusedPane,
+} from "../mods/registry.ts"
+import { ModPaneView, setCrowded, shownPane } from "./mod-pane.tsx"
 import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -409,7 +428,40 @@ export function App(props: AppProps) {
   const layout = () => sidebarShown(dimensions().width, sidebarWidth(), override(), overlay())
   const shownWidth = () => layout().width
   const sidebar = () => layout().mode
-  const chatWidth = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
+  const besideSidebar = () => dimensions().width - (sidebar() === "docked" ? shownWidth() : 0)
+  // A mod's pane, one per position. It never squeezes the chat below its minimum; without room it is not shown.
+  const [paneDrag, setPaneDrag] = createSignal<{ pane: RegisteredPane; size: number } | null>(null)
+  const paneSize = (pane: RegisteredPane, max: number, min: number) => {
+    const drag = paneDrag()
+    const size = drag?.pane === pane ? drag.size : pane.size()
+    return max < min ? 0 : Math.min(max, Math.max(min, size))
+  }
+  const rightWidth = () => {
+    const pane = shownPane("right")
+    const size = pane ? paneSize(pane, besideSidebar() - MIN_CHAT_WIDTH - 1, PANE_MIN_WIDTH) : 0
+    return size > 0 ? size + 1 : 0
+  }
+  const bottomHeight = () => {
+    const pane = shownPane("bottom")
+    const size = pane ? paneSize(pane, dimensions().height - MIN_CHAT_ROWS - 1, PANE_MIN_HEIGHT) : 0
+    return size > 0 ? size + 1 : 0
+  }
+  const chatWidth = () => besideSidebar() - rightWidth()
+  createEffect(() => {
+    const placed = new Set([
+      bottomHeight() > 0 ? shownPane("bottom")?.key : undefined,
+      rightWidth() > 0 ? shownPane("right")?.key : undefined,
+    ])
+    setCrowded(
+      new Set(
+        modPanes()
+          .filter((pane) => pane.visible() && !placed.has(pane.key))
+          .map((pane) => pane.key),
+      ),
+    )
+    const focusedKey = focusedPane()
+    if (focusedKey !== null && !placed.has(focusedKey)) setFocusedPane(null)
+  })
   const pending = createMemo(() => pendingAsk(props.session))
   createEffect(
     on(
@@ -979,6 +1031,19 @@ export function App(props: AppProps) {
       key.stopPropagation()
       return
     }
+    // A focused mod pane takes every key but the shortcuts mods registered.
+    const pane = focusedPane()
+    if (pane !== null && !dialog()) {
+      key.preventDefault()
+      key.stopPropagation()
+      const owner = pane.slice(0, pane.indexOf("/"))
+      const shortcut = modKeys().find(
+        (entry) => (entry.when !== "pane" || entry.mod === owner) && matches(entry.binding, key),
+      )
+      if (shortcut) shortcut.run()
+      else paneKeys(pane)?.(key)
+      return
+    }
     if (key.ctrl && key.name === "c" && shellRunning()) {
       key.preventDefault()
       key.stopPropagation()
@@ -1295,7 +1360,8 @@ export function App(props: AppProps) {
   }
 
   const input = () => ({
-    focused: focus() === "input" && dialog() === null && recent() === null && agentView() === null,
+    focused:
+      focus() === "input" && dialog() === null && recent() === null && agentView() === null && focusedPane() === null,
     messageTo: messageTo(),
     shell: shellMode(),
     permissionMode: props.onInterrupt ? props.session.permissionMode : null,
@@ -1450,6 +1516,13 @@ export function App(props: AppProps) {
           visible={agentView() === null}
           onMouseDown={() => setResizing(false)}
           onMouseDrag={(event) => {
+            const drag = paneDrag()
+            if (drag) {
+              const size =
+                drag.pane.position() === "bottom" ? dimensions().height - event.y - 1 : besideSidebar() - event.x - 1
+              setPaneDrag({ pane: drag.pane, size })
+              return
+            }
             if (!resizing() || event.isDragging) return
             const width = dimensions().width
             const half = Math.floor(width / 2)
@@ -1458,12 +1531,20 @@ export function App(props: AppProps) {
             setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x + gap)))
           }}
           onMouseUp={() => {
+            const drag = paneDrag()
+            if (drag) {
+              // The size the pane shows at the end of the drag, kept within its limits.
+              const size = drag.pane.position() === "bottom" ? bottomHeight() - 1 : rightWidth() - 1
+              setPaneDrag(null)
+              if (size > 0) guarded(drag.pane.mod, () => drag.pane.onResize?.(size))
+              return
+            }
             if (!resizing()) return
             setResizing(false)
             saveSidebarWidth(sidebarWidth())
           }}
         >
-          <box flexDirection="column" width={chatWidth()}>
+          <box flexDirection="column" width={chatWidth()} onMouseDown={() => setFocusedPane(null)}>
             <ChatView
               session={props.session}
               commands={props.provider.commands()}
@@ -1513,7 +1594,27 @@ export function App(props: AppProps) {
                 />
               </box>
             </Show>
+            <Show when={bottomHeight() > 0 ? shownPane("bottom") : undefined} keyed>
+              {(pane) => (
+                <ModPaneView
+                  pane={pane}
+                  width={chatWidth()}
+                  height={bottomHeight()}
+                  onResizeStart={() => setPaneDrag({ pane, size: bottomHeight() - 1 })}
+                />
+              )}
+            </Show>
           </box>
+          <Show when={rightWidth() > 0 ? shownPane("right") : undefined} keyed>
+            {(pane) => (
+              <ModPaneView
+                pane={pane}
+                width={rightWidth()}
+                height={dimensions().height}
+                onResizeStart={() => setPaneDrag({ pane, size: rightWidth() - 1 })}
+              />
+            )}
+          </Show>
           <Show when={sidebar() !== "hidden"}>
             <Sidebar
               session={props.session}
