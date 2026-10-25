@@ -1,6 +1,8 @@
-import { createSignal, For, Show } from "solid-js"
-import { defineMod, theme } from "yellowcode/mod"
-import { type Change, type GitState, readState } from "./status.ts"
+import { infoStringToFiletype, type ScrollBoxRenderable } from "@opentui/core"
+import { extname } from "node:path"
+import { createSignal, For, Show, untrack } from "solid-js"
+import { defineMod, Diff, type ModApi, theme } from "yellowcode/mod"
+import { type Change, fileDiff, type GitState, readState } from "./status.ts"
 
 const MAX_ROWS = 8
 const letterColor = (letter: string) =>
@@ -15,12 +17,41 @@ function cutPath(path: string, width: number): string {
   return `…${kept}`
 }
 
-function Row(props: { change: Change; width: number }) {
+function counts(change: Change): string {
+  return [change.added ? `+${change.added}` : "", change.removed ? `−${change.removed}` : ""].filter(Boolean).join(" ")
+}
+
+// The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it.
+async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void> {
+  const diff = await fileDiff(cwd, change.path)
+  mod.dialogs.open({
+    title: `${change.path}  ${counts(change)}`,
+    wide: true,
+    hints: [{ key: "↑↓", action: "scroll" }],
+    view: (props) => {
+      let scroll: ScrollBoxRenderable | undefined
+      const page = () => Math.max(1, untrack(() => props.height) - 2)
+      untrack(() => props.onKey)((key) => {
+        const step = { up: -1, down: 1, pageup: -page(), pagedown: page() }[key.name]
+        if (step !== undefined) scroll?.scrollBy({ x: 0, y: step })
+      })
+      return (
+        <scrollbox ref={(element: ScrollBoxRenderable) => (scroll = element)} width={props.width} height={props.height}>
+          <Show when={diff.trim() !== ""} fallback={<text fg={theme.muted}>No changes against the last commit.</text>}>
+            <Diff diff={diff} filetype={infoStringToFiletype(extname(change.path).slice(1))} />
+          </Show>
+        </scrollbox>
+      )
+    },
+  })
+}
+
+function Row(props: { change: Change; width: number; onOpen: () => void }) {
   const added = () => (props.change.added ? ` +${props.change.added}` : "")
   const removed = () => (props.change.removed ? ` −${props.change.removed}` : "")
   const room = () => Math.max(1, props.width - 2 - Bun.stringWidth(added() + removed()))
   return (
-    <text wrapMode="none">
+    <text wrapMode="none" onMouseDown={() => props.onOpen()}>
       <span style={{ fg: letterColor(props.change.letter) }}>{`${props.change.letter} `}</span>
       <span style={{ fg: theme.text }}>{cutPath(props.change.path, room())}</span>
       <span style={{ fg: theme.success }}>{added()}</span>
@@ -52,6 +83,8 @@ export default defineMod({
       if (again) await refresh()
     }
     const changes = () => state()?.changes ?? []
+    const open = (change: Change) =>
+      void showDiff(mod, cwd, change).catch((error: unknown) => mod.log.warn("cannot show the diff", error))
 
     mod.sidebar.add({
       id: "git",
@@ -66,7 +99,9 @@ export default defineMod({
         const hidden = () => changes().length - MAX_ROWS
         return (
           <box flexDirection="column">
-            <For each={changes().slice(0, MAX_ROWS)}>{(change) => <Row change={change} width={props.width} />}</For>
+            <For each={changes().slice(0, MAX_ROWS)}>
+              {(change) => <Row change={change} width={props.width} onOpen={() => open(change)} />}
+            </For>
             <Show when={hidden() > 0}>
               <text fg={theme.muted}>{`+${hidden()} more`}</text>
             </Show>

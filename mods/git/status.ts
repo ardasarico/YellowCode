@@ -49,3 +49,9 @@ export async function readState(cwd: string): Promise<GitState | null> {
   }
   return { branch, changes }
 }
+
+// The file's changes against HEAD, staged and unstaged together; before the first commit, what is staged.
+export async function fileDiff(cwd: string, path: string): Promise<string> {
+  const diff = await git(cwd, ["diff", "HEAD", "--", path])
+  return diff.ok ? diff.out : (await git(cwd, ["diff", "--cached", "--", path])).out
+}
