@@ -263,7 +263,9 @@ export function fenceFor(lang: string, code: string): Owned<ModFence> | null {
   const name = lang.trim().toLowerCase()
   for (const fence of fences()) {
     try {
-      const takes = Array.isArray(fence.langs) ? fence.langs.includes(name) : fence.langs(name)
+      const takes = Array.isArray(fence.langs)
+        ? fence.langs.some((taken) => taken.toLowerCase() === name)
+        : fence.langs(name)
       if (takes && (fence.accept?.({ code, lang: name }) ?? true)) return fence
     } catch (error) {
       queueMicrotask(() => failure(fence.mod, error))
@@ -319,8 +321,9 @@ export function beforeSend(text: string): string | null {
   let current = text
   for (const sender of senders()) {
     try {
-      const next = sender.change(current)
+      const next: unknown = sender.change(current)
       if (next === null) return null
+      if (typeof next !== "string") throw new Error("before-send must return the text or null")
       current = next
     } catch (error) {
       queueMicrotask(() => failure(sender.mod, error))
