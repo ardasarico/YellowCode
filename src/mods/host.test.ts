@@ -59,3 +59,33 @@ export default defineMod({ setup() { throw new Error("broken setup") } })`,
   expect(disabled).toEqual(["works"])
   expect(host.entries.find((entry) => entry.id === "works")?.status).toBe("off")
 })
+
+test("turning a mod off while its setup awaits removes what it adds afterwards", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(
+    folder,
+    "slow",
+    ">=0.0.0",
+    `import { defineMod } from "yellowcode/mod"
+const calls = (globalThis as any).modTestCalls
+export default defineMod({
+  async setup(mod) {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    mod.onDispose(() => calls.push("late dispose"))
+    return () => calls.push("late cleanup")
+  },
+})`,
+  )
+  calls.length = 0
+  let disabled: string[] = []
+  const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
+  host.discover()
+  const loading = host.loadAll()
+  await new Promise((resolve) => setTimeout(resolve, 5))
+  await host.setEnabled("slow", false)
+  await loading
+  expect(calls).toEqual(["late dispose", "late cleanup"])
+  expect(host.entries.find((entry) => entry.id === "slow")?.status).toBe("off")
+})

@@ -64,15 +64,25 @@ function asError(error: unknown): ModError {
   return { message: String(error), stack: null }
 }
 
-function modFolders(folder: string): string[] {
+// statSync follows a linked mod folder, which readdir reports as a symlink. A broken link is skipped.
+function isFolder(path: string): boolean {
   try {
-    // statSync follows a linked mod folder, which readdir reports as a symlink.
-    return readdirSync(folder)
-      .filter((name) => name !== "node_modules" && !name.startsWith(".") && statSync(join(folder, name)).isDirectory())
-      .toSorted()
+    return statSync(path).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+function modFolders(folder: string): string[] {
+  let names: string[]
+  try {
+    names = readdirSync(folder)
   } catch {
     return []
   }
+  return names
+    .filter((name) => name !== "node_modules" && !name.startsWith(".") && isFolder(join(folder, name)))
+    .toSorted()
 }
 
 // Module cache keys are real paths, so a linked folder is matched by where it points.
@@ -114,10 +124,7 @@ export function createModHost(options: {
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
   }
 
-  function unload(id: string): void {
-    const state = running.get(id)
-    if (!state) return
-    running.delete(id)
+  function disposeState(id: string, state: Running): void {
     const steps = state.disposers.toReversed()
     if (state.cleanup) steps.push(state.cleanup)
     for (const step of steps) {
@@ -129,21 +136,32 @@ export function createModHost(options: {
     }
   }
 
+  function unload(id: string): void {
+    const state = running.get(id)
+    if (!state) return
+    running.delete(id)
+    disposeState(id, state)
+  }
+
   async function load(id: string): Promise<void> {
     const entry = entries[indexOf(id)]
     if (!entry?.manifest || entry.status !== "on") return
     const file = join(entry.folder, entry.manifest.entry)
     const state: Running = { disposers: [], cleanup: null, settings: null }
     running.set(id, state)
-    const own = (dispose: Dispose): Dispose => {
-      state.disposers.push(dispose)
-      return dispose
+    // Turned off or reloaded while setup was still awaiting.
+    const stale = () => running.get(id) !== state
+    const own = (disposer: Dispose): Dispose => {
+      if (stale()) disposer()
+      else state.disposers.push(disposer)
+      return disposer
     }
     const started = performance.now()
     try {
       forgetModules(entry.folder)
       const module: unknown = await import(`${file}?v=${++imports}`)
       const definition = typeof module === "object" && module !== null && "default" in module ? module.default : null
+      if (stale()) return
       if (!isDefinedMod(definition)) {
         unload(id)
         update(id, { status: "failed", problem: `${entry.manifest.entry} has no default defineMod export` })
@@ -193,14 +211,19 @@ export function createModHost(options: {
             return pane
           },
         },
-        onDispose: (dispose) => void state.disposers.push(dispose),
+        onDispose: (disposer) => void own(disposer),
       }
       const cleanup = await definition.setup(api)
       if (typeof cleanup === "function") state.cleanup = cleanup
+      if (stale()) {
+        disposeState(id, { disposers: [], cleanup: state.cleanup, settings: null })
+        return
+      }
       const loadMs = Math.round(performance.now() - started)
       update(id, { loadMs, error: null, problem: null })
       log.info(`mod ${id} loaded in ${loadMs} ms`)
     } catch (error) {
+      if (stale()) return log.warn(`mod ${id} failed at a setup that was already replaced`, error)
       unload(id)
       update(id, { status: "failed", error: asError(error), loadMs: null })
       log.warn(`mod ${id} failed at setup`, error)
