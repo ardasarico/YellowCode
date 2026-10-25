@@ -12,9 +12,9 @@ const letterColor = (letter: string) =>
 function cutPath(path: string, width: number): string {
   if (Bun.stringWidth(path) <= width) return path
   if (width <= 1) return "…"
-  let kept = path
-  while (Bun.stringWidth(kept) > width - 1) kept = kept.slice(1)
-  return `…${kept}`
+  const kept = Array.from(path)
+  while (Bun.stringWidth(kept.join("")) > width - 1) kept.shift()
+  return `…${kept.join("")}`
 }
 
 function counts(change: Change): string {
@@ -23,7 +23,7 @@ function counts(change: Change): string {
 
 // The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it.
 async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void> {
-  const diff = await fileDiff(cwd, change.path)
+  const diff = await fileDiff(cwd, change)
   mod.dialogs.open({
     title: `${change.path}  ${counts(change)}`,
     wide: true,

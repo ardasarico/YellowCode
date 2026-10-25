@@ -1,4 +1,4 @@
-export type Change = { letter: string; path: string; added: number | null; removed: number | null }
+export type Change = { letter: string; path: string; from: string | null; added: number | null; removed: number | null }
 export type GitState = { branch: string; changes: Change[] }
 
 async function git(cwd: string, args: string[]): Promise<{ ok: boolean; out: string }> {
@@ -18,8 +18,10 @@ function numstat(out: string): Map<string, { added: number | null; removed: numb
   const counts = new Map<string, { added: number | null; removed: number | null }>()
   const fields = out.split("\0")
   for (let index = 0; index < fields.length; index++) {
-    const [added, removed, path] = (fields[index] ?? "").split("\t")
-    if (added === undefined || removed === undefined || path === undefined) continue
+    const [added, removed, ...rest] = (fields[index] ?? "").split("\t")
+    if (added === undefined || removed === undefined || rest.length === 0) continue
+    // A path may hold tabs itself.
+    const path = rest.join("\t")
     const to = path === "" ? fields[(index += 2)] : path
     // Binary files count "-".
     if (to)
@@ -43,15 +45,17 @@ export async function readState(cwd: string): Promise<GitState | null> {
     const code = field.slice(0, 2)
     const path = field.slice(3)
     // A rename's old path follows in its own field.
-    if (code.includes("R") || code.includes("C")) index++
+    const from = code.includes("R") || code.includes("C") ? (fields[++index] ?? null) : null
     const letter = code[0] === " " ? (code[1] ?? "?") : (code[0] ?? "?")
-    changes.push({ letter, path, ...(counts.get(path) ?? { added: null, removed: null }) })
+    changes.push({ letter, path, from, ...(counts.get(path) ?? { added: null, removed: null }) })
   }
   return { branch, changes }
 }
 
 // The file's changes against HEAD, staged and unstaged together; before the first commit, what is staged.
-export async function fileDiff(cwd: string, path: string): Promise<string> {
-  const diff = await git(cwd, ["diff", "HEAD", "--", path])
-  return diff.ok ? diff.out : (await git(cwd, ["diff", "--cached", "--", path])).out
+// Paths are relative to the repo root, which may be above cwd. A rename passes both paths so git pairs them.
+export async function fileDiff(cwd: string, change: Change): Promise<string> {
+  const paths = [change.from, change.path].filter((path) => path !== null).map((path) => `:(top,literal)${path}`)
+  const diff = await git(cwd, ["diff", "HEAD", "--", ...paths])
+  return diff.ok ? diff.out : (await git(cwd, ["diff", "--cached", "--", ...paths])).out
 }
