@@ -76,8 +76,7 @@ import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
-import { clearModNotice, modNotice, mods } from "../mods/mods.ts"
-import { ModsDialog } from "./mods/mods-dialog.tsx"
+import { clearModNotice, modNotice } from "../mods/mods.ts"
 import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -187,7 +186,7 @@ type RewindAnswer = boolean | RewindRecheck
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "mods" }
+  | { name: "resume" | "theme" | "skills" | "export" | "tasks" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
@@ -1252,7 +1251,7 @@ export function App(props: AppProps) {
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills") setDialog({ name: "skills" })
-    else if (command === "/mods") setDialog({ name: "mods" })
+    else if (command === "/mods") setDialog({ name: "settings", tab: "mods" })
     else if (command === "/rewind" || command === "/timeline") void openRewind()
     else if (command === "/redo") redo()
     else if (command === "/export") setDialog({ name: "export" })
@@ -1551,9 +1550,6 @@ export function App(props: AppProps) {
             onClose={() => setDialog(null)}
           />
         )}
-      </Show>
-      <Show when={dialog()?.name === "mods"}>
-        <ModsDialog host={mods} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "theme"}>
         <ThemeDialog onClose={() => setDialog(null)} />

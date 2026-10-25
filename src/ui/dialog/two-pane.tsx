@@ -171,7 +171,7 @@ export function TwoPane(props: TwoPaneProps) {
     footer: () => {
       if (pane() === "detail") return DETAIL_FOOTER
       const row = selectedRow()
-      return row ? props.footer(row) : searchFooter("close", props.api.tabs() > 1)
+      return row ? props.footer(row) : searchFooter("close")
     },
   })
 

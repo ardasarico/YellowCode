@@ -7,10 +7,12 @@ import type { McpServer, SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
 import { type McpActions, McpTab } from "../mcp/mcp-tab.tsx"
 import { type ClaudeSettings, ConfigTab } from "./config-tab.tsx"
+import { mods } from "../../mods/mods.ts"
+import { ModsTab } from "./mods-tab.tsx"
 import { type PluginActions, PluginsTab } from "./plugins-tab.tsx"
 import { type StatusFacts, StatusTab } from "./status-tab.tsx"
 
-export type SettingsTab = "status" | "config" | "mcp" | "plugins"
+export type SettingsTab = "status" | "config" | "mcp" | "plugins" | "mods"
 
 const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
 
@@ -74,6 +76,7 @@ export function SettingsDialog(props: {
       label: "Plugins",
       render: (api) => <PluginsTab api={api} plugins={plugins()} actions={props.pluginActions} />,
     },
+    { id: "mods", label: "Mods", render: (api) => <ModsTab api={api} host={mods} /> },
   ]
 
   return <TabbedDialog title="Settings" tabs={tabs} tab={props.tab} onTab={props.onTab} onClose={props.onClose} />

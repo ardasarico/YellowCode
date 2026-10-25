@@ -18,7 +18,6 @@ export type TabApi<Id extends string = string> = {
   rows: () => number
   bind: (body: TabBody) => void
   toStrip: () => void
-  tabs: () => number
   open(tab: Id): void
   notify: (text: string) => void
 }
@@ -39,11 +38,11 @@ const STRIP_FOOTER: FooterAction[] = [
   { key: "esc", action: "close" },
 ]
 
-// A tab's search row has the focus until ↓ selects a row; ↑ goes to the tabs when there are several.
-export const searchFooter = (esc: string, tabs = true): FooterAction[] => [
+// A tab's search row has the focus until ↓ selects a row.
+export const searchFooter = (esc: string): FooterAction[] => [
   { key: "type", action: "to search" },
   { key: "↓", action: "list" },
-  ...(tabs ? [{ key: "↑", action: "tabs" }] : []),
+  { key: "↑", action: "tabs" },
   { key: "esc", action: esc },
 ]
 
@@ -93,10 +92,7 @@ export function TabbedDialog<Id extends string>(props: {
       setBody(() => next)
       onCleanup(() => setBody((current) => (current === next ? null : current)))
     },
-    tabs: () => props.tabs.length,
-    toStrip: () => {
-      if (props.tabs.length > 1) setFocus("strip")
-    },
+    toStrip: () => setFocus("strip"),
     open: (tab) => {
       setFocus("body")
       props.onTab(tab)
@@ -127,7 +123,7 @@ export function TabbedDialog<Id extends string>(props: {
       <text fg={theme.text} attributes={TextAttributes.BOLD} wrapMode="none" flexShrink={0}>
         {props.title}
       </text>
-      <text marginLeft={2} wrapMode="none" flexShrink={1} visible={props.tabs.length > 1}>
+      <text marginLeft={2} wrapMode="none" flexShrink={1}>
         <For each={props.tabs}>
           {(tab) => () => {
             const active = tab.id === props.tab

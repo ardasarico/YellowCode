@@ -5,7 +5,7 @@ import { blank, fact, header, text, title } from "../dialog/detail.ts"
 import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
 import type { FooterAction } from "../dialog/list-view.tsx"
 import { openFolder } from "../dialog/open-file.ts"
-import { TabbedDialog, type TabApi } from "../dialog/tabbed-dialog.tsx"
+import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
 import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
@@ -104,7 +104,7 @@ const FOOTER: FooterAction[] = [
   { key: "esc", action: "close" },
 ]
 
-function InstalledTab(props: { api: TabApi; host: ModHost }) {
+export function ModsTab(props: { api: TabApi; host: ModHost }) {
   const entryFor = (row: DialogRow | undefined) => props.host.entries.find((entry) => entry.id === row?.id)
   const sections = (): DialogSection[] => [
     { title: "", rows: props.host.entries.toSorted((a, b) => nameOf(a).localeCompare(nameOf(b))).map(listRow) },
@@ -153,18 +153,6 @@ function InstalledTab(props: { api: TabApi; host: ModHost }) {
         return true
       }}
       footer={() => FOOTER}
-    />
-  )
-}
-
-export function ModsDialog(props: { host: ModHost; onClose: () => void }) {
-  return (
-    <TabbedDialog
-      title="Mods"
-      tabs={[{ id: "installed", label: "Installed", render: (api) => <InstalledTab api={api} host={props.host} /> }]}
-      tab="installed"
-      onTab={() => {}}
-      onClose={props.onClose}
     />
   )
 }
