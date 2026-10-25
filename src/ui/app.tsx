@@ -2,7 +2,7 @@ import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { BLOCKED_COMMANDS, untitledCommand } from "../input/commands.ts"
+import { BLOCKED_COMMANDS, findModCommand, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { agentMessage } from "../session/agent-message.ts"
 import { planReturn } from "../session/plan-mode.ts"
@@ -76,7 +76,9 @@ import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import { EDGE_GAP, MIN_CHAT_WIDTH, overrideFor, SIDEBAR_GAP, SIDEBAR_MIN_WIDTH, sidebarShown } from "./layout.ts"
+import { matches } from "../mods/keys.ts"
 import { clearModNotice, modNotice } from "../mods/mods.ts"
+import { modKeys } from "../mods/registry.ts"
 import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
@@ -1006,6 +1008,13 @@ export function App(props: AppProps) {
       return
     }
     if (dialog()) return
+    const modKey = modKeys().find((entry) => entry.when !== "pane" && matches(entry.binding, key))
+    if (modKey) {
+      key.preventDefault()
+      key.stopPropagation()
+      modKey.run()
+      return
+    }
     if (key.ctrl && key.name === "o" && copiedReport && rewindNote() === REPORT_COPIED) {
       key.preventDefault()
       key.stopPropagation()
@@ -1243,6 +1252,12 @@ export function App(props: AppProps) {
     if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
       waitNotice(REPLAY_NOTICE)
       return false
+    }
+    const [, typed = "", args = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(command) ?? []
+    const modCommand = typed ? findModCommand(props.provider.commands(), typed) : undefined
+    if (modCommand) {
+      void modCommand.run(args.trim())
+      return true
     }
     if (command === "/report") void copyReport()
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })

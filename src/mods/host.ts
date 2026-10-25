@@ -1,9 +1,11 @@
-import { readdirSync } from "node:fs"
+import { readdirSync, realpathSync, statSync } from "node:fs"
 import { join, sep } from "node:path"
 import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
-import { type Cleanup, isDefinedMod, type ModApi } from "./api.ts"
+import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
+import { addCommand, addKey, guarded } from "./registry.ts"
+import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modStorage } from "./storage.ts"
 
 export type ModStatus = "on" | "off" | "failed" | "incompatible"
@@ -19,6 +21,8 @@ export type ModEntry = {
   problem: string | null
   error: ModError | null
   loadMs: number | null
+  // What the mod declared the last time it loaded.
+  settings: SettingDefinitions | null
 }
 
 // `late` is a failure after the mod was running, which turns it off.
@@ -32,10 +36,14 @@ export type ModHost = {
   setEnabled(id: string, on: boolean): Promise<void>
   reload(id: string): Promise<void>
   fail(id: string, error: unknown): void
+  // The settings of a running mod.
+  settings(id: string): SettingsHandle | null
   onFailure(listener: (failure: ModFailure) => void): () => void
 }
 
-type Running = { disposers: (() => void)[]; cleanup: Cleanup | null }
+type Running = { disposers: (() => void)[]; cleanup: Cleanup | null; settings: SettingsHandle | null }
+
+const COMMAND_NAME = /^[a-z0-9][a-z0-9-]*$/
 
 function asError(error: unknown): ModError {
   if (error instanceof Error) return { message: String(error), stack: error.stack ?? null }
@@ -44,17 +52,18 @@ function asError(error: unknown): ModError {
 
 function modFolders(folder: string): string[] {
   try {
-    return readdirSync(folder, { withFileTypes: true })
-      .filter((item) => item.isDirectory() && item.name !== "node_modules" && !item.name.startsWith("."))
-      .map((item) => item.name)
+    // statSync follows a linked mod folder, which readdir reports as a symlink.
+    return readdirSync(folder)
+      .filter((name) => name !== "node_modules" && !name.startsWith(".") && statSync(join(folder, name)).isDirectory())
       .toSorted()
   } catch {
     return []
   }
 }
 
+// Module cache keys are real paths, so a linked folder is matched by where it points.
 function forgetModules(folder: string): void {
-  const prefix = folder + sep
+  const prefix = realpathSync(folder) + sep
   for (const key of Object.keys(require.cache)) {
     if (key.startsWith(prefix)) delete require.cache[key]
   }
@@ -82,7 +91,7 @@ export function createModHost(options: {
   function freshEntry(id: string): ModEntry {
     const folder = join(options.folder, id)
     const read = readManifest(folder)
-    const base = { id, folder, error: null, loadMs: null }
+    const base = { id, folder, error: null, loadMs: null, settings: entries[indexOf(id)]?.settings ?? null }
     if (!read.ok) return { ...base, manifest: null, status: "failed", problem: read.problem }
     const { manifest } = read
     if (!compatible(manifest))
@@ -110,17 +119,11 @@ export function createModHost(options: {
     const entry = entries[indexOf(id)]
     if (!entry?.manifest || entry.status !== "on") return
     const file = join(entry.folder, entry.manifest.entry)
-    const state: Running = { disposers: [], cleanup: null }
+    const state: Running = { disposers: [], cleanup: null, settings: null }
     running.set(id, state)
-    const api: ModApi = {
-      id,
-      storage: modStorage(id),
-      log: {
-        info: (message, detail) => log.info(`[mod ${id}] ${message}`, detail),
-        warn: (message, detail) => log.warn(`[mod ${id}] ${message}`, detail),
-        error: (message, detail) => log.error(`[mod ${id}] ${message}`, detail),
-      },
-      onDispose: (dispose) => void state.disposers.push(dispose),
+    const own = (dispose: Dispose): Dispose => {
+      state.disposers.push(dispose)
+      return dispose
     }
     const started = performance.now()
     try {
@@ -131,6 +134,28 @@ export function createModHost(options: {
         unload(id)
         update(id, { status: "failed", problem: `${entry.manifest.entry} has no default defineMod export` })
         return
+      }
+      const storage = modStorage(id)
+      const settings = createSettings(id, definition.settings ?? {}, storage)
+      state.settings = settings
+      update(id, { settings: definition.settings ?? {} })
+      const api: ModApi = {
+        id,
+        storage,
+        settings,
+        log: {
+          info: (message, detail) => log.info(`[mod ${id}] ${message}`, detail),
+          warn: (message, detail) => log.warn(`[mod ${id}] ${message}`, detail),
+          error: (message, detail) => log.error(`[mod ${id}] ${message}`, detail),
+        },
+        commands: {
+          add(command) {
+            if (!COMMAND_NAME.test(command.name)) throw new Error(`"${command.name}" is not a command name`)
+            return own(addCommand({ ...command, mod: id, run: (args) => guarded(id, () => command.run(args)) }))
+          },
+        },
+        keys: { add: (key) => own(addKey(id, { ...key, run: () => guarded(id, () => key.run()) })) },
+        onDispose: (dispose) => void state.disposers.push(dispose),
       }
       const cleanup = await definition.setup(api)
       if (typeof cleanup === "function") state.cleanup = cleanup
@@ -173,6 +198,7 @@ export function createModHost(options: {
       await restart(id)
     },
     reload: restart,
+    settings: (id) => running.get(id)?.settings ?? null,
     fail(id, error) {
       if (!running.has(id)) return
       unload(id)

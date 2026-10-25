@@ -3,6 +3,7 @@ import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
 import { createModHost } from "./host.ts"
+import { onModError } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
 export const mods = createModHost({
@@ -10,6 +11,8 @@ export const mods = createModHost({
   disabled: () => settings.disabledMods,
   saveDisabled: (ids) => setSetting("disabledMods", ids),
 })
+
+onModError((mod, error) => mods.fail(mod, error))
 
 // `problem` is false for the plain "mods are off" line.
 export type ModNotice = { text: string; problem: boolean }

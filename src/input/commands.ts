@@ -1,7 +1,17 @@
+import { log } from "../log/log.ts"
+import { modCommands } from "../mods/registry.ts"
 import type { SlashCommand } from "../protocol/messages.ts"
 
 // `builtin` is Claude Code's own command (/model, /clear, and a few bundled skills), not a skill or a custom command.
-export type Command = { name: string; description: string; argumentHint: string; aliases: string[]; builtin?: boolean }
+// `mod` names the mod that added it.
+export type Command = {
+  name: string
+  description: string
+  argumentHint: string
+  aliases: string[]
+  builtin?: boolean
+  mod?: string
+}
 
 // `match` is the typed run inside the shown text: the name, or the alias on an alias row.
 export type CommandRow = Pick<Command, "name" | "description" | "argumentHint"> & {
@@ -67,6 +77,39 @@ export function withOwnCommands(commands: Command[]): Command[] {
     kept.push({ ...command, aliases: command.aliases.filter((alias) => !own.has(alias.toLowerCase())) })
   }
   return [...kept, ...OWN_COMMANDS]
+}
+
+// A mod's command never hides one of YellowCode's or Claude Code's; it is left out, and the clash is logged.
+const clashes = new Set<string>()
+export function withModCommands(commands: Command[]): Command[] {
+  const taken = new Set(
+    commands.flatMap((command) => [command.name, ...command.aliases].map((name) => name.toLowerCase())),
+  )
+  const added: Command[] = []
+  for (const command of modCommands()) {
+    const name = command.name.toLowerCase()
+    if (taken.has(name)) {
+      if (!clashes.has(`${command.mod}/${name}`)) log.warn(`mod ${command.mod}: /${name} is taken, left out`)
+      clashes.add(`${command.mod}/${name}`)
+      continue
+    }
+    taken.add(name)
+    added.push({
+      name: command.name,
+      description: `${command.mod} · ${command.description}`,
+      argumentHint: command.argumentHint ?? "",
+      aliases: [],
+      mod: command.mod,
+    })
+  }
+  return [...commands, ...added]
+}
+
+// The mod command a typed /name runs, when the shown list has it from a mod.
+export function findModCommand(commands: Command[], name: string) {
+  const shown = findCommand(commands, name)
+  if (!shown?.mod) return undefined
+  return modCommands().find((command) => command.mod === shown.mod && command.name === shown.name)
 }
 
 function flatten(text: string): string {

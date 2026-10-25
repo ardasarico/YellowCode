@@ -21,7 +21,7 @@ import {
   recordedSkillRows,
 } from "../source/recording.ts"
 import type { Requests } from "../source/requests.ts"
-import { type ArgumentValue, claudeCommands, type Command } from "./commands.ts"
+import { type ArgumentValue, claudeCommands, type Command, withModCommands } from "./commands.ts"
 import { suggestFiles } from "./files.ts"
 
 const FILES_TIMEOUT_MS = 5000
@@ -63,7 +63,7 @@ export function liveProvider(requests: Requests): LiveProvider {
   const [initLists, setInitLists] = createSignal<InitLists | null>(null)
   const [pending, setPending] = createSignal(new Map<string, boolean>())
   return {
-    commands,
+    commands: () => withModCommands(commands()),
     models,
     setCommands(next) {
       raw = next
@@ -126,7 +126,7 @@ export function replayProvider(recording: Recording): InputProvider {
   const skills = skillList(rows, recordedInitLists(recording), sources)
   const hooks = recordedPluginHooks(recording)
   return {
-    commands: () => commands,
+    commands: () => withModCommands(commands),
     models: () => models,
     skills: () => skills,
     settingsSources: () => sources,
