@@ -1,3 +1,4 @@
+import { ModDialogView } from "./mod-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
 import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
@@ -92,10 +93,12 @@ import { clearModNotice, modNotice } from "../mods/mods.ts"
 import {
   focusedPane,
   guarded,
+  modDialog,
   modKeys,
   modPanes,
   paneKeys,
   type RegisteredPane,
+  setAppDialogOpen,
   setFocusedPane,
 } from "../mods/registry.ts"
 import { ModPaneView, setCrowded, shownPane } from "./mod-pane.tsx"
@@ -214,11 +217,26 @@ type DialogName =
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
   | { name: "choice"; kind: "model" | "effort" }
   | { name: "context" | "usage" }
+  // A dialog a mod opened; its request lives in the mod registry.
+  | { name: "mod" }
 
 export function App(props: AppProps) {
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
+  createEffect(() => setAppDialogOpen(dialog() !== null))
+  createEffect(
+    on(modDialog, (request) => {
+      if (request) setDialog({ name: "mod" })
+      else if (dialog()?.name === "mod") setDialog(null)
+    }),
+  )
+  // Another dialog taking the screen closes the mod's.
+  createEffect(
+    on(dialog, (current) => {
+      if (current?.name !== "mod") untrack(modDialog)?.close(null)
+    }),
+  )
   const settingsTab = () => {
     const open = dialog()
     return open?.name === "settings" ? open.tab : null
@@ -1695,6 +1713,7 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
+      <Show when={dialog()?.name === "mod" && modDialog()}>{(request) => <ModDialogView request={request()} />}</Show>
       <Show when={dialog()?.name === "theme"}>
         <ThemeDialog onClose={() => setDialog(null)} />
       </Show>

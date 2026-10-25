@@ -4,8 +4,13 @@ import { z } from "zod"
 import { log } from "../log/log.ts"
 import type {
   Dispose,
+  ModChooseOptions,
   ModCommand,
+  ModConfirmOptions,
+  ModDialogOptions,
+  ModDialogs,
   ModEvents,
+  ModInputOptions,
   ModKey,
   ModPane,
   ModPaneOptions,
@@ -158,4 +163,69 @@ export function addListener<E extends keyof ModEvents>(
 export function emitModEvent<E extends keyof ModEvents>(event: E, data: ModEvents[E]): void {
   const set: Listeners[E] = listeners[event]
   for (const listener of set) guarded(listener.mod, () => listener.handler(data))
+}
+
+export type ModDialogRequest = { mod: string; close(answer: unknown): void } & (
+  | { kind: "choose"; options: ModChooseOptions }
+  | { kind: "confirm"; options: ModConfirmOptions }
+  | { kind: "input"; options: ModInputOptions }
+  | { kind: "open"; options: ModDialogOptions }
+)
+
+const [dialog, setDialog] = createSignal<ModDialogRequest | null>(null)
+export { dialog as modDialog }
+
+// Set by the app: whether a dialog is open there.
+let appDialogOpen = false
+export const setAppDialogOpen = (open: boolean) => (appDialogOpen = open)
+
+type Request = ModDialogRequest extends infer R
+  ? R extends ModDialogRequest
+    ? Omit<R, "mod" | "close">
+    : never
+  : never
+
+function request(mod: string, what: Request): Promise<unknown> {
+  if (dialog() !== null || appDialogOpen) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    const entry: ModDialogRequest = {
+      ...what,
+      mod,
+      close(answer: unknown) {
+        if (dialog() === entry) setDialog(null)
+        resolve(answer)
+      },
+    }
+    setDialog(entry)
+  })
+}
+
+const answer = <T>(value: unknown, guard: (value: unknown) => value is T): T | null => (guard(value) ? value : null)
+const isString = (value: unknown): value is string => typeof value === "string"
+const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
+
+// The dialogs of one mod, and a dispose that closes the one it has open.
+export function modDialogs(mod: string): { dialogs: ModDialogs; dispose: Dispose } {
+  const dialogs: ModDialogs = {
+    choose: async (options) => answer(await request(mod, { kind: "choose", options }), isString),
+    confirm: async (options) => answer(await request(mod, { kind: "confirm", options }), isBoolean),
+    input: async (options) => answer(await request(mod, { kind: "input", options }), isString),
+    open(options) {
+      const closed = request(mod, { kind: "open", options }).then(() => undefined)
+      return {
+        closed,
+        close() {
+          const current = dialog()
+          if (current?.mod === mod && current.kind === "open" && current.options === options) current.close(null)
+        },
+      }
+    },
+  }
+  return {
+    dialogs,
+    dispose() {
+      const current = dialog()
+      if (current?.mod === mod) current.close(null)
+    },
+  }
 }

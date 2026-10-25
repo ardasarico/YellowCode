@@ -112,6 +112,46 @@ export type ModEvents = {
   focus: Record<string, never>
 }
 
+export type ModChooseOptions = {
+  title: string
+  items: { id: string; label: string; note?: string }[]
+  // Shown by default when there are more than a few items.
+  search?: boolean
+}
+
+export type ModConfirmOptions = { title: string; message: string; action: string }
+
+export type ModInputOptions = { title: string; placeholder?: string; initial?: string }
+
+export type ModDialogViewProps = {
+  // Rows and columns for the mod's content, the title and footer left out.
+  width: number
+  height: number
+  // Every key but Esc, which closes the dialog, comes here.
+  onKey: (handler: (key: KeyEvent) => void) => void
+  close(): void
+}
+
+export type ModDialogOptions = {
+  title: string
+  // Nearly the whole screen instead of the usual dialog width.
+  wide?: boolean
+  // Footer hints, like "↑↓ scroll".
+  hints?: { key: string; action: string }[]
+  view: (props: ModDialogViewProps) => JSX.Element
+}
+
+// One dialog is open at a time. While another one is open, a call answers null at once and shows nothing.
+export type ModDialogs = {
+  // The chosen item's id, or null on Esc.
+  choose(options: ModChooseOptions): Promise<string | null>
+  confirm(options: ModConfirmOptions): Promise<boolean | null>
+  // The text, or null on Esc.
+  input(options: ModInputOptions): Promise<string | null>
+  // Resolves when the dialog closes.
+  open(options: ModDialogOptions): { close(): void; closed: Promise<void> }
+}
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -134,6 +174,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly panes: { add(pane: ModPaneOptions): ModPane }
   readonly tools: { add(tool: ModTool): Dispose }
   readonly sidebar: { add(section: ModSectionOptions): Dispose }
+  readonly dialogs: ModDialogs
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
