@@ -150,6 +150,9 @@ export const getContextUsageRequest = (requestId: string) => controlRequest(requ
 export const getUsageRequest = (requestId: string) => controlRequest(requestId, "get_usage")
 export const reloadSkillsRequest = (requestId: string) => controlRequest(requestId, "reload_skills")
 
+export const mcpSetServersRequest = (requestId: string, servers: Record<string, unknown>) =>
+  controlRequest(requestId, "mcp_set_servers", { servers })
+
 export function interruptRequest(requestId: string): string {
   return controlRequest(requestId, "interrupt")
 }

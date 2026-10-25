@@ -13,6 +13,8 @@ const Manifest = z.object({
   description: z.string().default(""),
   yellowcode: z.string().min(1),
   entry: z.string().regex(/\.tsx?$/),
+  // Process or remote MCP servers in the .mcp.json shape, given to Claude while the mod is on.
+  mcpServers: z.record(z.string().regex(/^[a-zA-Z0-9_-]+$/), z.looseObject({})).optional(),
 })
 
 export type Manifest = z.output<typeof Manifest>

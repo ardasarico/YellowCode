@@ -4,7 +4,7 @@ import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
-import { addCommand, addKey, addPane, guarded } from "./registry.ts"
+import { addCommand, addKey, addPane, addTool, guarded } from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modStorage } from "./storage.ts"
 
@@ -44,6 +44,7 @@ export type ModHost = {
 type Running = { disposers: (() => void)[]; cleanup: Cleanup | null; settings: SettingsHandle | null }
 
 const COMMAND_NAME = /^[a-z0-9][a-z0-9-]*$/
+const TOOL_NAME = /^[a-zA-Z0-9_-]{1,64}$/
 
 function asError(error: unknown): ModError {
   if (error instanceof Error) return { message: String(error), stack: error.stack ?? null }
@@ -155,6 +156,12 @@ export function createModHost(options: {
           },
         },
         keys: { add: (key) => own(addKey(id, { ...key, run: () => guarded(id, () => key.run()) })) },
+        tools: {
+          add(tool) {
+            if (!TOOL_NAME.test(tool.name)) throw new Error(`"${tool.name}" is not a tool name`)
+            return own(addTool({ ...tool, mod: id }))
+          },
+        },
         panes: {
           add(paneOptions) {
             const { pane, dispose } = addPane(id, paneOptions)

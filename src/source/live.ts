@@ -11,6 +11,8 @@ import { claudeArgs, launchOf, type Spawn } from "./claude-args.ts"
 import { type Controls, createControls, type Knobs } from "./controls.ts"
 import { createExtensions, type Extensions } from "./extensions.ts"
 import { createMcpControls, type McpControls } from "./mcp.ts"
+import { mods } from "../mods/mods.ts"
+import { syncModServers } from "./mod-tools.ts"
 import { OWN_ASK_INIT } from "./own-ask-tool.ts"
 import { createRequests, refusal, type Requests, RequestTimeout } from "./requests.ts"
 import type { Source } from "./source.ts"
@@ -156,7 +158,9 @@ export function connect(options: {
   let closing = false
 
   // Nothing of this claude's asks or polls once it is closed or gone; the pump may still apply its last lines.
+  let stopModServers: (() => void) | null = null
   const stopWork = () => {
+    stopModServers?.()
     tasks.close()
     asks.close()
     mcp.dispose()
@@ -191,6 +195,7 @@ export function connect(options: {
     initialize()
     void initialized.promise.then((reply) => {
       if (reply) controls.initialized(reply)
+      if (reply) stopModServers = syncModServers(requests, () => mods.entries)
     })
     if (carry) controls.carry(carry)
     tasks.start()

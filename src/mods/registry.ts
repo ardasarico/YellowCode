@@ -1,7 +1,7 @@
 import type { KeyEvent } from "@opentui/core"
 import { type Accessor, createSignal } from "solid-js"
 import { log } from "../log/log.ts"
-import type { Dispose, ModCommand, ModKey, ModPane, ModPaneOptions } from "./api.ts"
+import type { Dispose, ModCommand, ModKey, ModPane, ModPaneOptions, ModTool } from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
 
 // What every running mod added, so the app can show and run it and /mods can count it.
@@ -10,7 +10,8 @@ export type RegisteredKey = Owned<ModKey & { binding: KeyBinding }>
 
 const [commands, setCommands] = createSignal<Owned<ModCommand>[]>([])
 const [keys, setKeys] = createSignal<RegisteredKey[]>([])
-export { commands as modCommands, keys as modKeys }
+const [tools, setTools] = createSignal<Owned<ModTool>[]>([])
+export { commands as modCommands, keys as modKeys, tools as modTools }
 
 let failure: (mod: string, error: unknown) => void = (mod, error) => log.warn(`mod ${mod} failed`, error)
 export const onModError = (handler: typeof failure) => (failure = handler)
@@ -34,6 +35,7 @@ function adder<T>(set: (update: (list: T[]) => T[]) => void) {
 }
 
 export const addCommand = adder<Owned<ModCommand>>(setCommands)
+export const addTool = adder<Owned<ModTool>>(setTools)
 
 const pushKey = adder<RegisteredKey>(setKeys)
 export function addKey(mod: string, key: ModKey): Dispose {
@@ -49,6 +51,7 @@ export function counts(mod: string): string[] {
     ...count(panes().filter((pane) => pane.mod === mod).length, "pane"),
     ...count(commands().filter((command) => command.mod === mod).length, "command"),
     ...count(keys().filter((key) => key.mod === mod).length, "shortcut"),
+    ...count(tools().filter((tool) => tool.mod === mod).length, "tool"),
   ]
 }
 

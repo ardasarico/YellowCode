@@ -3,6 +3,7 @@ import { createSignal } from "solid-js"
 import type { SettingDefinition, SettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { counts, modPanes } from "../../mods/registry.ts"
+import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
@@ -125,6 +126,9 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
     ...fact("source", "Source", tildePath(entry.folder), width),
     ...fact("adds", "Adds", adds.length > 0 ? adds.join(" · ") : "nothing", width),
     ...fact("load", "Load time", entry.loadMs === null ? "—" : `${entry.loadMs} ms`, width),
+    ...Object.entries(serverErrors())
+      .filter(([server]) => server === `mod-${entry.id}` || server.startsWith(`mod-${entry.id}-`))
+      .flatMap(([server, error]) => fact(`mcp-${server}`, "MCP", `${server}: ${error}`, width, theme.error)),
     ...(modPanes().some((pane) => pane.mod === entry.id && crowded().has(pane.key))
       ? fact("room", "Pane", "no room in this window", width, theme.warning)
       : []),

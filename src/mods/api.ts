@@ -86,6 +86,18 @@ export type ModPane = {
   focused(): boolean
 }
 
+export type ModToolResult = string | { text: string; isError?: boolean }
+
+// A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
+export type ModTool = {
+  name: string
+  description: string
+  // A JSON schema object for the arguments.
+  input: Record<string, unknown>
+  annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; title?: string }
+  run(input: Record<string, unknown>): ModToolResult | Promise<ModToolResult>
+}
+
 export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly id: string
   readonly storage: ModStorage
@@ -94,6 +106,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly commands: { add(command: ModCommand): Dispose }
   readonly keys: { add(key: ModKey): Dispose }
   readonly panes: { add(pane: ModPaneOptions): ModPane }
+  readonly tools: { add(tool: ModTool): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
 }

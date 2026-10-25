@@ -12,6 +12,7 @@ import {
   SUBAGENT_ASK,
 } from "../protocol/outgoing.ts"
 import { ownAskProblem } from "../session/ask.ts"
+import { isModServer, serveModTools } from "./mod-tools.ts"
 import { OWN_ASK_TOOL } from "./own-ask-tool.ts"
 
 const initializeParams = z.looseObject({ protocolVersion: z.string() })
@@ -73,6 +74,7 @@ export function createAskServer(send: (line: string) => void, open: (toolUseId: 
       }
     },
     serve(requestId, request) {
+      if (isModServer(request.server_name)) return serveModTools(send, requestId, request)
       if (request.server_name !== OWN_ASK_SERVER)
         return send(errorResponse(requestId, "YellowCode does not support mcp_message"))
       const { id, method, params } = request.message
