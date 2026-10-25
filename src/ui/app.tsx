@@ -91,6 +91,7 @@ import {
 import { matches } from "../mods/keys.ts"
 import { clearModNotice, modNotice } from "../mods/mods.ts"
 import {
+  beforeSend,
   focusedPane,
   guarded,
   modDialog,
@@ -1358,12 +1359,19 @@ export function App(props: AppProps) {
     else if (command === "/plan") planMode()
     else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim(), false)
     else {
+      // Mods see what the user typed, not the commands Claude Code runs.
+      const message = text.trim() !== "" && !text.trim().startsWith("/")
+      const changed = message ? beforeSend(text) : text
+      if (changed === null) {
+        waitNotice("A mod stopped this message")
+        return false
+      }
       const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
       if (planned !== null) planMode()
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
       const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
-      const out = to ? agentMessage(to.id, to.name, text) : (planned ?? text)
+      const out = to ? agentMessage(to.id, to.name, changed) : (planned ?? changed)
       const kept = to ? { ...draft, to } : draft
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
