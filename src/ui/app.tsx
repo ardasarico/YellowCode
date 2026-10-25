@@ -1472,28 +1472,85 @@ export function App(props: AppProps) {
     })
   }
 
+  // A drag that started on a pane's edge; false when none is going on.
+  const movePane = (event: { x: number; y: number }) => {
+    const drag = paneDrag()
+    if (!drag) return false
+    const size = drag.pane.position() === "bottom" ? dimensions().height - event.y - 1 : besideSidebar() - event.x - 1
+    setPaneDrag({ pane: drag.pane, size })
+    return true
+  }
+  const endPaneDrag = () => {
+    const drag = paneDrag()
+    if (!drag) return false
+    // The size the pane shows at the end of the drag, kept within its limits.
+    const size = drag.pane.position() === "bottom" ? bottomHeight() - 1 : rightWidth() - 1
+    setPaneDrag(null)
+    if (size > 0) guarded(drag.pane.mod, () => drag.pane.onResize?.(size))
+    return true
+  }
+  const BottomPane = (paneProps: { width: number }) => (
+    <Show when={bottomHeight() > 0 ? shownPane("bottom") : undefined} keyed>
+      {(pane) => (
+        <ModPaneView
+          pane={pane}
+          width={paneProps.width}
+          height={bottomHeight()}
+          onResizeStart={() => setPaneDrag({ pane, size: bottomHeight() - 1 })}
+        />
+      )}
+    </Show>
+  )
+  const RightPane = () => (
+    <Show when={rightWidth() > 0 ? shownPane("right") : undefined} keyed>
+      {(pane) => (
+        <ModPaneView
+          pane={pane}
+          width={rightWidth()}
+          height={dimensions().height}
+          onResizeStart={() => setPaneDrag({ pane, size: rightWidth() - 1 })}
+        />
+      )}
+    </Show>
+  )
+
   return (
     <box flexDirection="column" flexGrow={1}>
       <Show
         when={!welcome()}
         fallback={
-          <Welcome
-            input={{
-              ...input(),
-              onLeaveDown: () => {
-                if (recentShown()) setRecent(0)
-              },
-              onDraft: (draft) => (welcomeDraft = draft),
-              draft: promptDraft,
-              history,
-            }}
-            workspace={props.workspace}
-            notice={welcomeNotice()}
-            onNotice={openBackup()}
-            recent={{ entries: recents(), selected: recent() }}
-            width={dimensions().width}
-            height={dimensions().height}
-          />
+          <box
+            flexDirection="row"
+            flexGrow={1}
+            onMouseDrag={(event) => void movePane(event)}
+            onMouseUp={() => void endPaneDrag()}
+          >
+            <box
+              flexDirection="column"
+              width={dimensions().width - rightWidth()}
+              onMouseDown={() => setFocusedPane(null)}
+            >
+              <Welcome
+                input={{
+                  ...input(),
+                  onLeaveDown: () => {
+                    if (recentShown()) setRecent(0)
+                  },
+                  onDraft: (draft) => (welcomeDraft = draft),
+                  draft: promptDraft,
+                  history,
+                }}
+                workspace={props.workspace}
+                notice={welcomeNotice()}
+                onNotice={openBackup()}
+                recent={{ entries: recents(), selected: recent() }}
+                width={dimensions().width - rightWidth()}
+                height={dimensions().height - bottomHeight()}
+              />
+              <BottomPane width={dimensions().width - rightWidth()} />
+            </box>
+            <RightPane />
+          </box>
         }
       >
         <Show when={agentView()}>
@@ -1516,13 +1573,7 @@ export function App(props: AppProps) {
           visible={agentView() === null}
           onMouseDown={() => setResizing(false)}
           onMouseDrag={(event) => {
-            const drag = paneDrag()
-            if (drag) {
-              const size =
-                drag.pane.position() === "bottom" ? dimensions().height - event.y - 1 : besideSidebar() - event.x - 1
-              setPaneDrag({ pane: drag.pane, size })
-              return
-            }
+            if (movePane(event)) return
             if (!resizing() || event.isDragging) return
             const width = dimensions().width
             const half = Math.floor(width / 2)
@@ -1531,14 +1582,7 @@ export function App(props: AppProps) {
             setSidebarWidth(Math.min(max, Math.max(SIDEBAR_MIN_WIDTH, width - event.x + gap)))
           }}
           onMouseUp={() => {
-            const drag = paneDrag()
-            if (drag) {
-              // The size the pane shows at the end of the drag, kept within its limits.
-              const size = drag.pane.position() === "bottom" ? bottomHeight() - 1 : rightWidth() - 1
-              setPaneDrag(null)
-              if (size > 0) guarded(drag.pane.mod, () => drag.pane.onResize?.(size))
-              return
-            }
+            if (endPaneDrag()) return
             if (!resizing()) return
             setResizing(false)
             saveSidebarWidth(sidebarWidth())
@@ -1594,27 +1638,9 @@ export function App(props: AppProps) {
                 />
               </box>
             </Show>
-            <Show when={bottomHeight() > 0 ? shownPane("bottom") : undefined} keyed>
-              {(pane) => (
-                <ModPaneView
-                  pane={pane}
-                  width={chatWidth()}
-                  height={bottomHeight()}
-                  onResizeStart={() => setPaneDrag({ pane, size: bottomHeight() - 1 })}
-                />
-              )}
-            </Show>
+            <BottomPane width={chatWidth()} />
           </box>
-          <Show when={rightWidth() > 0 ? shownPane("right") : undefined} keyed>
-            {(pane) => (
-              <ModPaneView
-                pane={pane}
-                width={rightWidth()}
-                height={dimensions().height}
-                onResizeStart={() => setPaneDrag({ pane, size: rightWidth() - 1 })}
-              />
-            )}
-          </Show>
+          <RightPane />
           <Show when={sidebar() !== "hidden"}>
             <Sidebar
               session={props.session}
