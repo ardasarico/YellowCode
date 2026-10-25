@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tools", ".claude/hooks", ".claude/skills/probe-protocol"]
+  "include": ["src", "mods", "tools", ".claude/hooks", ".claude/skills/probe-protocol"]
 }

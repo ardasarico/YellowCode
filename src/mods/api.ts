@@ -63,7 +63,7 @@ export type PaneViewProps = {
   height: number
   focused: boolean
   // While the pane has the focus, every key but the mods' shortcuts comes here, ctrl+c and Esc included.
-  onKey(handler: (key: KeyEvent) => void): void
+  onKey: (handler: (key: KeyEvent) => void) => void
 }
 
 export type ModPaneOptions = {
