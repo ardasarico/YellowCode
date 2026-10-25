@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js"
 import { log } from "../log/log.ts"
 import type { ModSettings, ModStorage, SettingDefinition, SettingDefinitions, SettingValue } from "./api.ts"
+import { guarded } from "./registry.ts"
 
 export type SettingsHandle = ModSettings<SettingDefinitions> & { readonly definitions: SettingDefinitions }
 
@@ -45,7 +46,7 @@ export function createSettings(id: string, definitions: SettingDefinitions, stor
       if (!definition || !valid(definition, value)) return log.warn(`mod ${id}: ignored an invalid ${key}`)
       setValues((current) => ({ ...current, [key]: value }))
       storage.set("settings", values())
-      for (const listener of listeners.get(key) ?? []) listener(value)
+      for (const listener of listeners.get(key) ?? []) guarded(id, () => listener(value))
     },
     onChange(key, listener) {
       const set = listeners.get(key) ?? new Set()

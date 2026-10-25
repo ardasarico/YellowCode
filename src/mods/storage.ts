@@ -28,11 +28,14 @@ export function modStorage(id: string): ModStorage {
     path,
     get: (key) => current()[key],
     set(key, value) {
-      current()[key] = value
+      const next = { ...current(), [key]: value }
       const temp = `${path}.${process.pid}.tmp`
       try {
+        // A value JSON cannot hold throws here and is not kept.
+        const text = `${JSON.stringify(next, null, 2)}\n`
+        values = next
         mkdirSync(dirname(path), { recursive: true })
-        writeFileSync(temp, `${JSON.stringify(current(), null, 2)}\n`)
+        writeFileSync(temp, text)
         renameSync(temp, path)
       } catch (error) {
         rmSync(temp, { force: true })
