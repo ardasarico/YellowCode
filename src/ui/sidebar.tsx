@@ -1,5 +1,7 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
-import { createMemo, createSignal, Index, Show } from "solid-js"
+import { createComponent, createMemo, createSignal, ErrorBoundary, For, Index, Show, untrack } from "solid-js"
+import type { SidebarZone } from "../mods/api.ts"
+import { DEFAULT_SECTION_ORDER, modSections, type RegisteredSection, reportModError } from "../mods/registry.ts"
 import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
 import type { Session, SessionInfo, Window } from "../session/types.ts"
@@ -298,6 +300,49 @@ function Usage(props: { session: Session; model: string | null; width: number; n
   )
 }
 
+// A mod's section: the app's heading over the mod's view. A throw in any of the mod's code turns the mod off.
+function ModSection(props: { section: RegisteredSection; width: number; above: number; below: number }) {
+  const mod = untrack(() => props.section.mod)
+  return (
+    <ErrorBoundary
+      fallback={(error: unknown) => {
+        queueMicrotask(() => reportModError(mod, error))
+        return null
+      }}
+    >
+      <Show when={props.section.visible?.() ?? true}>
+        <box flexDirection="column" marginTop={props.above} marginBottom={props.below} flexShrink={0}>
+          <Heading
+            left={`${props.section.open() ? "▾" : "▸"} ${props.section.title}`}
+            right={props.section.right?.() ?? ""}
+            onMouseDown={(event) => {
+              event.preventDefault()
+              props.section.setOpen(!props.section.open())
+            }}
+          />
+          <Show when={props.section.open()}>
+            {createComponent(props.section.view, {
+              get width() {
+                return props.width
+              },
+            })}
+          </Show>
+        </box>
+      </Show>
+    </ErrorBoundary>
+  )
+}
+
+const TASKS_ORDER = 10
+const MCP_ORDER = 20
+
+type BodyEntry = { order: number; builtin: "tasks" | "mcp" } | { order: number; section: RegisteredSection }
+
+const zoneSections = (zone: SidebarZone) =>
+  modSections()
+    .filter((section) => (section.zone ?? "body") === zone)
+    .toSorted((a, b) => (a.order ?? DEFAULT_SECTION_ORDER) - (b.order ?? DEFAULT_SECTION_ORDER))
+
 export function Sidebar(props: SidebarProps) {
   const tick = useTicker(() => true, 30_000)
   const now = () => {
@@ -307,6 +352,20 @@ export function Sidebar(props: SidebarProps) {
   const gap = () => (props.overlay ? 0 : SIDEBAR_GAP)
   const inner = () => props.width - gap() - 2 * EDGE_GAP
   const [hover, setHover] = createSignal(false)
+  // Every section keeps its entry, so For does not remount the others when a mod section comes or goes.
+  const builtins: BodyEntry[] = [
+    { order: TASKS_ORDER, builtin: "tasks" },
+    { order: MCP_ORDER, builtin: "mcp" },
+  ]
+  const entries = new WeakMap<RegisteredSection, BodyEntry>()
+  const entryOf = (section: RegisteredSection) => {
+    let entry = entries.get(section)
+    if (!entry) entries.set(section, (entry = { order: section.order ?? DEFAULT_SECTION_ORDER, section }))
+    return entry
+  }
+  const body = createMemo(() =>
+    [...builtins, ...zoneSections("body").map(entryOf)].toSorted((a, b) => a.order - b.order),
+  )
   const edgeColor = () => {
     if (props.resizing) return theme.accent
     if (hover() || props.overlay) return theme.frame
@@ -348,6 +407,9 @@ export function Sidebar(props: SidebarProps) {
         paddingY={1}
         overflow="hidden"
       >
+        <For each={zoneSections("top")}>
+          {(section) => <ModSection section={section} width={inner()} above={0} below={SECTION_GAP} />}
+        </For>
         <Title
           session={props.session}
           workspace={props.workspace}
@@ -358,14 +420,26 @@ export function Sidebar(props: SidebarProps) {
         />
         {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
         <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
-          <Show when={todoList(props.session).length > 0}>
-            <Tasks todos={todoList(props.session)} width={inner()} />
-          </Show>
-          <Show when={(currentServers(props.session, null) ?? []).some((server) => server.status !== "disabled")}>
-            <Mcp session={props.session} width={inner()} />
-          </Show>
+          <For each={body()}>
+            {(entry) =>
+              "section" in entry ? (
+                <ModSection section={entry.section} width={inner()} above={SECTION_GAP} below={0} />
+              ) : entry.builtin === "tasks" ? (
+                <Show when={todoList(props.session).length > 0}>
+                  <Tasks todos={todoList(props.session)} width={inner()} />
+                </Show>
+              ) : (
+                <Show when={(currentServers(props.session, null) ?? []).some((server) => server.status !== "disabled")}>
+                  <Mcp session={props.session} width={inner()} />
+                </Show>
+              )
+            }
+          </For>
         </box>
         <Usage session={props.session} model={props.model} width={inner()} now={now()} />
+        <For each={zoneSections("bottom")}>
+          {(section) => <ModSection section={section} width={inner()} above={SECTION_GAP} below={0} />}
+        </For>
       </box>
     </box>
   )

@@ -1,7 +1,17 @@
 import type { KeyEvent } from "@opentui/core"
 import { type Accessor, createSignal } from "solid-js"
+import { z } from "zod"
 import { log } from "../log/log.ts"
-import type { Dispose, ModCommand, ModKey, ModPane, ModPaneOptions, ModTool } from "./api.ts"
+import type {
+  Dispose,
+  ModCommand,
+  ModKey,
+  ModPane,
+  ModPaneOptions,
+  ModSectionOptions,
+  ModStorage,
+  ModTool,
+} from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
 
 // What every running mod added, so the app can show and run it and /mods can count it.
@@ -52,6 +62,7 @@ export function counts(mod: string): string[] {
     ...count(commands().filter((command) => command.mod === mod).length, "command"),
     ...count(keys().filter((key) => key.mod === mod).length, "shortcut"),
     ...count(tools().filter((tool) => tool.mod === mod).length, "tool"),
+    ...count(sections().filter((section) => section.mod === mod).length, "section"),
   ]
 }
 
@@ -96,4 +107,35 @@ export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; 
     setPanes((list) => list.filter((other) => other !== entry))
   }
   return { pane, dispose }
+}
+
+export const DEFAULT_SECTION_ORDER = 30
+
+export type RegisteredSection = Owned<ModSectionOptions> & {
+  key: string
+  open: Accessor<boolean>
+  setOpen(open: boolean): void
+}
+
+const [sections, setSections] = createSignal<RegisteredSection[]>([])
+export { sections as modSections }
+
+const openStates = z.record(z.string(), z.boolean())
+
+// Whether a section is open is kept in its mod's data file, under "sections".
+export function addSection(mod: string, options: ModSectionOptions, storage: ModStorage): Dispose {
+  const stored = () => openStates.safeParse(storage.get("sections")).data ?? {}
+  const [open, setOpenSignal] = createSignal(stored()[options.id] ?? true)
+  const entry: RegisteredSection = {
+    ...options,
+    mod,
+    key: `${mod}/${options.id}`,
+    open,
+    setOpen(value) {
+      setOpenSignal(value)
+      storage.set("sections", { ...stored(), [options.id]: value })
+    },
+  }
+  setSections((list) => [...list.filter((section) => section.key !== entry.key), entry])
+  return () => setSections((list) => list.filter((section) => section !== entry))
 }

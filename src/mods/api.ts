@@ -86,6 +86,22 @@ export type ModPane = {
   focused(): boolean
 }
 
+export type SidebarZone = "top" | "body" | "bottom"
+
+// A section in the sidebar. The app draws its heading with the open/closed arrow; the mod gives what goes under it.
+export type ModSectionOptions = {
+  id: string
+  title: string
+  // "top" is above the session title, "body" between the title and usage, "bottom" under usage. "body" by default.
+  zone?: SidebarZone
+  // The place in its zone, low first. Tasks is 10 and MCP 20; 30 by default.
+  order?: number
+  // A short text at the right of the heading.
+  right?: () => string
+  visible?: () => boolean
+  view: (props: { width: number }) => JSX.Element
+}
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -107,6 +123,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly keys: { add(key: ModKey): Dispose }
   readonly panes: { add(pane: ModPaneOptions): ModPane }
   readonly tools: { add(tool: ModTool): Dispose }
+  readonly sidebar: { add(section: ModSectionOptions): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
 }
