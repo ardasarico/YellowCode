@@ -4,7 +4,17 @@ import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
-import { addCommand, addKey, addListener, addPane, addSection, addTool, guarded, modDialogs } from "./registry.ts"
+import {
+  addCommand,
+  addKey,
+  addListener,
+  addPane,
+  addRowRenderer,
+  addSection,
+  addTool,
+  guarded,
+  modDialogs,
+} from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modStorage } from "./storage.ts"
 
@@ -166,6 +176,7 @@ export function createModHost(options: {
         },
         sidebar: { add: (section) => own(addSection(id, section, storage)) },
         dialogs: dialogs.dialogs,
+        toolRows: { add: (renderer) => own(addRowRenderer({ render: (tool) => renderer.render(tool), mod: id })) },
         events: { on: (event, handler) => own(addListener(id, event, handler)) },
         panes: {
           add(paneOptions) {

@@ -1,6 +1,8 @@
 import { infoStringToFiletype, RGBA } from "@opentui/core"
 import { extname } from "node:path"
-import { createSignal, Index, Show } from "solid-js"
+import { createComponent, createMemo, createSignal, ErrorBoundary, Index, Show } from "solid-js"
+import type { ModToolInfo } from "../mods/api.ts"
+import { reportModError, rowPartsFor } from "../mods/registry.ts"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { answersInResult, askKeys, severe } from "../session/ask.ts"
@@ -182,13 +184,42 @@ export function ToolCallRow(props: {
     if (props.item.status === "stopped") return theme.warning
     return props.item.status === "running" ? theme.accent : theme.muted
   }
+  const info: ModToolInfo = {
+    get name() {
+      return props.item.name
+    },
+    get short() {
+      return mcpTool(props.item.name)?.tool ?? props.item.name
+    },
+    get source() {
+      return mcpTool(props.item.name)?.server ?? null
+    },
+    get input() {
+      return props.item.input
+    },
+    get result() {
+      return props.item.result
+    },
+    get status() {
+      return props.item.status
+    },
+    get summary() {
+      return props.item.summary
+    },
+  }
+  // A mod may draw the row's name, summary and result lines.
+  const modRow = createMemo(() => (props.item.local ? null : rowPartsFor(info)))
   // Our own ask stands in for the stock one, so it reads like it.
   const label = () => {
+    const title = modRow()?.parts.title
+    if (title !== undefined) return { server: "", tool: title }
     if (props.item.name === OWN_ASK) return { server: "", tool: "AskUserQuestion" }
     const mcp = mcpTool(props.item.name)
     return mcp ? { server: `${mcp.server}/`, tool: mcp.tool } : { server: "", tool: props.item.name }
   }
   const target = () => {
+    const text = modRow()?.parts.text
+    if (text !== undefined) return cut(text, width() - Bun.stringWidth(label().tool) - 4)
     const summary = props.item.summary || (label().server ? mcpArguments(props.item.input) : "")
     const value = relative(summary, props.cwd)
     const room = width() - Bun.stringWidth(label().server + label().tool) - 4
@@ -258,7 +289,9 @@ export function ToolCallRow(props: {
             <span style={{ fg: color() }}>●</span>
             <span style={{ fg: theme.muted }}>{` ${label().server}`}</span>
             <span style={{ fg: theme.text, bold: true }}>{label().tool}</span>
-            <span style={{ fg: theme.text }}>{`(${target()})`}</span>
+            <span style={{ fg: theme.text }}>
+              {modRow()?.parts.text !== undefined ? `  ${target()}` : `(${target()})`}
+            </span>
             <span style={{ fg: theme.muted }}>{description() ? `  ${description()}` : ""}</span>
           </text>
         }
@@ -269,41 +302,65 @@ export function ToolCallRow(props: {
         </text>
       </Show>
       <Show
-        when={tail()}
+        when={modRow()?.parts.body}
         fallback={
-          <Index each={lines()}>
-            {(line, index) => (
-              <text wrapMode="none">
-                <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
-                <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
-              </text>
-            )}
-          </Index>
-        }
-      >
-        {(shown) => (
-          <>
-            <text wrapMode="none">
-              <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
-              <span style={{ fg: theme.muted }}>{props.expanded ? resultSummary(props.item) : ""}</span>
-              <FoldHint
-                open={props.expanded}
-                selected={props.selected}
-                hidden={shown().hidden}
-                gap={props.expanded ? " · " : undefined}
-              />
-            </text>
-            <Show when={!props.expanded}>
-              <Index each={shown().last}>
-                {(line) => (
+          <Show
+            when={tail()}
+            fallback={
+              <Index each={lines()}>
+                {(line, index) => (
                   <text wrapMode="none">
-                    <span style={{ fg: theme.frame }}>{LINE_INDENT}</span>
-                    <span style={{ fg: theme.muted }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                    <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
+                    <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
                   </text>
                 )}
               </Index>
-            </Show>
-          </>
+            }
+          >
+            {(shown) => (
+              <>
+                <text wrapMode="none">
+                  <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
+                  <span style={{ fg: theme.muted }}>{props.expanded ? resultSummary(props.item) : ""}</span>
+                  <FoldHint
+                    open={props.expanded}
+                    selected={props.selected}
+                    hidden={shown().hidden}
+                    gap={props.expanded ? " · " : undefined}
+                  />
+                </text>
+                <Show when={!props.expanded}>
+                  <Index each={shown().last}>
+                    {(line) => (
+                      <text wrapMode="none">
+                        <span style={{ fg: theme.frame }}>{LINE_INDENT}</span>
+                        <span style={{ fg: theme.muted }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                      </text>
+                    )}
+                  </Index>
+                </Show>
+              </>
+            )}
+          </Show>
+        }
+      >
+        {(body) => (
+          <ErrorBoundary
+            fallback={(error: unknown) => {
+              const mod = modRow()?.mod
+              if (mod) queueMicrotask(() => reportModError(mod, error))
+              return null
+            }}
+          >
+            {createComponent(body(), {
+              get width() {
+                return width()
+              },
+              get expanded() {
+                return props.expanded
+              },
+            })}
+          </ErrorBoundary>
         )}
       </Show>
       <Show when={props.item.local?.told === false && props.item.status !== "running"}>

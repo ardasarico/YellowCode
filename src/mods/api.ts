@@ -152,6 +152,34 @@ export type ModDialogs = {
   open(options: ModDialogOptions): { close(): void; closed: Promise<void> }
 }
 
+// A tool call in the chat, as a row renderer sees it.
+export type ModToolInfo = {
+  // The full name, like "Bash" or "mcp__mod-terminal__terminal_read".
+  readonly name: string
+  // The name without the MCP prefix: "terminal_read".
+  readonly short: string
+  // The MCP server the tool came from, like "mod-terminal"; null for Claude Code's own tools.
+  readonly source: string | null
+  readonly input: unknown
+  readonly result: string
+  readonly status: "running" | "done" | "error" | "stopped"
+  // The app's one-line summary of the input, like a file path or a command.
+  readonly summary: string
+}
+
+// What a mod draws in a tool row; a part left out is drawn by the app.
+export type ModRowParts = {
+  // In place of the tool's name.
+  title?: string
+  // In place of the summary next to the name.
+  text?: string
+  // In place of the result lines under the row.
+  body?: (props: { width: number; expanded: boolean }) => JSX.Element
+}
+
+// Null leaves the row to the next mod, and in the end to the app.
+export type ModRowRenderer = { render(tool: ModToolInfo): ModRowParts | null }
+
 export type ModToolResult = string | { text: string; isError?: boolean }
 
 // A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
@@ -175,6 +203,7 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   readonly tools: { add(tool: ModTool): Dispose }
   readonly sidebar: { add(section: ModSectionOptions): Dispose }
   readonly dialogs: ModDialogs
+  readonly toolRows: { add(renderer: ModRowRenderer): Dispose }
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void

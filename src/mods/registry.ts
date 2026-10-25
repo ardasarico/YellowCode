@@ -11,12 +11,15 @@ import type {
   ModDialogs,
   ModEvents,
   ModInputOptions,
+  ModRowParts,
+  ModRowRenderer,
   ModKey,
   ModPane,
   ModPaneOptions,
   ModSectionOptions,
   ModStorage,
   ModTool,
+  ModToolInfo,
 } from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
 
@@ -69,6 +72,7 @@ export function counts(mod: string): string[] {
     ...count(keys().filter((key) => key.mod === mod).length, "shortcut"),
     ...count(tools().filter((tool) => tool.mod === mod).length, "tool"),
     ...count(sections().filter((section) => section.mod === mod).length, "section"),
+    ...count(rowRenderers().filter((renderer) => renderer.mod === mod).length, "row renderer"),
   ]
 }
 
@@ -228,4 +232,20 @@ export function modDialogs(mod: string): { dialogs: ModDialogs; dispose: Dispose
       if (current?.mod === mod) current.close(null)
     },
   }
+}
+
+const [rowRenderers, setRowRenderers] = createSignal<Owned<ModRowRenderer>[]>([])
+export const addRowRenderer = adder<Owned<ModRowRenderer>>(setRowRenderers)
+
+// The first mod, in load order, that draws this row; one that throws is turned off and the next one asked.
+export function rowPartsFor(tool: ModToolInfo): { mod: string; parts: ModRowParts } | null {
+  for (const renderer of rowRenderers()) {
+    try {
+      const parts = renderer.render(tool)
+      if (parts) return { mod: renderer.mod, parts }
+    } catch (error) {
+      queueMicrotask(() => failure(renderer.mod, error))
+    }
+  }
+  return null
 }
