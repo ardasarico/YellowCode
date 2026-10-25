@@ -25,7 +25,8 @@ function Panel(props: {
   height: number
   title: string
   footer: { key: string; action: string }[]
-  children: (inner: number, rows: number) => JSX.Element
+  // Called once; the sizes are accessors, so a resize does not rebuild the body.
+  children: (inner: () => number, rows: () => number) => JSX.Element
 }) {
   const dimensions = useTerminalDimensions()
   const width = () => Math.min(props.width, dimensions().width)
@@ -49,7 +50,7 @@ function Panel(props: {
       />
       <box height={1} />
       <box height={rows()} paddingLeft={PAD_X} flexDirection="column" overflow="hidden">
-        {props.children(inner(), rows())}
+        {untrack(() => props.children(inner, rows))}
       </box>
       <box height={1} />
       <Footer items={props.footer} width={inner()} />
@@ -152,8 +153,12 @@ function Custom(props: { options: ModDialogOptions; mod: string; close: Close })
           }}
         >
           {createComponent(props.options.view, {
-            width: inner,
-            height: rows,
+            get width() {
+              return inner()
+            },
+            get height() {
+              return rows()
+            },
             onKey: (next) => (handler = next),
             close: () => props.close(null),
           })}
