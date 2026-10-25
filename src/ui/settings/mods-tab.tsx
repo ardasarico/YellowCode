@@ -54,9 +54,12 @@ function statusSpan(entry: ModEntry): Span {
   const { mark, color } = look(entry.status)
   const word =
     entry.status === "failed"
-      ? entry.error
-        ? "failed at setup"
-        : "failed"
+      ? !entry.error
+        ? "failed"
+        : // A mod that loaded keeps its load time when it fails later.
+          entry.loadMs === null
+          ? "failed at setup"
+          : "failed while running"
       : entry.status === "incompatible"
         ? (entry.problem ?? "incompatible")
         : entry.status
