@@ -1,0 +1,53 @@
+{
+  "name": "Mono",
+  "dark": {
+    "background": "#161616",
+    "text": "#e2e2e2",
+    "muted": "#8b8b8b",
+    "frame": "#434343",
+    "accent": "#f2c14e",
+    "warning": "#d9b26a",
+    "error": "#e07a7a",
+    "band": "#1f1f1f",
+    "tile": "#282828",
+    "selection": "#39311f",
+    "diffAdd": "#313b31",
+    "diffDel": "#3e2d2d",
+    "diffAddText": "#9fcf9f",
+    "diffDelText": "#e08a8a",
+    "agents": ["#f2c14e", "#bdbdbd", "#9a9a9a", "#d6d6d6", "#7c7c7c"],
+    "syntax": {
+      "keyword": "#ffffff",
+      "string": "#b4b4b4",
+      "number": "#f2c14e",
+      "function": "#d4d4d4",
+      "type": "#c4c4c4",
+      "comment": "#666666"
+    }
+  },
+  "light": {
+    "background": "#f4f4f3",
+    "text": "#1d1d1d",
+    "muted": "#6b6b6b",
+    "frame": "#c5c5c4",
+    "accent": "#9a6a00",
+    "warning": "#8a5d10",
+    "error": "#b33a3a",
+    "band": "#eaeae9",
+    "tile": "#e1e1e0",
+    "selection": "#e6decc",
+    "diffAdd": "#cddcce",
+    "diffDel": "#e7cfce",
+    "diffAddText": "#2f7a3a",
+    "diffDelText": "#b33a3a",
+    "agents": ["#9a6a00", "#4a4a4a", "#6b6b6b", "#2e2e2e", "#8a8a8a"],
+    "syntax": {
+      "keyword": "#000000",
+      "string": "#555555",
+      "number": "#9a6a00",
+      "function": "#2b2b2b",
+      "type": "#3d3d3d",
+      "comment": "#9a9a9a"
+    }
+  }
+}
