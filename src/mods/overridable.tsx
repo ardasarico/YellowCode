@@ -1,4 +1,4 @@
-import { type Component, createComponent, createMemo, ErrorBoundary, untrack } from "solid-js"
+import { type Component, createComponent, createMemo, ErrorBoundary, mergeProps, untrack } from "solid-js"
 import type { ModOverridePoints, ModWrap } from "./api.ts"
 import { reportModError, wrapsOf } from "./registry.ts"
 
@@ -27,16 +27,22 @@ function layer<P extends ModOverridePoints[keyof ModOverridePoints]>(
   )
 }
 
-// A part of the screen mods may wrap; with no wraps it is the original.
-export function overridable<K extends keyof ModOverridePoints>(
+// A part of the screen mods may wrap; with no wraps it is the original. Its props must hold what the point promises;
+// mods see only that, but the whole props pass through to the original.
+export function overridable<K extends keyof ModOverridePoints, P extends ModOverridePoints[K]>(
   point: K,
-  Original: Component<ModOverridePoints[K]>,
-): Component<ModOverridePoints[K]> {
+  Original: Component<P>,
+): Component<P> {
   return (props) => {
     const chain = createMemo(() =>
       wrapsOf(point).reduce<Component<ModOverridePoints[K]>>(
         (inner, entry) => layer(entry.mod, entry.wrap, inner),
-        Original,
+        (given) => {
+          // `props` is the part's whole props; a wrap's changes go over them, typed as the fields mods can see.
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- mods see a subset by design
+          const whole = mergeProps(props, given) as P // SAFETY: every field of P is in `props`
+          return createComponent(Original, whole)
+        },
       ),
     )
     return (

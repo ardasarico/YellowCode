@@ -4,11 +4,6 @@
 
 import type { KeyEvent } from "@opentui/core"
 import type { Component, JSX } from "solid-js"
-import type { PromptBarProps, StatusLineProps } from "../ui/prompt-bar.tsx"
-import type { SystemRowProps } from "../ui/system-row.tsx"
-import type { ThinkingRowProps } from "../ui/thinking.tsx"
-import type { TurnEndRowProps } from "../ui/turn-end.tsx"
-import type { UserMessageRowProps } from "../ui/user-message.tsx"
 
 export type ModStorage = {
   get(key: string): unknown
@@ -218,14 +213,57 @@ export type ModFence = {
   view: (props: ModFenceBlock & { width: number }) => JSX.Element
 }
 
-// The parts of the screen a mod may wrap, with what each one is given.
+// The parts of the screen a mod may wrap, with what a wrap can read of each. The part gets more than this at runtime;
+// pass the props on whole (`<Original {...props} />`) and the original draws as before.
 export type ModOverridePoints = {
-  "user-message": Readonly<UserMessageRowProps>
-  thinking: Readonly<ThinkingRowProps>
-  "turn-end": Readonly<TurnEndRowProps>
-  "system-row": Readonly<SystemRowProps>
-  prompt: Readonly<PromptBarProps>
-  "status-line": Readonly<StatusLineProps>
+  "user-message": {
+    readonly item: {
+      readonly id: string
+      readonly text: string
+      // The background agent the message was written to.
+      readonly to: { readonly id: string; readonly name: string } | null
+    }
+    readonly selected: boolean
+    readonly expanded: boolean
+  }
+  thinking: {
+    readonly item: {
+      readonly id: string
+      readonly text: string
+      readonly streaming: boolean
+      readonly durationMs: number | null
+    }
+    readonly selected?: boolean
+    readonly expanded?: boolean
+  }
+  // A turn and the turns it continued, oldest first.
+  "turn-end": {
+    readonly parts: readonly {
+      readonly durationMs: number
+      readonly inputTokens: number
+      readonly outputTokens: number
+      readonly costUsd: number
+      readonly error: string | null
+      readonly retries: number
+      readonly interrupted: boolean
+      readonly endedAt: number
+    }[]
+  }
+  "system-row": {
+    readonly item: {
+      readonly level: "info" | "warning" | "error"
+      readonly text: string
+      readonly detail?: readonly string[]
+    }
+  }
+  prompt: { readonly focused: boolean; readonly width: number; readonly placeholder: string }
+  "status-line": {
+    readonly width: number
+    readonly model: string | null
+    readonly permissionMode?: string | null
+    // Claude is waiting for an answer from the user.
+    readonly asking: boolean
+  }
 }
 
 // Gets the part as it is drawn now, the original or an earlier mod's wrap, and returns what to draw instead. A point's
