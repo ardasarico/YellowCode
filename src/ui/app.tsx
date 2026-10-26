@@ -356,7 +356,7 @@ export function App(props: AppProps) {
     props.sessions
       .list()
       .then((entries) => setListed(entries.slice(0, RECENT_ROWS + 1)))
-      .catch(() => {})
+      .catch((error: unknown) => log.warn("recent sessions failed to load", String(error)))
   onMount(() => void loadRecents())
   const recentShown = () => welcome() && welcomeLayout(dimensions().width, dimensions().height, recents().length).recent
   createEffect(() => {
