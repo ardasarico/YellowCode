@@ -29,7 +29,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
-import { modOfError, mods, startMods } from "./mods/mods.ts"
+import { modOfError, mods, startModUpdates, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
 import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
 import { stopTitles } from "./session/titler.ts"
@@ -1069,3 +1069,5 @@ await render(
   ),
   renderer,
 )
+// After the first frame, or a second when the renderer stays busy, so the network never holds up the start.
+void Promise.race([renderer.idle(), Bun.sleep(1000)]).then(() => startModUpdates(values["no-mods"]))

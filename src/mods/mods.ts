@@ -1,10 +1,12 @@
 import { realpathSync } from "node:fs"
 import { createSignal } from "solid-js"
+import { createStore } from "solid-js/store"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
 import { createModHost, revokedReason } from "./host.ts"
-import { readCachedList } from "./install/list.ts"
+import { autoUpdate } from "./install/auto-update.ts"
+import { type ModList, readCachedList, refreshList } from "./install/list.ts"
 import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
@@ -71,4 +73,38 @@ export async function startMods(off: boolean): Promise<void> {
   mods.onFailure(({ id, late }) => {
     if (late) setModNotice({ text: `Mod ${id} failed and was turned off · /mods`, problem: true })
   })
+}
+
+// The version each mod was updated to on disk since this start; the running copy stays the old one.
+const [updatedTo, setUpdatedTo] = createStore<Record<string, string>>({})
+export { updatedTo }
+
+export function startModUpdates(off: boolean): void {
+  if (off) return
+  autoUpdate(mods.folder, (id, version) => {
+    log.info(`mod ${id}: updated to ${version} on disk`)
+    setUpdatedTo(id, version)
+  }).catch((error: unknown) => log.warn("mod updates failed", error))
+}
+
+export type ModListState = { list: ModList | null; fetching: boolean; failed: boolean }
+
+const [modList, setModList] = createSignal<ModListState>({ list: null, fetching: false, failed: false })
+export { modList }
+
+// The cached list at once, then a fresh one. The Mods tab asks for this each time it opens.
+export function refreshModList(): void {
+  if (modList().fetching) return
+  setModList({ list: readCachedList()?.list ?? null, fetching: true, failed: false })
+  const done = (list: ModList | null) =>
+    setModList((state) => ({ list: list ?? state.list, fetching: false, failed: list === null }))
+  refreshList()
+    .then((fetched) => {
+      if (!fetched.ok) log.info("mod list not fetched", fetched.problem)
+      done(fetched.ok ? fetched.list : null)
+    })
+    .catch((error: unknown) => {
+      log.warn("mod list not fetched", error)
+      done(null)
+    })
 }

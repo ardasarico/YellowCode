@@ -1,8 +1,9 @@
 import type { KeyEvent } from "@opentui/core"
-import { createSignal } from "solid-js"
+import { createSignal, onMount } from "solid-js"
 import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { keyText } from "../../mods/keys.ts"
+import { refreshModList, updatedTo } from "../../mods/mods.ts"
 import { counts, modKeys, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
@@ -50,8 +51,8 @@ function listRow(entry: ModEntry): DialogRow {
     marker: { text: mark, fg: color },
     tag: entry.source === "unlisted" ? "Unlisted" : entry.source === "local" ? "Local" : undefined,
     labelColor: entry.status === "on" ? undefined : entry.status === "off" ? theme.panelFaint : color,
-    value: entry.manifest?.version,
-    valueColor: theme.panelFaint,
+    value: updatedTo[entry.id] ? `updated to ${updatedTo[entry.id]}` : entry.manifest?.version,
+    valueColor: updatedTo[entry.id] ? theme.accent : theme.panelFaint,
   }
 }
 
@@ -152,6 +153,9 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
   return [
     header(heading, statusSpan(entry)),
     ...description,
+    ...(updatedTo[entry.id]
+      ? fact("updated", "Update", `updated to ${updatedTo[entry.id]} · restart to load`, width, theme.accent)
+      : []),
     ...fact("source", "Source", tildePath(entry.folder), width),
     ...fact("adds", "Adds", adds.length > 0 ? adds.join(" · ") : "nothing", width),
     ...fact("load", "Load time", entry.loadMs === null ? "—" : `${entry.loadMs} ms`, width),
@@ -218,6 +222,7 @@ const FOOTER: FooterAction[] = [
 
 export function ModsTab(props: { api: TabApi; host: ModHost }) {
   const [editing, setEditing] = createSignal<Editing | null>(null)
+  onMount(refreshModList)
 
   const detailKey = (key: KeyEvent, row: DialogRow, focused: DialogRow | undefined): boolean => {
     const settings = props.host.settings(row.id)
