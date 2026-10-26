@@ -45,6 +45,7 @@ export default defineMod({
       cwd: process.cwd(),
       size: () => ({ cols: right() ? mod.settings.get("width") : 80, rows: right() ? 24 : mod.settings.get("height") }),
       onEmpty: () => pane.hide(),
+      onFailed: (message) => mod.notify(message, { level: "error" }),
     })
 
     const pane = mod.panes.add({
@@ -57,8 +58,7 @@ export default defineMod({
     })
 
     const open = () => {
-      if (terminals.list().length === 0) terminals.add()
-      pane.focus()
+      if (terminals.list().length > 0 || terminals.add()) pane.focus()
     }
     const hide = () => {
       pane.hide()
@@ -72,13 +72,15 @@ export default defineMod({
     const bindKeys = () => {
       for (const dispose of unbind) dispose()
       unbind = []
+      unbind.push(mod.keys.add({ key: mod.settings.get("toggleKey"), run: toggle }))
+      // Tab keys are typed text, so a wrong one leaves the toggle key working.
       try {
-        unbind.push(mod.keys.add({ key: mod.settings.get("toggleKey"), run: toggle }))
         const prefix = tabPrefix(mod.settings.get("tabKeys"))
         for (let tab = 1; tab <= 9; tab++)
           unbind.push(mod.keys.add({ key: `${prefix}${tab}`, when: "pane", run: () => terminals.select(tab) }))
       } catch (error) {
-        mod.log.warn("a key setting is not a key", error)
+        mod.notify(`Tab keys "${mod.settings.get("tabKeys")}" are not keys`, { level: "warning" })
+        mod.log.warn("the tab keys setting is not a key", error)
       }
     }
     bindKeys()
@@ -91,8 +93,7 @@ export default defineMod({
       argumentHint: "[new|<number>]",
       run(args) {
         if (args === "new") {
-          terminals.add()
-          pane.focus()
+          if (terminals.add()) pane.focus()
         } else if (/^\d+$/.test(args)) {
           terminals.select(Number(args))
           pane.focus()

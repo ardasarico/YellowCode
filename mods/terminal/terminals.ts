@@ -5,15 +5,20 @@ import { createSignal } from "solid-js"
 // Bun.spawn with a terminal leaves the shell on YellowCode's own tty, so job control (ctrl+z, fg) breaks. perl, found on
 // macOS and Linux, makes the pty the shell's controlling terminal before it starts.
 const TIOCSCTTY = process.platform === "darwin" ? "0x20007461" : "0x540E"
-const CONTROLLING_TTY = `use POSIX; POSIX::setsid(); ioctl(STDIN, ${TIOCSCTTY}, 0) or die "controlling tty: $!"; exec @ARGV`
+const CONTROLLING_TTY = `use POSIX; POSIX::setsid(); ioctl(STDIN, ${TIOCSCTTY}, 0) or die "controlling tty: $!"; exec @ARGV or die "cannot run $ARGV[0]: $!"`
 
 const LOG_LINES = 2000
+// A full-screen program redraws without newlines; past this the unfinished line keeps only its end.
+const PARTIAL_LIMIT = 8192
+// A shell that ends this soon after it started did not start at all.
+const FAILED_START_MS = 2000
 // Escape sequences and control characters, so the log reads as text.
 // oxlint-disable-next-line no-control-regex -- terminal output is made of them
 const ESCAPES = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-_]|[\x00-\x08\x0b-\x1f\x7f]/g
 
-// What a line of output reads as: the text after its last carriage return, without escape codes.
-export const plainLine = (raw: string) => (raw.split("\r").at(-1) ?? "").replace(ESCAPES, "")
+// What a line of output reads as: the text after its last carriage return, without escape codes. A pty ends lines with
+// "\r\n", so a carriage return at the end is not one.
+export const plainLine = (raw: string) => (raw.replace(/\r+$/, "").split("\r").at(-1) ?? "").replace(ESCAPES, "")
 
 export type Terminal = {
   id: number
@@ -26,6 +31,8 @@ export type Terminal = {
   pending: Uint8Array[]
   log: string[]
   partial: string
+  // Its own, since a character can be split across two chunks of output.
+  decoder: TextDecoder
   kill(): void
 }
 
@@ -34,16 +41,17 @@ export function createTerminals(options: {
   cwd: string
   size: () => { cols: number; rows: number }
   onEmpty: () => void
+  // A shell that could not start, with why.
+  onFailed: (message: string) => void
 }) {
   const [list, setList] = createSignal<Terminal[]>([])
   const [active, setActive] = createSignal<number | null>(null)
-  const decoder = new TextDecoder()
   let next = 1
 
   function record(terminal: Terminal, data: Uint8Array): void {
-    const text = terminal.partial + decoder.decode(data, { stream: true })
+    const text = terminal.partial + terminal.decoder.decode(data, { stream: true })
     const lines = text.split("\n").map(plainLine)
-    terminal.partial = text.slice(text.lastIndexOf("\n") + 1)
+    terminal.partial = text.slice(text.lastIndexOf("\n") + 1).slice(-PARTIAL_LIMIT)
     lines.pop()
     terminal.log.push(...lines)
     if (terminal.log.length > LOG_LINES) terminal.log.splice(0, terminal.log.length - LOG_LINES)
@@ -60,7 +68,7 @@ export function createTerminals(options: {
     if (rest.length === 0) options.onEmpty()
   }
 
-  function add(): Terminal {
+  function add(): Terminal | null {
     const shell = options.shell()
     const { cols, rows } = options.size()
     const id = next++
@@ -72,6 +80,7 @@ export function createTerminals(options: {
       pending: [],
       log: [],
       partial: "",
+      decoder: new TextDecoder(),
       pty: new Bun.Terminal({
         cols,
         rows,
@@ -83,11 +92,19 @@ export function createTerminals(options: {
       }),
       kill: () => {},
     }
-    const child = Bun.spawn(["perl", "-e", CONTROLLING_TTY, shell, "-l"], {
-      cwd: options.cwd,
-      terminal: terminal.pty,
-      env: { ...process.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
-    })
+    let child: Bun.Subprocess
+    try {
+      child = Bun.spawn(["perl", "-e", CONTROLLING_TTY, shell, "-l"], {
+        cwd: options.cwd,
+        terminal: terminal.pty,
+        env: { ...process.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
+      })
+    } catch (error) {
+      terminal.pty.close()
+      options.onFailed(`cannot start a terminal: ${error instanceof Error ? error.message : String(error)}`)
+      return null
+    }
+    const started = Date.now()
     terminal.kill = () => {
       // The shell leads its own session, so its group takes the jobs it started with it.
       try {
@@ -97,7 +114,12 @@ export function createTerminals(options: {
       }
       terminal.pty.close()
     }
-    void child.exited.then(() => close(id))
+    void child.exited.then((code) => {
+      const early = code !== 0 && Date.now() - started < FAILED_START_MS
+      const why = [...terminal.log, plainLine(terminal.partial)].findLast((line) => line.trim() !== "")
+      close(id)
+      if (early) options.onFailed(why ?? `${shell} exited with ${code}`)
+    })
     setList((current) => [...current, terminal])
     setActive(id)
     return terminal
