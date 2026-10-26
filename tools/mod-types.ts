@@ -31,7 +31,10 @@ writeFileSync(
   }),
 )
 const tsc = Bun.spawnSync(["bunx", "tsc", "-p", config], { cwd: repo, stdout: "inherit", stderr: "inherit" })
-if (tsc.exitCode !== 0) process.exit(tsc.exitCode ?? 1)
+if (tsc.exitCode !== 0) {
+  rmSync(out, { recursive: true, force: true })
+  process.exit(tsc.exitCode ?? 1)
+}
 
 // Imports of other files of the API go; the names taken from packages are merged into one import per package.
 const imports = new Map<string, Set<string>>()
