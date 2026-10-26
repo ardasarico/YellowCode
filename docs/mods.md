@@ -58,9 +58,29 @@ writes `[mod hello] Hello, world` to the log (see [Logging](#logging)). `/mods` 
 Mods live in `$XDG_CONFIG_HOME/yellowcode/mods/<id>/`. When `XDG_CONFIG_HOME` is not set, or is not an absolute path,
 that is `~/.config/yellowcode/mods/<id>/`. There are no mods per project: cloning a repo never runs its code.
 
-There is no installer yet. To install a mod, copy its folder into the mods folder. While you work on a mod in another
-folder you can symlink it there instead, but imports are resolved from where the files really are, so give your working
-folder a `node_modules` link to the one YellowCode keeps in the mods folder:
+Install and manage mods with the `yellowcode mod` commands. Each one prints one result line, or the reason it stopped:
+
+| Command                                      | What it does                                                                                                                                                                       |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yellowcode mod add <id>`                    | Installs a mod from the [YellowCode mod list](#getting-a-mod-listed) at the commit the list pins, and only when the download's files match the list's hash.                        |
+| `yellowcode mod add github:owner/repo[@ref]` | Installs a mod that is not on the list, from a branch, tag or commit (the default branch without `@ref`). It shows the commit and asks first, since nobody has reviewed that code. |
+| `yellowcode mod update [id]`                 | Updates one mod, or all of them without an id. A listed mod moves to the list's version; a mod from GitHub resolves its ref again and asks before it moves to the new commit.      |
+| `yellowcode mod remove <id>`                 | Asks, then deletes the mod's folder.                                                                                                                                               |
+| `yellowcode mod list`                        | Lists the installed mods.                                                                                                                                                          |
+
+`/mods` marks a mod installed from GitHub as "Unlisted" and a mod you copied in by hand as "Local". A mod from GitHub
+cannot take the id of a listed mod. When a mod has a `package.json`, its dependencies are installed from its
+`bun.lock` exactly, without running package scripts; a mod with a `package.json` but no `bun.lock` is refused.
+
+Listed mods update themselves: YellowCode checks the list once a day in the background, and an update takes effect on
+the next start. A mod whose files you have edited is not updated, and neither is an unlisted or local one. A mod that
+needs a newer YellowCode says "needs a newer YellowCode · update YellowCode" and is not loaded. A mod taken off the list
+is not loaded and shows the reason; its folder stays on disk. Starting YellowCode never waits on the network: the list
+is kept on disk and refreshed afterwards.
+
+You can still copy a mod's folder into the mods folder by hand. While you work on a mod in another folder you can
+symlink it there instead, but imports are resolved from where the files really are, so give your working folder a
+`node_modules` link to the one YellowCode keeps in the mods folder:
 
 ```sh
 ln -s ~/my-mods/hello ~/.config/yellowcode/mods/hello
@@ -748,6 +768,51 @@ through the `node_modules` link described in [Where mods live](#where-mods-live)
   }
 }
 ```
+
+## Getting a mod listed
+
+The mod list is [`mods.json`](../mods.json) in this repo. The code stays in your own public GitHub repo, with
+`yellowcode-mod.json` at its root. Each entry pins one version of a mod to a commit and to a hash of that commit's files:
+
+```json
+{
+  "id": "hello",
+  "name": "Hello",
+  "description": "Says hello.",
+  "repo": "you/yellowcode-hello",
+  "version": "0.1.0",
+  "sha": "<the full 40-character commit SHA>",
+  "treeHash": "sha256-...",
+  "api": "^0.1"
+}
+```
+
+`id`, `version` and `api` must equal the ones in the mod's manifest at that commit. The list holds one version of each
+mod; there is no list of older versions.
+
+To get listed:
+
+1. Push the commit you want listed to your repo.
+2. Add your entry to `mods` in `mods.json` in a fork of this repo. For `treeHash`, put any value of the right shape,
+   like `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`, and run `bun tools/mods-check.ts`. It downloads your commit
+   and fails with the hash of the download; copy that into the entry and run it again until it passes. It also checks
+   the manifest, refuses symlinks and dry-runs the dependency install.
+3. Open a pull request. The check prints the link the review reads.
+
+The first review reads the mod's full source. Every update is a new pull request that changes `version`, `sha` and
+`treeHash`; the review reads the diff between the old and the new commit and the `bun.lock` diff.
+
+A listed mod must follow these rules:
+
+- It does not load code from the network: everything it runs is in the reviewed commit or in its locked dependencies.
+- It does not update itself. Updates come through the list.
+- Its source is not minified or obfuscated.
+- Its `mcpServers` run files inside the mod, or packages pinned to an exact version.
+- `solid-js`, `@opentui/*` and `yellowcode` are only peer dependencies. YellowCode gives every mod its own copies, and a
+  mod that installs one of them is refused.
+
+A mod that breaks a rule after it is listed is taken off the list with a reason; it then stops loading for everyone who
+installed it.
 
 ## Examples to read
 
