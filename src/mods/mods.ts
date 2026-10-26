@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs"
 import { createSignal } from "solid-js"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
@@ -13,6 +14,25 @@ export const mods = createModHost({
 })
 
 onModError((mod, error) => mods.fail(mod, error))
+
+function real(folder: string): string {
+  try {
+    return realpathSync(folder)
+  } catch {
+    return folder
+  }
+}
+
+// The running mod whose files appear in an error's stack, for errors thrown where no mod is known, like a mouse handler.
+export function modOfError(error: unknown): string | null {
+  const stack = error instanceof Error ? (error.stack ?? "") : ""
+  const entry = mods.entries.find(
+    (candidate) =>
+      candidate.status === "on" &&
+      (stack.includes(`${candidate.folder}/`) || stack.includes(`${real(candidate.folder)}/`)),
+  )
+  return entry?.id ?? null
+}
 
 // `problem` is false for the plain "mods are off" line.
 export type ModNotice = { text: string; problem: boolean }

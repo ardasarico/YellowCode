@@ -29,7 +29,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
-import { mods, startMods } from "./mods/mods.ts"
+import { modOfError, mods, startMods } from "./mods/mods.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import {
@@ -284,6 +284,12 @@ await applyTerminal()
 startTheme(renderer.nativeScene, settings.theme)
 // OpenTUI clears its palette cache before it reports a light/dark switch, so the same read picks up the new colors.
 renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
+// OpenTUI catches a mouse handler's throw; one from a mod's own box turns that mod off.
+renderer.on(CliRenderEvents.HANDLER_ERROR, ({ error }: { error: unknown }) => {
+  const mod = modOfError(error)
+  if (mod) mods.fail(mod, error)
+  else log.error("a mouse handler failed", error)
+})
 
 let quitting = false
 let shellRun: ShellRun | null = null
