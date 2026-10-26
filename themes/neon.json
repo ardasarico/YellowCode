@@ -1,0 +1,28 @@
+{
+  "name": "Neon",
+  "dark": {
+    "background": "#130a22",
+    "text": "#f1e8ff",
+    "muted": "#9a88bf",
+    "frame": "#443b53",
+    "accent": "#ff3ea5",
+    "warning": "#ffd23e",
+    "error": "#ff5470",
+    "band": "#1d142c",
+    "tile": "#271e36",
+    "selection": "#391237",
+    "diffAdd": "#1d4548",
+    "diffDel": "#4c1c35",
+    "diffAddText": "#3effc0",
+    "diffDelText": "#ff5470",
+    "agents": ["#3ee8ff", "#ff3ea5", "#3effc0", "#ffd23e", "#a87bff"],
+    "syntax": {
+      "keyword": "#ff3ea5",
+      "string": "#3effc0",
+      "number": "#ffd23e",
+      "function": "#3ee8ff",
+      "type": "#a87bff",
+      "comment": "#6a5a8f"
+    }
+  }
+}
