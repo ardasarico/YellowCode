@@ -51,7 +51,7 @@ export function isClaude(args: string): boolean {
   return args
     .split(/\s+/)
     .slice(0, 2)
-    .some((word) => /(^|\/)claude$/.test(word) || word.includes("/claude/versions/"))
+    .some((word) => /(^|\/)claude$/.test(word) || /\/claude(-code)?\//.test(word))
 }
 
 // The sessions a command line runs, in the forms claude takes: --resume <id>, --resume=<id>, -r <id>, -r<id>,

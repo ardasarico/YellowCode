@@ -25,6 +25,7 @@ test("only a claude process can hold a session", () => {
     "claude --resume x",
     "/Users/u/.local/bin/claude -p",
     "node /opt/claude -r x",
+    "node /usr/lib/node_modules/@anthropic-ai/claude-code/cli.js -r x",
     "/home/u/.local/share/claude/versions/2.1.3 -p",
   ])
     expect(isClaude(args)).toBe(true)
