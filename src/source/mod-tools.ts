@@ -9,6 +9,7 @@ import { type McpMessage, OWN_ASK_SERVER } from "../protocol/messages.ts"
 import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "./requests.ts"
 import { OWN_ASK_TIMEOUT_MS } from "./own-ask-tool.ts"
+import { commandOf, safeText } from "./safe-text.ts"
 
 // Each mod's tools are an in-process MCP server named mod-<id>; its manifest's servers are mod-<id>-<name>.
 const PREFIX = "mod-"
@@ -114,8 +115,11 @@ export function syncModServers(requests: Requests, entries: () => readonly ModEn
       .then(
         (reply) => {
           const errors = setServersReply.safeParse(reply).data?.errors ?? {}
-          setServerErrors(errors)
-          if (Object.keys(errors).length > 0) log.warn("mod MCP servers failed", errors)
+          const shown = Object.fromEntries(
+            Object.entries(errors).map(([name, error]) => [name, safeText(error, commandOf(servers[name]))]),
+          )
+          setServerErrors(shown)
+          if (Object.keys(shown).length > 0) log.warn("mod MCP servers failed", shown)
         },
         (error: unknown) => log.warn("mcp_set_servers failed", error instanceof Error ? error.message : error),
       )
