@@ -1,0 +1,65 @@
+{
+  "name": "Forest",
+  "dark": {
+    "background": "#1b1c15",
+    "text": "#e2dfca",
+    "muted": "#8e8c76",
+    "frame": "#47473d",
+    "accent": "#a9c46c",
+    "warning": "#e0a95e",
+    "error": "#e07b62",
+    "band": "#24251d",
+    "tile": "#2d2e25",
+    "selection": "#323723",
+    "diffAdd": "#373e26",
+    "diffDel": "#422f24",
+    "diffAddText": "#a9c46c",
+    "diffDelText": "#e07b62",
+    "agents": [
+      "#c9b36a",
+      "#9fc4a0",
+      "#a9c46c",
+      "#e0a95e",
+      "#b8a0d0"
+    ],
+    "syntax": {
+      "keyword": "#d49a6a",
+      "string": "#a9c46c",
+      "number": "#e0c06a",
+      "function": "#9fc4a0",
+      "type": "#c9b36a",
+      "comment": "#6c6a58"
+    }
+  },
+  "light": {
+    "background": "#f3f1e6",
+    "text": "#2b2a1e",
+    "muted": "#6e6c58",
+    "frame": "#c7c5ba",
+    "accent": "#5c7a1e",
+    "warning": "#8f5a00",
+    "error": "#a8442c",
+    "band": "#eae8dd",
+    "tile": "#e1dfd4",
+    "selection": "#dbdec6",
+    "diffAdd": "#d2d7bd",
+    "diffDel": "#e4cec1",
+    "diffAddText": "#4f6f17",
+    "diffDelText": "#a8442c",
+    "agents": [
+      "#8a6d12",
+      "#3d7a50",
+      "#5c7a1e",
+      "#8f5a00",
+      "#6a4f94"
+    ],
+    "syntax": {
+      "keyword": "#9a4f22",
+      "string": "#4f6f17",
+      "number": "#8a6d12",
+      "function": "#2f6e4c",
+      "type": "#7a5d0e",
+      "comment": "#9a987f"
+    }
+  }
+}
