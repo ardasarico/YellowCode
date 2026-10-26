@@ -1,4 +1,5 @@
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { copyFileSync, readFileSync, rmSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { allowTool, answerQuestions, mcpAck, mcpResponse } from "../../../src/protocol/outgoing.ts"
@@ -526,6 +527,33 @@ if (scenario.steps) {
   }
 }
 
+// Put the user's settings back however the run ends: a crash or Ctrl+C included.
+let restored = false
+function restoreSettings(): void {
+  if (restored) return
+  restored = true
+  const readSync = (path: string) => {
+    try {
+      return readFileSync(path)
+    } catch {
+      return null
+    }
+  }
+  for (const { path, copy, existed } of backups) {
+    const now = readSync(path)
+    if (!existed) {
+      if (now === null) continue
+      rmSync(path)
+      console.log(`removed ${path}`)
+    } else if (!now?.equals(readFileSync(copy))) {
+      copyFileSync(copy, path)
+      console.log(`restored ${path}`)
+    }
+  }
+}
+process.on("exit", restoreSettings)
+process.on("SIGINT", () => process.exit(130))
+
 // Run as a host the user started outside Claude Code: edit-skill-overrides refuses inside a Claude Code session.
 const env = Object.fromEntries(
   Object.entries(process.env).filter(([key]) => key !== "CLAUDECODE" && !key.startsWith("CLAUDE_CODE_")),
@@ -742,17 +770,7 @@ if (stderrText) {
 }
 clearTimeout(timeout)
 
-for (const { path, copy, existed } of backups) {
-  const now = await readOrNull(path)
-  if (!existed) {
-    if (now === null) continue
-    await rm(path)
-    console.log(`removed ${path}`)
-  } else if (!now?.equals(await readFile(copy))) {
-    await copyFile(copy, path)
-    console.log(`restored ${path}`)
-  }
-}
+restoreSettings()
 await rm(root, { recursive: true, force: true })
 
 await mkdir(outDir, { recursive: true })
