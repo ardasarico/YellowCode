@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { reportMarkdown, scrub } from "./report.ts"
 
 test("a report hides the home folder and the user name, and leaves a short name alone", () => {
-  expect(scrub("/Users/sam-lee/code/app.ts by sam-lee", "/Users/sam-lee", "sam-lee")).toBe("~/code/app.ts by user")
+  expect(scrub("/Users/someone/code/app.ts by someone", "/Users/someone", "someone")).toBe("~/code/app.ts by user")
   expect(scrub("a bat and a cat", "/home/a", "a")).toBe("a bat and a cat")
 })
 
