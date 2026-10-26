@@ -36,3 +36,35 @@ test("exports messages, replies and one line per tool call", () => {
   expect(text).toContain("- Read(src/config.ts)\n- Edit(src/config.ts) +1 −1\n- Bash(cat src/config.ts)\n\nI changed")
   expect(text).not.toContain("## You\n\n## You")
 })
+
+test("a failed tool call carries the last lines of its output", () => {
+  const session = createSession()
+  const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "tools.jsonl")
+  for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
+    session.apply(entry.dir, parse(entry.line), entry.t)
+  const { byId } = session.state
+  const failed = Object.fromEntries(
+    Object.entries(byId).map(([id, item]) => [
+      id,
+      item.kind === "tool" && item.name === "Bash"
+        ? {
+            ...item,
+            status: "error" as const,
+            result: Array.from({ length: 12 }, (_, n) => `line ${n + 1} /Users/user/project/a.ts`).join("\n"),
+          }
+        : item,
+    ]),
+  )
+  const text = conversationMarkdown(
+    { ...session.state, byId: failed },
+    {
+      title: "Port",
+      model: "",
+      cwd: "/Users/user/project",
+      date: new Date("2026-10-23"),
+    },
+  )
+  expect(text).toContain("· failed\n```\nline 5 a.ts\n")
+  expect(text).toContain("line 12 a.ts\n```")
+  expect(text).not.toContain("line 4 ")
+})

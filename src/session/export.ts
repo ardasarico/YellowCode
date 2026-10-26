@@ -8,16 +8,30 @@ function changeCounts(patch: Hunk[]): string {
   return plus + minus > 0 ? ` +${plus} −${minus}` : ""
 }
 
-function toolLine(tool: ToolCall, cwd: string): string {
+const FAILED_LINES = 8
+const FAILED_WIDTH = 200
+
+function failedOutput(tool: ToolCall, cwd: string): string {
+  const text = cwd ? tool.result.replaceAll(`${cwd}/`, "") : tool.result
+  const lines = text
+    .trimEnd()
+    .split("\n")
+    .slice(-FAILED_LINES)
+    .map((line) => line.trimEnd().slice(0, FAILED_WIDTH))
+  return lines.some((line) => line !== "") ? `\n\`\`\`\n${lines.join("\n")}\n\`\`\`` : ""
+}
+
+function toolLine(tool: ToolCall, cwd: string, answered: boolean): string {
   const summary = cwd && tool.summary.startsWith(`${cwd}/`) ? tool.summary.slice(cwd.length + 1) : tool.summary
   const call = summary ? `${tool.name}(${summary})` : tool.name
   const counts = tool.patch ? changeCounts(tool.patch) : ""
-  const failed = tool.status === "error" ? " · failed" : ""
+  // A denied call's result is claude's own wording, which the chat does not show either.
+  const failed = tool.status === "error" ? ` · failed${answered ? failedOutput(tool, cwd) : ""}` : ""
   return `- ${call}${counts}${failed}`
 }
 
 // The shown conversation as Markdown: the user's messages, Claude's replies and one line per tool call. Thinking,
-// tool output and quiet lines stay out.
+// quiet lines and tool output stay out, except the last lines of a failed call.
 export function conversationMarkdown(
   session: Session,
   meta: { title: string; model: string; cwd: string; date: Date },
@@ -36,6 +50,12 @@ export function conversationMarkdown(
     if (speaker !== who) parts.push(who === "you" ? "## You" : "## Claude")
     speaker = who
   }
+  const refused = new Set(
+    session.items.flatMap((id) => {
+      const item = session.byId[id]
+      return item?.kind === "ask" && (item.status === "denied" || item.status === "cancelled") ? [item.toolUseId] : []
+    }),
+  )
   for (const id of shownItems(session.items, session.rewound)) {
     const item = session.byId[id]
     if (item?.kind === "user") {
@@ -49,7 +69,7 @@ export function conversationMarkdown(
       parts.push(`! ${item.summary}`)
     } else if (item?.kind === "tool" && !item.quiet) {
       if (speaker !== "claude") say("claude")
-      tools.push(toolLine(item, cwd))
+      tools.push(toolLine(item, cwd, !refused.has(item.id)))
     }
   }
   flushTools()
