@@ -251,6 +251,7 @@ export function createFileRewind(capture: Capture | null, cwd: string): FileRewi
         log.warn("redo restore failed", String(error))
         return { kind: "failed", reason: "could not read the snapshots" }
       } finally {
+        // On purpose: a failed redo is not retried, as the files may have moved on since the rewind.
         release()
       }
     },
