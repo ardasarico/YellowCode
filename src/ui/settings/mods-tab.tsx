@@ -36,6 +36,7 @@ const look = (status: ModStatus) =>
     off: { mark: "◯", color: theme.panelFaint },
     failed: { mark: "✕", color: theme.error },
     incompatible: { mark: "!", color: theme.warning },
+    revoked: { mark: "⊘", color: theme.error },
   })[status]
 
 const nameOf = (entry: ModEntry) => entry.manifest?.name ?? entry.id
@@ -63,8 +64,8 @@ function statusSpan(entry: ModEntry): Span {
           entry.loadMs === null
           ? "failed at setup"
           : "failed while running"
-      : entry.status === "incompatible"
-        ? (entry.problem ?? "incompatible")
+      : entry.status === "incompatible" || entry.status === "revoked"
+        ? (entry.problem ?? entry.status)
         : entry.status
   return { text: `${mark} ${word}`, fg: color }
 }
@@ -169,7 +170,7 @@ function actions(entry: ModEntry): DialogRow[] {
   const folder = { id: "folder", label: "Open folder" }
   const reload = { id: "reload", label: "Reload" }
   if (entry.status === "off") return [{ id: "on", label: "Turn on" }, folder]
-  if (entry.status === "incompatible") return [reload, folder]
+  if (entry.status === "incompatible" || entry.status === "revoked") return [reload, folder]
   return [{ id: "off", label: "Turn off" }, reload, folder]
 }
 

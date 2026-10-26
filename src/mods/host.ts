@@ -24,10 +24,12 @@ import {
   setLoadOrder,
 } from "./registry.ts"
 import { INCOMPATIBLE } from "./install/install.ts"
+import type { ModList } from "./install/list.ts"
+import { type InstallRecord, readRecord } from "./install/record.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modFacingStorage, modStorage } from "./storage.ts"
 
-export type ModStatus = "on" | "off" | "failed" | "incompatible"
+export type ModStatus = "on" | "off" | "failed" | "incompatible" | "revoked"
 
 export type ModError = { message: string; stack: string | null }
 
@@ -104,6 +106,23 @@ function modFolders(folder: string): string[] {
     .toSorted()
 }
 
+// Listed mods match by version, unlisted ones by commit SHA. A local mod has neither, so only a revoke of every
+// version reaches it.
+export function revokedReason(
+  revoked: ModList["revoked"],
+  id: string,
+  manifest: Manifest,
+  record: InstallRecord | null,
+): string | null {
+  const match = revoked.find((entry) => {
+    if (entry.id !== id) return false
+    if (!record) return entry.versions === "all"
+    if (!record.listed) return entry.shas?.includes(record.sha) ?? false
+    return entry.versions === "all" || entry.versions.includes(manifest.version)
+  })
+  return match?.reason ?? null
+}
+
 // YellowCode waits for every setup before it draws, so one that hangs would keep the window from opening.
 const SETUP_LIMIT_MS = 5000
 
@@ -125,6 +144,8 @@ export function createModHost(options: {
   setupLimitMs?: number
   disabled: () => readonly string[]
   saveDisabled: (ids: string[]) => void
+  // Why a mod was taken off the list, or null when it may load.
+  revoked?: (id: string, manifest: Manifest, record: InstallRecord | null) => string | null
 }): ModHost {
   const [entries, setEntries] = createStore<ModEntry[]>([])
   const running = new Map<string, Running>()
@@ -143,9 +164,12 @@ export function createModHost(options: {
   function freshEntry(id: string): ModEntry {
     const folder = join(options.folder, id)
     const read = readManifest(folder)
+    const record = readRecord(options.folder, id)
     const base = { id, folder, error: null, loadMs: null, settings: entries[indexOf(id)]?.settings ?? null }
     if (!read.ok) return { ...base, manifest: null, status: "failed", problem: read.problem }
     const { manifest } = read
+    const reason = options.revoked?.(id, manifest, record) ?? null
+    if (reason !== null) return { ...base, manifest, status: "revoked", problem: `Revoked: ${reason}` }
     if (!compatible(manifest)) return { ...base, manifest, status: "incompatible", problem: INCOMPATIBLE }
     const off = options.disabled().includes(id)
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
@@ -299,7 +323,8 @@ export function createModHost(options: {
     async loadAll() {
       await Promise.all(entries.map((entry) => load(entry.id)))
       for (const entry of entries) {
-        if (entry.status === "failed" || entry.status === "incompatible") emit({ id: entry.id, late: false })
+        if (entry.status === "failed" || entry.status === "incompatible" || entry.status === "revoked")
+          emit({ id: entry.id, late: false })
       }
     },
     async setEnabled(id, on) {

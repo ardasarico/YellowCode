@@ -3,7 +3,7 @@ import { createSignal } from "solid-js"
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createModHost } from "./host.ts"
+import { createModHost, revokedReason } from "./host.ts"
 import { readManifest } from "./manifest.ts"
 import { linkRuntime } from "./runtime.ts"
 
@@ -42,27 +42,57 @@ export default defineMod({
     `import { defineMod } from "yellowcode/mod"
 export default defineMod({ setup() { throw new Error("broken setup") } })`,
   )
-  writeMod(folder, "too-new", "^0.2", `export default {}`)
+  const setupRan = `import { defineMod } from "yellowcode/mod"
+const calls = (globalThis as any).modTestCalls
+export default defineMod({ setup() { calls.push("should not run") } })`
+  writeMod(folder, "too-new", "^0.2", setupRan)
+  writeMod(folder, "pulled", "^0.1", setupRan)
 
   let disabled: string[] = []
-  const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
+  const host = createModHost({
+    folder,
+    disabled: () => disabled,
+    saveDisabled: (ids) => (disabled = ids),
+    revoked: (id) => (id === "pulled" ? "steals tokens" : null),
+  })
   const failures: string[] = []
   host.onFailure((failure) => failures.push(failure.id))
   host.discover()
   await host.loadAll()
 
   const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
-  expect(status).toEqual({ works: "on", throws: "failed", "too-new": "incompatible" })
+  expect(status).toEqual({ works: "on", throws: "failed", "too-new": "incompatible", pulled: "revoked" })
   expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe(
     "needs a newer YellowCode · update YellowCode",
   )
+  expect(host.entries.find((entry) => entry.id === "pulled")?.problem).toBe("Revoked: steals tokens")
   expect(host.entries.find((entry) => entry.id === "throws")?.error?.message).toBe("Error: broken setup")
-  expect(failures.toSorted()).toEqual(["throws", "too-new"])
+  expect(failures.toSorted()).toEqual(["pulled", "throws", "too-new"])
+  expect(calls).not.toContain("should not run")
 
   await host.setEnabled("works", false)
   expect(calls).toEqual(["first", "cleanup"])
   expect(disabled).toEqual(["works"])
   expect(host.entries.find((entry) => entry.id === "works")?.status).toBe("off")
+})
+
+test("a revoke matches listed mods by version, unlisted by SHA and local ones only for every version", () => {
+  const manifest = { id: "x", name: "x", description: "", version: "1.0.0", api: "^0.1", entry: "index.ts" }
+  const sha = "a".repeat(40)
+  const record = { source: "github:o/x", sha, treeHash: "", version: "1.0.0", installedAt: "" }
+  const listed = { ...record, listed: true }
+  const unlisted = { ...record, listed: false }
+  const byVersion = [{ id: "x", versions: ["1.0.0"], reason: "bad" }]
+  const bySha = [{ id: "x", versions: [], shas: [sha], reason: "bad" }]
+  const all = [{ id: "x", versions: "all" as const, reason: "bad" }]
+
+  expect(revokedReason(byVersion, "x", manifest, listed)).toBe("bad")
+  expect(revokedReason(byVersion, "x", { ...manifest, version: "1.0.1" }, listed)).toBeNull()
+  expect(revokedReason(byVersion, "x", manifest, unlisted)).toBeNull()
+  expect(revokedReason(bySha, "x", manifest, unlisted)).toBe("bad")
+  expect(revokedReason(byVersion, "x", manifest, null)).toBeNull()
+  expect(revokedReason(all, "x", manifest, null)).toBe("bad")
+  expect(revokedReason(all, "y", manifest, null)).toBeNull()
 })
 
 test("turning a mod off while its setup awaits removes what it adds afterwards", async () => {

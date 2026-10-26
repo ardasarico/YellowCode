@@ -3,7 +3,8 @@ import { createSignal } from "solid-js"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
-import { createModHost } from "./host.ts"
+import { createModHost, revokedReason } from "./host.ts"
+import { readCachedList } from "./install/list.ts"
 import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
@@ -11,6 +12,7 @@ export const mods = createModHost({
   folder: configPath("mods"),
   disabled: () => settings.disabledMods,
   saveDisabled: (ids) => setSetting("disabledMods", ids),
+  revoked: (id, manifest, record) => revokedReason(readCachedList()?.list.revoked ?? [], id, manifest, record),
 })
 
 onModError((mod, error) => mods.fail(mod, error))
