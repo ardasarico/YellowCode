@@ -1058,9 +1058,10 @@ export function App(props: AppProps) {
       key.stopPropagation()
       return
     }
-    // A focused mod pane takes every key but the shortcuts mods registered.
+    // A focused mod pane takes every key but the shortcuts mods registered, even while claude asks something: keys
+    // typed for the pane must not answer the ask. A click on the chat or the pane's own key leaves it.
     const pane = focusedPane()
-    if (pane !== null && !dialog() && !pending()) {
+    if (pane !== null && !dialog()) {
       key.preventDefault()
       key.stopPropagation()
       const owner = pane.slice(0, pane.indexOf("/"))
