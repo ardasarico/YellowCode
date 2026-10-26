@@ -3,6 +3,6 @@
   "name": "Git",
   "version": "0.1.0",
   "description": "The files you and Claude changed, in the sidebar.",
-  "api": "^1.0",
+  "api": "^0.1",
   "entry": "index.tsx"
 }

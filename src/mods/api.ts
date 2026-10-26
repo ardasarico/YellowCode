@@ -1,6 +1,6 @@
-// What a mod imports as "yellowcode/mod", versioned as `apiVersion`. Within a major version things are only added: new
-// fields, methods, union members and props fields. A mod written against an older 1.x keeps working; a mod that
-// switches exhaustively over a union should keep a default case.
+// What a mod imports as "yellowcode/mod", versioned as `apiVersion`. Within a compatible range (0.1.x now) things are only
+// added: new fields, methods, union members and props fields. A mod written against an older 0.1.x keeps working; a mod
+// that switches exhaustively over a union should keep a default case.
 
 import type { KeyEvent } from "@opentui/core"
 import type { Component, JSX } from "solid-js"

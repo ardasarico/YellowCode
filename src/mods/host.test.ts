@@ -24,7 +24,7 @@ test("a throwing or incompatible mod is marked and the others still load and dis
   writeMod(
     folder,
     "works",
-    "^1.0",
+    "^0.1",
     `import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
 export default defineMod({
@@ -38,11 +38,11 @@ export default defineMod({
   writeMod(
     folder,
     "throws",
-    "^1.0",
+    "^0.1",
     `import { defineMod } from "yellowcode/mod"
 export default defineMod({ setup() { throw new Error("broken setup") } })`,
   )
-  writeMod(folder, "too-new", "^2.0", `export default {}`)
+  writeMod(folder, "too-new", "^0.2", `export default {}`)
 
   let disabled: string[] = []
   const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
@@ -53,7 +53,7 @@ export default defineMod({ setup() { throw new Error("broken setup") } })`,
 
   const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
   expect(status).toEqual({ works: "on", throws: "failed", "too-new": "incompatible" })
-  expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe("needs mod API ^2.0, this is 1.0.0")
+  expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe("needs mod API ^0.2, this is 0.1.0")
   expect(host.entries.find((entry) => entry.id === "throws")?.error?.message).toBe("Error: broken setup")
   expect(failures.toSorted()).toEqual(["throws", "too-new"])
 
@@ -70,7 +70,7 @@ test("turning a mod off while its setup awaits removes what it adds afterwards",
   writeMod(
     folder,
     "slow",
-    "^1.0",
+    "^0.1",
     `import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
 export default defineMod({
@@ -102,7 +102,7 @@ test("an effect a mod makes in setup stops when the mod is turned off", async ()
   writeMod(
     folder,
     "effect",
-    "^1.0",
+    "^0.1",
     `import { createEffect } from "solid-js"
 import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
@@ -131,7 +131,7 @@ test("a manifest with the old yellowcode field says to use api", () => {
   writeFileSync(join(folder, "yellowcode-mod.json"), JSON.stringify(manifest))
   expect(readManifest(folder)).toEqual({
     ok: false,
-    problem: 'yellowcode-mod.json: "yellowcode" is now "api", like "api": "^1.0"',
+    problem: 'yellowcode-mod.json: "yellowcode" is now "api", like "api": "^0.1"',
   })
 })
 
@@ -142,7 +142,7 @@ test("a setup that never finishes fails after the limit", async () => {
   writeMod(
     folder,
     "hangs",
-    "^1.0",
+    "^0.1",
     `import { defineMod } from "yellowcode/mod"
 export default defineMod({ setup: () => new Promise(() => {}) })`,
   )

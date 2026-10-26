@@ -2,7 +2,7 @@
 import type { KeyEvent, RGBA } from "@opentui/core"
 import type { Component, JSX } from "solid-js"
 
-export declare const apiVersion = "1.0.0"
+export declare const apiVersion = "0.1.0"
 
 export type ModTheme = {
   readonly text: RGBA

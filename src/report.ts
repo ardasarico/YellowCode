@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { cpus, homedir, release, totalmem, type, userInfo } from "node:os"
 import { basename, join } from "node:path"
 import packageJson from "../package.json"
+import { apiVersion } from "./mods/version.ts"
 import { logFile } from "./log/log.ts"
 import type { StoredSettings } from "./session/settings-file.ts"
 import { hostEnv } from "./source/claude-cli.ts"
@@ -58,6 +59,7 @@ export function hostFacts(claudeVersion: string | null): Row[] {
   const locale = process.env["LC_ALL"] || process.env["LC_CTYPE"] || process.env["LANG"]
   return [
     ["YellowCode", joined(packageJson.version, commit)],
+    ["Mod API", apiVersion],
     ["Claude Code", claudeVersion],
     ["Bun", Bun.version],
     ["OS", joined(osName(), process.arch)],

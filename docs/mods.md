@@ -26,7 +26,7 @@ Make a folder for it in the mods folder:
   "name": "Hello",
   "version": "0.1.0",
   "description": "Says hello.",
-  "api": "^1.0",
+  "api": "^0.1",
   "entry": "index.tsx"
 }
 ```
@@ -83,12 +83,12 @@ Every mod folder has a `yellowcode-mod.json`:
 | `name`        | yes      | The name shown in `/mods`.                                                                                       |
 | `version`     | yes      | The mod's own version, shown in `/mods`.                                                                         |
 | `description` | no       | One line, shown in `/mods`.                                                                                      |
-| `api`         | yes      | A semver range of mod API versions the mod works with, like `"^1.0"`.                                            |
+| `api`         | yes      | A semver range of mod API versions the mod works with, like `"^0.1"`.                                            |
 | `entry`       | yes      | The `.ts` or `.tsx` file to load, relative to the folder and inside it.                                          |
 | `mcpServers`  | no       | MCP servers to give Claude while the mod is on. See [MCP servers in the manifest](#mcp-servers-in-the-manifest). |
 
 A manifest that is missing, is not valid JSON, or has a wrong field marks the mod as failed, and `/mods` names the
-problem. A mod whose `api` range does not match the running mod API version (`apiVersion`, exported by `yellowcode/mod`) is marked incompatible and is not loaded. Within a major version the API only gains things, so `"^1.0"` keeps working until 2.0.
+problem. A mod whose `api` range does not match the running mod API version (`apiVersion`, exported by `yellowcode/mod`) is marked incompatible and is not loaded. Before 1.0 the API only gains things within a minor version, so `"^0.1"` keeps working through every 0.1.x and stops at 0.2.
 
 ## The entry file
 
@@ -382,7 +382,7 @@ Code's `.mcp.json`:
   "name": "Dice",
   "version": "0.1.0",
   "description": "Lets Claude roll dice.",
-  "api": "^1.0",
+  "api": "^0.1",
   "entry": "index.ts",
   "mcpServers": {
     "memory": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] }
@@ -723,9 +723,10 @@ message to Claude by itself.
 ## Versions and types
 
 `apiVersion`, exported by `yellowcode/mod`, is the version of everything in this guide; the manifest's `api` names the
-range a mod works with. Within a major version things are only added: new fields, methods, events, union members and
-props. So handle a value you do not know, like a new `status`, instead of assuming a list is complete. A change that can
-break a mod raises the major version, and mods asking for the old one show as incompatible.
+range a mod works with. The API is at 0.1 until YellowCode's first release. Additions raise the patch version (0.1.1)
+and only add things: new fields, methods, events, union members and props. So handle a value you do not know, like a
+new `status`, instead of assuming a list is complete. A change that can break a mod raises the minor version (0.2.0),
+and mods asking for `"^0.1"` then show as incompatible. From 1.0 on the usual semver rules apply.
 
 To type-check a mod, put this `tsconfig.json` in its folder. `yellowcode/mod` resolves to the API's declaration file
 through the `node_modules` link described in [Where mods live](#where-mods-live):

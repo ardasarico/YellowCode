@@ -30,6 +30,7 @@ import { controlProblem, initSettings, setControlProblem, setKnobs, settings } f
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
 import { modOfError, mods, startMods } from "./mods/mods.ts"
+import { apiVersion } from "./mods/version.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import {
@@ -68,6 +69,7 @@ import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal
 const USAGE = [
   "Usage: yellowcode [--skip-terminal-check] [--no-mods]",
   "       yellowcode --report",
+  "       yellowcode --version",
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -89,6 +91,7 @@ function readArgs() {
         "skip-terminal-check": { type: "boolean", default: false },
         "no-mods": { type: "boolean", default: false },
         report: { type: "boolean" },
+        version: { type: "boolean" },
       },
     }).values
   } catch (error) {
@@ -100,6 +103,10 @@ const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
 if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
 if (values.report && values.replay !== undefined) fail(USAGE)
+if (values.version) {
+  process.stdout.write(`yellowcode ${packageJson.version} (mod API ${apiVersion})\n`)
+  process.exit(0)
+}
 if (values.report) {
   const loaded = loadSettings()
   process.stdout.write(

@@ -11,7 +11,7 @@ const Manifest = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   description: z.string().default(""),
-  // A semver range of mod API versions, like "^1.0".
+  // A semver range of mod API versions, like "^0.1".
   api: z.string().min(1),
   entry: z.string().regex(/\.tsx?$/),
   // Process or remote MCP servers in the .mcp.json shape, given to Claude while the mod is on.
@@ -41,7 +41,7 @@ export function readManifest(folder: string): ManifestResult {
   const value = json.value
   const old = typeof value === "object" && value !== null && "yellowcode" in value && !("api" in value)
   if (!parsed.success && old)
-    return { ok: false, problem: `${MANIFEST}: "yellowcode" is now "api", like "api": "^1.0"` }
+    return { ok: false, problem: `${MANIFEST}: "yellowcode" is now "api", like "api": "^0.1"` }
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "manifest"))]
     return { ok: false, problem: `${MANIFEST}: invalid ${fields.join(", ")}` }
