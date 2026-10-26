@@ -1036,7 +1036,8 @@ export function App(props: AppProps) {
     setRewindArmed(false)
     const rewind = props.rewind
     const prompts = shownItems().some((id) => props.session.byId[id]?.kind === "user")
-    if (!rewind || !prompts || pending() || previewing || dialog() !== null) return
+    if (rewind && !prompts) return waitNotice("Nothing to rewind")
+    if (!rewind || pending() || previewing || dialog() !== null) return
     // While Claude Code works the list still opens; only rewinding waits.
     if (busy() || rewind.working?.() || !canRewind()) return openTimeline(null, null)
     previewing = true
@@ -1097,7 +1098,8 @@ export function App(props: AppProps) {
     return typeof answer === "object" ? answer : null
   }
   const redo = () => {
-    if (props.session.rewound) props.rewind?.onRedo()
+    if (!props.session.rewound) return waitNotice("Nothing to redo")
+    props.rewind?.onRedo()
   }
 
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
@@ -1350,7 +1352,11 @@ export function App(props: AppProps) {
     if (to && !text.trim()) return false
     if (!to && (shellMode() || command.startsWith("!"))) {
       const line = shellMode() ? text.trim() : command.slice(1).trim()
-      if (!line || !props.onShell) return false
+      if (!line) return false
+      if (!props.onShell) {
+        waitNotice(REPLAY_NOTICE)
+        return false
+      }
       if (shellRunning()) {
         waitNotice("A shell command is still running · Esc stops it")
         return false
