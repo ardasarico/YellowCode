@@ -41,7 +41,7 @@ export function PlanBand(props: AskViewProps) {
   }
   const sendNote = (note: string) => {
     const text = note.trim()
-    props.onAnswer(denyTool(props.ask.requestId, text ? DECLINED_WITH_NOTE + text : TOOL_DECLINED))
+    if (text) props.onAnswer(denyTool(props.ask.requestId, DECLINED_WITH_NOTE + text))
   }
   const typing = typingGuard()
   useKeyboard((key) => {
