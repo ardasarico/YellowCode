@@ -124,8 +124,20 @@ function imagesOf(
 
 const numbered = (index: number) => `Image ${index + 1}`
 
-const SHELL_CONTEXT =
-  /(?:\s*<bash-input>[\s\S]*?<\/bash-input>\n<bash-stdout>[\s\S]*?<\/bash-stdout><bash-stderr>[\s\S]*?<\/bash-stderr>)+\s*$/
+const SHELL_CONTEXT_BLOCK =
+  /^<bash-input>[\s\S]*?<\/bash-input>\n<bash-stdout>[\s\S]*?<\/bash-stdout><bash-stderr>[\s\S]*?<\/bash-stderr>$/
+
+// Walks back one block at a time; a regex over all of them backtracks exponentially.
+export function stripShellContext(text: string): string {
+  let rest = text
+  for (;;) {
+    const trimmed = rest.trimEnd()
+    if (!trimmed.endsWith("</bash-stderr>")) return rest
+    const start = trimmed.lastIndexOf("<bash-input>")
+    if (start < 0 || !SHELL_CONTEXT_BLOCK.test(trimmed.slice(start))) return rest
+    rest = trimmed.slice(0, start).trimEnd()
+  }
+}
 
 function describeUserContent(content: string | UserBlock[]): {
   text: string
@@ -137,9 +149,9 @@ function describeUserContent(content: string | UserBlock[]): {
       ? content
       : content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n")
   const images = typeof content === "string" ? [] : imagesOf(content, numbered)
-  const message = readAgentMessage(raw)
   // `!` commands that went out after the message are shown on their own rows.
-  raw = raw.replace(SHELL_CONTEXT, "")
+  raw = stripShellContext(raw)
+  const message = readAgentMessage(raw)
   if (message) return { text: message.text, images, to: { id: message.id, name: message.name } }
   return { text: raw, images, to: null }
 }
@@ -685,10 +697,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   function settleMessage(tool: ToolCall, block: { is_error?: boolean; content?: ResultContent }): void {
     const to = messageIdOf(tool.input)
     if (to === undefined) return
-    const [entry] = pendingMessages.splice(
-      pendingMessages.findIndex((pending) => pending.to === to),
-      1,
-    )
+    const index = pendingMessages.findIndex((pending) => pending.to === to)
+    const [entry] = index < 0 ? [] : pendingMessages.splice(index, 1)
     const text = toolResultText(block.content)
     const refused = block.is_error === true || /"success"\s*:\s*false/.test(text)
     const ids = quietIds
@@ -1057,7 +1067,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   }
 
   // A turn is ours to hide when its init has no user_message_uuids, none of our messages waits, and the latest task
-  // notification before it is about a task from the rewound prompts (probe P6). Any init uses up the notifications
+  // notification before it is about a task from the rewound prompts. Any init uses up the notifications
   // before it, so each task hides one turn at most. The turn's lines go nowhere; the tasks' own lines still apply.
   function hidden(message: ProtocolMessage): boolean {
     if (message.type === "system" && message.subtype === "task_notification") {
@@ -1511,6 +1521,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       const id = waiting.get(uuid)
       if (!id) return
       waiting.delete(uuid)
+      const pending = pendingMessages.findIndex((entry) => entry.userId === id)
+      if (pending >= 0) pendingMessages.splice(pending, 1)
       update(id, (item) => {
         if (item.kind === "user") item.queue = "not sent"
       })
@@ -1541,6 +1553,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       outputRequests.clear()
       hiding = false
       hideFor.clear()
+      pendingMessages.length = 0
       cancelOwnAsks()
       setState("status", "starting")
     },
@@ -1560,6 +1573,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       }
       // claude is gone, and with it the call our own ask would answer.
       cancelOwnAsks()
+      pendingMessages.length = 0
       // A message still waiting never ran.
       for (const id of waiting.values())
         update(id, (item) => {

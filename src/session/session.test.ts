@@ -14,7 +14,7 @@ import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { agentMessage } from "./agent-message.ts"
 import { LOGIN_HINT } from "./login.ts"
-import { createSession, withoutOpenMarkers } from "./session.ts"
+import { createSession, stripShellContext, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
@@ -902,4 +902,35 @@ test("a `!` command rides along after the next message and is told", () => {
   expect(tool?.kind === "tool" && tool.local?.told).toBe(true)
   const user = session.state.items.map((item) => session.state.byId[item]).find((item) => item?.kind === "user")
   expect(user?.kind === "user" && user.text).toBe("what changed?")
+})
+
+test("a long run of shell blocks is stripped without stalling", () => {
+  const blocks = Array.from({ length: 24 }, (_, at) => shellContext(`echo ${at}`, "x\n")).join("\n\n")
+  const begun = performance.now()
+  expect(stripShellContext(`what changed?\n\n${blocks}`)).toBe("what changed?")
+  expect(stripShellContext(`${blocks}\nand then?`)).toBe(`${blocks}\nand then?`)
+  expect(performance.now() - begun).toBeLessThan(500)
+})
+
+const agentLine = (uuid: string, text: string) =>
+  JSON.stringify({ type: "user", uuid, message: { role: "user", content: agentMessage("a1", "kilo", text) } })
+
+test("a message to an agent settles only its own delivery, and a message that was not sent leaves none behind", () => {
+  const session = createSession()
+  const take = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const settleTo = (id: string, to: string) => {
+    take(assistant(`m-${id}`, { type: "tool_use", id, name: "SendMessage", input: { to, message: "x" } }))
+    take({
+      type: "user",
+      message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: '{"success":true}' }] },
+    })
+  }
+  const deliveries = () => items(session).flatMap((item) => (item.kind === "user" ? [item.delivery] : []))
+  session.showEarly(agentLine("u1", "lost"))
+  session.notSent("u1")
+  session.apply("out", parse(agentLine("u2", "kept")), 0)
+  settleTo("t1", "other")
+  expect(deliveries()).toEqual([undefined, undefined])
+  settleTo("t2", "a1")
+  expect(deliveries()).toEqual([undefined, "sent"])
 })
