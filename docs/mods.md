@@ -58,8 +58,16 @@ writes `[mod hello] Hello, world` to the log (see [Logging](#logging)). `/mods` 
 Mods live in `$XDG_CONFIG_HOME/yellowcode/mods/<id>/`. When `XDG_CONFIG_HOME` is not set, or is not an absolute path,
 that is `~/.config/yellowcode/mods/<id>/`. There are no mods per project: cloning a repo never runs its code.
 
-There is no installer yet. To install a mod, copy its folder into the mods folder, or symlink it there while you work on
-it. Folders whose name starts with a dot are skipped. YellowCode looks for mods only at startup, so restart it after
+There is no installer yet. To install a mod, copy its folder into the mods folder. While you work on a mod in another
+folder you can symlink it there instead, but imports are resolved from where the files really are, so give your working
+folder a `node_modules` link to the one YellowCode keeps in the mods folder:
+
+```sh
+ln -s ~/my-mods/hello ~/.config/yellowcode/mods/hello
+ln -s ~/.config/yellowcode/mods/node_modules ~/my-mods/hello/node_modules
+```
+
+Folders whose name starts with a dot are skipped. YellowCode looks for mods only at startup, so restart it after
 adding a folder.
 
 A mod placed in the folder is on. Turning it off in `/mods` is saved in YellowCode's `settings.json` under
@@ -104,8 +112,10 @@ export default defineMod({
 reload. It may be `async`. It may return a cleanup function, which runs when the mod is turned off, reloaded or fails.
 You can also register cleanups with `mod.onDispose(fn)`; they run newest first, before the returned one.
 
-Everything a mod adds through `mod` (commands, keys, panes, sections and so on) is removed for you when it stops. Each
-`add` also returns a function that removes that one thing early.
+Everything a mod adds through `mod` (commands, keys, panes, sections and so on) is removed for you when it stops. Most
+`add` calls also return a function that removes that one thing early; `panes.add` returns the pane instead. Effects and
+memos created in `setup` stop with the mod too, but only those made before the first `await`; after it, put them in a
+`createRoot` and dispose of it with `mod.onDispose`.
 
 Keep `setup` light. YellowCode waits for every mod's `setup` before it shows its window, and `/mods` shows how long each
 one took. Start timers, sockets and processes on the first event or command, not in `setup`.
@@ -665,4 +675,4 @@ The mods in this repo's `mods/` folder are complete examples:
 - `mods/csv`: a fence that draws `csv` and `tsv` blocks as tables.
 - `mods/terminal`: shells in a pane, settings, shortcuts read from settings, two tools for Claude and rows for them.
 
-To try one, symlink its folder into your mods folder.
+To try one, copy its folder into your mods folder.
