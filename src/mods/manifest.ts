@@ -5,9 +5,10 @@ import { parseJson } from "../protocol/json.ts"
 import { apiVersion } from "./version.ts"
 
 export const MANIFEST = "yellowcode-mod.json"
+export const MOD_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 const Manifest = z.object({
-  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  id: z.string().regex(MOD_ID),
   name: z.string().min(1),
   version: z.string().min(1),
   description: z.string().default(""),
