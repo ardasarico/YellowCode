@@ -20,9 +20,18 @@ const ESCAPES = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[
 // "\r\n", so a carriage return at the end is not one.
 export const plainLine = (raw: string) => (raw.replace(/\r+$/, "").split("\r").at(-1) ?? "").replace(ESCAPES, "")
 
+// The window title a program sets with OSC 0 or 2.
+// oxlint-disable-next-line no-control-regex -- the sequence is made of control characters
+const TITLE = /\x1b\][02];([^\x07\x1b]*)(?:\x07|\x1b\\)/g
+
 export type Terminal = {
   id: number
-  title: string
+  // What the shell set as its title, else the command running in it, else the shell's name.
+  readonly title: string
+  shellName: string
+  setTitle(title: string): void
+  setCommand(command: string | null): void
+  pid: number | null
   cwd: string
   // Made once and kept: the pane mounts it while shown, so hiding the pane keeps the screen.
   view: EmbeddedTerminalRenderable | null
@@ -50,6 +59,9 @@ export function createTerminals(options: {
 
   function record(terminal: Terminal, data: Uint8Array): void {
     const text = terminal.partial + terminal.decoder.decode(data, { stream: true })
+    const titles = [...text.matchAll(TITLE)]
+    const title = titles.at(-1)?.[1]
+    if (title !== undefined) terminal.setTitle(title.trim())
     const lines = text.split("\n").map(plainLine)
     terminal.partial = text.slice(text.lastIndexOf("\n") + 1).slice(-PARTIAL_LIMIT)
     lines.pop()
@@ -72,9 +84,18 @@ export function createTerminals(options: {
     const shell = options.shell()
     const { cols, rows } = options.size()
     const id = next++
+    const [title, setTitle] = createSignal("")
+    const [command, setCommand] = createSignal<string | null>(null)
+    const shellName = basename(shell)
     const terminal: Terminal = {
       id,
-      title: basename(shell),
+      get title() {
+        return title() || command() || shellName
+      },
+      shellName,
+      setTitle,
+      setCommand,
+      pid: null,
       cwd: options.cwd,
       view: null,
       pending: [],
@@ -105,6 +126,8 @@ export function createTerminals(options: {
       return null
     }
     const started = Date.now()
+    // perl execs the shell, so the child's pid is the shell's.
+    terminal.pid = child.pid
     terminal.kill = () => {
       // The shell leads its own session, so its group takes the jobs it started with it.
       try {
@@ -125,8 +148,22 @@ export function createTerminals(options: {
     return terminal
   }
 
+  // The program in the foreground of each terminal, by its name; the shell itself counts as nothing running.
+  async function refreshCommands(): Promise<void> {
+    await Promise.all(
+      list().map(async (terminal) => {
+        if (terminal.pid === null) return
+        const group = (await output(["ps", "-o", "tpgid=", "-p", String(terminal.pid)])).trim()
+        const name = group && group !== String(terminal.pid) ? await output(["ps", "-o", "comm=", "-p", group]) : ""
+        const command = basename(name.trim()).replace(/^-/, "")
+        terminal.setCommand(command && command !== terminal.shellName ? command : null)
+      }),
+    )
+  }
+
   return {
     list,
+    refreshCommands,
     active: () => list().find((terminal) => terminal.id === active()) ?? null,
     add,
     close,
@@ -170,6 +207,17 @@ export function createTerminals(options: {
         }
       }
     },
+  }
+}
+
+async function output(command: string[]): Promise<string> {
+  try {
+    const child = Bun.spawn(command, { stdout: "pipe", stderr: "ignore" })
+    const text = await new Response(child.stdout).text()
+    await child.exited
+    return text
+  } catch {
+    return ""
   }
 }
 

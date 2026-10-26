@@ -4,6 +4,8 @@ import { createEffect, For, on, onCleanup, untrack } from "solid-js"
 import { type ModPaneViewProps, theme } from "yellowcode/mod"
 import type { Terminals } from "./terminals.ts"
 
+const COMMAND_POLL_MS = 1000
+
 const hex = (color: RGBA) =>
   `#${color
     .toInts()
@@ -42,6 +44,9 @@ export function TerminalPane(props: ModPaneViewProps & { terminals: Terminals })
       if (background) view.write(`\x1b]11;${hex(background)}\x07`)
     }
   })
+  // Which program runs in each tab, for its label; only while the pane is shown.
+  const poll = setInterval(() => void terminals.refreshCommands(), COMMAND_POLL_MS)
+  onCleanup(() => clearInterval(poll))
   const encoder = new TextEncoder()
   untrack(() => props.onPaste)((text) => {
     const terminal = terminals.active()
