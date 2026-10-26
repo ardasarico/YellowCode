@@ -1,7 +1,7 @@
 // Scenarios and their turns run one at a time on purpose; each waits on a live claude process.
 /* oxlint-disable no-await-in-loop */
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises"
-import { homedir, tmpdir, userInfo } from "node:os"
+import { homedir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
 import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/protocol/messages.ts"
 import {
@@ -65,7 +65,7 @@ function checkIsolation(parsed: ParseResult, scenario: Scenario): void {
 }
 
 async function record(scenario: Scenario, cliVersion: string): Promise<void> {
-  const tempRoot = await mkdtemp(join(tmpdir(), "yellowcode-record-"))
+  const tempRoot = await mkdtemp("/tmp/yellowcode-record-")
   const requestedDir = join(tempRoot, scenario.name)
   await mkdir(requestedDir)
   const workDir = await realpath(requestedDir)

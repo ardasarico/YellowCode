@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto"
 import { mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs"
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises"
-import { homedir, tmpdir, userInfo } from "node:os"
+import { homedir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
 import { z } from "zod"
 import type { ProtocolMessage } from "../../src/protocol/messages.ts"
@@ -230,7 +230,7 @@ function touch(): void {
 }
 
 async function generate(): Promise<void> {
-  const tempRoot = await mkdtemp(join(tmpdir(), "yellowcode-transcripts-"))
+  const tempRoot = await mkdtemp("/tmp/yellowcode-transcripts-")
   const requestedDir = join(tempRoot, "project")
   await mkdir(requestedDir)
   const workDir = await realpath(requestedDir)
