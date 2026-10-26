@@ -1,0 +1,65 @@
+{
+  "name": "Ocean",
+  "dark": {
+    "background": "#0f2222",
+    "text": "#d4ebe6",
+    "muted": "#7f9e98",
+    "frame": "#3a4e4d",
+    "accent": "#4fd6b8",
+    "warning": "#f0b878",
+    "error": "#ff8a7a",
+    "band": "#182b2b",
+    "tile": "#213434",
+    "selection": "#193f3a",
+    "diffAdd": "#27483e",
+    "diffDel": "#3f3734",
+    "diffAddText": "#86e0b0",
+    "diffDelText": "#ff8a7a",
+    "agents": [
+      "#4fd6b8",
+      "#ff9e8a",
+      "#86e0b0",
+      "#f0b878",
+      "#7ab8f0"
+    ],
+    "syntax": {
+      "keyword": "#ff9e8a",
+      "string": "#86e0b0",
+      "number": "#f0c878",
+      "function": "#7ab8f0",
+      "type": "#4fd6b8",
+      "comment": "#577a74"
+    }
+  },
+  "light": {
+    "background": "#eef7f5",
+    "text": "#143330",
+    "muted": "#5a7a75",
+    "frame": "#beccca",
+    "accent": "#0a8a72",
+    "warning": "#8c5a00",
+    "error": "#c0443a",
+    "band": "#e4eeec",
+    "tile": "#dae5e3",
+    "selection": "#cae6e0",
+    "diffAdd": "#c5dfd4",
+    "diffDel": "#e5d3d0",
+    "diffAddText": "#1f7f52",
+    "diffDelText": "#c0443a",
+    "agents": [
+      "#0a8a72",
+      "#c0503a",
+      "#1f7f52",
+      "#8c5a00",
+      "#2a62a8"
+    ],
+    "syntax": {
+      "keyword": "#c0503a",
+      "string": "#1f7f52",
+      "number": "#8c6a00",
+      "function": "#2a62a8",
+      "type": "#0a8a72",
+      "comment": "#86a39e"
+    }
+  }
+}
