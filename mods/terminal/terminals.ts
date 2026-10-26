@@ -7,6 +7,16 @@ import { createSignal } from "solid-js"
 const TIOCSCTTY = process.platform === "darwin" ? "0x20007461" : "0x540E"
 const CONTROLLING_TTY = `use POSIX; POSIX::setsid(); ioctl(STDIN, ${TIOCSCTTY}, 0) or die "controlling tty: $!"; exec @ARGV or die "cannot run $ARGV[0]: $!"`
 
+// The process groups on the shell's terminal other than the shell's own.
+function jobsOn(shell: number): number[] {
+  const tty = Bun.spawnSync(["ps", "-o", "tty=", "-p", String(shell)])
+    .stdout.toString()
+    .trim()
+  if (!tty || tty.startsWith("?")) return []
+  const groups = Bun.spawnSync(["ps", "-o", "pgid=", "-t", tty]).stdout.toString().split("\n").map(Number)
+  return [...new Set(groups)].filter((group) => group > 0 && group !== shell)
+}
+
 const LOG_LINES = 2000
 // A full-screen program redraws without newlines; past this the unfinished line keeps only its end.
 const PARTIAL_LIMIT = 8192
@@ -129,11 +139,13 @@ export function createTerminals(options: {
     // perl execs the shell, so the child's pid is the shell's.
     terminal.pid = child.pid
     terminal.kill = () => {
-      // The shell leads its own session, so its group takes the jobs it started with it.
-      try {
-        process.kill(-child.pid, "SIGHUP")
-      } catch {
-        // Already gone.
+      // Each background job has its own process group, and bash does not pass the hangup on to them.
+      for (const pid of [child.pid, ...jobsOn(child.pid)]) {
+        try {
+          process.kill(-pid, "SIGHUP")
+        } catch {
+          // Already gone.
+        }
       }
       terminal.pty.close()
     }
