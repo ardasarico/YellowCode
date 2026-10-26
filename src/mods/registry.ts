@@ -49,9 +49,23 @@ export function guarded(mod: string, run: () => unknown): void {
   }
 }
 
-function adder<T>(set: (update: (list: T[]) => T[]) => void) {
+// The mods in load order. A mod that reloads registers again; its things go back to its place, not to the end.
+let loadOrder: readonly string[] = []
+export const setLoadOrder = (ids: readonly string[]) => (loadOrder = ids)
+
+function rank(mod: string): number {
+  const index = loadOrder.indexOf(mod)
+  return index < 0 ? loadOrder.length : index
+}
+
+function placed<T extends { mod: string }>(list: T[], item: T): T[] {
+  const after = list.findLastIndex((other) => rank(other.mod) <= rank(item.mod))
+  return [...list.slice(0, after + 1), item, ...list.slice(after + 1)]
+}
+
+function adder<T extends { mod: string }>(set: (update: (list: T[]) => T[]) => void) {
   return (item: T): Dispose => {
-    set((list) => [...list, item])
+    set((list) => placed(list, item))
     return () => set((list) => list.filter((entry) => entry !== item))
   }
 }
@@ -123,7 +137,12 @@ export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; 
     key,
     visible: () => shown().has(key),
   }
-  setPanes((list) => [...list.filter((pane) => pane.key !== key), entry])
+  setPanes((list) =>
+    placed(
+      list.filter((pane) => pane.key !== key),
+      entry,
+    ),
+  )
   const pane: ModPane = {
     show: () => setVisible(key, true),
     hide: () => setVisible(key, false),
@@ -169,7 +188,12 @@ export function addSection(mod: string, options: ModSectionOptions, storage: Mod
       storage.set("sections", { ...stored(), [options.id]: value })
     },
   }
-  setSections((list) => [...list.filter((section) => section.key !== entry.key), entry])
+  setSections((list) =>
+    placed(
+      list.filter((section) => section.key !== entry.key),
+      entry,
+    ),
+  )
   return () => setSections((list) => list.filter((section) => section !== entry))
 }
 
@@ -314,7 +338,7 @@ export function addWrap<K extends keyof ModOverridePoints>(
 ): Dispose {
   const entry: WrapEntry<K> = { mod, wrap }
   const [, setList]: Wraps[K] = wraps[point]
-  setList((list) => [...list, entry])
+  setList((list) => placed(list, entry))
   return () => setList((list) => list.filter((other) => other !== entry))
 }
 

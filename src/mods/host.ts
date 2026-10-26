@@ -17,6 +17,7 @@ import {
   addWrap,
   guarded,
   modDialogs,
+  setLoadOrder,
 } from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modStorage } from "./storage.ts"
@@ -243,7 +244,9 @@ export function createModHost(options: {
     folder: options.folder,
     discover() {
       for (const id of running.keys()) unload(id)
-      setEntries(modFolders(options.folder).map(freshEntry))
+      const ids = modFolders(options.folder)
+      setLoadOrder(ids)
+      setEntries(ids.map(freshEntry))
     },
     async loadAll() {
       for (const id of entries.map((entry) => entry.id))
