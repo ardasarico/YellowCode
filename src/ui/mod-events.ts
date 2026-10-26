@@ -17,13 +17,26 @@ const onFocus = () => emitModEvent("focus", {})
 // nothing.
 export function useModEvents(renderer: CliRenderer, session: () => Session): void {
   const running = new Set<string>()
+  // Only new items and running tools are read, so a long session costs no more than a short one.
+  let seen = 0
+  let last: Session | null = null
   createEffect(() => {
     const current = session()
-    for (const id of current.items) {
+    if (current !== last || current.items.length < seen) {
+      last = current
+      seen = 0
+      running.clear()
+    }
+    for (const id of current.items.slice(seen)) {
       const item = current.byId[id]
-      if (item?.kind !== "tool") continue
-      if (item.status === "running") running.add(id)
-      else if (running.delete(id) && current.status === "running")
+      if (item?.kind === "tool" && item.status === "running") running.add(id)
+    }
+    seen = current.items.length
+    for (const id of running) {
+      const item = current.byId[id]
+      if (item?.kind === "tool" && item.status === "running") continue
+      running.delete(id)
+      if (item?.kind === "tool" && item.status !== "running" && current.status === "running")
         emitModEvent("tool-done", { name: item.name, status: item.status })
     }
   })
