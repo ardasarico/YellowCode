@@ -202,7 +202,7 @@ export function RewindDialog(
   const keep = () => {
     const asked = rewound(true)
     if (!asked) return
-    void props.onRewind(asked, [])
+    props.onRewind(asked, []).catch((error: unknown) => log.warn("rewind failed", String(error)))
     props.onClose()
   }
 
