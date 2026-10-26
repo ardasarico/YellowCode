@@ -70,7 +70,11 @@ const lastJson = (stdout: string): unknown => {
 
 function cliFailure(result: CliResult, message: string | undefined): string {
   if (result.code === null) return "Claude Code did not answer"
-  return message || result.stderr.split("\n")[0] || `Claude Code exited with code ${result.code}`
+  return (
+    message ||
+    result.stderr.split("\n")[0] ||
+    (result.code === 0 ? "Claude Code did not report the change" : `Claude Code exited with code ${result.code}`)
+  )
 }
 
 const failureText = (error: unknown) =>
