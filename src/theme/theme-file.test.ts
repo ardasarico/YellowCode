@@ -26,3 +26,19 @@ test("a user theme loads, or says what is wrong with it", () => {
   // A light-only theme serves a dark terminal too.
   expect(user.find((entry) => entry.id === "meadow")?.definition?.dark).toEqual(dusk.light)
 })
+
+test("a wrong kind of value is not called missing", () => {
+  const folder = mkdtempSync(join(tmpdir(), "yellowcode-themes-"))
+  const write = (id: string, file: unknown) => writeFileSync(join(folder, `${id}.json`), JSON.stringify(file))
+  write("agents", { name: "A", dark: { ...dusk.dark, agents: "#ffffff" } })
+  write("dark", { name: "B", dark: 5 })
+  write("name", { name: 3, dark: dusk.dark })
+  write("none", { name: "C" })
+  const user = readThemes(folder).filter((entry) => entry.source === "user")
+  expect(user.map((entry) => [entry.id, entry.problem])).toEqual([
+    ["agents", "dark.agents is not a list of colors"],
+    ["dark", "dark is not a set of colors"],
+    ["name", "name is not text"],
+    ["none", "dark: needs dark or light"],
+  ])
+})
