@@ -1,5 +1,5 @@
-import { readdirSync, realpathSync, statSync } from "node:fs"
-import { join, sep } from "node:path"
+import { readdirSync, statSync } from "node:fs"
+import { join } from "node:path"
 import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
@@ -104,14 +104,6 @@ function modFolders(folder: string): string[] {
     .toSorted()
 }
 
-// Module cache keys are real paths, so a linked folder is matched by where it points.
-function forgetModules(folder: string): void {
-  const prefix = realpathSync(folder) + sep
-  for (const key of Object.keys(require.cache)) {
-    if (key.startsWith(prefix)) delete require.cache[key]
-  }
-}
-
 // YellowCode waits for every setup before it draws, so one that hangs would keep the window from opening.
 const SETUP_LIMIT_MS = 5000
 
@@ -199,7 +191,6 @@ export function createModHost(options: {
     }
     const started = performance.now()
     try {
-      forgetModules(entry.folder)
       const module: unknown = await import(`${file}?v=${++imports}`)
       const definition = typeof module === "object" && module !== null && "default" in module ? module.default : null
       if (stale()) return

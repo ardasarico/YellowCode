@@ -237,8 +237,9 @@ errors, its last error and its settings.
 - r reloads it,
 - enter opens its folder.
 
-A reload stops the mod, reads its manifest again, imports its files fresh and runs `setup` again. Its storage and
-settings stay. Edit the code, press r, and the change is live without a restart.
+A reload stops the mod, reads its manifest again, imports its entry file fresh and runs `setup` again. Its storage and
+settings stay. Edit the entry file, press r, and the change is live. Other files the entry imports are not read again, so
+after editing one of those, restart YellowCode.
 
 `yellowcode --no-mods` starts with no mods loaded and says `Mods are off (--no-mods)`. Use it when a mod gets in the way
 of starting.
