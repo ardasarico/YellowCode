@@ -4,7 +4,7 @@ import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
 import { createModHost } from "./host.ts"
-import { onModError } from "./registry.ts"
+import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
 export const mods = createModHost({
@@ -40,6 +40,11 @@ export type ModNotice = { text: string; problem: boolean }
 const [modNotice, setModNotice] = createSignal<ModNotice | null>(null)
 export { modNotice }
 export const clearModNotice = () => setModNotice(null)
+
+onModNotify((mod, text, level) => {
+  const name = mods.entries.find((entry) => entry.id === mod)?.manifest?.name ?? mod
+  setModNotice({ text: `${name}: ${text}`, problem: level !== "info" })
+})
 
 export async function startMods(off: boolean): Promise<void> {
   if (off) {

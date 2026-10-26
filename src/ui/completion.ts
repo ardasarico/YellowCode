@@ -53,7 +53,8 @@ export type CompletionOptions = {
   // Called by ↓ on an empty prompt that is not browsing the history.
   onLeaveDown?: () => void
   // Each new `seq` replaces the prompt with `draft`. A `/` typed right after it starts a command in its place.
-  fill?: Accessor<{ draft: Draft; seq: number; ifEmpty?: boolean } | undefined>
+  // `insert` puts the draft's text at the cursor instead of replacing what is there.
+  fill?: Accessor<{ draft: Draft; seq: number; ifEmpty?: boolean; insert?: boolean } | undefined>
   // Called by Ctrl+C on an empty prompt; Ctrl+C on text clears it.
   onQuit?: () => void
   // Called by Esc on an empty prompt with no list open.
@@ -316,6 +317,10 @@ export function useCompletion(options: CompletionOptions) {
       () => {
         const next = options.fill?.()
         if (!next || (next.ifEmpty && area && area.plainText !== "")) return
+        if (next.insert) {
+          area?.insertText(next.draft.text)
+          return
+        }
         restore(next.draft)
         filled = next.draft.text || null
       },

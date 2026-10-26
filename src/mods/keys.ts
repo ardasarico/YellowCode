@@ -19,3 +19,9 @@ export function matches(binding: KeyBinding, key: KeyEventLike): boolean {
   if (binding.name === "`" && binding.ctrl && key.name === "space") return true
   return binding.name === key.name.toLowerCase()
 }
+
+// A pressed key as a mod key string, like "ctrl+shift+k".
+export function keyText(key: KeyEventLike): string {
+  const alt = key.meta || key.option === true
+  return [key.ctrl && "ctrl", alt && "alt", key.shift && "shift", key.name.toLowerCase()].filter(Boolean).join("+")
+}

@@ -2,6 +2,7 @@ import type { KeyEvent } from "@opentui/core"
 import { createSignal } from "solid-js"
 import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
+import { keyText } from "../../mods/keys.ts"
 import { counts, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
@@ -22,7 +23,8 @@ const STACK_LINES = 8
 const SETTING = "setting:"
 
 // A text setting being typed: its key and the text so far.
-type Editing = { key: string; draft: string }
+// `capture` waits for the next key press, for a key setting.
+type Editing = { key: string; draft: string; capture?: boolean }
 
 const settingKey = (item: DialogRow | undefined) =>
   item?.id.startsWith(SETTING) ? item.id.slice(SETTING.length) : null
@@ -109,7 +111,11 @@ function settingItems(settings: SettingsHandle | null, editing: Editing | null, 
       return {
         id: `${SETTING}${key}`,
         label: definition.label,
-        value: typing ? `${editing.draft}▏` : shownValue(definition, settings.get(key)),
+        value: typing
+          ? editing.capture
+            ? "press a key"
+            : `${editing.draft}▏`
+          : shownValue(definition, settings.get(key)),
         note: definition.type === "number" ? undefined : definition.note,
         valueColor: typing ? theme.accent : undefined,
       }
@@ -159,6 +165,10 @@ const TEXT_FOOTER: FooterAction[] = [
   { key: "enter", action: "edit" },
   { key: "esc", action: "back" },
 ]
+const CAPTURE_FOOTER: FooterAction[] = [
+  { key: "a key", action: "set" },
+  { key: "esc", action: "cancel" },
+]
 const TYPING_FOOTER: FooterAction[] = [
   { key: "enter", action: "save" },
   { key: "esc", action: "cancel" },
@@ -192,6 +202,11 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
     const settings = props.host.settings(row.id)
     const name = settingKey(focused)
     const typing = editing()
+    if (typing?.capture) {
+      if (key.name !== "escape") settings?.set(typing.key, keyText(key))
+      setEditing(null)
+      return true
+    }
     if (typing) {
       if (key.name === "return") {
         settings?.set(typing.key, typing.draft)
@@ -204,9 +219,9 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
     }
     if (!settings || name === null) return false
     const definition = settings.definitions[name]
-    if (definition?.type === "text") {
+    if (definition?.type === "text" || definition?.type === "key") {
       if (key.name !== "return") return false
-      setEditing({ key: name, draft: String(settings.get(name)) })
+      setEditing({ key: name, draft: String(settings.get(name)), capture: definition.type === "key" })
       return true
     }
     if (key.name === "left" || key.name === "right") changeSetting(settings, name, key.name === "left" ? -1 : 1)
@@ -267,9 +282,11 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       onDetailKey={detailKey}
       detailFooter={(row, focused) => {
         const name = settingKey(focused)
-        if (editing()) return TYPING_FOOTER
+        const typing = editing()
+        if (typing) return typing.capture ? CAPTURE_FOOTER : TYPING_FOOTER
         if (name === null) return null
-        return props.host.settings(row.id)?.definitions[name]?.type === "text" ? TEXT_FOOTER : SETTING_FOOTER
+        const type = props.host.settings(row.id)?.definitions[name]?.type
+        return type === "text" || type === "key" ? TEXT_FOOTER : SETTING_FOOTER
       }}
     />
   )

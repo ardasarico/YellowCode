@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js"
 import { log } from "../log/log.ts"
 import type { ModSettings, ModStorage, ModSettingDefinition, ModSettingDefinitions, ModSettingValue } from "./api.ts"
+import { parseKey } from "./keys.ts"
 import { guarded } from "./registry.ts"
 import { readAppValue, writeAppValue } from "./storage.ts"
 
@@ -16,6 +17,8 @@ function valid(definition: ModSettingDefinition, value: unknown): value is ModSe
       return typeof value === "number" && Number.isFinite(value) && value >= definition.min && value <= definition.max
     case "text":
       return typeof value === "string"
+    case "key":
+      return typeof value === "string" && parseKey(value) !== null
     default:
       return false
   }

@@ -32,6 +32,8 @@ export type ModSettingDefinition =
   | { type: "boolean"; label: string; default: boolean; note?: string }
   | { type: "number"; label: string; min: number; max: number; step: number; default: number; unit?: string }
   | { type: "text"; label: string; default: string; note?: string }
+  // A shortcut like "ctrl+g", set in /mods by pressing it.
+  | { type: "key"; label: string; default: string; note?: string }
 
 export type ModSettingDefinitions = Record<string, ModSettingDefinition>
 
@@ -127,6 +129,21 @@ export type ModEvents = {
   "turn-end": { error: string | null }
   // The terminal window got the focus back.
   focus: Record<string, never>
+  // The user sent a message they typed, after every before-send.
+  "message-sent": { text: string }
+  // The model of the session changed.
+  "model-changed": { model: string | null }
+}
+
+export type ModNotifyOptions = { level?: "info" | "warning" | "error" }
+
+// The session as the app shows it. Read in a view or an effect and they follow changes; null before it is known.
+export type ModSession = {
+  model(): string | null
+  id(): string | null
+  // A turn is running.
+  running(): boolean
+  permissionMode(): string | null
 }
 
 export type ModChooseOptions = {
@@ -304,6 +321,16 @@ export type ModApi<S extends ModSettingDefinitions = ModSettingDefinitions> = {
   readonly fences: { add(fence: ModFence): Dispose }
   readonly toolRows: { add(renderer: ModRowRenderer): Dispose }
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
+  // The project folder YellowCode was started in.
+  readonly cwd: string
+  // A line on the notice line under the prompt, with the mod's name in front.
+  notify(text: string, options?: ModNotifyOptions): void
+  readonly clipboard: { write(text: string): Promise<boolean> }
+  // A URL in the browser, or a file in the user's editor. False when nothing opened it.
+  open(target: string): Promise<boolean>
+  readonly session: ModSession
+  // Puts text in the prompt at the cursor; sending stays with the user.
+  readonly prompt: { insert(text: string): void }
   // Runs when the mod is turned off, reloaded or fails, newest first.
   onDispose(dispose: () => void): void
 }

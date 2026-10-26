@@ -18,7 +18,9 @@ import {
   addTool,
   addWrap,
   guarded,
+  appBridge,
   modDialogs,
+  modNotify,
   modTools,
   setLoadOrder,
 } from "./registry.ts"
@@ -236,6 +238,19 @@ export function createModHost(options: {
           },
         },
         onDispose: (disposer) => void own(disposer),
+        cwd: process.cwd(),
+        notify: (text, notifyOptions) => {
+          if (!stale()) modNotify(id, text, notifyOptions?.level ?? "info")
+        },
+        clipboard: { write: async (text) => (await appBridge()?.copy(text)) ?? false },
+        open: async (target) => (await appBridge()?.open(target)) ?? false,
+        session: {
+          model: () => appBridge()?.session.model() ?? null,
+          id: () => appBridge()?.session.id() ?? null,
+          running: () => appBridge()?.session.running() ?? false,
+          permissionMode: () => appBridge()?.session.permissionMode() ?? null,
+        },
+        prompt: { insert: (text) => appBridge()?.insert(text) },
       }
       // Effects and memos made in setup belong to the mod and end with it. Code after an await in setup has no owner.
       const cleanup = await createRoot((disposeRoot) => {

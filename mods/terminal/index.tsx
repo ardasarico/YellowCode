@@ -32,7 +32,7 @@ export default defineMod({
     width: { type: "number", label: "Width", min: 30, max: 160, step: 2, default: 80, unit: "columns" },
     shell: { type: "text", label: "Shell", default: "$SHELL", note: "a path, or $SHELL for your login shell" },
     keepRunning: { type: "boolean", label: "Keep running", default: true, note: "when the pane is hidden" },
-    toggleKey: { type: "text", label: "Toggle key", default: "ctrl+`" },
+    toggleKey: { type: "key", label: "Toggle key", default: "ctrl+`" },
     tabKeys: { type: "text", label: "Tab keys", default: "ctrl+1…9" },
   },
   setup(mod) {

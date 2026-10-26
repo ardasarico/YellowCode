@@ -71,7 +71,7 @@ import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
 import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
-import { openFile } from "./dialog/open-file.ts"
+import { openFile, openUrl } from "./dialog/open-file.ts"
 import { modelName, REPLAY_NOTICE, windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
@@ -92,6 +92,7 @@ import { matches } from "../mods/keys.ts"
 import { clearModNotice, modNotice } from "../mods/mods.ts"
 import {
   beforeSend,
+  emitModEvent,
   focusedPane,
   guarded,
   modDialog,
@@ -99,6 +100,7 @@ import {
   modPanes,
   paneKeys,
   type RegisteredPane,
+  setAppBridge,
   setAppDialogOpen,
   setFocusedPane,
 } from "../mods/registry.ts"
@@ -267,7 +269,7 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "rewind" && props.rewind ? open : null
   }
-  const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean }>()
+  const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean; insert?: boolean }>()
   // The agent the prompt writes to, set by `m` on an agent.
   const [messageTo, setMessageTo] = createSignal<{ id: string; name: string } | null>(null)
   const [shellMode, setShellMode] = createSignal(false)
@@ -422,7 +424,30 @@ export function App(props: AppProps) {
     const name = renamed()
     return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()
   }
-  if (!untrack(() => props.readOnly)) useModEvents(renderer, () => props.session)
+  if (!untrack(() => props.readOnly)) {
+    useModEvents(
+      renderer,
+      () => props.session,
+      // From the session's own info, so a model alias resolving to its full name is not a change.
+      () => settings.model ?? props.session.info?.model ?? null,
+    )
+    setAppBridge({
+      copy: (text) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied)),
+      open: (target) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(target) ? openUrl(target) : openFile(target)),
+      // After the current key: a mod command inserting text runs before the prompt clears what was sent.
+      insert: (text) =>
+        queueMicrotask(() =>
+          setFill((previous) => ({ draft: { text, chips: [] }, seq: (previous?.seq ?? 0) + 1, insert: true })),
+        ),
+      session: {
+        model: () => settings.model ?? props.model(),
+        id: () => props.session.info?.id ?? null,
+        running: () => props.session.status === "running",
+        permissionMode: () => props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null,
+      },
+    })
+    onCleanup(() => setAppBridge(null))
+  }
   const flagged = untrack(() => props.readOnly)
     ? () => false
     : useAttention(
@@ -1388,6 +1413,7 @@ export function App(props: AppProps) {
         : giveBack
       const accepted = ended() ? (props.onRestart?.(out, images, back) ?? false) : props.onSubmit(out, images, back)
       if (!accepted) return false
+      if (message) emitModEvent("message-sent", { text: changed })
       jumpDown()
       if (to) setMessageTo(null)
       if (draft.chips.length > 0) drafts.set(index, { text, draft })

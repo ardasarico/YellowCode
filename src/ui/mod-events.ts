@@ -15,7 +15,7 @@ const onFocus = () => emitModEvent("focus", {})
 
 // Tells the mods what happens in the session. Only what happens during a turn counts, so loading a transcript fires
 // nothing.
-export function useModEvents(renderer: CliRenderer, session: () => Session): void {
+export function useModEvents(renderer: CliRenderer, session: () => Session, model: () => string | null): void {
   const running = new Set<string>()
   // Only new items and running tools are read, so a long session costs no more than a short one.
   let seen = 0
@@ -47,6 +47,16 @@ export function useModEvents(renderer: CliRenderer, session: () => Session): voi
         if (previous === "running" && status !== "running")
           emitModEvent("turn-end", { error: lastTurnError(session()) })
       },
+    ),
+  )
+  createEffect(
+    on(
+      model,
+      (now, before) => {
+        // The model becoming known at start is not a change.
+        if (before !== null && before !== undefined && now !== before) emitModEvent("model-changed", { model: now })
+      },
+      { defer: true },
     ),
   )
   renderer.on(CliRenderEvents.FOCUS, onFocus)

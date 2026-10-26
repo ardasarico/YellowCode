@@ -40,6 +40,7 @@ async function open(args: string[], command = "open"): Promise<boolean> {
 }
 
 export const openFolder = (path: string) => open([path], process.platform === "darwin" ? "open" : "xdg-open")
+export const openUrl = (url: string) => open([url], process.platform === "darwin" ? "open" : "xdg-open")
 
 // False when the chosen editor could not open the file and the default app was used instead.
 export async function openFile(path: string, line?: number): Promise<boolean> {

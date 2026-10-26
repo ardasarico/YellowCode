@@ -19,6 +19,7 @@ import type {
   ModPane,
   ModPaneOptions,
   ModSectionOptions,
+  ModSession,
   ModStorage,
   ModTool,
   ModToolCall,
@@ -214,7 +215,13 @@ export function addSection(mod: string, options: ModSectionOptions, storage: Mod
 }
 
 type Listeners = { [E in keyof ModEvents]: Set<{ mod: string; handler: (data: ModEvents[E]) => void }> }
-const listeners: Listeners = { "tool-done": new Set(), "turn-end": new Set(), focus: new Set() }
+const listeners: Listeners = {
+  "tool-done": new Set(),
+  "turn-end": new Set(),
+  focus: new Set(),
+  "message-sent": new Set(),
+  "model-changed": new Set(),
+}
 
 export function addListener<E extends keyof ModEvents>(
   mod: string,
@@ -392,3 +399,19 @@ export function beforeSend(text: string): string | null {
   }
   return current
 }
+
+// What the app lends mods once it is drawn: the clipboard, opening things, the prompt and the session.
+export type AppBridge = {
+  copy(text: string): Promise<boolean>
+  open(target: string): Promise<boolean>
+  insert(text: string): void
+  session: ModSession
+}
+
+const [bridge, setBridge] = createSignal<AppBridge | null>(null)
+export { setBridge as setAppBridge }
+export const appBridge = bridge
+
+let notify: (mod: string, text: string, level: "info" | "warning" | "error") => void = () => {}
+export const onModNotify = (handler: typeof notify) => (notify = handler)
+export const modNotify = (mod: string, text: string, level: "info" | "warning" | "error") => notify(mod, text, level)
