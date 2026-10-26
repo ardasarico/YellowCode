@@ -9,7 +9,7 @@ import {
   type ScrollBoxRenderable,
   RGBA,
 } from "@opentui/core"
-import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
+import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
 import { log } from "../../log/log.ts"
 import { settings } from "../../session/settings.ts"
@@ -17,11 +17,10 @@ import { syntaxStyle, theme } from "../../theme/theme.ts"
 import { mix } from "../color.ts"
 import { cutPath } from "../format.ts"
 import type { FileRef } from "../markdown/refs.ts"
-import { Frame } from "./frame.tsx"
+import { Frame, useViewPanel } from "./frame.tsx"
 import { fill, Footer, PAD_X } from "./list-view.tsx"
 import { editorName, openFile } from "./open-file.ts"
 
-const MARGIN = 0.03
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 
 // The panel already uses the selection tint, so the highlight is one step lighter than the panel.
@@ -84,13 +83,7 @@ export function CodeView(props: {
       () => setNotice(""),
     ),
   )
-  const dimensions = useTerminalDimensions()
-  const panel = () => {
-    const { width, height } = dimensions()
-    const gapX = Math.max(1, Math.round(width * MARGIN))
-    const gapY = Math.max(1, Math.round(height * MARGIN))
-    return { x: gapX, y: gapY, width: width - 2 * gapX, height: height - 2 * gapY }
-  }
+  const panel = useViewPanel()
   const inner = () => Math.max(0, panel().width - PAD_X * 2)
   const ref = () => props.refs[props.index] ?? props.refs[0]
   const text = createMemo(() => {

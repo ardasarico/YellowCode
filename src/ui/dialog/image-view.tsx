@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
+import { useKeyboard } from "@opentui/solid"
 import { createEffect, createSignal, on, Show } from "solid-js"
 import { log } from "../../log/log.ts"
 import { tildePath } from "../../rewind/common.ts"
@@ -9,10 +9,8 @@ import type { ChatImage } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cutPath } from "../format.ts"
 import { createDecoded, loadImage } from "../image-label.tsx"
-import { Frame } from "./frame.tsx"
+import { Frame, useViewPanel } from "./frame.tsx"
 import { Footer, PAD_X } from "./list-view.tsx"
-
-const MARGIN = 0.03
 
 let viewedDir: string | undefined
 
@@ -67,13 +65,7 @@ export function ImageView(props: {
       () => setNotice(""),
     ),
   )
-  const dimensions = useTerminalDimensions()
-  const panel = () => {
-    const { width, height } = dimensions()
-    const gapX = Math.max(1, Math.round(width * MARGIN))
-    const gapY = Math.max(1, Math.round(height * MARGIN))
-    return { x: gapX, y: gapY, width: width - 2 * gapX, height: height - 2 * gapY }
-  }
+  const panel = useViewPanel()
   const inner = () => Math.max(0, panel().width - PAD_X * 2)
   const image = () => props.images[props.index] ?? props.images[0]
   const file = () => {

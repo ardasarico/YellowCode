@@ -1,5 +1,5 @@
 import { type OptimizedBuffer, TextAttributes } from "@opentui/core"
-import { useRenderer } from "@opentui/solid"
+import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, type JSX, onCleanup, onMount, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { SCRIM, setCovered } from "../images.ts"
@@ -7,6 +7,19 @@ import { DimmedImages } from "./dimmed-images.tsx"
 import { fill } from "./list-view.tsx"
 
 type Rect = { x: number; y: number; width: number; height: number }
+
+const MARGIN = 0.03
+
+// The rectangle a full-screen viewer takes, a small margin in from the terminal edge.
+export function useViewPanel(): () => Rect {
+  const dimensions = useTerminalDimensions()
+  return () => {
+    const { width, height } = dimensions()
+    const gapX = Math.max(1, Math.round(width * MARGIN))
+    const gapY = Math.max(1, Math.round(height * MARGIN))
+    return { x: gapX, y: gapY, width: width - 2 * gapX, height: height - 2 * gapY }
+  }
+}
 
 // A panel over the dimmed app.
 export function Frame(props: { panel: Rect; children: JSX.Element }) {
