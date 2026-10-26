@@ -23,7 +23,7 @@ import { useTicker } from "./ticker.ts"
 import { EDGE_GAP } from "./layout.ts"
 import { InputEdge, UltracodeWord } from "./ultracode.tsx"
 
-// `spaced` keeps a blank row above an always-filled notice line (replay info) so it does not touch the chat.
+// `spaced` keeps a blank row between the chat and the prompt. The notice's right side is drawn in the top rule.
 // `ask` takes the place of the rules and the input. `agents` shows the agents hint.
 // `shells` draws the running-shells counter, which ↓ can select.
 // `newLines` draws the pill on the row above the top rule; it covers the notice line, whose text then hides.
@@ -82,8 +82,6 @@ function ContextIndicator(props: { context: Usage["context"] }) {
   )
 }
 
-const spansWidth = (spans: Span[]) => spans.reduce((sum, span) => sum + Bun.stringWidth(span.text), 0)
-
 // Spans cut to `width`, the last one shown ending in `…`.
 function fitSpans(spans: Span[], width: number): Span[] {
   const fitted: Span[] = []
@@ -97,16 +95,10 @@ function fitSpans(spans: Span[], width: number): Span[] {
   return fitted
 }
 
-// The right side is left out whole when both sides do not fit.
-function NoticeLine(props: { notice: Notice; width: number; spaced?: boolean; covered: boolean }) {
-  const right = () =>
-    spansWidth(props.notice.left) + 2 + spansWidth(props.notice.right) <= props.width ? props.notice.right : []
+function NoticeLine(props: { spans: Span[]; width: number; covered: boolean }) {
   return (
-    <box flexDirection="row" justifyContent="space-between" height={1} gap={2} marginTop={props.spaced ? 1 : 0}>
-      <Spans spans={props.covered ? [] : fitSpans(props.notice.left, props.width)} shrink={1} />
-      <Show when={!props.covered && right().length > 0}>
-        <Spans spans={right()} shrink={0} />
-      </Show>
+    <box height={1}>
+      <Spans spans={props.covered ? [] : fitSpans(props.spans, props.width)} shrink={1} />
     </box>
   )
 }
@@ -122,6 +114,7 @@ function PromptInput(
     onListOpen?: (open: boolean) => void
     onLeaveDown?: () => void
     onUnfoldable: (unfoldable: boolean) => void
+    hint?: string
   },
 ) {
   const dimensions = useTerminalDimensions()
@@ -178,6 +171,7 @@ function PromptInput(
           frame={props.frame}
           glyph="─"
           label={edgeLabel()}
+          hint={props.hint}
           color={props.shell ? theme.shell : undefined}
         />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
@@ -373,32 +367,26 @@ export function promptInnerWidth(width: number): number {
 function PromptBarBase(props: PromptBarProps) {
   const frame = useTicker(() => settings.ultracode, 60)
   const inner = () => promptInnerWidth(props.width)
-  const hasNotice = () => props.notice.left.length > 0 || props.notice.right.length > 0
+  const hasNotice = () => props.notice.left.length > 0
+  const gap = () => (props.spaced ? 1 : 0)
   const dimensions = useTerminalDimensions()
   let draft: Draft = untrack(() => props.draft) ?? { text: "", chips: [] }
   const [unfoldable, setUnfoldable] = createSignal(false)
 
   // The chat keeps its rows, so a tall ask scrolls inside what is left.
-  const askGap = () => (props.spaced && !hasNotice() ? 1 : 0)
-  const askMaxHeight = () => {
-    const notice = hasNotice() ? 1 + (props.spaced ? 1 : 0) : 0
-    return Math.max(ASK_MIN_ROWS, dimensions().height - CHAT_MIN_ROWS - notice - askGap() - 1)
-  }
+  const askMaxHeight = () =>
+    Math.max(ASK_MIN_ROWS, dimensions().height - CHAT_MIN_ROWS - gap() - (hasNotice() ? 1 : 0) - 1)
 
   return (
     <box flexDirection="column" flexShrink={0} width={props.width} paddingX={EDGE_GAP}>
+      <Show when={props.spaced}>
+        <box height={1} flexShrink={0} />
+      </Show>
       <Show when={hasNotice()}>
-        <NoticeLine
-          notice={props.notice}
-          width={inner()}
-          spaced={props.spaced}
-          covered={props.newLines !== undefined}
-        />
+        <NoticeLine spans={props.notice.left} width={inner()} covered={props.newLines !== undefined} />
       </Show>
       <Show when={props.newLines}>
-        {(newLines) => (
-          <NewLinesPill {...newLines()} width={props.width} top={hasNotice() ? (props.spaced ? 1 : 0) : askGap() - 1} />
-        )}
+        {(newLines) => <NewLinesPill {...newLines()} width={props.width} top={hasNotice() ? gap() : gap() - 1} />}
       </Show>
       <Show
         when={props.ask}
@@ -428,11 +416,12 @@ function PromptBarBase(props: PromptBarProps) {
             onRecall={props.onRecall}
             fill={props.fill}
             onUnfoldable={setUnfoldable}
+            hint={props.notice.right.map((span) => span.text).join("")}
           />
         }
       >
         {(ask) => (
-          <box flexDirection="column" marginTop={askGap()} maxHeight={askMaxHeight()}>
+          <box flexDirection="column" maxHeight={askMaxHeight()}>
             {ask}
           </box>
         )}

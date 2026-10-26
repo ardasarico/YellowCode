@@ -49,13 +49,14 @@ const LABEL_INDENT = 2
 
 const range = (from: number, to: number) => Array.from({ length: Math.max(0, to - from) }, (_, x) => from + x)
 
-// `label` is drawn muted two cells into the rule, when it fits with two rule cells after it.
+// `label` is drawn muted two cells into the rule and `hint` two cells from its end, each only when it fits.
 export function InputEdge(props: {
   width: number
   ultracode: boolean
   frame: number
   glyph?: string
   label?: string
+  hint?: string
   color?: RGBA
 }) {
   const glyph = () => props.glyph ?? EDGE
@@ -64,7 +65,12 @@ export function InputEdge(props: {
     const text = props.label ? ` ${props.label} ` : ""
     return text && LABEL_INDENT + Bun.stringWidth(text) + LABEL_INDENT <= width() ? text : ""
   }
-  const after = () => LABEL_INDENT + Bun.stringWidth(label())
+  const after = () => (label() ? LABEL_INDENT + Bun.stringWidth(label()) : 0)
+  const hint = () => {
+    const text = props.hint ? ` ${props.hint} ` : ""
+    return text && after() + LABEL_INDENT + Bun.stringWidth(text) + LABEL_INDENT <= width() ? text : ""
+  }
+  const before = () => width() - LABEL_INDENT - Bun.stringWidth(hint())
   const cells = (from: number, to: number) =>
     props.ultracode ? (
       <Index each={range(from, to)}>
@@ -79,11 +85,15 @@ export function InputEdge(props: {
         <>
           {cells(0, LABEL_INDENT)}
           <span style={{ fg: theme.muted }}>{label()}</span>
-          {cells(after(), width())}
         </>
-      ) : (
-        cells(0, width())
-      )}
+      ) : null}
+      {cells(after(), hint() ? before() : width())}
+      {hint() ? (
+        <>
+          <span style={{ fg: theme.muted }}>{hint()}</span>
+          {cells(width() - LABEL_INDENT, width())}
+        </>
+      ) : null}
     </text>
   )
 }
