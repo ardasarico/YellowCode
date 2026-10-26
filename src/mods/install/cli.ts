@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { configPath } from "../../config-path.ts"
 import { parseJson } from "../../protocol/json.ts"
 import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
-import { editedLocally, listedEntry, modFolders } from "./checks.ts"
+import { editedLocally, listedEntry, modFolders, revokedListing } from "./checks.ts"
 import { installAt, type InstallResult } from "./install.ts"
 import { type ModList, readCachedList, refreshList, REPO, SHA } from "./list.ts"
 import { type InstallRecord, readRecord, recordPath } from "./record.ts"
@@ -140,7 +140,9 @@ async function listMods(mods: string): Promise<number> {
     say(`${id} ${version} · ${source}`)
   }
   if (folders.length === 0) say("No mods installed.")
-  const available = (await loadList())?.mods.filter((mod) => !folders.includes(mod.id)) ?? []
+  const list = await loadList()
+  const available =
+    list?.mods.filter((mod) => !folders.includes(mod.id) && revokedListing(list, mod.id, mod.version) === null) ?? []
   if (available.length > 0) say("\nAvailable:")
   for (const mod of available) say(`${mod.id} ${mod.version} · ${mod.description}`)
   return 0
