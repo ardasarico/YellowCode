@@ -285,7 +285,6 @@ export function createCapture(cwd: string): Capture {
       return null
     },
   )
-  const delayMs = Number(process.env["YELLOWCODE_SNAPSHOT_DELAY_MS"] ?? 0) || 0
   // Prompts whose turn has not ended, from Enter on.
   const open = new Map<string, Prompt>()
   // What files outside the root held when claude asked to change them, by tool call; null when it could not be read.
@@ -325,9 +324,8 @@ export function createCapture(cwd: string): Capture {
 
   // A take nobody waits for any more is skipped, so it leaves no ref behind. Every take first closes the agent
   // segments found since the one before.
-  const take = (unwanted = () => false, delay = 0): Promise<Point | null> => {
+  const take = (unwanted = () => false): Promise<Point | null> => {
     const point = (async () => {
-      if (delay > 0) await Bun.sleep(delay)
       const snapshots = await opened
       if (!snapshots) return null
       const id = randomUUID()
@@ -478,7 +476,7 @@ export function createCapture(cwd: string): Capture {
     async before(uuid, sessionId, session) {
       const beforeAt = Date.now()
       // The check runs once the take starts, after `taking` and `prompt` are set.
-      const taking: Promise<Point | null> = take(() => prompt.current.before !== taking || !open.has(uuid), delayMs)
+      const taking: Promise<Point | null> = take(() => prompt.current.before !== taking || !open.has(uuid))
       const prompt: Prompt = {
         uuid,
         sessionId,
@@ -641,7 +639,7 @@ export function createCapture(cwd: string): Capture {
         const base = latest && !discarded.has(latest.point) ? latest : undefined
         if (base) kept.add(base.point)
         last.current = {
-          before: take(undefined, delayMs),
+          before: take(),
           beforeAt: Date.now(),
           from: state.items.at(-1) ?? null,
           own: true,

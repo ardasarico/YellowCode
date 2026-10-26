@@ -119,9 +119,6 @@ export function chatPaths(root: string, cwd: string): (path: string) => string {
   }
 }
 
-// Lets a scenario hold the dry run back, so the dialog opens before it lands.
-const dryRunDelayMs = Number(process.env["YELLOWCODE_SNAPSHOT_DELAY_MS"] ?? 0) || 0
-
 // What a rewind to the prompt would restore and delete now: the restore run dry, from the same input a rewind builds,
 // with a snapshot taken now as its safety snapshot. Null when the prompt has no full snapshots; a failure rejects, so
 // the dialog can say the files were not checked.
@@ -133,7 +130,6 @@ async function dryRun(
 ): Promise<string[] | null> {
   const input = await restoreInput(snapshots, manifests, prompt)
   if (!input) return null
-  if (dryRunDelayMs > 0) await Bun.sleep(dryRunDelayMs)
   const plan = await planRestore({ ...input, safety, after: input.after ?? safety })
   const result = await applyRestore(plan, { dryRun: true })
   log.debug("rewind dry run", { prompt, ...result })
