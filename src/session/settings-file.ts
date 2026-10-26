@@ -168,7 +168,6 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
 }
 
 export function saveSettings(settings: Partial<StoredSettings>, path = configPath("settings.json")): boolean {
-  const { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods } = settings
   if (unreadable.has(path)) {
     setFailedSaves((count) => count + 1)
     return false
@@ -184,7 +183,7 @@ export function saveSettings(settings: Partial<StoredSettings>, path = configPat
   const temp = `${target}.${process.pid}.tmp`
   try {
     mkdirSync(dirname(target), { recursive: true })
-    const stored = { theme, sidebar, thinking, sessionTitle, permissionMode, editor, notifications, disabledMods }
+    const stored = Object.fromEntries(Object.entries(settings).filter(([key]) => key in DEFAULT_SETTINGS))
     writeFileSync(temp, `${JSON.stringify(stored, null, 2)}\n`)
     renameSync(temp, target)
     return true
