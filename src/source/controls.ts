@@ -7,6 +7,7 @@ import {
   modelInfo,
   type ModelInfo,
   modelRows,
+  initializeAccount,
   initializeMode,
   permissionModeReply,
   type ProtocolMessage,
@@ -304,6 +305,7 @@ export function createControls(options: {
         provider.setModels(models)
         setModelChoices(modelChoices(models))
       }
+      provider.setPlan(initializeAccount.safeParse(reply).data?.account.subscriptionType ?? null)
       const mode = initializeMode.safeParse(reply).data?.current_permission_mode
       if (mode) {
         session.setPermissionMode(mode)

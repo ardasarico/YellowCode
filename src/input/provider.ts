@@ -35,6 +35,8 @@ export type InputProvider = {
   // Null while Claude Code has not answered the skills dialog request.
   skillRows: Accessor<SkillRow[] | null>
   pluginHooks: Accessor<PluginHook[]>
+  // The subscription the account is on, such as "Claude Pro"; null when claude has not said.
+  plan: Accessor<string | null>
   files(query: string): Promise<string[]>
 }
 
@@ -47,6 +49,7 @@ export type LiveProvider = InputProvider & {
   setSettingsSources(sources: SettingsSource[]): void
   setPluginHooks(hooks: PluginHook[]): void
   setInitLists(lists: InitLists): void
+  setPlan(plan: string | null): void
   // A skill whose new state claude has not reported yet shows it already; null drops that.
   setPendingSkill(name: string, enabled: boolean | null): void
 }
@@ -62,6 +65,7 @@ export function liveProvider(requests: Requests): LiveProvider {
   const [hooks, setHooks] = createSignal<PluginHook[]>([])
   const [initLists, setInitLists] = createSignal<InitLists | null>(null)
   const [pending, setPending] = createSignal(new Map<string, boolean>())
+  const [plan, setPlan] = createSignal<string | null>(null)
   return {
     commands: () => withModCommands(commands()),
     models,
@@ -88,6 +92,8 @@ export function liveProvider(requests: Requests): LiveProvider {
     setSettingsSources: (next) => setSources(next),
     setPluginHooks: (next) => setHooks(next),
     setInitLists: (lists) => setInitLists(lists),
+    plan,
+    setPlan: (next) => setPlan(next),
     setPendingSkill(name, enabled) {
       setPending((current) => {
         const next = new Map(current)
@@ -132,6 +138,7 @@ export function replayProvider(recording: Recording): InputProvider {
     settingsSources: () => sources,
     skillRows: () => (replied ? rows : null),
     pluginHooks: () => hooks,
+    plan: () => null,
     files: suggestFiles,
   }
 }

@@ -1,5 +1,5 @@
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, Show, untrack } from "solid-js"
-import { CLAUDE_SETTINGS, type ClaudeSetting } from "../../session/claude-settings.ts"
+import { type ClaudeAccount, CLAUDE_SETTINGS, type ClaudeSetting } from "../../session/claude-settings.ts"
 import { resetSetting, settings } from "../../session/settings.ts"
 import { reloadThemes, theme } from "../../theme/theme.ts"
 import { searchFooter, type TabApi } from "../dialog/tabbed-dialog.tsx"
@@ -39,7 +39,7 @@ const LIST_FOOTER: FooterAction[] = [
 // `sent` holds the changes that went out while /settings is open, so a tab switch keeps showing them.
 export type ClaudeSettings = {
   effective: Record<string, unknown> | null
-  model: string | null
+  account: ClaudeAccount
   sent: ReadonlyMap<string, string>
   busy: () => boolean
   // False when the message could not go out.
@@ -69,12 +69,11 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
   const [chosen, setChosen] = createSignal<string | undefined>(untrack(() => props.row))
   const claudeValue = (setting: ClaudeSetting) => {
     const claude = props.claude
-    return claude?.sent.get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.model) : null)
+    return claude?.sent.get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.account) : null)
   }
   const claudeLabel = (setting: ClaudeSetting) => {
-    if (!props.claude?.effective && !props.claude?.sent.has(setting.id)) return "…"
     const value = claudeValue(setting)
-    if (value === null) return "default"
+    if (value === null) return "…"
     return setting.options.find((option) => option.value === value)?.label ?? value
   }
   const claudeSection = (): DialogSection[] =>

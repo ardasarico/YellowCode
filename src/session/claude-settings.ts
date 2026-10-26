@@ -1,14 +1,17 @@
 // Claude Code's own settings that change how it works in YellowCode too. Only claude's /config, /output-style and
 // /autocompact change them (update_settings refuses these keys), and get_settings reads them back under other names.
-// A value never set reads as null, shown as "default": claude's defaults are not guessed.
+// get_settings leaves out a value never set; it then reads as the default claude uses for it.
 
 export type ClaudeOption = { value: string; label: string }
+
+// `plan` is the initialize reply's subscriptionType, such as "Claude Pro".
+export type ClaudeAccount = { model: string | null; plan: string | null }
 
 export type ClaudeSetting = {
   id: string
   label: string
   options: ClaudeOption[]
-  read: (effective: Record<string, unknown>, model: string | null) => string | null
+  read: (effective: Record<string, unknown>, account: ClaudeAccount) => string
   command: (value: string) => string
 }
 
@@ -17,16 +20,18 @@ const ON_OFF: ClaudeOption[] = [
   { value: "false", label: "off" },
 ]
 
-const flag = (key: string) => (effective: Record<string, unknown>) => {
+const flag = (effective: Record<string, unknown>, key: string, fallback: boolean) => {
   const value = effective[key]
-  return typeof value === "boolean" ? String(value) : null
+  return String(typeof value === "boolean" ? value : fallback)
 }
+
+const named = (value: unknown, fallback: string) => (typeof value === "string" ? value : fallback)
 
 const toggle = (id: string, label: string, configKey: string, storedKey: string): ClaudeSetting => ({
   id,
   label,
   options: ON_OFF,
-  read: flag(storedKey),
+  read: (effective) => flag(effective, storedKey, true),
   command: (value) => `/config ${configKey}=${value}`,
 })
 
@@ -38,7 +43,7 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
     id: "outputStyle",
     label: "Output style",
     options: ["default", "Proactive", "Concise", "Explanatory", "Learning"].map((value) => ({ value, label: value })),
-    read: (effective) => (typeof effective["outputStyle"] === "string" ? effective["outputStyle"] : null),
+    read: (effective) => named(effective["outputStyle"], "default"),
     command: (value) => `/output-style ${value}`,
   },
   {
@@ -50,9 +55,10 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
       { value: "500000", label: "500k" },
       { value: "1000000", label: "1m" },
     ],
-    read: (effective, model) => {
-      const window = record(record(effective["modelSettings"])[model ?? ""])["autoCompactWindow"]
-      return typeof window === "number" ? String(window) : null
+    read: (effective, { model }) => {
+      const window =
+        record(record(effective["modelSettings"])[model ?? ""])["autoCompactWindow"] ?? effective["autoCompactWindow"]
+      return typeof window === "number" ? String(window) : named(window, "auto")
     },
     command: (value) => `/autocompact ${value}`,
   },
@@ -65,7 +71,7 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
       value,
       label: value,
     })),
-    read: (effective) => (typeof effective["language"] === "string" ? effective["language"] : null),
+    read: (effective) => named(effective["language"], "English"),
     command: (value) => `/config language=${value}`,
   },
   {
@@ -75,11 +81,16 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
       { value: "true", label: "switch models" },
       { value: "false", label: "ask each time" },
     ],
-    read: flag("switchModelsOnFlag"),
+    read: (effective) => flag(effective, "switchModelsOnFlag", true),
     command: (value) => `/config switchModelsOnFlag=${value === "true" ? "Switch automatically" : "Ask each time"}`,
   },
   toggle("useAutoModeDuringPlan", "Auto mode in plan", "useAutoModeDuringPlan", "useAutoModeDuringPlan"),
-  toggle("workflows", "Workflows", "workflows", "enableWorkflows"),
+  {
+    ...toggle("workflows", "Workflows", "workflows", "enableWorkflows"),
+    // Off by default on the Pro plan only.
+    read: (effective, { plan }) =>
+      effective["disableWorkflows"] === true ? "false" : flag(effective, "enableWorkflows", plan !== "Claude Pro"),
+  },
   toggle(
     "workflowKeywordTriggerEnabled",
     "Ultracode keyword",
@@ -93,10 +104,7 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
       { value: "fresh", label: "fresh" },
       { value: "head", label: "head" },
     ],
-    read: (effective) => {
-      const ref = record(effective["worktree"])["baseRef"]
-      return typeof ref === "string" ? ref : null
-    },
+    read: (effective) => named(record(effective["worktree"])["baseRef"], "fresh"),
     command: (value) => `/config worktreeBaseRef=${value}`,
   },
 ]

@@ -521,6 +521,7 @@ export const effectiveSettings = z.looseObject({ effective: z.record(z.string(),
 export const reloadSkillsReply = z.looseObject({ skills: z.array(z.looseObject({ name: z.string() })) })
 
 export const initializeMode = z.looseObject({ current_permission_mode: z.string() })
+export const initializeAccount = z.looseObject({ account: z.looseObject({ subscriptionType: z.string() }) })
 export const permissionModeReply = z.looseObject({ mode: z.string() })
 
 // Folders end in "/"; paths come as they are, spaces and all.

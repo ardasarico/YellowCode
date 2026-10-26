@@ -1788,7 +1788,7 @@ export function App(props: AppProps) {
               props.request
                 ? {
                     effective: claudeEffective(),
-                    model: settings.model ?? props.model(),
+                    account: { model: settings.model ?? props.model(), plan: props.provider.plan() },
                     sent: claudeSent(),
                     busy: () => props.session.status === "running",
                     change: (id, value, command) => {
