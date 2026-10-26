@@ -14,9 +14,9 @@ const NOTICE_MS = 4000
 const FOOTER = [
   { key: "↑↓", word: "select" },
   { key: "pgup/pgdn", word: "scroll" },
-  { key: "x", word: "stop" },
   { key: "esc", word: "chat" },
 ]
+const STOP_KEY = { key: "x", word: "stop" }
 const MESSAGE_KEY = { key: "m", word: "message" }
 
 const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40, Math.floor(width * 0.26))))
@@ -114,7 +114,7 @@ function Tree(props: {
   )
 }
 
-function Footer(props: { notice: string | null; width: number; message: boolean }) {
+function Footer(props: { notice: string | null; width: number; message: boolean; stop: boolean }) {
   return (
     <box flexDirection="column" flexShrink={0}>
       <text fg={theme.frame} wrapMode="none">
@@ -124,7 +124,14 @@ function Footer(props: { notice: string | null; width: number; message: boolean 
         when={props.notice}
         fallback={
           <text wrapMode="none">
-            <Index each={props.message ? [...FOOTER.slice(0, -1), MESSAGE_KEY, ...FOOTER.slice(-1)] : FOOTER}>
+            <Index
+              each={[
+                ...FOOTER.slice(0, -1),
+                ...(props.stop ? [STOP_KEY] : []),
+                ...(props.message ? [MESSAGE_KEY] : []),
+                ...FOOTER.slice(-1),
+              ]}
+            >
               {(entry, index) => (
                 <>
                   <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>
@@ -304,6 +311,10 @@ export function AgentView(props: {
         <Footer
           notice={notice()}
           width={pageWidth()}
+          stop={(() => {
+            const current = node()
+            return current !== undefined && stoppable(current)
+          })()}
           message={(() => {
             const current = node()
             return current !== undefined && messageable(props.session, current)
