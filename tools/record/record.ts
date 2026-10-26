@@ -1,7 +1,7 @@
 // Scenarios and their turns run one at a time on purpose; each waits on a live claude process.
 /* oxlint-disable no-await-in-loop */
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises"
-import { homedir, userInfo } from "node:os"
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises"
+import { homedir, tmpdir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
 import { askUserQuestionInput, type AskUserQuestionInput } from "../../src/protocol/messages.ts"
 import {
@@ -65,9 +65,9 @@ function checkIsolation(parsed: ParseResult, scenario: Scenario): void {
 }
 
 async function record(scenario: Scenario, cliVersion: string): Promise<void> {
-  const requestedDir = join("/tmp/yellowcode-record", scenario.name)
-  await rm(requestedDir, { recursive: true, force: true })
-  await mkdir(requestedDir, { recursive: true })
+  const tempRoot = await mkdtemp(join(tmpdir(), "yellowcode-record-"))
+  const requestedDir = join(tempRoot, scenario.name)
+  await mkdir(requestedDir)
   const workDir = await realpath(requestedDir)
   for (const [path, content] of Object.entries(scenario.files ?? {})) {
     await mkdir(dirname(join(workDir, path)), { recursive: true })
@@ -261,7 +261,7 @@ async function record(scenario: Scenario, cliVersion: string): Promise<void> {
     void proc.stdin.end()
     proc.kill()
     await proc.exited
-    await rm(workDir, { recursive: true, force: true })
+    await rm(tempRoot, { recursive: true, force: true })
   }
 
   const paths = {

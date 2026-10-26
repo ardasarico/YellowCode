@@ -553,6 +553,8 @@ function restoreSettings(): void {
 }
 process.on("exit", restoreSettings)
 process.on("SIGINT", () => process.exit(130))
+process.on("SIGTERM", () => process.exit(143))
+process.on("SIGHUP", () => process.exit(129))
 
 // Run as a host the user started outside Claude Code: edit-skill-overrides refuses inside a Claude Code session.
 const env = Object.fromEntries(

@@ -2,8 +2,8 @@
 /* oxlint-disable no-await-in-loop */
 import { randomUUID } from "node:crypto"
 import { mkdirSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs"
-import { mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises"
-import { homedir, userInfo } from "node:os"
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises"
+import { homedir, tmpdir, userInfo } from "node:os"
 import { dirname, join } from "node:path"
 import { z } from "zod"
 import type { ProtocolMessage } from "../../src/protocol/messages.ts"
@@ -230,9 +230,9 @@ function touch(): void {
 }
 
 async function generate(): Promise<void> {
-  const requestedDir = "/tmp/yellowcode-transcripts/project"
-  await rm(requestedDir, { recursive: true, force: true })
-  await mkdir(requestedDir, { recursive: true })
+  const tempRoot = await mkdtemp(join(tmpdir(), "yellowcode-transcripts-"))
+  const requestedDir = join(tempRoot, "project")
+  await mkdir(requestedDir)
   const workDir = await realpath(requestedDir)
 
   const ids = new Map<string, string>()
@@ -242,7 +242,7 @@ async function generate(): Promise<void> {
       ids.set(spec.name, await run(spec, workDir))
     }
   } finally {
-    await rm(requestedDir, { recursive: true, force: true })
+    await rm(tempRoot, { recursive: true, force: true })
   }
 
   const paths = {
