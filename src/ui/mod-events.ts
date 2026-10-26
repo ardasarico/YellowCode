@@ -36,7 +36,7 @@ export function useModEvents(renderer: CliRenderer, session: () => Session, mode
       const item = current.byId[id]
       if (item?.kind === "tool" && item.status === "running") continue
       running.delete(id)
-      if (item?.kind === "tool" && item.status !== "running" && current.status === "running")
+      if (item?.kind === "tool" && item.status !== "running")
         emitModEvent("tool-done", { name: item.name, status: item.status })
     }
   })
