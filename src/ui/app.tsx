@@ -184,18 +184,18 @@ export type AppProps = {
   onRestart?: (text: string, images: OutgoingImage[], giveBack: () => void) => boolean
   onAnswer: (ask: Ask, response: string) => void
   onQuit: () => void
-  // Without it nothing can be interrupted (a replay or a read-only transcript).
+  // Without it nothing can be interrupted (a replay or a saved conversation).
   onInterrupt?: () => void
   // Runs a `!` command, and stops the one running.
   onShell?: (command: string) => void
   onShellStop?: () => void
-  // Without it nothing can be sent to the background (a replay or a read-only transcript).
+  // Without it nothing can be sent to the background (a replay or a saved conversation).
   onBackground?: () => void
   // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
   onTitle?: (title: string) => void
-  // A control request to the running claude; none in a replay or a read-only transcript.
+  // A control request to the running claude; none in a replay or a saved conversation.
   request?: (build: (requestId: string) => string) => Promise<unknown>
-  // Without it no task can be stopped from the agent view (a replay or a read-only transcript).
+  // Without it no task can be stopped from the agent view (a replay or a saved conversation).
   onStopTask?: (taskId: string) => Promise<void>
   // Without it the session cannot rewind (a read-only transcript). A live rewind puts the files back first and
   // resolves false when the session was not rewound after all, or with the ⚠ that came up since the dialog showed
