@@ -3,7 +3,10 @@ import { createSignal, onMount } from "solid-js"
 import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { keyText } from "../../mods/keys.ts"
-import { refreshModList, updatedTo } from "../../mods/mods.ts"
+import { apiMatches, revokedListing } from "../../mods/install/checks.ts"
+import { INCOMPATIBLE } from "../../mods/install/install.ts"
+import type { ListedMod } from "../../mods/install/list.ts"
+import { installedNow, installListed, modList, refreshModList, updatedTo } from "../../mods/mods.ts"
 import { counts, modKeys, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
@@ -23,6 +26,10 @@ import type { Span } from "../notice.ts"
 
 const STACK_LINES = 8
 const SETTING = "setting:"
+// A listed mod that is not loaded: on offer, or installed from here and waiting for a restart.
+const LISTED = "listed:"
+const RETRY = "list-retry"
+const RESTART = "restart to load"
 
 // A text setting being typed: its key and the text so far.
 // `capture` waits for the next key press, for a key setting.
@@ -41,6 +48,7 @@ const look = (status: ModStatus) =>
   })[status]
 
 const nameOf = (entry: ModEntry) => entry.manifest?.name ?? entry.id
+const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
 
 function listRow(entry: ModEntry): DialogRow {
   const { mark, color } = look(entry.status)
@@ -54,6 +62,36 @@ function listRow(entry: ModEntry): DialogRow {
     value: updatedTo[entry.id] ? `updated to ${updatedTo[entry.id]}` : entry.manifest?.version,
     valueColor: updatedTo[entry.id] ? theme.accent : theme.panelFaint,
   }
+}
+
+function listedRow(mod: ListedMod, installing: boolean): DialogRow {
+  const installed = installedNow[mod.id] !== undefined
+  const fits = apiMatches(mod.api)
+  return {
+    id: `${LISTED}${mod.id}`,
+    label: mod.name,
+    search: `${mod.id} ${mod.name} ${mod.description}`,
+    marker: installed ? { text: "●", fg: theme.accent } : undefined,
+    value: installed ? RESTART : installing ? "installing…" : fits ? mod.version : "needs a newer YellowCode",
+    valueColor: installed || installing ? theme.accent : fits ? theme.panelFaint : theme.warning,
+  }
+}
+
+function listedDetail(mod: ListedMod, width: number): DialogItem[] {
+  const installed = installedNow[mod.id] !== undefined
+  const fits = apiMatches(mod.api)
+  const state: Span = installed
+    ? { text: RESTART, fg: theme.accent }
+    : fits
+      ? { text: "not installed", fg: theme.panelFaint }
+      : { text: INCOMPATIBLE, fg: theme.warning }
+  return [
+    header(`${mod.name} ${mod.version}`, state),
+    ...(mod.description ? [text("description", [{ text: mod.description, fg: theme.text }])] : []),
+    ...(installed ? fact("source", "Source", tildePath(`${configPath("mods")}/${mod.id}`), width) : []),
+    ...fact("repo", "Repo", `github.com/${mod.repo}`, width),
+    ...fact("commit", "Commit", mod.sha.slice(0, 7), width),
+  ]
 }
 
 function statusSpan(entry: ModEntry): Span {
@@ -219,6 +257,22 @@ const FOOTER: FooterAction[] = [
   { key: "ctrl+o", action: "open folder" },
   { key: "esc", action: "close" },
 ]
+const AVAILABLE_FOOTER: FooterAction[] = [
+  { key: "↑↓", action: "select" },
+  { key: "enter", action: "install" },
+  { key: "ctrl+r", action: "refresh list" },
+  { key: "esc", action: "close" },
+]
+const INSTALLED_FOOTER: FooterAction[] = [
+  { key: "↑↓", action: "select" },
+  { key: "ctrl+o", action: "open folder" },
+  { key: "esc", action: "close" },
+]
+const RETRY_FOOTER: FooterAction[] = [
+  { key: "↑↓", action: "select" },
+  { key: "ctrl+r", action: "retry" },
+  { key: "esc", action: "close" },
+]
 
 export function ModsTab(props: { api: TabApi; host: ModHost }) {
   const [editing, setEditing] = createSignal<Editing | null>(null)
@@ -256,10 +310,89 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
     return true
   }
 
+  const [installing, setInstalling] = createSignal<string | null>(null)
+
   const entryFor = (row: DialogRow | undefined) => props.host.entries.find((entry) => entry.id === row?.id)
-  const sections = (): DialogSection[] => [
-    { title: "", rows: props.host.entries.toSorted((a, b) => nameOf(a).localeCompare(nameOf(b))).map(listRow) },
-  ]
+  const installed = () =>
+    Object.values(installedNow).filter((mod) => !props.host.entries.some((entry) => entry.id === mod.id))
+  // Listed mods that are not installed; revoked ones are left out.
+  const available = () => {
+    const list = modList().list
+    if (!list) return []
+    return list.mods.filter(
+      (mod) =>
+        installedNow[mod.id] === undefined &&
+        !props.host.entries.some((entry) => entry.id === mod.id) &&
+        revokedListing(list, mod.id, mod.version) === null,
+    )
+  }
+  const listedFor = (row: DialogRow | undefined) =>
+    row?.id.startsWith(LISTED)
+      ? (installedNow[row.id.slice(LISTED.length)] ?? available().find((mod) => `${LISTED}${mod.id}` === row.id))
+      : undefined
+
+  const availableRows = (): DialogItem[] => {
+    const state = modList()
+    if (!state.list && state.failed)
+      return [{ id: RETRY, label: "Couldn't reach the mod list · ctrl+r retry", labelColor: theme.panelMuted }]
+    if (!state.list) return [text("list-loading", [{ text: "Getting the mod list…", fg: theme.panelMuted }])]
+    return available()
+      .toSorted(byName)
+      .map((mod) => listedRow(mod, installing() === mod.id))
+  }
+  const sections = (): DialogSection[] => {
+    const mine: DialogItem[] = props.host.entries
+      .map((entry) => ({ name: nameOf(entry), row: listRow(entry) }))
+      .concat(installed().map((mod) => ({ name: mod.name, row: listedRow(mod, false) })))
+      .toSorted(byName)
+      .map(({ row }) => row)
+    const offered = availableRows()
+    if (mine.length > 0 && offered.length > 0) mine.push(blank("gap-available"))
+    return [
+      { title: "", rows: mine },
+      { title: "Available", rows: offered },
+    ]
+  }
+
+  const install = async (mod: ListedMod) => {
+    if (installing() !== null || !apiMatches(mod.api)) return
+    const yes = await props.api.confirm({
+      title: "Install mod",
+      message: `Install ${mod.name} ${mod.version} from github.com/${mod.repo} at ${mod.sha.slice(0, 7)}? It loads the next time YellowCode starts.`,
+      action: "Install",
+    })
+    if (!yes) return
+    setInstalling(mod.id)
+    try {
+      await installListed(mod)
+      props.api.notify(`Installed ${mod.name} · ${RESTART}`)
+    } catch (error) {
+      props.api.notify(error instanceof Error ? error.message : String(error))
+    } finally {
+      setInstalling(null)
+    }
+  }
+
+  const listedAction = (row: DialogRow, id: string) => {
+    const mod = listedFor(row)
+    if (id === "retry") refreshModList()
+    else if (mod && id === "install") void install(mod)
+    else if (mod && id === "folder")
+      void openFolder(`${configPath("mods")}/${mod.id}`).then((opened) => {
+        if (!opened) props.api.notify("Could not open the folder")
+      })
+  }
+
+  const listedKey = (key: KeyEvent, row: DialogRow | undefined, query: string): boolean => {
+    if (row?.id !== RETRY && !row?.id.startsWith(LISTED)) return false
+    const mod = listedFor(row)
+    const done = mod !== undefined && installedNow[mod.id] !== undefined
+    if (key.ctrl && key.name === "r") refreshModList()
+    else if (key.ctrl && key.name === "o") listedAction(row, "folder")
+    else if (key.name === "return" && mod && !done && apiMatches(mod.api)) void install(mod)
+    else return key.name === "space" && !query
+    return true
+  }
 
   const run = (entry: ModEntry, id: string) => {
     const done =
@@ -285,17 +418,29 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       }
       detail={(row, width) => {
         const entry = entryFor(row)
-        return entry ? detailItems(entry, width, props.host.settings(entry.id), editing()) : []
+        if (entry) return detailItems(entry, width, props.host.settings(entry.id), editing())
+        const mod = listedFor(row)
+        if (mod) return listedDetail(mod, width)
+        return row.id === RETRY
+          ? [text("retry", [{ text: "The mod list could not be fetched and none is cached.", fg: theme.text }])]
+          : []
       }}
       actions={(row) => {
         const entry = entryFor(row)
-        return entry ? actions(entry) : []
+        if (entry) return actions(entry)
+        const mod = listedFor(row)
+        if (row.id === RETRY) return [{ id: "retry", label: "Retry" }]
+        if (!mod) return []
+        if (installedNow[mod.id]) return [{ id: "folder", label: "Open folder" }]
+        return apiMatches(mod.api) ? [{ id: "install", label: "Install" }] : []
       }}
       onAction={(row, action) => {
         const entry = entryFor(row)
         if (entry) run(entry, action.id)
+        else listedAction(row, action.id)
       }}
       onKey={(key, row, query) => {
+        if (listedKey(key, row, query)) return true
         const entry = entryFor(row)
         if (!entry) return false
         // While a search is typed, space is part of it.
@@ -305,7 +450,13 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
         else return false
         return true
       }}
-      footer={() => FOOTER}
+      footer={(row) => {
+        if (row.id === RETRY) return RETRY_FOOTER
+        const mod = listedFor(row)
+        if (!mod) return FOOTER
+        if (installedNow[mod.id]) return INSTALLED_FOOTER
+        return apiMatches(mod.api) ? AVAILABLE_FOOTER : AVAILABLE_FOOTER.filter((item) => item.key !== "enter")
+      }}
       actionsOnTop
       onDetailKey={detailKey}
       detailFooter={(row, focused) => {

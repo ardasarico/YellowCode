@@ -256,12 +256,22 @@ YellowCode · update YellowCode". A mod taken off the list shows "Revoked:" and 
 stays on disk. On the right is the selected mod: its description, folder, what it adds, its load time, MCP server
 errors, its last error and its settings.
 
+- → moves to its settings and actions,
 - space turns the selected mod on or off,
-- r reloads it,
-- enter opens its folder.
+- ctrl+r reloads it,
+- ctrl+o opens its folder.
+
+A listed mod that updated itself in the background says "updated to <version>"; the running copy stays the old one until
+the next start.
+
+Under the installed mods, "Available" lists the mods on the mod list that are not installed, with their version. Enter
+on one asks first, showing its repo and commit, then installs it; the mod moves up and says "restart to load". A mod
+that needs a newer YellowCode says so and cannot be installed, and a mod taken off the list is not shown. The list
+comes from the copy cached on disk and is fetched again each time the tab opens; with no copy and no network, Available
+says "Couldn't reach the mod list · ctrl+r retry". On an Available row ctrl+r fetches the list again.
 
 A reload stops the mod, reads its manifest again, imports its entry file fresh and runs `setup` again. Its storage and
-settings stay. Edit the entry file, press r, and the change is live. Other files the entry imports are not read again, so
+settings stay. Edit the entry file, press ctrl+r, and the change is live. Other files the entry imports are not read again, so
 after editing one of those, restart YellowCode.
 
 `yellowcode --no-mods` starts with no mods loaded and says `Mods are off (--no-mods)`. Use it when a mod gets in the way

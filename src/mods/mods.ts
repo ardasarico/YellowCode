@@ -6,7 +6,8 @@ import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
 import { createModHost, revokedReason } from "./host.ts"
 import { autoUpdate } from "./install/auto-update.ts"
-import { type ModList, readCachedList, refreshList } from "./install/list.ts"
+import { installAt } from "./install/install.ts"
+import { type ListedMod, type ModList, readCachedList, refreshList } from "./install/list.ts"
 import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
@@ -107,4 +108,15 @@ export function refreshModList(): void {
       log.warn("mod list not fetched", error)
       done(null)
     })
+}
+
+// Listed mods installed from the Mods tab since this start; they load on the next one.
+const [installedNow, setInstalledNow] = createStore<Record<string, ListedMod>>({})
+export { installedNow }
+
+export async function installListed(mod: ListedMod): Promise<void> {
+  const result = await installAt({ ...mod, listed: true }, mods.folder)
+  if (!result.ok) throw new Error(result.problem)
+  log.info(`mod ${mod.id}: installed ${result.record.version}`)
+  setInstalledNow(mod.id, mod)
 }
