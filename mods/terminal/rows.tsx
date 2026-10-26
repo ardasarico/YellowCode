@@ -14,13 +14,19 @@ function screenOf(result: string): { tab: string; shell: string; lines: string[]
   return { tab: match[1] ?? "", shell: match[2] ?? "", lines: screen }
 }
 
+function cut(text: string, room: number): string {
+  const kept = Array.from(text)
+  while (kept.length > 0 && Bun.stringWidth(kept.join("")) > room) kept.pop()
+  return kept.join("")
+}
+
 function Lines(props: { lines: string[]; width: number }) {
   return (
     <For each={props.lines}>
       {(line) => (
         <text wrapMode="none">
           <span style={{ fg: theme.frame }}>{"  │ "}</span>
-          <span style={{ fg: theme.muted }}>{line.slice(0, Math.max(0, props.width - 4))}</span>
+          <span style={{ fg: theme.muted }}>{cut(line, Math.max(0, props.width - 4))}</span>
         </text>
       )}
     </For>

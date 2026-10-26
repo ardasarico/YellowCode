@@ -12,9 +12,9 @@ const width = (text: string) => Bun.stringWidth(text)
 
 function cut(text: string, room: number): string {
   if (width(text) <= room) return text
-  let kept = text
-  while (kept.length > 0 && width(kept) > room - 1) kept = kept.slice(0, -1)
-  return `${kept}…`
+  const kept = Array.from(text)
+  while (kept.length > 0 && width(kept.join("")) > room - 1) kept.pop()
+  return `${kept.join("")}…`
 }
 
 function pad(text: string, room: number, right: boolean): string {
