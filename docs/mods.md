@@ -26,7 +26,7 @@ Make a folder for it in the mods folder:
   "name": "Hello",
   "version": "0.1.0",
   "description": "Says hello.",
-  "yellowcode": ">=0.0.0",
+  "api": "^1.0",
   "entry": "index.tsx"
 }
 ```
@@ -83,12 +83,12 @@ Every mod folder has a `yellowcode-mod.json`:
 | `name`        | yes      | The name shown in `/mods`.                                                                                       |
 | `version`     | yes      | The mod's own version, shown in `/mods`.                                                                         |
 | `description` | no       | One line, shown in `/mods`.                                                                                      |
-| `yellowcode`  | yes      | A semver range of YellowCode versions the mod works with, like `">=0.0.0"`.                                      |
+| `api`         | yes      | A semver range of mod API versions the mod works with, like `"^1.0"`.                                            |
 | `entry`       | yes      | The `.ts` or `.tsx` file to load, relative to the folder and inside it.                                          |
 | `mcpServers`  | no       | MCP servers to give Claude while the mod is on. See [MCP servers in the manifest](#mcp-servers-in-the-manifest). |
 
 A manifest that is missing, is not valid JSON, or has a wrong field marks the mod as failed, and `/mods` names the
-problem. A mod whose `yellowcode` range does not match the running version is marked incompatible and is not loaded.
+problem. A mod whose `api` range does not match the running mod API version (`apiVersion`, exported by `yellowcode/mod`) is marked incompatible and is not loaded. Within a major version the API only gains things, so `"^1.0"` keeps working until 2.0.
 
 ## The entry file
 
@@ -361,7 +361,7 @@ Code's `.mcp.json`:
   "name": "Dice",
   "version": "0.1.0",
   "description": "Lets Claude roll dice.",
-  "yellowcode": ">=0.0.0",
+  "api": "^1.0",
   "entry": "index.ts",
   "mcpServers": {
     "memory": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] }

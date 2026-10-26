@@ -3,6 +3,6 @@
   "name": "CSV",
   "version": "0.1.0",
   "description": "Shows csv and tsv code blocks as tables.",
-  "yellowcode": ">=0.0.0",
+  "api": "^1.0",
   "entry": "index.tsx"
 }

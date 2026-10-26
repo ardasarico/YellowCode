@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
+import { apiVersion } from "./version.ts"
 import {
   addCommand,
   addFence,
@@ -124,7 +125,12 @@ export function createModHost(options: {
     if (!read.ok) return { ...base, manifest: null, status: "failed", problem: read.problem }
     const { manifest } = read
     if (!compatible(manifest))
-      return { ...base, manifest, status: "incompatible", problem: `needs YellowCode ${manifest.yellowcode}` }
+      return {
+        ...base,
+        manifest,
+        status: "incompatible",
+        problem: `needs mod API ${manifest.api}, this is ${apiVersion}`,
+      }
     const off = options.disabled().includes(id)
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
   }

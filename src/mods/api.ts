@@ -1,4 +1,6 @@
-// What a mod imports as "yellowcode/mod". Additions only: a mod written against an older version keeps working.
+// What a mod imports as "yellowcode/mod", versioned as `apiVersion`. Within a major version things are only added: new
+// fields, methods, union members and props fields. A mod written against an older 1.x keeps working; a mod that
+// switches exhaustively over a union should keep a default case.
 
 import type { KeyEvent } from "@opentui/core"
 import type { Component, JSX } from "solid-js"
@@ -277,3 +279,4 @@ export function isDefinedMod(value: unknown): value is DefinedMod {
 }
 
 export { Code, Diff, Rule, theme } from "./kit.tsx"
+export { apiVersion } from "./version.ts"

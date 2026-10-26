@@ -3,6 +3,6 @@
   "name": "Terminal",
   "version": "0.1.0",
   "description": "Your shells in a pane next to the chat.",
-  "yellowcode": ">=0.0.0",
+  "api": "^1.0",
   "entry": "index.tsx"
 }

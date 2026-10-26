@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs"
 import { basename, isAbsolute, join, normalize } from "node:path"
 import { z } from "zod"
-import packageJson from "../../package.json"
 import { parseJson } from "../protocol/json.ts"
+import { apiVersion } from "./version.ts"
 
 export const MANIFEST = "yellowcode-mod.json"
 
@@ -11,7 +11,8 @@ const Manifest = z.object({
   name: z.string().min(1),
   version: z.string().min(1),
   description: z.string().default(""),
-  yellowcode: z.string().min(1),
+  // A semver range of mod API versions, like "^1.0".
+  api: z.string().min(1),
   entry: z.string().regex(/\.tsx?$/),
   // Process or remote MCP servers in the .mcp.json shape, given to Claude while the mod is on.
   // An "sdk" server would be routed to YellowCode itself; mods add those with mod.tools.
@@ -37,6 +38,10 @@ export function readManifest(folder: string): ManifestResult {
   const json = parseJson(text)
   if (!json.ok) return { ok: false, problem: `${MANIFEST} is not valid JSON` }
   const parsed = Manifest.safeParse(json.value)
+  const value = json.value
+  const old = typeof value === "object" && value !== null && "yellowcode" in value && !("api" in value)
+  if (!parsed.success && old)
+    return { ok: false, problem: `${MANIFEST}: "yellowcode" is now "api", like "api": "^1.0"` }
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "manifest"))]
     return { ok: false, problem: `${MANIFEST}: invalid ${fields.join(", ")}` }
@@ -50,9 +55,9 @@ export function readManifest(folder: string): ManifestResult {
   return { ok: true, manifest }
 }
 
-export function compatible(manifest: Manifest, version = packageJson.version): boolean {
+export function compatible(manifest: Manifest, version = apiVersion): boolean {
   try {
-    return Bun.semver.satisfies(version, manifest.yellowcode)
+    return Bun.semver.satisfies(version, manifest.api)
   } catch {
     return false
   }

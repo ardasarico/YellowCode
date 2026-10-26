@@ -3,6 +3,6 @@
   "name": "Git",
   "version": "0.1.0",
   "description": "The files you and Claude changed, in the sidebar.",
-  "yellowcode": ">=0.0.0",
+  "api": "^1.0",
   "entry": "index.tsx"
 }
