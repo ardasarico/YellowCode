@@ -1,6 +1,4 @@
-import { KILL_AFTER_MS } from "./source/claude-cli.ts"
-
-const GIVE_UP_AFTER_MS = 1000
+import { GIVE_UP_AFTER_MS, KILL_AFTER_MS } from "./source/claude-cli.ts"
 
 export type Spawned = { code: number | null; stdout: string; stderr: string }
 

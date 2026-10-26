@@ -3,7 +3,7 @@ import { constants } from "node:os"
 import { log } from "../log/log.ts"
 import type { SessionEnd } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
-import { hostEnv } from "./claude-cli.ts"
+import { hostEnv, KILL_AFTER_MS } from "./claude-cli.ts"
 import { splitLines } from "./lines.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
@@ -20,7 +20,6 @@ export type ClaudeSource = Source & {
 
 // An idle claude ends on its own once its input closes, after the user's SessionEnd hooks.
 const CLOSE_GRACE_MS = 5000
-const KILL_AFTER_MS = 2000
 const STDERR_TAIL = 5
 
 // claude ends on some signals by exiting with 128 + the signal's number itself.
