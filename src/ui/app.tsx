@@ -337,9 +337,9 @@ export function App(props: AppProps) {
       .filter((entry) => entry.id !== props.session.info?.id)
       .slice(0, RECENT_ROWS)
   // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held; a /clear
-  // brings it back with what the prompt bar held.
-  let welcomeDraft: Draft | undefined
-  let promptDraft: Draft | undefined
+  // brings it back with what the prompt bar held. A mod wrapping the prompt rebuilds it, and it comes back the same
+  // way. Read as a member, so each new input gets the latest.
+  const heldDraft: { current: Draft | undefined } = { current: undefined }
   // The selected row of the welcome screen's recent sessions; null while the tile has the keys.
   const [recent, setRecent] = createSignal<number | null>(null)
   const loadRecents = () =>
@@ -1574,8 +1574,8 @@ export function App(props: AppProps) {
                   onLeaveDown: () => {
                     if (recentShown()) setRecent(0)
                   },
-                  onDraft: (draft) => (welcomeDraft = draft),
-                  draft: promptDraft,
+                  onDraft: (next) => (heldDraft.current = next),
+                  draft: heldDraft.current,
                   history,
                 }}
                 workspace={props.workspace}
@@ -1647,8 +1647,8 @@ export function App(props: AppProps) {
             />
             <PromptBar
               {...input()}
-              draft={welcomeDraft}
-              onDraft={(draft) => (promptDraft = draft)}
+              draft={heldDraft.current}
+              onDraft={(next) => (heldDraft.current = next)}
               spaced
               width={chatWidth()}
               notice={notice()}
