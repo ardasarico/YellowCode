@@ -3,7 +3,7 @@ import { join, sep } from "node:path"
 import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
-import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
+import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
 import { apiVersion } from "./version.ts"
 import {
@@ -23,7 +23,7 @@ import {
   setLoadOrder,
 } from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
-import { modStorage } from "./storage.ts"
+import { modFacingStorage, modStorage } from "./storage.ts"
 
 export type ModStatus = "on" | "off" | "failed" | "incompatible"
 
@@ -39,7 +39,7 @@ export type ModEntry = {
   error: ModError | null
   loadMs: number | null
   // What the mod declared the last time it loaded.
-  settings: SettingDefinitions | null
+  settings: ModSettingDefinitions | null
 }
 
 // `late` is a failure after the mod was running, which turns it off.
@@ -60,10 +60,21 @@ export type ModHost = {
   onFailure(listener: (failure: ModFailure) => void): () => void
 }
 
-type Running = { disposers: (() => void)[]; cleanup: Cleanup | null; settings: SettingsHandle | null }
+type Running = { disposers: (() => void)[]; cleanup: Dispose | null; settings: SettingsHandle | null }
 
 const COMMAND_NAME = /^[a-z0-9][a-z0-9-]*$/
 const TOOL_NAME = /^[a-zA-Z0-9_-]{1,64}$/
+
+// What defineMod returns, told apart from any other default export.
+function isDefinedMod(value: unknown): value is DefinedMod {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Symbol.for("yellowcode.mod") in value &&
+    "setup" in value &&
+    typeof value.setup === "function"
+  )
+}
 
 function asError(error: unknown): ModError {
   if (error instanceof Error) return { message: String(error), stack: error.stack ?? null }
@@ -186,7 +197,7 @@ export function createModHost(options: {
       own(dialogs.dispose)
       const api: ModApi = {
         id,
-        storage,
+        storage: modFacingStorage(storage),
         settings,
         log: {
           info: (message, detail) => log.info(`[mod ${id}] ${message}`, detail),

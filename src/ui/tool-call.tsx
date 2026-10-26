@@ -1,7 +1,7 @@
 import { infoStringToFiletype, RGBA } from "@opentui/core"
 import { extname } from "node:path"
 import { createComponent, createMemo, createSignal, ErrorBoundary, Index, Show } from "solid-js"
-import type { ModToolInfo } from "../mods/api.ts"
+import type { ModToolCall } from "../mods/api.ts"
 import { reportModError, rowPartsFor } from "../mods/registry.ts"
 import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
 import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
@@ -184,7 +184,7 @@ export function ToolCallRow(props: {
     if (props.item.status === "stopped") return theme.warning
     return props.item.status === "running" ? theme.accent : theme.muted
   }
-  const info: ModToolInfo = {
+  const info: ModToolCall = {
     get name() {
       return props.item.name
     },

@@ -12,7 +12,7 @@ export function addTools(mod: ModApi, terminals: Terminals): void {
   mod.tools.add({
     name: "terminal_list",
     description: "List the user's open terminals in YellowCode's terminal pane: their tab number, shell and folder.",
-    input: { type: "object", properties: {} },
+    inputSchema: { type: "object", properties: {} },
     annotations: { readOnlyHint: true, title: "List terminals" },
     run() {
       const list = terminals.list()
@@ -31,7 +31,7 @@ export function addTools(mod: ModApi, terminals: Terminals): void {
     name: "terminal_read",
     description:
       "Read what the user sees in one of their terminals: the current screen, and with more lines the output before it. Defaults to the active terminal.",
-    input: {
+    inputSchema: {
       type: "object",
       properties: {
         tab: { type: "integer", minimum: 1, description: "Tab number from terminal_list; the active one if left out." },

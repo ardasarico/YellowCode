@@ -139,7 +139,15 @@ types:
 export default defineMod({
   settings: {
     greeting: { type: "text", label: "Greeting", default: "Hello" },
-    style: { type: "choice", label: "Style", options: ["Plain", "Loud"], default: "Plain" },
+    style: {
+      type: "choice",
+      label: "Style",
+      options: [
+        { id: "plain", label: "Plain" },
+        { id: "loud", label: "Loud" },
+      ],
+      default: "plain",
+    },
     count: { type: "boolean", label: "Count greetings", default: true, note: "kept across restarts" },
     repeat: { type: "number", label: "Repeat", min: 1, max: 5, step: 1, default: 1, unit: "times" },
   },
@@ -150,7 +158,7 @@ export default defineMod({
       argumentHint: "[name]",
       run(args) {
         let line = `${mod.settings.get("greeting")}, ${args || "there"}`
-        if (mod.settings.get("style") === "Loud") line = line.toUpperCase()
+        if (mod.settings.get("style") === "loud") line = line.toUpperCase()
         if (mod.settings.get("count")) {
           const greetings = Number(mod.storage.get("greetings") ?? 0) + 1
           mod.storage.set("greetings", greetings)
@@ -164,7 +172,8 @@ export default defineMod({
 })
 ```
 
-`mod.settings.get(id)` is typed from the declaration: a string for `text` and `choice`, a boolean, or a number.
+`mod.settings.get(id)` is typed from the declaration: a string for `text`, one of the option ids for `choice`, a
+boolean, or a number. A choice stores the option's `id`, so its `label` can change without losing what users picked.
 `mod.settings.set(id, value)` changes a value; one that does not fit the declaration is ignored and logged.
 `onChange` runs right after a value changes, from `/mods` or from `set`.
 
@@ -184,8 +193,8 @@ The values live in `$XDG_CONFIG_HOME/yellowcode/mod-data/<id>.json` (`mod.storag
 replacing the folder with a new version keeps them. `get` returns `unknown`: check the value before you use it. Each
 `set` writes the file.
 
-The same file holds the mod's settings under the key `settings` and the open or closed state of its sidebar sections
-under `sections`. Do not use those two keys yourself.
+The same file holds the mod's setting values and the open or closed state of its sidebar sections, under keys starting
+with `__yellowcode.`; `mod.storage` refuses those keys. `set(key, undefined)` removes a key.
 
 ## Logging
 
@@ -325,7 +334,7 @@ export default defineMod({
     mod.tools.add({
       name: "roll",
       description: "Roll a die and return the number it lands on.",
-      input: {
+      inputSchema: {
         type: "object",
         properties: { sides: { type: "integer", minimum: 2, description: "How many sides the die has." } },
         required: ["sides"],
@@ -493,10 +502,11 @@ mod.commands.add({
 
 `yellowcode/mod` also exports a few of the app's parts, so a mod's views look like the rest of YellowCode:
 
-- `theme`: the current theme's colors, like `theme.text`, `theme.muted`, `theme.accent`, `theme.error`, `theme.success`,
-  `theme.warning` and `theme.frame`. Read them inside a view and the view follows a theme change.
+- `theme`: the current theme's colors: `text`, `muted`, `faint`, `accent`, `success`, `warning`, `error`, `frame`,
+  `selection` (null when the theme has none), `diffAddText` and `diffDelText`. Read them inside a view and the view
+  follows a theme change. Only these are part of the API (`ModTheme`).
 - `Diff`: a unified diff, as `git diff` prints it, drawn like the diffs in the chat. Props: `diff`, and optionally
-  `filetype` for highlighting and `context` lines (3 by default).
+  `lang` (a fence info string like `"ts"`) for highlighting and `context` lines (3 by default).
 - `Code`: highlighted code with line numbers. Props: `code` and `lang`, a fence info string like `"ts"`.
 - `Rule`: a line across the given `width`, in the frame color.
 
@@ -533,7 +543,7 @@ export default defineMod({
               <box flexDirection="column">
                 <text fg={theme.muted}>{showDiff() ? "The change" : "The file before"}</text>
                 <Rule width={props.width} />
-                {showDiff() ? <Diff diff={patch} filetype="typescript" /> : <Code code={before} lang="ts" />}
+                {showDiff() ? <Diff diff={patch} lang="ts" /> : <Code code={before} lang="ts" />}
               </box>
             )
           },

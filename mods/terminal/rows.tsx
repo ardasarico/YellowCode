@@ -1,5 +1,5 @@
 import { For } from "solid-js"
-import { type ModApi, type ModToolInfo, theme } from "yellowcode/mod"
+import { type ModApi, type ModToolCall, theme } from "yellowcode/mod"
 
 const SHOWN = 3
 const SHOWN_EXPANDED = 20
@@ -27,7 +27,7 @@ function Lines(props: { lines: string[]; width: number }) {
   )
 }
 
-function readRow(tool: ModToolInfo) {
+function readRow(tool: ModToolCall) {
   const screen = tool.status === "done" ? screenOf(tool.result) : null
   if (!screen) return { title: "Terminal", text: "read" }
   return {
@@ -39,7 +39,7 @@ function readRow(tool: ModToolInfo) {
   }
 }
 
-function listRow(tool: ModToolInfo) {
+function listRow(tool: ModToolCall) {
   if (tool.status !== "done") return { title: "Terminal", text: "list" }
   const lines = tool.result.startsWith("No terminals") ? [] : tool.result.split("\n").filter(Boolean)
   return {

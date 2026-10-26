@@ -19,7 +19,15 @@ const tabPrefix = (keys: string) => keys.replace(/1\s*(?:…|\.\.\.|-)\s*9$/, ""
 
 export default defineMod({
   settings: {
-    position: { type: "choice", label: "Position", options: ["Bottom", "Right"], default: "Bottom" },
+    position: {
+      type: "choice",
+      label: "Position",
+      options: [
+        { id: "bottom", label: "Bottom" },
+        { id: "right", label: "Right" },
+      ],
+      default: "bottom",
+    },
     height: { type: "number", label: "Height", min: 5, max: 60, step: 1, default: 14, unit: "rows" },
     width: { type: "number", label: "Width", min: 30, max: 160, step: 2, default: 80, unit: "columns" },
     shell: { type: "text", label: "Shell", default: "$SHELL", note: "a path, or $SHELL for your login shell" },
@@ -28,7 +36,7 @@ export default defineMod({
     tabKeys: { type: "text", label: "Tab keys", default: "ctrl+1…9" },
   },
   setup(mod) {
-    const right = () => mod.settings.get("position") === "Right"
+    const right = () => mod.settings.get("position") === "right"
     const terminals = createTerminals({
       shell: () => {
         const shell = mod.settings.get("shell").trim()

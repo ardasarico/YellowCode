@@ -1,5 +1,5 @@
 import { createComponent, createSignal, ErrorBoundary, untrack } from "solid-js"
-import type { PanePosition, PaneViewProps } from "../mods/api.ts"
+import type { ModPanePosition, ModPaneViewProps } from "../mods/api.ts"
 import {
   focusedPane,
   modPanes,
@@ -10,7 +10,7 @@ import {
 } from "../mods/registry.ts"
 import { theme } from "../theme/theme.ts"
 
-export const shownPane = (position: PanePosition) =>
+export const shownPane = (position: ModPanePosition) =>
   modPanes().find((pane) => pane.visible() && pane.position() === position)
 
 // Panes that are shown but get no room in this window; /mods says so.
@@ -29,7 +29,7 @@ export function ModPaneView(props: {
   const bottom = () => props.pane.position() === "bottom"
   const focused = () => focusedPane() === props.pane.key
   const edge = () => (focused() ? theme.accent : theme.frame)
-  const viewProps: PaneViewProps = {
+  const viewProps: ModPaneViewProps = {
     get width() {
       return bottom() ? props.width : props.width - 1
     },

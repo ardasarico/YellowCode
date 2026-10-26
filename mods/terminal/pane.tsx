@@ -1,12 +1,12 @@
 import type { BoxRenderable } from "@opentui/core"
 import { useRenderer } from "@opentui/solid"
 import { createEffect, For, on, onCleanup, untrack } from "solid-js"
-import { type PaneViewProps, theme } from "yellowcode/mod"
+import { type ModPaneViewProps, theme } from "yellowcode/mod"
 import type { Terminals } from "./terminals.ts"
 
 // A strip of tabs over the active terminal. Every terminal stays mounted at full size, stacked, with the active one on
 // top: a hidden renderable is laid out at zero size, which would wipe its screen.
-export function TerminalPane(props: PaneViewProps & { terminals: Terminals }) {
+export function TerminalPane(props: ModPaneViewProps & { terminals: Terminals }) {
   const rows = () => Math.max(1, props.height - 1)
 
   createEffect(on([() => props.width, rows], ([cols, height]) => props.terminals.resize(cols, height)))

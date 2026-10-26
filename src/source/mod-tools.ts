@@ -62,10 +62,8 @@ export function serveModTools(send: (line: string) => void, requestId: string, r
         mcpResponse(requestId, id, {
           tools: modTools()
             .filter((tool) => tool.mod === mod)
-            .map(({ name, description, input, annotations }) =>
-              annotations
-                ? { name, description, inputSchema: input, annotations }
-                : { name, description, inputSchema: input },
+            .map(({ name, description, inputSchema, annotations }) =>
+              annotations ? { name, description, inputSchema, annotations } : { name, description, inputSchema },
             ),
         }),
       )

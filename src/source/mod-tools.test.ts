@@ -32,14 +32,14 @@ test("a mod's tools are listed and called, and a throwing tool is an error Claud
     mod: "demo",
     name: "echo",
     description: "Echo",
-    input: { type: "object" },
+    inputSchema: { type: "object" },
     run: (input) => `echo ${String(input.text)}`,
   })
   const broken = addTool({
     mod: "demo",
     name: "broken",
     description: "Throws",
-    input: { type: "object" },
+    inputSchema: { type: "object" },
     run: () => {
       throw new Error("no luck")
     },

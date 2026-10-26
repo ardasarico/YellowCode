@@ -21,10 +21,11 @@ import type {
   ModSectionOptions,
   ModStorage,
   ModTool,
-  ModToolInfo,
+  ModToolCall,
   ModWrap,
 } from "./api.ts"
 import { type KeyBinding, parseKey } from "./keys.ts"
+import { readAppValue, writeAppValue } from "./storage.ts"
 
 // What every running mod added, so the app can show and run it and /mods can count it.
 export type Owned<T> = T & { mod: string }
@@ -82,9 +83,16 @@ export function addKey(mod: string, key: ModKey): Dispose {
 
 const count = (n: number, word: string) => (n === 0 ? [] : [`${n} ${word}${n === 1 ? "" : "s"}`])
 
+// A pane with a title is named: "pane Terminal".
+function paneWords(mod: string): string[] {
+  const own = panes().filter((pane) => pane.mod === mod)
+  const titled = own.flatMap((pane) => (pane.title ? [`pane ${pane.title}`] : []))
+  return [...titled, ...count(own.length - titled.length, "pane")]
+}
+
 export function counts(mod: string): string[] {
   return [
-    ...count(panes().filter((pane) => pane.mod === mod).length, "pane"),
+    ...paneWords(mod),
     ...count(commands().filter((command) => command.mod === mod).length, "command"),
     ...count(keys().filter((key) => key.mod === mod).length, "shortcut"),
     ...count(tools().filter((tool) => tool.mod === mod).length, "tool"),
@@ -103,7 +111,12 @@ const [shown, setShown] = createSignal<ReadonlySet<string>>(new Set())
 const keySinks = new Map<string, (key: KeyEvent) => void>()
 export { panes as modPanes, focusedPane, setFocusedPane }
 
-export const setPaneKeys = (pane: string, handler: (key: KeyEvent) => void) => keySinks.set(pane, handler)
+export function setPaneKeys(pane: string, handler: (key: KeyEvent) => void): Dispose {
+  keySinks.set(pane, handler)
+  return () => {
+    if (keySinks.get(pane) === handler) keySinks.delete(pane)
+  }
+}
 export const paneKeys = (pane: string) => keySinks.get(pane)
 
 function setVisible(pane: string, visible: boolean): void {
@@ -143,20 +156,23 @@ export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; 
       entry,
     ),
   )
-  const pane: ModPane = {
-    show: () => setVisible(key, true),
-    hide: () => setVisible(key, false),
-    focus() {
-      setVisible(key, true)
-      setFocusedPane(key)
-    },
-    visible: entry.visible,
-    focused: () => focusedPane() === key,
-  }
   const dispose = () => {
     setVisible(key, false)
     keySinks.delete(key)
     setPanes((list) => list.filter((other) => other !== entry))
+  }
+  const focus = () => {
+    setVisible(key, true)
+    setFocusedPane(key)
+  }
+  const pane: ModPane = {
+    show: () => setVisible(key, true),
+    hide: () => setVisible(key, false),
+    focus,
+    toggle: () => (entry.visible() ? setVisible(key, false) : focus()),
+    visible: entry.visible,
+    focused: () => focusedPane() === key,
+    remove: dispose,
   }
   return { pane, dispose }
 }
@@ -176,7 +192,7 @@ const openStates = z.record(z.string(), z.boolean())
 
 // Whether a section is open is kept in its mod's data file, under "sections".
 export function addSection(mod: string, options: ModSectionOptions, storage: ModStorage): Dispose {
-  const stored = () => openStates.safeParse(storage.get("sections")).data ?? {}
+  const stored = () => openStates.safeParse(readAppValue(storage, "sections")).data ?? {}
   const [open, setOpenSignal] = createSignal(stored()[options.id] ?? true)
   const entry: RegisteredSection = {
     ...options,
@@ -185,7 +201,7 @@ export function addSection(mod: string, options: ModSectionOptions, storage: Mod
     open,
     setOpen(value) {
       setOpenSignal(value)
-      storage.set("sections", { ...stored(), [options.id]: value })
+      writeAppValue(storage, "sections", { ...stored(), [options.id]: value })
     },
   }
   setSections((list) =>
@@ -288,7 +304,7 @@ const [rowRenderers, setRowRenderers] = createSignal<Owned<ModRowRenderer>[]>([]
 export const addRowRenderer = adder<Owned<ModRowRenderer>>(setRowRenderers)
 
 // The first mod, in load order, that draws this row; one that throws is turned off and the next one asked.
-export function rowPartsFor(tool: ModToolInfo): { mod: string; parts: ModRowParts } | null {
+export function rowPartsFor(tool: ModToolCall): { mod: string; parts: ModRowParts } | null {
   for (const renderer of rowRenderers()) {
     try {
       const parts = renderer.render(tool)

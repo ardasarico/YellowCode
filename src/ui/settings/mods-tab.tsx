@@ -1,6 +1,6 @@
 import type { KeyEvent } from "@opentui/core"
 import { createSignal } from "solid-js"
-import type { SettingDefinition, SettingValue } from "../../mods/api.ts"
+import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { counts, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
@@ -89,8 +89,9 @@ function errorLines(entry: ModEntry, width: number): DialogItem[] {
   ]
 }
 
-function shownValue(definition: SettingDefinition, value: SettingValue): string {
-  if (definition.type === "choice") return `‹ ${String(value)} ›`
+function shownValue(definition: ModSettingDefinition, value: ModSettingValue): string {
+  if (definition.type === "choice")
+    return `‹ ${definition.options.find((option) => option.id === value)?.label ?? String(value)} ›`
   if (definition.type === "boolean") return value ? "on" : "off"
   if (definition.type === "number") return `${String(value)}${definition.unit ? ` ${definition.unit}` : ""}`
   return String(value)
@@ -168,9 +169,9 @@ function changeSetting(settings: SettingsHandle, key: string, step: 1 | -1): voi
   const definition = settings.definitions[key]
   const value = settings.get(key)
   if (definition?.type === "choice") {
-    const index = definition.options.indexOf(String(value))
+    const index = definition.options.findIndex((option) => option.id === value)
     const next = definition.options[(index + step + definition.options.length) % definition.options.length]
-    if (next !== undefined) settings.set(key, next)
+    if (next !== undefined) settings.set(key, next.id)
   } else if (definition?.type === "boolean") settings.set(key, !value)
   else if (definition?.type === "number")
     settings.set(key, Math.min(definition.max, Math.max(definition.min, Number(value) + step * definition.step)))

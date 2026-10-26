@@ -1,14 +1,15 @@
 import { createSignal } from "solid-js"
 import { log } from "../log/log.ts"
-import type { ModSettings, ModStorage, SettingDefinition, SettingDefinitions, SettingValue } from "./api.ts"
+import type { ModSettings, ModStorage, ModSettingDefinition, ModSettingDefinitions, ModSettingValue } from "./api.ts"
 import { guarded } from "./registry.ts"
+import { readAppValue, writeAppValue } from "./storage.ts"
 
-export type SettingsHandle = ModSettings<SettingDefinitions> & { readonly definitions: SettingDefinitions }
+export type SettingsHandle = ModSettings<ModSettingDefinitions> & { readonly definitions: ModSettingDefinitions }
 
-function valid(definition: SettingDefinition, value: unknown): value is SettingValue {
+function valid(definition: ModSettingDefinition, value: unknown): value is ModSettingValue {
   switch (definition.type) {
     case "choice":
-      return typeof value === "string" && definition.options.includes(value)
+      return typeof value === "string" && definition.options.some((option) => option.id === value)
     case "boolean":
       return typeof value === "boolean"
     case "number":
@@ -20,19 +21,24 @@ function valid(definition: SettingDefinition, value: unknown): value is SettingV
   }
 }
 
-// The values live under "settings" in the mod's data file, next to what it keeps with mod.storage.
-export function createSettings(id: string, definitions: SettingDefinitions, storage: ModStorage): SettingsHandle {
-  const stored = storage.get("settings")
+// The values live in the mod's data file, next to what it keeps with mod.storage.
+export function createSettings(id: string, definitions: ModSettingDefinitions, storage: ModStorage): SettingsHandle {
+  const stored = readAppValue(storage, "settings")
   const saved: Record<string, unknown> = typeof stored === "object" && stored !== null ? { ...stored } : {}
-  const initial: Record<string, SettingValue> = {}
+  const initial: Record<string, ModSettingValue> = {}
   for (const [key, definition] of Object.entries(definitions)) {
-    const value = saved[key]
+    // Before options had ids, the label was stored.
+    const value =
+      definition.type === "choice"
+        ? (definition.options.find((option) => option.label === saved[key] && option.id !== saved[key])?.id ??
+          saved[key])
+        : saved[key]
     if (value !== undefined && !valid(definition, value))
       log.warn(`mod ${id}: setting ${key} is invalid, using the default`)
     initial[key] = value !== undefined && valid(definition, value) ? value : definition.default
   }
   const [values, setValues] = createSignal(initial)
-  const listeners = new Map<string, Set<(value: SettingValue) => void>>()
+  const listeners = new Map<string, Set<(value: ModSettingValue) => void>>()
 
   return {
     definitions,
@@ -45,7 +51,7 @@ export function createSettings(id: string, definitions: SettingDefinitions, stor
       const definition = definitions[key]
       if (!definition || !valid(definition, value)) return log.warn(`mod ${id}: ignored an invalid ${key}`)
       setValues((current) => ({ ...current, [key]: value }))
-      storage.set("settings", values())
+      writeAppValue(storage, "settings", values())
       for (const listener of listeners.get(key) ?? []) guarded(id, () => listener(value))
     },
     onChange(key, listener) {

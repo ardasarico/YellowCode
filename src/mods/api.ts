@@ -25,25 +25,34 @@ export type ModLog = {
 
 export type Dispose = () => void
 
-export type SettingDefinition =
-  | { type: "choice"; label: string; options: readonly string[]; default: string; note?: string }
+export type ModSettingDefinition =
+  // The stored value is the option's id, so a label can change without losing what users chose.
+  | {
+      type: "choice"
+      label: string
+      options: readonly { readonly id: string; readonly label: string }[]
+      default: string
+      note?: string
+    }
   | { type: "boolean"; label: string; default: boolean; note?: string }
   | { type: "number"; label: string; min: number; max: number; step: number; default: number; unit?: string }
   | { type: "text"; label: string; default: string; note?: string }
 
-export type SettingDefinitions = Record<string, SettingDefinition>
+export type ModSettingDefinitions = Record<string, ModSettingDefinition>
 
-export type SettingValue<D extends SettingDefinition = SettingDefinition> = D extends { type: "boolean" }
+export type ModSettingValue<D extends ModSettingDefinition = ModSettingDefinition> = D extends { type: "boolean" }
   ? boolean
   : D extends { type: "number" }
     ? number
-    : string
+    : D extends { type: "choice"; options: readonly { readonly id: infer I }[] }
+      ? I
+      : string
 
-export type ModSettings<S extends SettingDefinitions> = {
-  get<K extends keyof S & string>(id: K): SettingValue<S[K]>
-  set<K extends keyof S & string>(id: K, value: SettingValue<S[K]>): void
+export type ModSettings<S extends ModSettingDefinitions> = {
+  get<K extends keyof S & string>(id: K): ModSettingValue<S[K]>
+  set<K extends keyof S & string>(id: K, value: ModSettingValue<S[K]>): void
   // Called right after the value changes, from /mods or from `set`.
-  onChange<K extends keyof S & string>(id: K, listener: (value: SettingValue<S[K]>) => void): Dispose
+  onChange<K extends keyof S & string>(id: K, listener: (value: ModSettingValue<S[K]>) => void): Dispose
 }
 
 export type ModCommand = {
@@ -62,26 +71,28 @@ export type ModKey = {
   when?: "always" | "pane"
 }
 
-export type PanePosition = "bottom" | "right"
+export type ModPanePosition = "bottom" | "right"
 
-export type PaneViewProps = {
+export type ModPaneViewProps = {
   // Rows and columns inside the pane, its edge left out.
   width: number
   height: number
   focused: boolean
-  // While the pane has the focus, every key but the mods' shortcuts comes here, ctrl+c and Esc included.
-  onKey: (handler: (key: KeyEvent) => void) => void
+  // While the pane has the focus, every key but the mods' shortcuts and ctrl+] (which leaves the pane) comes here, ctrl+c
+  // and Esc included. The last handler given wins; the returned function removes it.
+  onKey: (handler: (key: KeyEvent) => void) => Dispose
 }
 
 export type ModPaneOptions = {
   id: string
-  title: string
-  position: () => PanePosition
+  // Shown in /mods.
+  title?: string
+  position: () => ModPanePosition
   // Rows for a bottom pane, columns for a right one.
   size: () => number
   // The user dragged the pane's edge to this size.
   onResize?(size: number): void
-  view: (props: PaneViewProps) => JSX.Element
+  view: (props: ModPaneViewProps) => JSX.Element
 }
 
 export type ModPane = {
@@ -89,18 +100,22 @@ export type ModPane = {
   hide(): void
   // Shows the pane and gives it the focus.
   focus(): void
+  // Hides a shown pane; shows a hidden one and gives it the focus.
+  toggle(): void
   visible(): boolean
   focused(): boolean
+  // Takes the pane away for good, like turning the mod off does.
+  remove(): void
 }
 
-export type SidebarZone = "top" | "body" | "bottom"
+export type ModSidebarZone = "top" | "body" | "bottom"
 
 // A section in the sidebar. The app draws its heading with the open/closed arrow; the mod gives what goes under it.
 export type ModSectionOptions = {
   id: string
   title: string
   // "top" is above the session title, "body" between the title and usage, "bottom" under usage. "body" by default.
-  zone?: SidebarZone
+  zone?: ModSidebarZone
   // The place in its zone, low first. Tasks is 10 and MCP 20; 30 by default.
   order?: number
   // A short text at the right of the heading.
@@ -134,8 +149,8 @@ export type ModDialogViewProps = {
   // Rows and columns for the mod's content, the title and footer left out.
   width: number
   height: number
-  // Every key but Esc, which closes the dialog, comes here.
-  onKey: (handler: (key: KeyEvent) => void) => void
+  // Every key but Esc, which closes the dialog, comes here. The last handler given wins; the returned function removes it.
+  onKey: (handler: (key: KeyEvent) => void) => Dispose
   close(): void
 }
 
@@ -148,6 +163,12 @@ export type ModDialogOptions = {
   view: (props: ModDialogViewProps) => JSX.Element
 }
 
+export type ModDialogHandle = {
+  close(): void
+  // Resolves when the dialog closes.
+  closed: Promise<void>
+}
+
 // One dialog is open at a time. While another one is open, a call answers null at once and shows nothing.
 export type ModDialogs = {
   // The chosen item's id, or null on Esc.
@@ -155,12 +176,11 @@ export type ModDialogs = {
   confirm(options: ModConfirmOptions): Promise<boolean | null>
   // The text, or null on Esc.
   input(options: ModInputOptions): Promise<string | null>
-  // Resolves when the dialog closes.
-  open(options: ModDialogOptions): { close(): void; closed: Promise<void> }
+  open(options: ModDialogOptions): ModDialogHandle
 }
 
 // A tool call in the chat, as a row renderer sees it.
-export type ModToolInfo = {
+export type ModToolCall = {
   // The full name, like "Bash" or "mcp__mod-terminal__terminal_read".
   readonly name: string
   // The name without the MCP prefix: "terminal_read".
@@ -185,7 +205,7 @@ export type ModRowParts = {
 }
 
 // Null leaves the row to the next mod, and in the end to the app.
-export type ModRowRenderer = { render(tool: ModToolInfo): ModRowParts | null }
+export type ModRowRenderer = { render(tool: ModToolCall): ModRowParts | null }
 
 // A fenced code block in Claude's reply, drawn once it is finished.
 export type ModFenceBlock = { code: string; lang: string }
@@ -226,12 +246,12 @@ export type ModTool = {
   name: string
   description: string
   // A JSON schema object for the arguments.
-  input: Record<string, unknown>
+  inputSchema: Record<string, unknown>
   annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; title?: string }
   run(input: Record<string, unknown>): ModToolResult | Promise<ModToolResult>
 }
 
-export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
+export type ModApi<S extends ModSettingDefinitions = ModSettingDefinitions> = {
   readonly id: string
   readonly storage: ModStorage
   readonly log: ModLog
@@ -250,33 +270,21 @@ export type ModApi<S extends SettingDefinitions = SettingDefinitions> = {
   onDispose(dispose: () => void): void
 }
 
-export type Cleanup = () => void
-
-export type ModDefinition<S extends SettingDefinitions = SettingDefinitions> = {
+export type ModDefinition<S extends ModSettingDefinitions = ModSettingDefinitions> = {
   settings?: S
   // Keep it light: start timers, sockets and processes on the first event or command, not here.
-  setup(mod: ModApi<S>): void | Cleanup | Promise<void | Cleanup>
+  setup(mod: ModApi<S>): void | Dispose | Promise<void | Dispose>
 }
 
 const BRAND = Symbol.for("yellowcode.mod")
 
 export type DefinedMod = ModDefinition & { readonly [BRAND]: true }
 
-export function defineMod<const S extends SettingDefinitions = SettingDefinitions>(
+export function defineMod<const S extends ModSettingDefinitions = ModSettingDefinitions>(
   definition: ModDefinition<S>,
 ): DefinedMod {
   return { settings: definition.settings, setup: (mod) => definition.setup(mod), [BRAND]: true }
 }
 
-export function isDefinedMod(value: unknown): value is DefinedMod {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    BRAND in value &&
-    "setup" in value &&
-    typeof value.setup === "function"
-  )
-}
-
-export { Code, Diff, Rule, theme } from "./kit.tsx"
+export { Code, Diff, type ModTheme, Rule, theme } from "./kit.tsx"
 export { apiVersion } from "./version.ts"

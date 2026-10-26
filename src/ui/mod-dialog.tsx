@@ -159,7 +159,12 @@ function Custom(props: { options: ModDialogOptions; mod: string; close: Close })
             get height() {
               return rows()
             },
-            onKey: (next) => (handler = next),
+            onKey: (next) => {
+              handler = next
+              return () => {
+                if (handler === next) handler = null
+              }
+            },
             close: () => props.close(null),
           })}
         </ErrorBoundary>

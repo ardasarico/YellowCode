@@ -1,4 +1,4 @@
-import { infoStringToFiletype, type ScrollBoxRenderable } from "@opentui/core"
+import type { ScrollBoxRenderable } from "@opentui/core"
 import { extname } from "node:path"
 import { createSignal, For, Show, untrack } from "solid-js"
 import { defineMod, Diff, type ModApi, theme } from "yellowcode/mod"
@@ -38,7 +38,7 @@ async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void>
       return (
         <scrollbox ref={(element: ScrollBoxRenderable) => (scroll = element)} width={props.width} height={props.height}>
           <Show when={diff.trim() !== ""} fallback={<text fg={theme.muted}>No changes against the last commit.</text>}>
-            <Diff diff={diff} filetype={infoStringToFiletype(extname(change.path).slice(1))} />
+            <Diff diff={diff} lang={extname(change.path).slice(1)} />
           </Show>
         </scrollbox>
       )

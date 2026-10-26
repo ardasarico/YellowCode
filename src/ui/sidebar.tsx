@@ -1,6 +1,6 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
 import { createComponent, createMemo, createSignal, ErrorBoundary, For, Index, Show, untrack } from "solid-js"
-import type { SidebarZone } from "../mods/api.ts"
+import type { ModSidebarZone } from "../mods/api.ts"
 import { DEFAULT_SECTION_ORDER, modSections, type RegisteredSection, reportModError } from "../mods/registry.ts"
 import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
@@ -338,7 +338,7 @@ const MCP_ORDER = 20
 
 type BodyEntry = { order: number; builtin: "tasks" | "mcp" } | { order: number; section: RegisteredSection }
 
-const zoneSections = (zone: SidebarZone) =>
+const zoneSections = (zone: ModSidebarZone) =>
   modSections()
     .filter((section) => (section.zone ?? "body") === zone)
     .toSorted((a, b) => (a.order ?? DEFAULT_SECTION_ORDER) - (b.order ?? DEFAULT_SECTION_ORDER))
