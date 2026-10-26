@@ -55,14 +55,11 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
       }}
       onKey={() => false}
       onEscape={props.onClose}
-      empty={
-        entries() === null
-          ? undefined
-          : (query) => {
-              if (failed()) return "Could not read the sessions"
-              return query === "" ? "No sessions in this project." : `No sessions match "${query}".`
-            }
-      }
+      empty={(query) => {
+        if (entries() === null) return "Reading the sessions…"
+        if (failed()) return "Could not read the sessions"
+        return query === "" ? "No sessions in this project." : `No sessions match "${query}".`
+      }}
     />
   )
 }
