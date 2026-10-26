@@ -134,3 +134,22 @@ test("a manifest with the old yellowcode field says to use api", () => {
     problem: 'yellowcode-mod.json: "yellowcode" is now "api", like "api": "^1.0"',
   })
 })
+
+test("a setup that never finishes fails after the limit", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(
+    folder,
+    "hangs",
+    "^1.0",
+    `import { defineMod } from "yellowcode/mod"
+export default defineMod({ setup: () => new Promise(() => {}) })`,
+  )
+  const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {}, setupLimitMs: 50 })
+  host.discover()
+  await host.loadAll()
+  const entry = host.entries.find((candidate) => candidate.id === "hangs")
+  expect(entry?.status).toBe("failed")
+  expect(entry?.error?.message).toBe("Error: setup did not finish in 0.05 s")
+})

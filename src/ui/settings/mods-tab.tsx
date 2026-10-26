@@ -3,7 +3,7 @@ import { createSignal } from "solid-js"
 import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { keyText } from "../../mods/keys.ts"
-import { counts, modPanes } from "../../mods/registry.ts"
+import { counts, modKeys, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
 import { tildePath } from "../../rewind/common.ts"
@@ -123,6 +123,22 @@ function settingItems(settings: SettingsHandle | null, editing: Editing | null, 
   ]
 }
 
+// A shortcut of one character with no ctrl or alt takes that character everywhere, the prompt included.
+function bareKeys(mod: string, width: number): DialogItem[] {
+  return modKeys()
+    .filter((key) => key.mod === mod && key.when !== "pane" && !key.binding.ctrl && !key.binding.meta)
+    .filter((key) => Array.from(key.binding.name).length === 1)
+    .flatMap((key) =>
+      fact(
+        `bare-${key.key}`,
+        "Shortcut",
+        `${key.key} takes that key everywhere, also while typing`,
+        width,
+        theme.warning,
+      ),
+    )
+}
+
 function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | null, editing: Editing | null) {
   const manifest = entry.manifest
   const heading = manifest ? `${manifest.name} ${manifest.version}` : entry.id
@@ -142,6 +158,7 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
     ...(modPanes().some((pane) => pane.mod === entry.id && crowded().has(pane.key))
       ? fact("room", "Pane", "no room in this window", width, theme.warning)
       : []),
+    ...bareKeys(entry.id, width),
     ...errorLines(entry, width),
     ...settingItems(settings, editing, width),
   ]

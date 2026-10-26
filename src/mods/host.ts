@@ -112,8 +112,25 @@ function forgetModules(folder: string): void {
   }
 }
 
+// YellowCode waits for every setup before it draws, so one that hangs would keep the window from opening.
+const SETUP_LIMIT_MS = 5000
+
+function withinLimit<T>(value: T | Promise<T>, limitMs: number, late: (value: T) => void): Promise<T> | T {
+  if (!(value instanceof Promise)) return value
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      void value.then(late, () => {})
+      reject(new Error(`setup did not finish in ${limitMs / 1000} s`))
+    }, limitMs)
+  })
+  return Promise.race([value, limit]).finally(() => clearTimeout(timer))
+}
+
 export function createModHost(options: {
   folder: string
+  // How long a setup may take; 5 s by default.
+  setupLimitMs?: number
   disabled: () => readonly string[]
   saveDisabled: (ids: string[]) => void
 }): ModHost {
@@ -253,9 +270,13 @@ export function createModHost(options: {
         prompt: { insert: (text) => appBridge()?.insert(text) },
       }
       // Effects and memos made in setup belong to the mod and end with it. Code after an await in setup has no owner.
-      const cleanup = await createRoot((disposeRoot) => {
+      const setup = createRoot((disposeRoot) => {
         own(disposeRoot)
         return definition.setup(api)
+      })
+      const cleanup = await withinLimit(setup, options.setupLimitMs ?? SETUP_LIMIT_MS, (late) => {
+        // The mod failed already; a cleanup its setup returns after all still runs.
+        if (typeof late === "function") late()
       })
       if (typeof cleanup === "function") state.cleanup = cleanup
       if (stale()) {

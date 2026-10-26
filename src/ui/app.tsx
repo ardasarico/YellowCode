@@ -102,6 +102,7 @@ import {
   type RegisteredPane,
   setAppBridge,
   setAppDialogOpen,
+  setAppShown,
   setFocusedPane,
 } from "../mods/registry.ts"
 import { ModPaneView, setCrowded, shownPane } from "./mod-pane.tsx"
@@ -446,7 +447,11 @@ export function App(props: AppProps) {
         permissionMode: () => props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null,
       },
     })
-    onCleanup(() => setAppBridge(null))
+    onMount(() => setAppShown(true))
+    onCleanup(() => {
+      setAppBridge(null)
+      setAppShown(false)
+    })
   }
   const flagged = untrack(() => props.readOnly)
     ? () => false
@@ -1084,11 +1089,15 @@ export function App(props: AppProps) {
       return
     }
     // A focused mod pane takes every key but the shortcuts mods registered, even while claude asks something: keys
-    // typed for the pane must not answer the ask. A click on the chat or the pane's own key leaves it.
+    // typed for the pane must not answer the ask. Ctrl+], a click on the chat or the pane's own key leaves it.
     const pane = focusedPane()
     if (pane !== null && !dialog()) {
       key.preventDefault()
       key.stopPropagation()
+      if (key.ctrl && key.name === "]") {
+        setFocusedPane(null)
+        return
+      }
       const owner = pane.slice(0, pane.indexOf("/"))
       const shortcut = modKeys().find(
         (entry) => (entry.when !== "pane" || entry.mod === owner) && matches(entry.binding, key),

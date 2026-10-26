@@ -262,8 +262,12 @@ type Request = ModDialogRequest extends infer R
     : never
   : never
 
+// Until the app has drawn, nothing could show a dialog; a setup awaiting one would wait forever.
+let appShown = false
+export const setAppShown = (value: boolean) => (appShown = value)
+
 function request(mod: string, what: Request): Promise<unknown> {
-  if (dialog() !== null || appDialogOpen) return Promise.resolve(null)
+  if (!appShown || dialog() !== null || appDialogOpen) return Promise.resolve(null)
   return new Promise((resolve) => {
     const entry: ModDialogRequest = {
       ...what,

@@ -181,7 +181,8 @@ export type ModDialogHandle = {
   closed: Promise<void>
 }
 
-// One dialog is open at a time. While another one is open, a call answers null at once and shows nothing.
+// One dialog is open at a time. While another one is open, or before YellowCode has drawn its window (in `setup` at
+// startup), a call answers null at once and shows nothing.
 export type ModDialogs = {
   // The chosen item's id, or null on Esc.
   choose(options: ModChooseOptions): Promise<string | null>
