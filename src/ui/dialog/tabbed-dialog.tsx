@@ -1,9 +1,10 @@
 import { type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard, useTerminalDimensions } from "@opentui/solid"
-import { createSignal, For, type JSX, onCleanup, Show } from "solid-js"
+import { createSignal, For, type JSX, onCleanup, Show, untrack } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { Frame } from "./frame.tsx"
 import { Footer, type FooterAction, onAccent, PAD_X } from "./list-view.tsx"
+import { ConfirmPanel } from "./panel.tsx"
 
 // What the open tab's body hands the dialog: it sees keys first while it has the focus.
 type TabBody = {
@@ -20,7 +21,11 @@ export type TabApi<Id extends string = string> = {
   toStrip: () => void
   open(tab: Id): void
   notify: (text: string) => void
+  // Asks over the dialog; true when the action was chosen.
+  confirm: (question: Question) => Promise<boolean>
 }
+
+export type Question = { title: string; message: string; action: string }
 
 export type Tab<Id extends string = string> = { id: Id; label: string; render: (api: TabApi<Id>) => JSX.Element }
 
@@ -65,8 +70,10 @@ export function TabbedDialog<Id extends string>(props: {
   const [focus, setFocus] = createSignal<"strip" | "body">("body")
   const [body, setBody] = createSignal<TabBody | null>(null)
   const [notice, setNotice] = createSignal<string>()
+  const [asking, setAsking] = createSignal<{ question: Question; answer: (yes: boolean) => void } | null>(null)
   let timer: ReturnType<typeof setTimeout> | undefined
   onCleanup(() => clearTimeout(timer))
+  onCleanup(() => asking()?.answer(false))
 
   const size = () => settingsSize(dimensions().width, dimensions().height)
   const inner = () => Math.max(0, size().width - PAD_X * 2)
@@ -102,11 +109,27 @@ export function TabbedDialog<Id extends string>(props: {
       setNotice(text)
       timer = setTimeout(() => setNotice(undefined), NOTICE_MS)
     },
+    confirm: (question) =>
+      new Promise((resolve) => {
+        untrack(asking)?.answer(false)
+        setAsking({
+          question,
+          answer: (yes) => {
+            setAsking(null)
+            resolve(yes)
+          },
+        })
+      }),
   }
 
   useKeyboard((key) => {
     key.stopPropagation()
     key.preventDefault()
+    const open = asking()
+    if (open) {
+      if (key.name === "return" || key.name === "escape") open.answer(key.name === "return")
+      return
+    }
     if (focus() === "body") {
       if (body()?.keys(key)) return
       if (key.name === "escape") props.onClose()
@@ -158,22 +181,25 @@ export function TabbedDialog<Id extends string>(props: {
   )
 
   return (
-    <Frame panel={{ x: left(), y: top(), width: size().width, height: size().height }}>
-      <Strip />
-      <Rule />
-      <box height={1} />
-      <box height={rows()} flexDirection="column" overflow="hidden">
-        <For each={props.tabs}>{(tab) => <Show when={tab.id === props.tab}>{tab.render(api)}</Show>}</For>
-      </box>
-      <box height={1} />
-      <Rule />
-      <Footer
-        items={focus() === "strip" ? STRIP_FOOTER : (body()?.footer() ?? [])}
-        keys
-        notice={notice()}
-        width={inner()}
-        fit
-      />
-    </Frame>
+    <>
+      <Frame panel={{ x: left(), y: top(), width: size().width, height: size().height }}>
+        <Strip />
+        <Rule />
+        <box height={1} />
+        <box height={rows()} flexDirection="column" overflow="hidden">
+          <For each={props.tabs}>{(tab) => <Show when={tab.id === props.tab}>{tab.render(api)}</Show>}</For>
+        </box>
+        <box height={1} />
+        <Rule />
+        <Footer
+          items={focus() === "strip" ? STRIP_FOOTER : (body()?.footer() ?? [])}
+          keys
+          notice={notice()}
+          width={inner()}
+          fit
+        />
+      </Frame>
+      <Show when={asking()}>{(open) => <ConfirmPanel {...open().question} />}</Show>
+    </>
   )
 }

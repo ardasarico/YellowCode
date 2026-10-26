@@ -2,7 +2,7 @@ import { type OptimizedBuffer, TextAttributes } from "@opentui/core"
 import { useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, type JSX, onCleanup, onMount, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
-import { SCRIM, setCovered } from "../images.ts"
+import { cover, SCRIM } from "../images.ts"
 import { DimmedImages } from "./dimmed-images.tsx"
 import { fill } from "./list-view.tsx"
 
@@ -24,8 +24,7 @@ export function useViewPanel(): () => Rect {
 // A panel over the dimmed app.
 export function Frame(props: { panel: Rect; children: JSX.Element }) {
   const renderer = useRenderer()
-  onMount(() => setCovered(true))
-  onCleanup(() => setCovered(false))
+  onMount(() => onCleanup(cover()))
 
   // With no colors to blend with, the cells around the panel are set faint, so the terminal fades them itself.
   const faint = (buffer: OptimizedBuffer) => {

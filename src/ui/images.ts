@@ -4,10 +4,16 @@ import { theme } from "../theme/theme.ts"
 
 // A dialog's layers wipe the images under them, so while one is open it draws the tracked images again, dimmed, above
 // its scrim. Without a scrim (no known colors) an image gives way to an empty box of its size instead.
-const [covered, setCovered] = createSignal(false)
+// Counted, since a confirm can open over a dialog that stays open.
+const [layers, setLayers] = createSignal(0)
+export const covered = () => layers() > 0
+export function cover(): () => void {
+  setLayers((count) => count + 1)
+  return () => setLayers((count) => count - 1)
+}
 // Changed in place, since copying the list for every image made mounting thousands of them quadratic.
 const [tracked, setTracked] = createSignal<ImageRenderable[]>([], { equals: false })
-export { covered, setCovered, tracked }
+export { tracked }
 
 export const blank = () => covered() && !theme.dim
 
