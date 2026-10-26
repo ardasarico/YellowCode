@@ -1,4 +1,5 @@
-import { mkdirSync, realpathSync, renameSync, writeFileSync } from "node:fs"
+import { randomBytes } from "node:crypto"
+import { closeSync, fchmodSync, mkdirSync, openSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path"
 import { z } from "zod"
@@ -141,7 +142,27 @@ export function writeManifest(store: string, manifest: Manifest): void {
   const folder = join(store, "prompts")
   mkdirSync(folder, { recursive: true, mode: 0o700 })
   const file = join(folder, `${manifest.uuid}.json`)
+  writeJson(file, manifest)
+}
+
+export function writeJson(file: string, value: unknown): void {
   const temp = `${file}.${process.pid}.tmp`
-  writeFileSync(temp, JSON.stringify(manifest))
+  writeFileSync(temp, JSON.stringify(value))
   renameSync(temp, file)
+}
+
+// A new file beside `path` holding the bytes, for the caller to rename over it. Throws when it cannot be written.
+export function writeBeside(path: string, bytes: Uint8Array, mode: number): string {
+  const temp = join(dirname(path), `.${basename(path)}.yc-${randomBytes(4).toString("hex")}`)
+  const fd = openSync(temp, "wx", 0o600)
+  try {
+    writeFileSync(fd, bytes)
+    fchmodSync(fd, mode)
+  } catch (error) {
+    rmSync(temp, { force: true })
+    throw error
+  } finally {
+    closeSync(fd)
+  }
+  return temp
 }

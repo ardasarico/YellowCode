@@ -1,10 +1,8 @@
 /* oxlint-disable no-await-in-loop */
-import { randomBytes } from "node:crypto"
 import {
   accessSync,
   closeSync,
   constants,
-  fchmodSync,
   fstatSync,
   type Stats,
   lstatSync,
@@ -15,11 +13,10 @@ import {
   renameSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs"
 import { basename, dirname, join } from "node:path"
 import { log } from "../log/log.ts"
-import { blobId, covers } from "./common.ts"
+import { blobId, covers, writeBeside } from "./common.ts"
 import type { Change, Snapshots, Taken, TreeEntry } from "./snapshots.ts"
 
 // Paths are relative to the snapshots' root, as in snapshots.ts.
@@ -247,20 +244,12 @@ function changeable(disk: Disk, full: string): boolean {
 // Rule 5: the blob goes to a file beside the path, which is renamed over it right after the checks run again.
 function put(disk: Disk, root: string, step: Step, bytes: Uint8Array, mode: number, keepChanged: boolean) {
   const full = join(root, step.path)
-  const temp = join(dirname(full), `.${basename(full)}.yc-${randomBytes(4).toString("hex")}`)
-  let made = false
+  let temp: string | null = null
   try {
     const parents = folders(disk, root, step.path, true)
     if (parents) return parents
     if (disk.dry) return changeable(disk, full) ? check(disk, root, step, keepChanged).reason : "could not write it"
-    const fd = openSync(temp, "wx", 0o600)
-    made = true
-    try {
-      writeFileSync(fd, bytes)
-      fchmodSync(fd, mode)
-    } finally {
-      closeSync(fd)
-    }
+    temp = writeBeside(full, bytes, mode)
     const { reason } = check(disk, root, step, keepChanged)
     if (reason) {
       rmSync(temp, { force: true })
@@ -270,7 +259,7 @@ function put(disk: Disk, root: string, step: Step, bytes: Uint8Array, mode: numb
     disk.names.get(dirname(full))?.add(basename(full).normalize())
     return null
   } catch {
-    if (made) rmSync(temp, { force: true })
+    if (temp) rmSync(temp, { force: true })
     return "could not write it"
   }
 }

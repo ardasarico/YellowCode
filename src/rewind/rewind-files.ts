@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto"
-import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { log } from "../log/log.ts"
 import type { ItemId, Session } from "../session/types.ts"
-import { covers, tildePath } from "./common.ts"
+import { covers, tildePath, writeJson } from "./common.ts"
 import { type Capture, type Point, promptManifests } from "./live-rewind.ts"
 import { type OutsideFile, restoreOutside } from "./outside.ts"
 import { chatPaths, conflictsNow, outsideFiles, type Pending, restoreInput } from "./preview.ts"
@@ -90,8 +90,7 @@ export function createFileRewind(capture: Capture | null, cwd: string): FileRewi
         refs: state.done.flatMap((one) => [one.safety.taken.id, ...(one.after ? [one.after.taken.id] : [])]),
         blobs: [...state.outside.values()].flatMap((entry) => (entry.before ? [entry.before] : [])),
       }
-      writeFileSync(`${file}.${process.pid}.tmp`, JSON.stringify(record))
-      renameSync(`${file}.${process.pid}.tmp`, file)
+      writeJson(file, record)
     } catch (error) {
       log.warn("rewind record not written", String(error))
     }

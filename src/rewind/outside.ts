@@ -1,21 +1,8 @@
 /* oxlint-disable no-await-in-loop */
-import { randomBytes } from "node:crypto"
-import {
-  accessSync,
-  closeSync,
-  constants,
-  fchmodSync,
-  lstatSync,
-  openSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs"
-import { basename, dirname, isAbsolute, join } from "node:path"
+import { accessSync, constants, lstatSync, readFileSync, renameSync, rmSync, unlinkSync } from "node:fs"
+import { dirname, isAbsolute, join } from "node:path"
 import { log } from "../log/log.ts"
-import { gitEnv, runGit } from "./common.ts"
+import { gitEnv, runGit, writeBeside } from "./common.ts"
 
 // Files outside the snapshots' root: what a main-thread Edit/Write said the file held before goes into the store as a
 // blob of its own, and only the file's hash is taken afterwards.
@@ -156,24 +143,16 @@ async function change(store: string, file: OutsideFile, keep: boolean): Promise<
   }
   const bytes = await blobBytes(store, file.before)
   if (!bytes) return false
-  const temp = join(dirname(file.path), `.${basename(file.path)}.yc-${randomBytes(4).toString("hex")}`)
   const mode = lstatSync(file.path, { throwIfNoEntry: false })?.mode ?? file.mode
   // Checked before the temp file exists: from there to the rename nothing waits, so a quit cannot leave it behind.
   if ((await outsideNow(store, file.path)) !== file.after) return false
-  let made = false
+  let temp: string | null = null
   try {
-    const fd = openSync(temp, "wx", 0o600)
-    made = true
-    try {
-      writeFileSync(fd, bytes)
-      fchmodSync(fd, mode === undefined ? 0o644 : mode & 0o777)
-    } finally {
-      closeSync(fd)
-    }
+    temp = writeBeside(file.path, bytes, mode === undefined ? 0o644 : mode & 0o777)
     renameSync(temp, file.path)
     return undo
   } catch {
-    if (made) rmSync(temp, { force: true })
+    if (temp) rmSync(temp, { force: true })
     return false
   }
 }
