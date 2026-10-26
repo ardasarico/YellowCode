@@ -40,7 +40,7 @@ test("a byte order mark is ignored and the protocol's default mode reads as manu
 })
 
 test("a bad field is reset, the other fields are kept and the file is not archived", () => {
-  const path = fileWith('{"theme":"neon","sidebar":"hidden","notifications":"waiting","extra":1}')
+  const path = fileWith('{"theme":"no-such-theme","sidebar":"hidden","notifications":"waiting","extra":1}')
   const loaded = loadSettings(path)
   expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", notifications: "waiting" })
   expect(loaded.problem).toBe("settings.json: invalid theme, using the default")

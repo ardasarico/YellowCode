@@ -11,7 +11,7 @@ if (!dusk) throw new Error("the built-in dusk theme did not load")
 
 test("a user theme loads, or says what is wrong with it", () => {
   const folder = mkdtempSync(join(tmpdir(), "yellowcode-themes-"))
-  writeFileSync(join(folder, "forest.json"), JSON.stringify({ name: "Forest", light: dusk.light }))
+  writeFileSync(join(folder, "meadow.json"), JSON.stringify({ name: "Meadow", light: dusk.light }))
   const { tile: _tile, ...noTile } = dusk.dark
   writeFileSync(join(folder, "broken.json"), JSON.stringify({ name: "Broken", dark: noTile }))
   writeFileSync(join(folder, "odd.json"), JSON.stringify({ name: "Odd", dark: { ...dusk.dark, accent: "blue" } }))
@@ -20,9 +20,9 @@ test("a user theme loads, or says what is wrong with it", () => {
   expect(user.map((entry) => [entry.id, entry.problem])).toEqual([
     ["broken", "dark.tile missing"],
     ["dusk", "a built-in theme has this name"],
-    ["forest", null],
+    ["meadow", null],
     ["odd", "dark.accent is not a color"],
   ])
   // A light-only theme serves a dark terminal too.
-  expect(user.find((entry) => entry.id === "forest")?.definition?.dark).toEqual(dusk.light)
+  expect(user.find((entry) => entry.id === "meadow")?.definition?.dark).toEqual(dusk.light)
 })
