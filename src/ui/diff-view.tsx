@@ -83,7 +83,8 @@ function SyntaxRows(props: { rows: DiffRow[]; filetype: string }) {
 
 // A new file shows its last lines; an edit shows its first ones.
 export function DiffView(props: { rows: DiffRow[]; tail: boolean; expanded: boolean; filetype?: string }) {
-  const digits = () => String(Math.max(0, ...props.rows.map((row) => (row.kind === "gap" ? 0 : row.number)))).length
+  const digits = () =>
+    String(props.rows.reduce((most, row) => Math.max(most, row.kind === "gap" ? 0 : row.number), 0)).length
   const tail = () => props.tail && !props.expanded
   const limit = () => (props.expanded ? EXPANDED_LIMIT : props.tail ? TAIL_LIMIT : HEAD_LIMIT)
   const hidden = () => Math.max(0, props.rows.length - limit())

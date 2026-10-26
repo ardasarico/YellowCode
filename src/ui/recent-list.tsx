@@ -3,6 +3,7 @@ import { NO_PROMPT, type SessionEntry } from "../resume/session-list.ts"
 import { theme } from "../theme/theme.ts"
 import { cut, formatAgo } from "./format.ts"
 import { TILE_PADDING } from "./input-block.tsx"
+import { useTicker } from "./ticker.ts"
 
 const gutter = (selected: boolean) => (selected ? " ●" : "").padEnd(TILE_PADDING)
 
@@ -10,7 +11,9 @@ const gutter = (selected: boolean) => (selected ? " ●" : "").padEnd(TILE_PADDI
 // tile's padding, so selecting a row never moves its text.
 export function RecentList(props: { entries: SessionEntry[]; selected: number | null; width: number }) {
   const inner = () => props.width - 2 * TILE_PADDING
+  const minute = useTicker(() => true, 60_000)
   const rows = () => {
+    minute()
     const now = Date.now()
     return props.entries.map((entry, index) => {
       const ago = formatAgo(entry.modified, now)

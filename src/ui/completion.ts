@@ -13,6 +13,7 @@ import {
 } from "../input/draft.ts"
 import { historyStep } from "../input/history.ts"
 import type { InputProvider } from "../input/provider.ts"
+import { log } from "../log/log.ts"
 import type { OutgoingImage } from "../protocol/outgoing.ts"
 import {
   argumentToken,
@@ -236,6 +237,7 @@ export function useCompletion(options: CompletionOptions) {
         if (request !== fileRequest) return
         show({ kind: "file", start: token.start, entries: paths.map((path) => ({ kind: "file", path })) })
       })
+      .catch((error: unknown) => log.warn("file suggestions failed", String(error)))
   }
 
   const leftToken = () => {
