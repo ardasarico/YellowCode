@@ -1,5 +1,6 @@
 import { readdirSync, realpathSync, statSync } from "node:fs"
 import { join, sep } from "node:path"
+import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import { type Cleanup, type Dispose, isDefinedMod, type ModApi, type SettingDefinitions } from "./api.ts"
@@ -48,6 +49,8 @@ export type ModHost = {
   discover(): void
   loadAll(): Promise<void>
   setEnabled(id: string, on: boolean): Promise<void>
+  // Runs every mod's cleanups, on quit.
+  unloadAll(): void
   reload(id: string): Promise<void>
   fail(id: string, error: unknown): void
   // The settings of a running mod.
@@ -214,7 +217,11 @@ export function createModHost(options: {
         },
         onDispose: (disposer) => void own(disposer),
       }
-      const cleanup = await definition.setup(api)
+      // Effects and memos made in setup belong to the mod and end with it. Code after an await in setup has no owner.
+      const cleanup = await createRoot((disposeRoot) => {
+        own(disposeRoot)
+        return definition.setup(api)
+      })
       if (typeof cleanup === "function") state.cleanup = cleanup
       if (stale()) {
         disposeState(id, { disposers: [], cleanup: state.cleanup, settings: null })
@@ -262,6 +269,9 @@ export function createModHost(options: {
       await restart(id)
     },
     reload: restart,
+    unloadAll() {
+      for (const id of running.keys()) unload(id)
+    },
     settings: (id) => running.get(id)?.settings ?? null,
     fail(id, error) {
       if (!running.has(id)) return

@@ -29,7 +29,7 @@ import { createSession, type SessionStore } from "./session/session.ts"
 import { controlProblem, initSettings, setControlProblem, setKnobs, settings } from "./session/settings.ts"
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
 import { loadSettings, savedMode } from "./session/settings-file.ts"
-import { startMods } from "./mods/mods.ts"
+import { mods, startMods } from "./mods/mods.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import {
@@ -293,6 +293,7 @@ const QUIT_WAIT_MS = 8000
 async function quit(code = 0): Promise<void> {
   if (quitting) return
   quitting = true
+  mods.unloadAll()
   // Files stay as a rewind left them, and claude hears nothing of it.
   fileRewind.stop()
   const sweeping = capture?.stop()

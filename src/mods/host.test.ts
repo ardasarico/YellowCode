@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { createSignal } from "solid-js"
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -88,4 +89,35 @@ export default defineMod({
   await loading
   expect(calls).toEqual(["late dispose", "late cleanup"])
   expect(host.entries.find((entry) => entry.id === "slow")?.status).toBe("off")
+})
+
+test("an effect a mod makes in setup stops when the mod is turned off", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  const [tick, setTick] = createSignal(0)
+  Object.assign(globalThis, { modTestTick: tick })
+  writeMod(
+    folder,
+    "effect",
+    ">=0.0.0",
+    `import { createEffect } from "solid-js"
+import { defineMod } from "yellowcode/mod"
+const calls = (globalThis as any).modTestCalls
+const tick = (globalThis as any).modTestTick
+export default defineMod({
+  setup() {
+    createEffect(() => calls.push(\`tick \${tick()}\`))
+  },
+})`,
+  )
+  calls.length = 0
+  let disabled: string[] = []
+  const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
+  host.discover()
+  await host.loadAll()
+  setTick(1)
+  await host.setEnabled("effect", false)
+  setTick(2)
+  expect(calls).toEqual(["tick 0", "tick 1"])
 })
