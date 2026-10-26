@@ -1,5 +1,5 @@
 // What an action Claude Code would run says when no claude is running (a replay or a saved conversation).
-export const REPLAY_NOTICE = "Not available in a saved conversation"
+export const SAVED_NOTICE = "Not available in a saved conversation"
 
 export function formatClock(ms: number): string {
   const date = new Date(ms)

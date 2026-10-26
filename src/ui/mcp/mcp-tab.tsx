@@ -6,7 +6,7 @@ import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
 import type { FooterAction } from "../dialog/list-view.tsx"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
-import { REPLAY_NOTICE } from "../format.ts"
+import { SAVED_NOTICE } from "../format.ts"
 import type { Span } from "../notice.ts"
 import { MCP_GROUPS, type McpEntry, type McpState, mcpEntries } from "./servers.ts"
 
@@ -119,7 +119,7 @@ export function McpTab(props: {
   const run = (entry: McpEntry, id: string) => {
     const actions = props.actions
     const name = entry.server.name
-    if (!actions) return props.api.notify(REPLAY_NOTICE)
+    if (!actions) return props.api.notify(SAVED_NOTICE)
     const done =
       id === "reconnect" || id === "restart"
         ? actions.reconnect(name)

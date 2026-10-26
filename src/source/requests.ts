@@ -8,7 +8,7 @@ export class RequestTimeout extends RequestError {}
 // The line could not go out, as when claude has just ended.
 export class RequestUnsent extends RequestError {}
 
-export const REQUEST_TIMEOUT_MS = 30_000
+const REQUEST_TIMEOUT_MS = 30_000
 
 export type Requests = {
   // Resolves with the reply's `response`; an error reply, a timeout or close() rejects it with a RequestError.

@@ -18,7 +18,7 @@ import { Footer, type FooterAction, Line, ListView, PAD_X, printable, SearchRow 
 
 export type { FooterAction }
 
-export type DialogProps = {
+type DialogProps = {
   title: string
   width?: number
   sections: DialogSection[]

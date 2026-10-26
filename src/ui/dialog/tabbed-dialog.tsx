@@ -6,7 +6,7 @@ import { Frame } from "./frame.tsx"
 import { Footer, type FooterAction, onAccent, PAD_X } from "./list-view.tsx"
 
 // What the open tab's body hands the dialog: it sees keys first while it has the focus.
-export type TabBody = {
+type TabBody = {
   keys: (key: KeyEvent) => boolean
   footer: () => FooterAction[]
 }

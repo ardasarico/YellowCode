@@ -10,7 +10,7 @@ import { type Manifest, readManifest } from "./live-rewind.ts"
 import type { Snapshots } from "./snapshots.ts"
 
 const DAY_MS = 24 * 60 * 60 * 1000
-export const DEFAULT_CLEANUP_DAYS = 30
+const DEFAULT_CLEANUP_DAYS = 30
 const WARM_UP_REF = "refs/yc/warm-up"
 // Objects written before their ref exists (a take, keepBytes, another process just starting) outlive the prune.
 const PRUNE_EXPIRE = "1.hour.ago"
@@ -37,7 +37,7 @@ export async function pruneAtStart(snapshots: Promise<Snapshots | null>, request
   }
 }
 
-export function cleanupDays(reply: unknown): number {
+function cleanupDays(reply: unknown): number {
   const days = settingsReply.safeParse(reply).data?.effective?.cleanupPeriodDays
   return typeof days === "number" && days > 0 ? days : DEFAULT_CLEANUP_DAYS
 }

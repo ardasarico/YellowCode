@@ -3,7 +3,7 @@ import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, Index, Match, onCleanup, Show, Switch } from "solid-js"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
-import { cut, REPLAY_NOTICE } from "../format.ts"
+import { cut, SAVED_NOTICE } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
 import { agentTree, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
@@ -248,7 +248,7 @@ export function AgentView(props: {
   }
   // The row changes when claude reports the task stopped, so only a failed request shows anything.
   const stop = (target: TreeNode, taskId: string) => {
-    if (!props.onStop) return showNotice(REPLAY_NOTICE)
+    if (!props.onStop) return showNotice(SAVED_NOTICE)
     props.onStop(taskId).catch((error: unknown) => {
       showNotice(`Cannot stop ${target.name}: ${error instanceof Error ? error.message : String(error)}`)
     })

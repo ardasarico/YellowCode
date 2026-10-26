@@ -16,7 +16,7 @@ function cell(top: RGBA | undefined, bottom: RGBA | undefined): Cell {
   return { char: " ", fg: undefined, bg: undefined }
 }
 
-export function pixelCells(art: string[], palette: Record<string, RGBA>): Cell[][] {
+function pixelCells(art: string[], palette: Record<string, RGBA>): Cell[][] {
   const rows: Cell[][] = []
   for (let y = 0; y < art.length; y += 2) {
     const top = art[y] ?? ""

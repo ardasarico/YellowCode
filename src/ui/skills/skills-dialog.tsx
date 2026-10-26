@@ -3,7 +3,7 @@ import { matchSkills, SKILL_GROUPS, type Skill } from "../../session/skills.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog, type FooterAction } from "../dialog/dialog.tsx"
 import type { DialogRow, DialogSection } from "../dialog/list.ts"
-import { REPLAY_NOTICE } from "../format.ts"
+import { SAVED_NOTICE } from "../format.ts"
 
 // The live connection runs this; without it Space only shows the notice. A rejection says what went wrong.
 export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): Promise<void> }
@@ -95,7 +95,7 @@ export function SkillsDialog(props: {
           props.actions
             .setEnabled(skill, !skill.enabled)
             .catch((error: unknown) => showNotice(error instanceof Error ? error.message : String(error)))
-        else showNotice(REPLAY_NOTICE)
+        else showNotice(SAVED_NOTICE)
         return true
       }}
       onEscape={props.onClose}

@@ -1,7 +1,7 @@
 import type { SidebarSetting } from "../session/settings-file.ts"
 
 export type SidebarOverride = "open" | "closed" | null
-export type SidebarMode = "docked" | "overlay" | "hidden"
+type SidebarMode = "docked" | "overlay" | "hidden"
 
 export const MIN_CHAT_WIDTH = 60
 // The chat keeps this many rows beside a mod's bottom pane; the panes keep at least these sizes, or are not shown.

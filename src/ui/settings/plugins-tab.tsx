@@ -6,7 +6,7 @@ import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
 import type { FooterAction } from "../dialog/list-view.tsx"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
-import { REPLAY_NOTICE } from "../format.ts"
+import { SAVED_NOTICE } from "../format.ts"
 
 // The live connection runs this; without it each action shows the notice. It resolves with what changed where, and
 // a rejection says what went wrong.
@@ -82,7 +82,7 @@ export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null; actio
   const turn = (row: DialogRow) => {
     const plugin = pluginFor(row)
     const actions = props.actions
-    if (!actions) return props.api.notify(REPLAY_NOTICE)
+    if (!actions) return props.api.notify(SAVED_NOTICE)
     if (!plugin) return
     props.api.notify(`Turning ${plugin.on ? "off" : "on"} ${plugin.name}…`)
     actions.setEnabled(plugin, !plugin.on).then(

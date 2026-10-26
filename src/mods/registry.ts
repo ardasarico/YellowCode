@@ -30,7 +30,7 @@ import { readAppValue, writeAppValue } from "./storage.ts"
 
 // What every running mod added, so the app can show and run it and /mods can count it.
 export type Owned<T> = T & { mod: string }
-export type RegisteredKey = Owned<ModKey & { binding: KeyBinding }>
+type RegisteredKey = Owned<ModKey & { binding: KeyBinding }>
 
 const [commands, setCommands] = createSignal<Owned<ModCommand>[]>([])
 const [keys, setKeys] = createSignal<RegisteredKey[]>([])

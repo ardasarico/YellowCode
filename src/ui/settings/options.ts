@@ -4,7 +4,7 @@ import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
 
-export type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
+type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
 
 // The settings picked from a list; disabledMods is changed in /mods.
 type ChoiceKey = { [K in keyof StoredSettings]: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]

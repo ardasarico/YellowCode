@@ -54,7 +54,7 @@ export function resultSummary(tool: ToolCall): string {
 }
 
 // Claude starts a shell in the background, or the user sends a running one there with Ctrl+B.
-export function isBackgroundShell(tool: ToolCall, task: Pick<Task, "background"> | null): boolean {
+function isBackgroundShell(tool: ToolCall, task: Pick<Task, "background"> | null): boolean {
   const input = tool.input
   const asked = typeof input === "object" && input !== null && "run_in_background" in input
   const background = (asked && input.run_in_background === true) || task?.background === true

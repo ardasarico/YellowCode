@@ -22,7 +22,7 @@ export function inputFile(input: unknown): string | undefined {
   return file === undefined ? undefined : expandHome(file)
 }
 
-export function expandHome(file: string): string {
+function expandHome(file: string): string {
   if (file === "~") return homedir()
   return file.startsWith("~/") ? join(homedir(), file.slice(2)) : file
 }
@@ -45,7 +45,7 @@ export function blobId(bytes: Uint8Array, like: string): string {
 }
 
 // The real path of a file that may not exist yet: its deepest existing folder (or itself) resolved, the rest as given.
-export function realPath(file: string): string | null {
+function realPath(file: string): string | null {
   let existing = file
   const rest: string[] = []
   while (true) {

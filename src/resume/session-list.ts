@@ -110,7 +110,7 @@ function oneLine(text: string | null): string {
 // Shown in place of a title when a session has no words to name it by.
 export const NO_PROMPT = "(no prompt)"
 
-export function displayTitle(fields: TitleFields): string {
+function displayTitle(fields: TitleFields): string {
   const { customTitle, aiTitle, summary, firstPrompt, lastPrompt } = fields
   for (const text of [customTitle, aiTitle, summary, firstPrompt, lastPrompt]) {
     const title = oneLine(text)

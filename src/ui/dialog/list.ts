@@ -30,7 +30,7 @@ export type DialogLine =
   | { kind: "text"; text: DialogText }
   | { kind: "gap" }
 
-export type ScrollWindow = { start: number; end: number; above: number; below: number }
+type ScrollWindow = { start: number; end: number; above: number; below: number }
 
 export const isRow = (item: DialogItem): item is DialogRow => "label" in item
 

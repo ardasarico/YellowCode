@@ -48,7 +48,7 @@ function hintParts(recent: boolean, room: number) {
   ])
 }
 
-export type LogoStep = "full" | "cat" | "none"
+type LogoStep = "full" | "cat" | "none"
 
 const SMALL_COLS = 5
 const SMALL_ROWS = 2

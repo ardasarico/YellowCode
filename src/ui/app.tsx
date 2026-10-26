@@ -78,7 +78,7 @@ import type { Submission } from "./completion.ts"
 import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
 import { ImageView } from "./dialog/image-view.tsx"
 import { openFile, openUrl } from "./dialog/open-file.ts"
-import { modelName, REPLAY_NOTICE, windowTitle } from "./format.ts"
+import { modelName, SAVED_NOTICE, windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
 import type { McpActions } from "./mcp/mcp-tab.tsx"
@@ -865,7 +865,7 @@ export function App(props: AppProps) {
     const tool = props.session.byId[id]
     const node = topNodes(props.session).find((entry) => entry.id === id)
     if (!node || node.kind !== "agent" || tool?.kind !== "tool") return null
-    if (!live()) return REPLAY_NOTICE
+    if (!live()) return SAVED_NOTICE
     if (!messageable(props.session, node)) return `${node.name} was stopped; it cannot take messages`
     const taskId = taskIdOf(props.session, node)
     if (!taskId) return null
@@ -1353,7 +1353,7 @@ export function App(props: AppProps) {
       const line = shellMode() ? text.trim() : command.slice(1).trim()
       if (!line) return false
       if (!props.onShell) {
-        waitNotice(REPLAY_NOTICE)
+        waitNotice(SAVED_NOTICE)
         return false
       }
       if (shellRunning()) {
@@ -1406,7 +1406,7 @@ export function App(props: AppProps) {
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
     if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
-      waitNotice(REPLAY_NOTICE)
+      waitNotice(SAVED_NOTICE)
       return false
     }
     const [, typed = "", args = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(command) ?? []

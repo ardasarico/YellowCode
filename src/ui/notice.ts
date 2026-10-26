@@ -13,7 +13,7 @@ export type ReplayInfo = {
   status: () => "playing" | "waiting" | "finished"
 }
 
-export type NoticeState = {
+type NoticeState = {
   usage: Usage
   replay: ReplayInfo | null
   readOnly: string | null
@@ -48,7 +48,7 @@ const STATUS_TEXT = {
 } as const
 
 export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: theme.muted })
-export const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
+const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
 export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
 export const modSpan = (notice: ModNotice): Span =>
   notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }

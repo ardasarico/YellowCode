@@ -29,7 +29,7 @@ export function attentionState(session: Session): Attention {
   return { state: "idle", id: null }
 }
 
-export function attentionMessage(attention: Attention): string | null {
+function attentionMessage(attention: Attention): string | null {
   if (attention.state === "blocked")
     return attention.kind === "question" ? "Claude has a question" : `Permission needed: ${attention.tool}`
   if (attention.state === "done") return "Done"

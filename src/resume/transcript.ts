@@ -8,7 +8,7 @@ import type { SourceEvent } from "../source/source.ts"
 import { readLinesBackward } from "./reverse-lines.ts"
 import { CHAIN_TYPES, commandPrompt } from "./session-list.ts"
 
-export const PART_TURNS = 20
+const PART_TURNS = 20
 
 export type TranscriptCursor = { offset: number; wanted: string }
 export type TranscriptPart = { events: SourceEvent[]; earlier: TranscriptCursor | null }
@@ -112,7 +112,7 @@ function notification(text: string, at: number): SourceEvent[] {
   ]
 }
 
-export function toEvents(entry: Entry): SourceEvent[] {
+function toEvents(entry: Entry): SourceEvent[] {
   const at = entry.timestamp === undefined ? 0 : Date.parse(entry.timestamp)
   const event = (dir: "in" | "out", message: object): SourceEvent => ({ dir, line: JSON.stringify(message), at })
 
