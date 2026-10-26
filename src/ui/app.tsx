@@ -441,7 +441,7 @@ export function App(props: AppProps) {
       () => settings.model ?? props.session.info?.model ?? null,
     )
     setAppBridge({
-      copy: (text) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied)),
+      copy: copyText,
       open: (target) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(target) ? openUrl(target) : openFile(target)),
       // After the current key: a mod command inserting text runs before the prompt clears what was sent.
       insert: (text) =>
@@ -969,10 +969,9 @@ export function App(props: AppProps) {
   }
   const exportToClipboard = async () => {
     setDialog(null)
-    const copied = await writeClipboard(exportText(), (text) => renderer.copyToClipboardOSC52(text))
+    const copied = await copyText(exportText())
     waitNotice(copied ? "Conversation copied" : "Could not copy the conversation")
   }
-  const copyText = (text: string) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied))
   // ctrl+o shows the copied report while its notice is up.
   let copiedReport = ""
   const copyReport = async () => {
@@ -1937,9 +1936,7 @@ export function App(props: AppProps) {
               }}
               onCopy={(text) => {
                 closeTimeline()
-                void writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied)).then((copied) =>
-                  waitNotice(copied ? "Prompt copied" : "Could not copy the prompt"),
-                )
+                void copyText(text).then((copied) => waitNotice(copied ? "Prompt copied" : "Could not copy the prompt"))
               }}
               onClose={closeTimeline}
             />
