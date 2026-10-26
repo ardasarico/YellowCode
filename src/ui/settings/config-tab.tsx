@@ -47,6 +47,8 @@ export type ClaudeSettings = {
 }
 
 const CLAUDE_PREFIX = "claude:"
+// Each change goes to claude as a command, so ←→ sends only where the presses stop.
+const STEP_SEND_MS = 600
 const claudeFor = (id: string) =>
   id.startsWith(CLAUDE_PREFIX)
     ? CLAUDE_SETTINGS.find((setting) => setting.id === id.slice(CLAUDE_PREFIX.length))
@@ -67,8 +69,12 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
   const [claudeList, setClaudeList] = createSignal<ClaudeSetting | null>(null)
   const [query, setQuery] = createSignal("")
   const [chosen, setChosen] = createSignal<string | undefined>(untrack(() => props.row))
+  const [stepped, setStepped] = createSignal<{ setting: ClaudeSetting; value: string } | null>(null)
+  let stepTimer: ReturnType<typeof setTimeout> | undefined
   const claudeValue = (setting: ClaudeSetting) => {
     const claude = props.claude
+    const pending = stepped()
+    if (pending?.setting === setting) return pending.value
     return claude?.sent.get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.account) : null)
   }
   const claudeLabel = (setting: ClaudeSetting) => {
@@ -105,12 +111,25 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
     if (claude.busy()) return props.api.notify("Claude Code settings change once it is idle")
     if (!claude.change(setting.id, value, setting.command(value))) props.api.notify("Claude Code did not take it")
   }
+  const sendStep = () => {
+    clearTimeout(stepTimer)
+    const pending = stepped()
+    if (!pending) return
+    setStepped(null)
+    changeClaude(pending.setting, pending.value)
+  }
   const stepClaude = (setting: ClaudeSetting, by: 1 | -1) => {
+    if (props.claude?.busy()) return props.api.notify("Claude Code settings change once it is idle")
+    if (stepped()?.setting !== setting) sendStep()
     const count = setting.options.length
     const index = setting.options.findIndex((option) => option.value === claudeValue(setting))
     const next = setting.options[index === -1 ? (by === 1 ? 0 : count - 1) : (index + by + count) % count]
-    if (next) changeClaude(setting, next.value)
+    if (!next) return
+    setStepped({ setting, value: next.value })
+    clearTimeout(stepTimer)
+    stepTimer = setTimeout(sendStep, STEP_SEND_MS)
   }
+  onCleanup(sendStep)
 
   const sections = () => {
     const open = list()
@@ -180,7 +199,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
       if (id === undefined) return searchFooter(listing ? "back" : "close")
       if (listing) return LIST_FOOTER
       const claude = claudeFor(id)
-      if (claude) return [SELECT, ...(claude.options.length > LONG ? [OPEN] : [CHANGE]), CLOSE]
+      if (claude) return [SELECT, CHANGE, ...(claude.options.length > LONG ? [OPEN] : []), CLOSE]
       const setting = settingFor(id)
       return [SELECT, CHANGE, ...(setting && opensList(setting) ? [OPEN] : []), RESET, CLOSE]
     },
@@ -199,11 +218,11 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
       }
       const claude = id && !open ? claudeFor(id) : undefined
       if (claude) {
-        if ((key.name === "left" || key.name === "right") && claude.options.length <= LONG)
-          stepClaude(claude, key.name === "left" ? -1 : 1)
+        if (key.name === "left" || key.name === "right") stepClaude(claude, key.name === "left" ? -1 : 1)
         else if (key.name === "return") {
           if (claude.options.length > LONG)
             batch(() => {
+              sendStep()
               setQuery("")
               setClaudeList(claude)
               setChosen(claudeValue(claude) ?? claude.options[0]?.value)
@@ -225,6 +244,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
           choose(open, id)
           back(open)
         } else if (setting && opensList(setting)) openList(setting)
+        else if (setting) step(setting, 1)
       } else if (key.name === "escape") {
         if (query()) search("")
         else if (open) back(open)
