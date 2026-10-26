@@ -331,10 +331,11 @@ function modFence(token: Entry, streaming: boolean) {
 }
 
 function ModFenceView(props: { fence: Owned<ModFence>; code: string; lang: string; width: number }) {
-  const mod = untrack(() => props.fence.mod)
   return (
     <ErrorBoundary
       fallback={(error: unknown) => {
+        // Read at the throw: another mod's fence can take this block's place when one is turned off.
+        const mod = untrack(() => props.fence.mod)
         queueMicrotask(() => reportModError(mod, error))
         return null
       }}
