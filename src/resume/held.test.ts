@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { sessionsIn } from "./held.ts"
+import { isClaude, sessionsIn } from "./held.ts"
 
 const A = "11111111-2222-4333-8444-555555555555"
 const N = "66666666-7777-4888-9999-000000000000"
@@ -18,4 +18,16 @@ test("only the flags claude starts a session with name the session a process hol
     expect(sessionsIn(args)).not.toContain(A)
   // A copy holds its own new id, not the session it was copied from.
   expect(sessionsIn(`claude -p --resume ${A} --fork-session --session-id ${N}`)).toEqual([N])
+})
+
+test("only a claude process can hold a session", () => {
+  for (const args of [
+    "claude --resume x",
+    "/Users/u/.local/bin/claude -p",
+    "node /opt/claude -r x",
+    "/home/u/.local/share/claude/versions/2.1.3 -p",
+  ])
+    expect(isClaude(args)).toBe(true)
+  for (const args of ["grep -r x .", "/bin/zsh -c claude --resume x", "vim claude.md"])
+    expect(isClaude(args)).toBe(false)
 })

@@ -12,20 +12,19 @@ const Running = z.looseObject({ pid: z.number(), sessionId: z.string() })
 type Process = { pid: number; parent: number; args: string }
 
 // Null when the list cannot be read.
-function processes(): Process[] | null {
+async function processes(): Promise<Process[] | null> {
   try {
-    const result = Bun.spawnSync(["ps", "-Aww", "-o", "pid=", "-o", "ppid=", "-o", "args="], {
+    const child = Bun.spawn(["ps", "-Aww", "-o", "pid=", "-o", "ppid=", "-o", "args="], {
+      stdout: "pipe",
       stderr: "ignore",
       timeout: 2000,
     })
-    if (result.exitCode !== 0) return null
-    return result.stdout
-      .toString()
-      .split("\n")
-      .flatMap((line) => {
-        const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)
-        return match ? [{ pid: Number(match[1]), parent: Number(match[2]), args: match[3] ?? "" }] : []
-      })
+    const [text, code] = await Promise.all([new Response(child.stdout).text(), child.exited])
+    if (code !== 0) return null
+    return text.split("\n").flatMap((line) => {
+      const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/.exec(line)
+      return match ? [{ pid: Number(match[1]), parent: Number(match[2]), args: match[3] ?? "" }] : []
+    })
   } catch {
     return null
   }
@@ -45,6 +44,14 @@ function ours(all: Process[]): Set<number> {
     }
   }
   return own
+}
+
+// A claude binary, started by name, by path, or as the script of node or bun; not any command that mentions it.
+export function isClaude(args: string): boolean {
+  return args
+    .split(/\s+/)
+    .slice(0, 2)
+    .some((word) => /(^|\/)claude$/.test(word) || word.includes("/claude/versions/"))
 }
 
 // The sessions a command line runs, in the forms claude takes: --resume <id>, --resume=<id>, -r <id>, -r<id>,
@@ -85,8 +92,8 @@ function registered(id: string): number[] {
 // Another process runs this session: a claude started for it (another YellowCode window, a --resume), or one Claude
 // Code lists as running it (a session started in Claude Code itself). Without a process list it counts as held, so
 // the session opens as a copy.
-export function heldElsewhere(id: string): boolean {
-  const all = processes()
+export async function heldElsewhere(id: string): Promise<boolean> {
+  const all = await processes()
   if (all === null) {
     log.warn("cannot list processes; the session opens as a copy", { id })
     return true
@@ -94,7 +101,7 @@ export function heldElsewhere(id: string): boolean {
   const own = ours(all)
   const alive = new Set(all.map((entry) => entry.pid))
   const holder =
-    all.find((entry) => !own.has(entry.pid) && sessionsIn(entry.args).includes(id))?.pid ??
+    all.find((entry) => !own.has(entry.pid) && isClaude(entry.args) && sessionsIn(entry.args).includes(id))?.pid ??
     registered(id).find((pid) => alive.has(pid) && !own.has(pid))
   if (holder !== undefined) log.info("session held elsewhere", { id, pid: holder })
   return holder !== undefined

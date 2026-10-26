@@ -430,7 +430,8 @@ async function openLive(entry: SessionEntry): Promise<void> {
   // A session left a moment ago may still be writing its file.
   await Promise.all([...stopped].flatMap(([old, gone]) => (idOf(old) === entry.id ? [gone] : [])))
   if (quitting || token !== opening || connection !== current || working()) return
-  const copy = heldElsewhere(entry.id)
+  const copy = await heldElsewhere(entry.id)
+  if (quitting || token !== opening || connection !== current || working()) return
   const spawn = copy ? { resume: entry.id, fork: true, sessionId: crypto.randomUUID() } : { resume: entry.id }
   const session = createSession({ starting: true })
   session.prepend(part.events)
