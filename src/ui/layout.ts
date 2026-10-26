@@ -27,7 +27,7 @@ export function sidebarShown(
 ): { mode: SidebarMode; width: number } {
   const capped = Math.min(preferred, Math.max(SIDEBAR_MIN_WIDTH, Math.floor(width / 2)))
   const room = width - MIN_CHAT_WIDTH
-  if (room < SIDEBAR_MIN_WIDTH) return { mode: overlay ? "overlay" : "hidden", width: capped }
+  if (room < SIDEBAR_MIN_WIDTH) return { mode: overlay ? "overlay" : "hidden", width: Math.min(capped, width) }
   if (override === "closed") return { mode: "hidden", width: capped }
   return { mode: "docked", width: Math.min(capped, room) }
 }
