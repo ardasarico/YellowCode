@@ -631,6 +631,13 @@ export function createCapture(cwd: string): Capture {
           prompt.segments.push(segment(prompt, "turn", begin, after, writes))
           record(prompt)
         }
+        // A call that was denied or failed never reaches a segment, so what was kept for it goes with the turn.
+        const staleBefores = [...befores.keys()]
+        const staleOriginals = [...originals.keys()]
+        void Promise.allSettled(closing.flatMap((prompt) => prompt.segments)).then(() => {
+          for (const id of staleBefores) befores.delete(id)
+          for (const id of staleOriginals) originals.delete(id)
+        })
       }
 
       // A turn claude starts by itself goes on the last prompt as a segment of its own, from a snapshot taken now.
