@@ -5,7 +5,6 @@ import { createStore } from "solid-js/store"
 import { log } from "../log/log.ts"
 import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions } from "./api.ts"
 import { compatible, type Manifest, readManifest } from "./manifest.ts"
-import { apiVersion } from "./version.ts"
 import {
   addCommand,
   addFence,
@@ -24,6 +23,7 @@ import {
   modTools,
   setLoadOrder,
 } from "./registry.ts"
+import { INCOMPATIBLE } from "./install/install.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modFacingStorage, modStorage } from "./storage.ts"
 
@@ -146,13 +146,7 @@ export function createModHost(options: {
     const base = { id, folder, error: null, loadMs: null, settings: entries[indexOf(id)]?.settings ?? null }
     if (!read.ok) return { ...base, manifest: null, status: "failed", problem: read.problem }
     const { manifest } = read
-    if (!compatible(manifest))
-      return {
-        ...base,
-        manifest,
-        status: "incompatible",
-        problem: `needs mod API ${manifest.api}, this is ${apiVersion}`,
-      }
+    if (!compatible(manifest)) return { ...base, manifest, status: "incompatible", problem: INCOMPATIBLE }
     const off = options.disabled().includes(id)
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
   }

@@ -53,7 +53,9 @@ export default defineMod({ setup() { throw new Error("broken setup") } })`,
 
   const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
   expect(status).toEqual({ works: "on", throws: "failed", "too-new": "incompatible" })
-  expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe("needs mod API ^0.2, this is 0.1.0")
+  expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe(
+    "needs a newer YellowCode · update YellowCode",
+  )
   expect(host.entries.find((entry) => entry.id === "throws")?.error?.message).toBe("Error: broken setup")
   expect(failures.toSorted()).toEqual(["throws", "too-new"])
 
