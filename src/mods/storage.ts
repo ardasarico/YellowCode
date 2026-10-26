@@ -16,7 +16,13 @@ function readValues(path: string): Record<string, unknown> {
   const json = parseJson(text)
   const values = z.record(z.string(), z.unknown()).safeParse(json.ok ? json.value : null)
   if (values.success) return values.data
-  log.warn(`mod data ${path} is not a JSON object, starting empty`)
+  const kept = `${path}.bad-${Date.now()}`
+  try {
+    renameSync(path, kept)
+    log.warn(`mod data ${path} is not a JSON object, kept as ${kept} and starting empty`)
+  } catch (error) {
+    log.warn(`mod data ${path} is not a JSON object, starting empty`, error)
+  }
   return {}
 }
 
