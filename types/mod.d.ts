@@ -200,6 +200,7 @@ export type ModDialogOptions = {
   view: (props: ModDialogViewProps) => JSX.Element
 }
 export type ModDialogHandle = {
+  readonly shown: boolean
   close(): void
   closed: Promise<void>
 }

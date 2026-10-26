@@ -178,6 +178,8 @@ export type ModDialogOptions = {
 }
 
 export type ModDialogHandle = {
+  // False when the dialog was refused and nothing shows.
+  readonly shown: boolean
   close(): void
   // Resolves when the dialog closes.
   closed: Promise<void>

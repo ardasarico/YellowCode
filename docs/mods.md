@@ -572,7 +572,7 @@ export default defineMod({
 
 `open` takes a `title`, `wide` for nearly the whole screen instead of the usual width, footer `hints`, and the `view`.
 The view gets the room for its content (`width`, `height`), `onKey`, which gets every key but Esc, and `close()`. Esc
-always closes the dialog. `open` returns `{ close(), closed }`, where `closed` is a promise that resolves when the
+always closes the dialog. `open` returns `{ shown, close(), closed }`, where `shown` is false when the dialog was refused, and `closed` is a promise that resolves when the
 dialog closes. The Git mod's diff dialog adds a `<scrollbox>` for long diffs.
 
 ## Tool rows

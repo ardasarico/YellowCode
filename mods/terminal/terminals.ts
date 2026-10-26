@@ -166,7 +166,6 @@ export function createTerminals(options: {
     refreshCommands,
     active: () => list().find((terminal) => terminal.id === active()) ?? null,
     add,
-    close,
     closeAll: () => {
       for (const terminal of list()) {
         terminal.kill()
@@ -176,9 +175,10 @@ export function createTerminals(options: {
       setActive(null)
     },
     // 1-based, as the tab strip numbers them.
-    select(number: number) {
+    select(number: number): boolean {
       const terminal = list()[number - 1]
       if (terminal) setActive(terminal.id)
+      return terminal !== undefined
     },
     selectId: (id: number) => setActive(id),
     viewOf(terminal: Terminal, context: RenderContext): EmbeddedTerminalRenderable {

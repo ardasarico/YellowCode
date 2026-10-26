@@ -24,7 +24,7 @@ function counts(change: Change): string {
 // The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it.
 async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void> {
   const diff = await fileDiff(cwd, change)
-  mod.dialogs.open({
+  const dialog = mod.dialogs.open({
     title: `${change.path}  ${counts(change)}`,
     wide: true,
     hints: [{ key: "↑↓", action: "scroll" }],
@@ -44,6 +44,7 @@ async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void>
       )
     },
   })
+  if (!dialog.shown) mod.notify("Close the open dialog first", { level: "info" })
 }
 
 function Row(props: { change: Change; width: number; onOpen: () => void }) {

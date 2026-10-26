@@ -276,8 +276,10 @@ type Request = ModDialogRequest extends infer R
 let appShown = false
 export const setAppShown = (value: boolean) => (appShown = value)
 
+const canShow = () => appShown && dialog() === null && !appDialogOpen
+
 function request(mod: string, what: Request): Promise<unknown> {
-  if (!appShown || dialog() !== null || appDialogOpen) return Promise.resolve(null)
+  if (!canShow()) return Promise.resolve(null)
   return new Promise((resolve) => {
     const entry: ModDialogRequest = {
       ...what,
@@ -302,8 +304,10 @@ export function modDialogs(mod: string): { dialogs: ModDialogs; dispose: Dispose
     confirm: async (options) => answer(await request(mod, { kind: "confirm", options }), isBoolean),
     input: async (options) => answer(await request(mod, { kind: "input", options }), isString),
     open(options) {
+      const accepted = canShow()
       const closed = request(mod, { kind: "open", options }).then(() => undefined)
       return {
+        shown: accepted,
         closed,
         close() {
           const current = dialog()

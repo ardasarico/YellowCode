@@ -15,7 +15,8 @@ declare module "@opentui/solid" {
 extend({ embedded_terminal: EmbeddedTerminalRenderable })
 
 // "ctrl+1…9" or "ctrl+1-9" → "ctrl+"; tab n is that prefix plus n.
-const tabPrefix = (keys: string) => keys.replace(/1\s*(?:…|\.\.\.|-)\s*9$/, "")
+const TAB_RANGE = /1\s*(?:…|\.\.\.|-)\s*9$/
+const tabPrefix = (keys: string) => keys.replace(TAB_RANGE, "")
 
 export default defineMod({
   settings: {
@@ -75,6 +76,7 @@ export default defineMod({
       unbind.push(mod.keys.add({ key: mod.settings.get("toggleKey"), run: toggle }))
       // Tab keys are typed text, so a wrong one leaves the toggle key working.
       try {
+        if (!TAB_RANGE.test(mod.settings.get("tabKeys"))) throw new Error("no 1…9 at the end")
         const prefix = tabPrefix(mod.settings.get("tabKeys"))
         for (let tab = 1; tab <= 9; tab++)
           unbind.push(mod.keys.add({ key: `${prefix}${tab}`, when: "pane", run: () => terminals.select(tab) }))
@@ -95,8 +97,8 @@ export default defineMod({
         if (args === "new") {
           if (terminals.add()) pane.focus()
         } else if (/^\d+$/.test(args)) {
-          terminals.select(Number(args))
-          pane.focus()
+          if (terminals.select(Number(args))) pane.focus()
+          else mod.notify(`There is no terminal ${args}`, { level: "warning" })
         } else toggle()
       },
     })
