@@ -1289,7 +1289,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "tab" && key.shift) {
       key.preventDefault()
-      if (props.onInterrupt) chooseMode(nextMode(props.session.permissionMode))
+      if (props.onInterrupt && !ended()) chooseMode(nextMode(props.session.permissionMode))
       return
     }
     if (key.name === "tab") {
