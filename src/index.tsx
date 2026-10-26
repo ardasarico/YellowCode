@@ -475,7 +475,9 @@ function restart(text: string, images: OutgoingImage[], giveBack: () => void): b
     restarting = true
     void stop(ended).then(() => {
       restarting = false
-      if (!relaunch(ended, text, images, undefined, giveBack)) log.warn("the restarted claude took no message")
+      if (relaunch(ended, text, images, undefined, giveBack)) return
+      log.warn("the restarted claude took no message")
+      giveBack()
     })
     return true
   }
