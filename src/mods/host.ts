@@ -18,6 +18,7 @@ import {
   addWrap,
   guarded,
   modDialogs,
+  modTools,
   setLoadOrder,
 } from "./registry.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
@@ -196,6 +197,8 @@ export function createModHost(options: {
         tools: {
           add(tool) {
             if (!TOOL_NAME.test(tool.name)) throw new Error(`"${tool.name}" is not a tool name`)
+            if (modTools().some((other) => other.mod === id && other.name === tool.name))
+              throw new Error(`tool "${tool.name}" is already added`)
             return own(addTool({ ...tool, mod: id }))
           },
         },
