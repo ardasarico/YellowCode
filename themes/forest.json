@@ -15,13 +15,7 @@
     "diffDel": "#422f24",
     "diffAddText": "#a9c46c",
     "diffDelText": "#e07b62",
-    "agents": [
-      "#c9b36a",
-      "#9fc4a0",
-      "#a9c46c",
-      "#e0a95e",
-      "#b8a0d0"
-    ],
+    "agents": ["#c9b36a", "#9fc4a0", "#a9c46c", "#e0a95e", "#b8a0d0"],
     "syntax": {
       "keyword": "#d49a6a",
       "string": "#a9c46c",
@@ -46,13 +40,7 @@
     "diffDel": "#e4cec1",
     "diffAddText": "#4f6f17",
     "diffDelText": "#a8442c",
-    "agents": [
-      "#8a6d12",
-      "#3d7a50",
-      "#5c7a1e",
-      "#8f5a00",
-      "#6a4f94"
-    ],
+    "agents": ["#8a6d12", "#3d7a50", "#5c7a1e", "#8f5a00", "#6a4f94"],
     "syntax": {
       "keyword": "#9a4f22",
       "string": "#4f6f17",
