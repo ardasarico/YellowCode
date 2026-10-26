@@ -164,10 +164,14 @@ export function ImageLabel(props: {
   onOpen?: () => void
 }) {
   const [tries, setTries] = createSignal(0)
-  const file = createMemo(() => {
-    tries()
-    return loadImage(props.image)
-  })
+  const file = createMemo(
+    () => {
+      tries()
+      return loadImage(props.image)
+    },
+    undefined,
+    { equals: false },
+  )
   createEffect(() => {
     if (file() || props.image.data || !props.image.path) return
     const timer = setTimeout(() => setTries((count) => count + 1), RETRY_MS)
