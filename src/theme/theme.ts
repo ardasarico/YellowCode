@@ -3,10 +3,7 @@ import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { claudeColor } from "./brand.ts"
 import { mix, type TerminalLook, type Tints } from "./palette.ts"
-import { defaultDark, defaultLight } from "./themes/default.ts"
-import { dusk } from "./themes/dusk.ts"
-import { ember } from "./themes/ember.ts"
-import { petal } from "./themes/petal.ts"
+import { readThemes, type ThemeEntry } from "./theme-file.ts"
 
 type SyntaxTokens<T> = { keyword: T; string: T; number: T; function: T; type: T; comment: T }
 
@@ -197,10 +194,24 @@ function syntaxStyles(t: Theme) {
   }
 }
 
-const painted: ThemeDefinition[] = [defaultDark, defaultLight, dusk, petal, ember]
-export const themes = [defaultDark, defaultLight, { id: "terminal", name: "Terminal" }, dusk, petal, ember].map(
-  ({ id, name }) => ({ id, name }),
-)
+// The theme files, read again when a picker opens so a file added meanwhile shows up.
+const [entries, setEntries] = createSignal<ThemeEntry[]>(readThemes())
+export const reloadThemes = () => setEntries(readThemes())
+
+const TERMINAL: ThemeEntry = { id: "terminal", name: "Terminal", source: "built-in", definition: null, problem: null }
+
+// Every theme for the pickers: the two defaults, Terminal, the other built-ins, then the user's, broken ones too.
+export function themeEntries(): ThemeEntry[] {
+  const all = entries()
+  const defaults = all.filter((entry) => entry.source === "built-in" && entry.id.startsWith("default-"))
+  return [...defaults, TERMINAL, ...all.filter((entry) => !defaults.includes(entry))]
+}
+
+// The themes that can be used, by id and name.
+export const themes = () =>
+  themeEntries()
+    .filter((entry) => entry.problem === null)
+    .map(({ id, name }) => ({ id, name }))
 
 let terminal: Terminal = { tints: null, dark: true, rgb: false, palette: [], background: null, foreground: null }
 const [theme, setThemeStore] = createStore<Theme>(terminalTheme(terminal))
@@ -223,7 +234,7 @@ export function startTheme(scene: NativeResourceOwner, id: string): void {
 }
 
 function build(id: string): Theme {
-  const definition = painted.find((candidate) => candidate.id === id)
+  const definition = entries().find((candidate) => candidate.id === id)?.definition
   if (!definition) return terminalTheme(terminal)
   return paintedTheme(terminal.dark ? definition.dark : definition.light)
 }
@@ -231,7 +242,7 @@ function build(id: string): Theme {
 export function setTheme(id: string): void {
   const next = build(id)
   const previous = style()
-  setThemeId(themes.some((candidate) => candidate.id === id) ? id : "terminal")
+  setThemeId(themes().some((candidate) => candidate.id === id) ? id : "terminal")
   setThemeStore(next)
   // Code blocks bake colors in when they highlight, so a new style object is what makes them re-highlight.
   if (owner) setStyle(SyntaxStyle.fromStyles(syntaxStyles(next), owner))

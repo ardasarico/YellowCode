@@ -31,7 +31,9 @@ export const SETTINGS: SettingDefinition[] = [
     key: "theme",
     section: "Appearance",
     label: "Theme",
-    options: themes.map(({ id, name }) => ({ value: id, label: name })),
+    get options() {
+      return themes().map(({ id, name }) => ({ value: id, label: name }))
+    },
   },
   { key: "sidebar", section: "Appearance", label: "Sidebar", options: same(["auto", "shown", "hidden"]) },
   { key: "thinking", section: "Appearance", label: "Thinking", options: same(["summarized", "hidden"]) },

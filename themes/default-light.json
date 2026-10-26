@@ -1,0 +1,28 @@
+{
+  "name": "Default Light",
+  "light": {
+    "background": "#fcfcfc",
+    "text": "#1a1a1a",
+    "muted": "#636362",
+    "frame": "#a8a8a6",
+    "accent": "#437ca4",
+    "warning": "#95712e",
+    "error": "#c64042",
+    "band": "#f3f3f3",
+    "tile": "#e9e9e8",
+    "selection": "#e9e9e8",
+    "diffAdd": "#dcf7e1",
+    "diffDel": "#f6dddb",
+    "diffAddText": "#2f8747",
+    "diffDelText": "#c64042",
+    "agents": ["#c3498b", "#7557c9", "#2f8747", "#95712e", "#437ca4"],
+    "syntax": {
+      "keyword": "#7557c9",
+      "string": "#2f8747",
+      "number": "#c3498b",
+      "function": "#437ca4",
+      "type": "#95712e",
+      "comment": "#636362"
+    }
+  }
+}

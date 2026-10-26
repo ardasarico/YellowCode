@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
 
 const Stored = z.record(z.string(), z.unknown())
 
-const Theme = z.string().refine((id) => themes.some((theme) => theme.id === id))
+const Theme = z.string().refine((id) => themes().some((theme) => theme.id === id))
 const Sidebar = z.enum(["auto", "shown", "hidden"])
 const Thinking = z.enum(["summarized", "hidden"])
 const SessionTitle = z.enum(["yellowcode", "claude-code"])

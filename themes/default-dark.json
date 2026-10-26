@@ -1,0 +1,28 @@
+{
+  "name": "Default Dark",
+  "dark": {
+    "background": "#121211",
+    "text": "#e6e6e5",
+    "muted": "#8f8f8e",
+    "frame": "#515151",
+    "accent": "#73bdf4",
+    "warning": "#ffd48c",
+    "error": "#ef8e88",
+    "band": "#1c1c1b",
+    "tile": "#222221",
+    "selection": "#222221",
+    "diffAdd": "#0d2713",
+    "diffDel": "#3b0f0f",
+    "diffAddText": "#6edd87",
+    "diffDelText": "#ef8e88",
+    "agents": ["#ef86ba", "#ad9eed", "#6edd87", "#ffd48c", "#73bdf4"],
+    "syntax": {
+      "keyword": "#ad9eed",
+      "string": "#6edd87",
+      "number": "#ef86ba",
+      "function": "#73bdf4",
+      "type": "#ffd48c",
+      "comment": "#8f8f8e"
+    }
+  }
+}
