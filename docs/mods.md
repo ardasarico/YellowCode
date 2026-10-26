@@ -250,7 +250,10 @@ mod does.
 ## /mods, reloading and --no-mods
 
 `/mods` opens the Mods tab in Settings. On the left is every mod in the folder with a marker: ● on, ◯ off, ✕ failed,
-! incompatible. On the right is the selected mod: its description, folder, what it adds, its load time, MCP server
+! incompatible, ⊘ revoked. A mod installed from GitHub without being on the mod list is tagged "Unlisted", and one with
+no install record, such as a folder you made yourself, is tagged "Local". An incompatible mod says "needs a newer
+YellowCode · update YellowCode". A mod taken off the list shows "Revoked:" and the reason, and is not loaded; its folder
+stays on disk. On the right is the selected mod: its description, folder, what it adds, its load time, MCP server
 errors, its last error and its settings.
 
 - space turns the selected mod on or off,

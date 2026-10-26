@@ -48,6 +48,7 @@ function listRow(entry: ModEntry): DialogRow {
     label: nameOf(entry),
     search: `${entry.id} ${nameOf(entry)} ${entry.manifest?.description ?? ""}`,
     marker: { text: mark, fg: color },
+    tag: entry.source === "unlisted" ? "Unlisted" : entry.source === "local" ? "Local" : undefined,
     labelColor: entry.status === "on" ? undefined : entry.status === "off" ? theme.panelFaint : color,
     value: entry.manifest?.version,
     valueColor: theme.panelFaint,

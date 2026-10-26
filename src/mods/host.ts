@@ -31,6 +31,9 @@ import { modFacingStorage, modStorage } from "./storage.ts"
 
 export type ModStatus = "on" | "off" | "failed" | "incompatible" | "revoked"
 
+// A mod with no install record was put in the folder by hand.
+export type ModSource = "listed" | "unlisted" | "local"
+
 export type ModError = { message: string; stack: string | null }
 
 export type ModEntry = {
@@ -38,6 +41,7 @@ export type ModEntry = {
   folder: string
   manifest: Manifest | null
   status: ModStatus
+  source: ModSource
   // Why it did not load, when that is not an error thrown by the mod.
   problem: string | null
   error: ModError | null
@@ -165,7 +169,8 @@ export function createModHost(options: {
     const folder = join(options.folder, id)
     const read = readManifest(folder)
     const record = readRecord(options.folder, id)
-    const base = { id, folder, error: null, loadMs: null, settings: entries[indexOf(id)]?.settings ?? null }
+    const source: ModSource = !record ? "local" : record.listed ? "listed" : "unlisted"
+    const base = { id, folder, source, error: null, loadMs: null, settings: entries[indexOf(id)]?.settings ?? null }
     if (!read.ok) return { ...base, manifest: null, status: "failed", problem: read.problem }
     const { manifest } = read
     const reason = options.revoked?.(id, manifest, record) ?? null
