@@ -63,6 +63,13 @@ export async function fetchList(): Promise<ListResult> {
   return parseList(json.value)
 }
 
+// Fetches the list and caches it when that worked.
+export async function refreshList(now = Date.now()): Promise<ListResult> {
+  const fetched = await fetchList()
+  if (fetched.ok) writeCachedList(fetched.list, now)
+  return fetched
+}
+
 function cacheFile(): string {
   const base = process.env["XDG_CACHE_HOME"]
   return join(base && isAbsolute(base) ? base : join(homedir(), ".cache"), "yellowcode", "mods.json")

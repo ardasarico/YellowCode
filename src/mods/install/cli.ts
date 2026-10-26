@@ -1,13 +1,12 @@
-import { existsSync, readdirSync, rmSync, statSync } from "node:fs"
+import { existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { configPath } from "../../config-path.ts"
 import { parseJson } from "../../protocol/json.ts"
 import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
-import { apiVersion } from "../version.ts"
-import { INCOMPATIBLE, installAt, type InstallResult } from "./install.ts"
-import { fetchList, type ListedMod, type ModList, readCachedList, REPO, SHA, writeCachedList } from "./list.ts"
+import { editedLocally, listedEntry, modFolders } from "./checks.ts"
+import { installAt, type InstallResult } from "./install.ts"
+import { type ModList, readCachedList, refreshList, REPO, SHA } from "./list.ts"
 import { type InstallRecord, readRecord, recordPath } from "./record.ts"
-import { dirEntries, hashEntries } from "./tree-hash.ts"
 
 export const MOD_USAGE = [
   "       yellowcode mod add <id>",
@@ -160,32 +159,10 @@ function alreadyInstalled(id: string, record: InstallRecord): number {
   return 0
 }
 
-function listedEntry(list: ModList, id: string): ListedMod | string {
-  const entry = list.mods.find((mod) => mod.id === id)
-  const revoked = list.revoked.find(
-    (item) => item.id === id && (item.versions === "all" || (entry && item.versions.includes(entry.version))),
-  )
-  if (revoked) return `${id}: Revoked: ${revoked.reason}`
-  if (!entry) return `${id} is not on the YellowCode list; for a mod on GitHub use yellowcode mod add github:owner/repo`
-  if (!apiMatches(entry.api)) return `${id} ${entry.version} ${INCOMPATIBLE}`
-  return entry
-}
-
-function apiMatches(range: string): boolean {
-  try {
-    return Bun.semver.satisfies(apiVersion, range)
-  } catch {
-    return false
-  }
-}
-
 // The fetched list, else the cached one with a line saying so, else null after naming the problem.
 async function loadList(): Promise<ModList | null> {
-  const fetched = await fetchList()
-  if (fetched.ok) {
-    writeCachedList(fetched.list)
-    return fetched.list
-  }
+  const fetched = await refreshList()
+  if (fetched.ok) return fetched.list
   const cached = readCachedList()
   if (!cached) return (fail(`Couldn't get the mod list: ${fetched.problem}`), null)
   say(
@@ -205,30 +182,6 @@ function installedState(mods: string, id: string): InstallRecord | "local" | nul
 
 function recordedIds(mods: string): string[] {
   return modFolders(mods).filter((id) => readRecord(mods, id))
-}
-
-function modFolders(mods: string): string[] {
-  let names: string[]
-  try {
-    names = readdirSync(mods)
-  } catch {
-    return []
-  }
-  return names
-    .filter((name) => name !== "node_modules" && !name.startsWith(".") && isFolder(join(mods, name)))
-    .toSorted()
-}
-
-function isFolder(path: string): boolean {
-  try {
-    return statSync(path).isDirectory()
-  } catch {
-    return false
-  }
-}
-
-function editedLocally(folder: string, record: InstallRecord): boolean {
-  return hashEntries(dirEntries(folder, [".git", "node_modules"]).files) !== record.treeHash
 }
 
 type Found = { ok: true; value: string } | { ok: false; problem: string }
