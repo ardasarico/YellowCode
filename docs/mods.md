@@ -359,7 +359,7 @@ Code's `.mcp.json`:
 }
 ```
 
-Each one is given to Claude as `mod-<id>-<name>`, here `mod-dice-memory`, while the mod is on. YellowCode passes the
+Each one is given to Claude as `mod-<id>--<name>`, here `mod-dice--memory`, while the mod is on. YellowCode passes the
 entry to Claude Code as written, so a `command` is not resolved against the mod's folder. If a server cannot connect,
 `/mods` shows the error on the mod's page.
 
