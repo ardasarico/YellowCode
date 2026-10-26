@@ -303,9 +303,7 @@ export function createModHost(options: {
       setEntries(ids.map(freshEntry))
     },
     async loadAll() {
-      for (const id of entries.map((entry) => entry.id))
-        // oxlint-disable-next-line no-await-in-loop -- one at a time, so each load time is the mod's own
-        await load(id)
+      await Promise.all(entries.map((entry) => load(entry.id)))
       for (const entry of entries) {
         if (entry.status === "failed" || entry.status === "incompatible") emit({ id: entry.id, late: false })
       }
