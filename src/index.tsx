@@ -70,6 +70,7 @@ const USAGE = [
   "Usage: yellowcode [--skip-terminal-check] [--no-mods]",
   "       yellowcode --report",
   "       yellowcode --version",
+  "       yellowcode --help",
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -92,6 +93,7 @@ function readArgs() {
         "no-mods": { type: "boolean", default: false },
         report: { type: "boolean" },
         version: { type: "boolean" },
+        help: { type: "boolean", short: "h" },
       },
     }).values
   } catch (error) {
@@ -103,8 +105,15 @@ const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
 if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
 if (values.report && values.replay !== undefined) fail(USAGE)
+if (values.help) {
+  process.stdout.write(`${USAGE}\n`)
+  process.exit(0)
+}
 if (values.version) {
-  process.stdout.write(`yellowcode ${packageJson.version} (mod API ${apiVersion})\n`)
+  const claude = claudeCliVersion()
+  process.stdout.write(
+    `yellowcode ${packageJson.version} (mod API ${apiVersion})\n${claude ? `Claude Code ${claude}` : "Claude Code not found"}\n`,
+  )
   process.exit(0)
 }
 if (values.report) {
@@ -253,7 +262,7 @@ renderer.keyInput.on("keypress", noteKey)
 process.removeAllListeners("uncaughtException")
 process.removeAllListeners("unhandledRejection")
 process.removeAllListeners("warning")
-const NOTICE = "Something went wrong · details in ~/.yellowcode/logs"
+const NOTICE = "Something went wrong · /report copies details for a bug report"
 const reported = new Set<string>()
 
 function reportProblem(error: unknown): void {
