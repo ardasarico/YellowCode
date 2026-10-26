@@ -13,10 +13,10 @@ const MIN_HEIGHT = 14
 const NOTICE_MS = 4000
 
 // Space types into the search once it has text.
-const footer = (query: string): FooterAction[] => [
+const footer = (query: string, locked: boolean): FooterAction[] => [
   { key: "↑↓", action: "select" },
   { key: "enter", action: "use", needsRow: true },
-  ...(query ? [] : [{ key: "space", action: "on/off", needsRow: true }]),
+  ...(query || locked ? [] : [{ key: "space", action: "on/off", needsRow: true }]),
   { key: "esc", action: "close" },
 ]
 
@@ -74,7 +74,7 @@ export function SkillsDialog(props: {
       sections={skillSections(props.skills, props.uses, true)}
       filter={(_, query) => skillSections(matchSkills(props.skills, query), props.uses, query === "")}
       searchPlaceholder="Search skills"
-      footer={(_, query) => footer(query)}
+      footer={(row, query) => footer(query, skillOf(row)?.locked === true)}
       footerStyle="keys"
       notice={notice()}
       view="list"
@@ -86,7 +86,11 @@ export function SkillsDialog(props: {
       onKey={(key, row, query) => {
         if (key.name !== "space" || query) return false
         const skill = skillOf(row)
-        if (!skill || skill.locked) return true
+        if (!skill) return true
+        if (skill.locked) {
+          showNotice("Locked by Claude Code settings")
+          return true
+        }
         if (props.actions)
           props.actions
             .setEnabled(skill, !skill.enabled)
