@@ -9,7 +9,10 @@
   },
   "type": "module",
   "exports": {
-    "./mod": "./src/mods/api.ts"
+    "./mod": {
+      "types": "./types/mod.d.ts",
+      "default": "./src/mods/api.ts"
+    }
   },
   "scripts": {
     "dev": "bun src/index.tsx",
@@ -22,7 +25,9 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "bun test",
-    "check": "bun run typecheck && bun run lint && bun run format:check && bun test"
+    "types": "bun tools/mod-types.ts",
+    "types:check": "bun tools/mod-types.ts --check",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run types:check && bun test"
   },
   "dependencies": {
     "@opentui/core": "0.6.8",

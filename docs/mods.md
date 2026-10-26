@@ -118,7 +118,9 @@ memos created in `setup` stop with the mod too, but only those made before the f
 `createRoot` and dispose of it with `mod.onDispose`.
 
 Keep `setup` light. YellowCode waits for every mod's `setup` before it shows its window, and `/mods` shows how long each
-one took. Start timers, sockets and processes on the first event or command, not in `setup`.
+one took. A `setup` still running after 5 seconds fails with "setup did not finish in 5 s". Dialogs answer `null` until
+the window is drawn, so do not wait for one in `setup` at startup. Start timers, sockets and processes on the first
+event or command, not in `setup`.
 
 Bun loads `.ts` and `.tsx` directly, so there is no build step. A mod may import:
 
@@ -132,7 +134,7 @@ can install it in its own folder, but never a second copy of `solid-js` or `@ope
 
 ## Settings
 
-Declare settings in `defineMod` and they show in the mod's page in `/mods`, where the user changes them. There are four
+Declare settings in `defineMod` and they show in the mod's page in `/mods`, where the user changes them. There are five
 types:
 
 ```tsx
@@ -150,6 +152,7 @@ export default defineMod({
     },
     count: { type: "boolean", label: "Count greetings", default: true, note: "kept across restarts" },
     repeat: { type: "number", label: "Repeat", min: 1, max: 5, step: 1, default: 1, unit: "times" },
+    hotkey: { type: "key", label: "Greet key", default: "ctrl+y" },
   },
   setup(mod) {
     mod.commands.add({
@@ -167,6 +170,7 @@ export default defineMod({
         for (let i = 0; i < mod.settings.get("repeat"); i++) mod.log.info(line)
       },
     })
+    mod.keys.add({ key: mod.settings.get("hotkey"), run: () => mod.notify(String(mod.settings.get("greeting"))) })
     mod.settings.onChange("greeting", (value) => mod.log.info(`greeting is now ${value}`))
   },
 })
@@ -177,7 +181,9 @@ boolean, or a number. A choice stores the option's `id`, so its `label` can chan
 `mod.settings.set(id, value)` changes a value; one that does not fit the declaration is ignored and logged.
 `onChange` runs right after a value changes, from `/mods` or from `set`.
 
-In `/mods`, ←→ and space change a choice, a switch or a number in place, and a text setting is typed after Enter.
+In `/mods`, ←→ and space change a choice, a switch or a number in place, a text setting is typed after Enter, and a
+`key` setting takes the next key pressed after Enter. A `key` value is a string like `"ctrl+y"`, ready for
+`mod.keys.add`.
 A saved value that no longer fits the declaration falls back to the default.
 
 ## Storage
@@ -263,7 +269,10 @@ mod.keys.add({ key: "ctrl+l", when: "pane", run: () => save("") })
 ```
 
 `key` is modifiers and a key joined by `+`, like `"ctrl+g"`, `"ctrl+shift+k"` or `"alt+n"`. The modifiers are `ctrl`,
-`shift` and `alt` (`meta` and `option` mean the same as `alt`). A text that is not a key throws.
+`shift` and `alt` (`meta` and `option` mean the same as `alt`). An unknown modifier or a missing key throws.
+
+A key of one character with no `ctrl` or `alt`, like `"g"`, is allowed but takes that character everywhere, the prompt
+included; `/mods` warns about it. Ctrl+] always leaves a focused pane, so it cannot be a mod's key there.
 
 A key with `when: "always"`, the default, works anywhere but in a dialog, also while a pane has the focus. A key with
 `when: "pane"` works only while one of the mod's own panes has the focus. Pick keys YellowCode does not use: a mod's key
@@ -302,7 +311,7 @@ export default defineMod({
       },
     })
 
-    mod.keys.add({ key: "ctrl+g", run: () => (pane.focused() ? pane.hide() : pane.focus()) })
+    mod.keys.add({ key: "ctrl+g", run: () => pane.toggle() })
     mod.keys.add({ key: "ctrl+l", when: "pane", run: () => save("") })
   },
 })
@@ -312,12 +321,14 @@ export default defineMod({
 functions, so they can follow a setting. The user can drag the pane's edge; `onResize(size)` gets the new size, and the
 pane keeps it only if `size` returns it, for example by saving it in a setting as the Terminal mod does.
 
-A pane starts hidden. The returned object has `show`, `hide`, `focus` (show and give it the focus), `visible` and
-`focused`. A click in the pane also gives it the focus.
+A pane starts hidden. The returned object has `show`, `hide`, `focus` (show and give it the focus), `toggle` (hide a
+shown pane, or show and focus a hidden one), `visible`, `focused` and `remove`, which takes the pane away for good. A
+click in the pane also gives it the focus. `title` is optional and names the pane in `/mods`.
 
-`view` gets the room inside the pane (`width`, `height`), whether it has the focus, and `onKey`. While the pane has the
-focus every key goes to the `onKey` handler, Esc and ctrl+c included, except the mods' shortcuts. So give the user a way
-out, like Esc or a toggle key. The view is built again each time the pane is shown: keep state that must survive outside
+`view` gets the room inside the pane (`width`, `height`), whether it has the focus, and `onKey`, which returns a
+function that removes the handler. While the pane has the focus every key goes to the `onKey` handler, Esc and ctrl+c
+included, except the mods' shortcuts and ctrl+], which leaves the pane for the chat. While the pane has the focus, keys
+never answer a question Claude asks; the user leaves the pane first. The view is built again each time the pane is shown: keep state that must survive outside
 the view, as the scratch text is here.
 
 One pane is drawn per position. When the window has no room for a shown pane, it loses the focus and `/mods` says so.
@@ -352,11 +363,12 @@ export default defineMod({
 ```
 
 Each mod's tools form an MCP server named `mod-<id>`, which YellowCode serves itself, so Claude sees this tool as
-`mcp__mod-dice__roll`. `name` is letters, digits, `_` and `-`, up to 64 characters. `input` is the JSON schema of the
-arguments. `run` gets the arguments as Claude sent them, so check them yourself. It returns the text Claude reads, or
+`mcp__mod-dice__roll`. `name` is letters, digits, `_` and `-`, up to 64 characters, and unique in the mod. `inputSchema`
+is the JSON schema of the arguments. `run` gets the arguments as Claude sent them, so check them yourself. It returns the text Claude reads, or
 `{ text, isError: true }` for an error, and may be `async`.
 
-The server is added to Claude when the mod loads and removed when it stops, without a restart. Tools only work in a live
+The server is added to Claude when the mod loads and removed when it stops, without a restart. A tool added or removed
+later reaches Claude too: YellowCode hands Claude the server again so it lists the tools anew. Tools only work in a live
 session; a replay has no Claude to call them.
 
 ## MCP servers in the manifest
@@ -452,11 +464,13 @@ mod.sidebar.add({
 
 `mod.events.on(event, handler)` listens to:
 
-| Event       | Data                                                          | When                                    |
-| ----------- | ------------------------------------------------------------- | --------------------------------------- |
-| `tool-done` | `{ name, status }`, status `"done"`, `"error"` or `"stopped"` | One of Claude's tools finished.         |
-| `turn-end`  | `{ error }`, `null` when the turn went well                   | Claude's turn ended.                    |
-| `focus`     | `{}`                                                          | The terminal window got the focus back. |
+| Event           | Data                                                          | When                                    |
+| --------------- | ------------------------------------------------------------- | --------------------------------------- |
+| `tool-done`     | `{ name, status }`, status `"done"`, `"error"` or `"stopped"` | One of Claude's tools finished.         |
+| `turn-end`      | `{ error }`, `null` when the turn went well                   | Claude's turn ended.                    |
+| `focus`         | `{}`                                                          | The terminal window got the focus back. |
+| `message-sent`  | `{ text }`, after every before-send                           | The user sent a message they typed.     |
+| `model-changed` | `{ model }`                                                   | The session's model changed.            |
 
 `tool-done` and `turn-end` fire only while a turn runs, not for a session loaded from history. `focus` needs a terminal
 that reports focus changes. The sidebar example above uses all three. The Git mod refreshes its file list on each of
@@ -464,8 +478,8 @@ them.
 
 ## Dialogs
 
-`mod.dialogs` opens the app's own dialogs. One dialog is open at a time: while another one is open, a call answers
-`null` at once and shows nothing.
+`mod.dialogs` opens the app's own dialogs. One dialog is open at a time: while another one is open, while Claude asks
+the user something, or before the window is drawn, a call answers `null` at once and shows nothing.
 
 ```tsx
 mod.commands.add({
@@ -657,8 +671,20 @@ mod.overrides.wrap("turn-end", (Original) => (props) => (
 ))
 ```
 
-`wrap` gets `Original` and returns a component with the same props. The props of each point are typed in
-`ModOverridePoints`; they only ever gain fields. Pass them on to `Original` unchanged. When several mods wrap the same
+`wrap` gets `Original` and returns a component with the same props. What a wrap can read is typed in
+`ModOverridePoints`, a small read-only part of what the app passes:
+
+| Point          | Props                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| `user-message` | `item` (`id`, `text`, `to`), `selected`, `expanded`                                              |
+| `thinking`     | `item` (`id`, `text`, `streaming`, `durationMs`), `selected`, `expanded`                         |
+| `turn-end`     | `parts`, each with `durationMs`, tokens, `costUsd`, `error`, `retries`, `interrupted`, `endedAt` |
+| `system-row`   | `item` (`level`, `text`, `detail`)                                                               |
+| `prompt`       | `focused`, `width`, `placeholder`                                                                |
+| `status-line`  | `width`, `model`, `permissionMode`, `asking`                                                     |
+
+Pass the props on to `Original` whole, `<Original {...props} />`: the original needs more than the typed fields. A wrap
+may change a field it can read, such as `item.text`, by passing `{...props, item: {...props.item, text}}`. When several mods wrap the same
 point, the one loaded first wraps the app's part and a later one wraps that. If a wrap throws, its mod is turned off and
 the part below it is drawn.
 
@@ -676,6 +702,49 @@ mod.overrides.beforeSend((text) => {
 
 It runs on typed messages only, not on `/commands` or `!` shell commands. With several mods, each gets the text the one
 before returned, in load order.
+
+## The app and the session
+
+A few things the app lends every mod:
+
+```ts
+mod.cwd // the project folder YellowCode was started in
+mod.notify("Pushed to origin") // on the notice line under the prompt, as "<mod name>: Pushed to origin"
+mod.notify("Push failed", { level: "error" }) // "info" (default), "warning" or "error"
+await mod.clipboard.write(text) // false when no clipboard took it
+await mod.open("https://example.com") // a URL in the browser, or a path in the user's editor
+mod.prompt.insert("@notes.md ") // text at the prompt's cursor; sending stays with the user
+mod.session.model() // also id(), running() and permissionMode(); null before the session is known
+```
+
+The `mod.session` values are signals: read them in a view or an effect and it follows changes. A mod cannot send a
+message to Claude by itself.
+
+## Versions and types
+
+`apiVersion`, exported by `yellowcode/mod`, is the version of everything in this guide; the manifest's `api` names the
+range a mod works with. Within a major version things are only added: new fields, methods, events, union members and
+props. So handle a value you do not know, like a new `status`, instead of assuming a list is complete. A change that can
+break a mod raises the major version, and mods asking for the old one show as incompatible.
+
+To type-check a mod, put this `tsconfig.json` in its folder. `yellowcode/mod` resolves to the API's declaration file
+through the `node_modules` link described in [Where mods live](#where-mods-live):
+
+```json
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "jsxImportSource": "@opentui/solid",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  }
+}
+```
 
 ## Examples to read
 
