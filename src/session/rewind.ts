@@ -74,7 +74,10 @@ function toolChange(tool: ToolCall, cwd: string): FileChange | null {
       else if (line.startsWith("-")) minus++
     }
   // A new file written whole has no patch, only its content.
-  if (tool.createdFile && plus === 0) plus = (input.success ? (input.data.content ?? "") : "").split("\n").length
+  if (tool.createdFile && plus === 0) {
+    const content = (input.success ? (input.data.content ?? "") : "").replace(/\n$/, "")
+    plus = content === "" ? 0 : content.split("\n").length
+  }
   const path = cwd && file.startsWith(`${cwd}/`) ? relative(cwd, file) : file
   return { path, plus, minus, created: tool.createdFile, bash: false, conflict: false }
 }
