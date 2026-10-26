@@ -31,6 +31,7 @@ import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, te
 import { loadSettings, savedMode } from "./session/settings-file.ts"
 import { modOfError, mods, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
+import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
 import { stopTitles } from "./session/titler.ts"
 import packageJson from "../package.json"
 import {
@@ -71,6 +72,7 @@ const USAGE = [
   "       yellowcode --report",
   "       yellowcode --version",
   "       yellowcode --help",
+  MOD_USAGE,
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -100,6 +102,8 @@ function readArgs() {
     return fail(`${error instanceof Error ? error.message : String(error)}\n${USAGE}`)
   }
 }
+
+if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
 
 const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
