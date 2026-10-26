@@ -69,12 +69,22 @@ export default defineMod({
     const toggle = () => (pane.focused() ? hide() : open())
 
     // Keys come from the settings, so a change there binds them again.
+    let unbindToggle: Dispose | null = null
+    // A key that does not parse keeps the one bound before it.
+    const bindToggle = () => {
+      try {
+        const next = mod.keys.add({ key: mod.settings.get("toggleKey"), run: toggle })
+        unbindToggle?.()
+        unbindToggle = next
+      } catch (error) {
+        mod.notify(`Toggle key "${mod.settings.get("toggleKey")}" is not a key`, { level: "warning" })
+        mod.log.warn("the toggle key setting is not a key", error)
+      }
+    }
     let unbind: Dispose[] = []
     const bindKeys = () => {
       for (const dispose of unbind) dispose()
       unbind = []
-      unbind.push(mod.keys.add({ key: mod.settings.get("toggleKey"), run: toggle }))
-      // Tab keys are typed text, so a wrong one leaves the toggle key working.
       try {
         if (!TAB_RANGE.test(mod.settings.get("tabKeys"))) throw new Error("no 1…9 at the end")
         const prefix = tabPrefix(mod.settings.get("tabKeys"))
@@ -85,8 +95,9 @@ export default defineMod({
         mod.log.warn("the tab keys setting is not a key", error)
       }
     }
+    bindToggle()
     bindKeys()
-    mod.settings.onChange("toggleKey", bindKeys)
+    mod.settings.onChange("toggleKey", bindToggle)
     mod.settings.onChange("tabKeys", bindKeys)
 
     mod.commands.add({
