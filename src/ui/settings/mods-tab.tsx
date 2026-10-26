@@ -6,6 +6,7 @@ import { keyText } from "../../mods/keys.ts"
 import { counts, modKeys, modPanes } from "../../mods/registry.ts"
 import { serverErrors } from "../../source/mod-tools.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
+import { configPath } from "../../config-path.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, text, title } from "../dialog/detail.ts"
@@ -174,7 +175,7 @@ function actions(entry: ModEntry): DialogRow[] {
 
 const SETTING_FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
-  { key: "←→", action: "change" },
+  { key: "←→/space", action: "change" },
   { key: "esc", action: "back" },
 ]
 const TEXT_FOOTER: FooterAction[] = [
@@ -206,9 +207,10 @@ function changeSetting(settings: SettingsHandle, key: string, step: 1 | -1): voi
 
 const FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
+  { key: "→", action: "settings" },
   { key: "space", action: "on/off" },
-  { key: "r", action: "reload" },
-  { key: "enter", action: "open folder" },
+  { key: "ctrl+r", action: "reload" },
+  { key: "ctrl+o", action: "open folder" },
   { key: "esc", action: "close" },
 ]
 
@@ -242,7 +244,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       return true
     }
     if (key.name === "left" || key.name === "right") changeSetting(settings, name, key.name === "left" ? -1 : 1)
-    else if (key.name === "space" && definition?.type === "boolean") changeSetting(settings, name, 1)
+    else if (key.name === "space") changeSetting(settings, name, 1)
     else return false
     return true
   }
@@ -271,7 +273,9 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       api={props.api}
       sections={sections()}
       searchPlaceholder="Search mods"
-      empty={(query) => (query ? `No mods match "${query}".` : "No mods yet. Put one in ~/.config/yellowcode/mods/.")}
+      empty={(query) =>
+        query ? `No mods match "${query}".` : `No mods yet. Put one in ${tildePath(configPath("mods"))}/.`
+      }
       detail={(row, width) => {
         const entry = entryFor(row)
         return entry ? detailItems(entry, width, props.host.settings(entry.id), editing()) : []
@@ -287,10 +291,10 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
       onKey={(key, row, query) => {
         const entry = entryFor(row)
         if (!entry) return false
-        // While a search is typed, space and r are part of it.
+        // While a search is typed, space is part of it.
         if (key.name === "space" && !query) run(entry, entry.status === "off" ? "on" : "off")
-        else if (key.name === "r" && !key.ctrl && !key.meta && !query) run(entry, "reload")
-        else if (key.name === "return") run(entry, "folder")
+        else if (key.ctrl && key.name === "r") run(entry, "reload")
+        else if (key.ctrl && key.name === "o") run(entry, "folder")
         else return false
         return true
       }}
