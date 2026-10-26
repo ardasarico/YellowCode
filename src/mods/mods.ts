@@ -23,14 +23,20 @@ function real(folder: string): string {
   }
 }
 
+function inFolder(error: unknown, folder: string): boolean {
+  const stack = error instanceof Error ? (error.stack ?? "") : ""
+  return stack.includes(`${folder}/`) || stack.includes(`${real(folder)}/`)
+}
+
+// Whether the error's stack points into the mod's folder.
+export function raisedByMod(id: string, error: unknown): boolean {
+  const entry = mods.entries.find((candidate) => candidate.id === id)
+  return entry !== undefined && inFolder(error, entry.folder)
+}
+
 // The running mod whose files appear in an error's stack, for errors thrown where no mod is known, like a mouse handler.
 export function modOfError(error: unknown): string | null {
-  const stack = error instanceof Error ? (error.stack ?? "") : ""
-  const entry = mods.entries.find(
-    (candidate) =>
-      candidate.status === "on" &&
-      (stack.includes(`${candidate.folder}/`) || stack.includes(`${real(candidate.folder)}/`)),
-  )
+  const entry = mods.entries.find((candidate) => candidate.status === "on" && inFolder(error, candidate.folder))
   return entry?.id ?? null
 }
 

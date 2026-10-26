@@ -1,8 +1,10 @@
 import { type Component, createComponent, createMemo, ErrorBoundary, mergeProps, untrack } from "solid-js"
 import type { ModOverridePoints, ModWrap } from "./api.ts"
+import { raisedByMod } from "./mods.ts"
 import { reportModError, wrapsOf } from "./registry.ts"
 
 // One mod's wrap over the part below it; a throw, building it or drawing it, turns the mod off and draws the part below.
+// A throw drawn inside the wrap whose stack does not reach the mod's folder is the app's own and passes on.
 function layer<P extends ModOverridePoints[keyof ModOverridePoints]>(
   mod: string,
   wrap: ModWrap<P>,
@@ -18,6 +20,7 @@ function layer<P extends ModOverridePoints[keyof ModOverridePoints]>(
   return (props) => (
     <ErrorBoundary
       fallback={(error: unknown) => {
+        if (!raisedByMod(mod, error)) throw error
         queueMicrotask(() => reportModError(mod, error))
         return createComponent(inner, props)
       }}
