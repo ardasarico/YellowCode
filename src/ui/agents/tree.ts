@@ -322,6 +322,16 @@ export function taskIdOf(session: Session, node: TreeNode): string | null {
   return tool?.kind === "tool" ? tool.taskId : null
 }
 
+// The agents stopping a running workflow ends: those running and those still queued.
+export function liveAgentCount(session: Session, node: TreeNode): number {
+  const tool = session.byId[node.id]
+  const workflow =
+    node.kind === "workflow" && tool?.kind === "tool"
+      ? snapshot(tool.taskId ? session.tasks[tool.taskId] : undefined)
+      : null
+  return workflow?.agents.filter((agent) => agent.state === "start").length ?? 0
+}
+
 // Top-level agents and workflows that are running or started since the latest user message, in tree order.
 export function activeNodes(session: Session): TreeNode[] {
   const nodes = topNodes(session)

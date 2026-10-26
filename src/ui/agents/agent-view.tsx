@@ -6,7 +6,7 @@ import { theme } from "../../theme/theme.ts"
 import { cut, SAVED_NOTICE } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
-import { agentTree, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
+import { agentTree, liveAgentCount, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
 import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
@@ -17,6 +17,7 @@ const FOOTER = [
   { key: "esc", word: "chat" },
 ]
 const STOP_KEY = { key: "x", word: "stop" }
+const CONFIRM_KEY = { key: "x", word: "confirm" }
 const MESSAGE_KEY = { key: "m", word: "message" }
 
 const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40, Math.floor(width * 0.26))))
@@ -114,9 +115,22 @@ function Tree(props: {
   )
 }
 
-function Footer(props: { notice: string | null; width: number; message: boolean; stop: boolean }) {
+function Footer(props: {
+  notice: string | null
+  width: number
+  message: boolean
+  stop: boolean
+  armed: string | null
+}) {
   return (
     <box flexDirection="column" flexShrink={0}>
+      <Show when={props.armed}>
+        {(text) => (
+          <text wrapMode="none" fg={theme.warning}>
+            {cut(text(), props.width)}
+          </text>
+        )}
+      </Show>
       <text fg={theme.frame} wrapMode="none">
         {"─".repeat(Math.max(0, props.width))}
       </text>
@@ -127,7 +141,7 @@ function Footer(props: { notice: string | null; width: number; message: boolean;
             <Index
               each={[
                 ...FOOTER.slice(0, -1),
-                ...(props.stop ? [STOP_KEY] : []),
+                ...(props.stop ? [props.armed ? CONFIRM_KEY : STOP_KEY] : []),
                 ...(props.message ? [MESSAGE_KEY] : []),
                 ...FOOTER.slice(-1),
               ]}
@@ -254,6 +268,17 @@ export function AgentView(props: {
     })
   }
 
+  // Stopping a workflow takes a second x; the id of the workflow waiting for it.
+  const [armed, setArmed] = createSignal<string | null>(null)
+  createEffect(() => {
+    const id = armed()
+    if (id !== null && (shownId() !== id || byId().get(id)?.state !== "running")) setArmed(null)
+  })
+  const armedCount = () => {
+    const current = node()
+    return current && armed() === current.id ? liveAgentCount(props.session, current) : 0
+  }
+
   const move = (step: 1 | -1) => {
     const selectable = nodes().filter((entry) => entry.selectable)
     const current = selectable.findIndex((entry) => entry.id === shownId())
@@ -268,15 +293,22 @@ export function AgentView(props: {
     else if (key.name === "down") move(1)
     else if (key.name === "pageup") scroll?.scrollBy({ x: 0, y: -page() })
     else if (key.name === "pagedown") scroll?.scrollBy({ x: 0, y: page() })
-    else if (key.name === "escape") props.onClose()
-    else if (key.name === "m") {
+    else if (key.name === "escape") {
+      if (armed() === null) props.onClose()
+      else setArmed(null)
+    } else if (key.name === "m") {
       const current = node()
       const why = current?.kind === "agent" ? props.onMessage?.(current.id) : null
       if (why) showNotice(why)
     } else if (key.name === "x") {
       const current = node()
       const taskId = current && stoppable(current) ? taskIdOf(props.session, current) : null
-      if (current && taskId) stop(current, taskId)
+      if (current && taskId) {
+        if (current.kind !== "workflow" || armed() === current.id) {
+          setArmed(null)
+          stop(current, taskId)
+        } else setArmed(current.id)
+      }
     } else return
     key.preventDefault()
     key.stopPropagation()
@@ -310,6 +342,7 @@ export function AgentView(props: {
         </Show>
         <Footer
           notice={notice()}
+          armed={armed() === null ? null : `x again stops all ${armedCount()} agents · esc keeps them`}
           width={pageWidth()}
           stop={(() => {
             const current = node()
