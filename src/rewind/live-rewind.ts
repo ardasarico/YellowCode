@@ -72,6 +72,8 @@ export type Manifest = {
 export type Capture = {
   // The store, null when files are not tracked here.
   snapshots: Promise<Snapshots | null>
+  // Why files are not tracked: undefined while the store opens, null when it is open.
+  offReason(): string | null | undefined
   // Called at Enter. Resolves once the prompt's before snapshot is taken, or after BEFORE_CAP_MS.
   before(uuid: string, sessionId: string | null, session: SessionStore): Promise<void>
   // The prompt did not go out after all.
@@ -275,13 +277,16 @@ export function readManifest(store: string, uuid: string): Manifest | null {
 
 export function createCapture(cwd: string): Capture {
   // The first take pays for opening the store, so it happens before any prompt waits for one.
-  const opened: Promise<Snapshots | null> = openSnapshots(cwd).then(
+  let reason: string | null | undefined
+  const opened: Promise<Snapshots | null> = openSnapshots(cwd, (why) => (reason = why)).then(
     (snapshots) => {
       if (snapshots) void snapshots.take(WARM_UP)
+      reason ??= null
       return snapshots
     },
     (error: unknown) => {
       log.warn("snapshots off", String(error))
+      reason = "could not set up the snapshot store"
       return null
     },
   )
@@ -472,6 +477,8 @@ export function createCapture(cwd: string): Capture {
 
   return {
     snapshots: opened,
+
+    offReason: () => reason,
 
     async before(uuid, sessionId, session) {
       const beforeAt = Date.now()

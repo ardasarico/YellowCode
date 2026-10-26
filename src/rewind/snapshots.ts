@@ -205,9 +205,11 @@ async function createRepo(gitDir: string, format: string | null): Promise<void> 
   }
 }
 
-export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
-  const off = (reason: string) => {
-    log.info("snapshots off", { cwd, reason })
+// `onOff` gets a short reason, safe to show, when no store is opened.
+export async function openSnapshots(cwd: string, onOff?: (reason: string) => void): Promise<Snapshots | null> {
+  const off = (reason: string, detail = reason) => {
+    log.info("snapshots off", { cwd, reason: detail })
+    onOff?.(reason)
     return null
   }
   let project: Project | null
@@ -218,7 +220,7 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
     root = project?.root ?? realpathSync(cwd)
     home = realpathSync(process.env["HOME"] || homedir())
   } catch (error) {
-    return off(String(error))
+    return off("could not read the folder", String(error))
   }
   if (root === "/") return off("the folder is /")
   if (root === home) return off("the folder is the home directory")
@@ -487,7 +489,7 @@ export async function openSnapshots(cwd: string): Promise<Snapshots | null> {
       return String(error)
     }
   })
-  if (prepared !== null) return off(prepared)
+  if (prepared !== null) return off("could not set up the snapshot store", prepared)
 
   // Paths add left out because it could not read them, apart from the ones left out on purpose.
   const unread = async (deliberate: Set<string>): Promise<string[]> => {

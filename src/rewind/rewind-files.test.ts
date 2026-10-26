@@ -87,6 +87,7 @@ test("a rewind after one whose after-snapshot failed touches nothing", async () 
   // The first rewind's R is call 0, its R_after (failing) call 1.
   const capture: Capture = {
     snapshots: Promise.resolve(snapshots),
+    offReason: () => null,
     before: async () => {},
     drop: () => {},
     follow: () => () => {},

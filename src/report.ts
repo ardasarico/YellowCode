@@ -138,6 +138,9 @@ function block(title: string, rows: Row[] | undefined): string[] {
   return [`## ${title}`, "", "```text", ...shown.map(([label, value]) => `${label.padEnd(width)}${value}`), "```", ""]
 }
 
+export const fileRewindFact = (reason: string | null | undefined) =>
+  reason === undefined ? null : reason === null ? "on" : `off (${reason})`
+
 export function reportMarkdown(facts: ReportFacts): string {
   const lines = [
     ...block("Environment", facts.environment),

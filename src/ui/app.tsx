@@ -55,7 +55,7 @@ import {
   type PermissionMode,
   SAVE_PROBLEM,
 } from "../session/settings-file.ts"
-import { hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
+import { fileRewindFact, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
@@ -208,6 +208,8 @@ export type AppProps = {
   // it. `seen` are the ⚠ paths the dialog showed.
   rewind?: {
     preview: RewindPreview
+    // Why files are not tracked (null: they are), undefined when not known.
+    offReason?: () => string | null | undefined
     onRewind: (rewound: Rewound, seen: string[]) => RewindAnswer | Promise<RewindAnswer>
     onRedo: () => void
     // A rewind or /redo is still putting files back.
@@ -995,6 +997,7 @@ export function App(props: AppProps) {
         ["Permission mode", mode === null ? null : modeLabel(mode)],
         ["Skills", String(props.provider.skills().length)],
         ["Tools", info ? String(info.tools.length) : null],
+        ["File rewind", fileRewindFact(props.rewind?.offReason?.())],
       ],
       extensions: [
         ["MCP", namesWithCount(servers.map((server) => server.name))],

@@ -987,6 +987,7 @@ function Main() {
                     }
                   : {
                       preview: (session, selected) => rewinding.then(() => preview(session, selected)),
+                      offReason: () => capture?.offReason(),
                       working: () => rewindWork() > 0,
                       goingBack,
                       onRewind: (rewound, seen) => {

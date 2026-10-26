@@ -301,7 +301,8 @@ export function livePreview(
     const snapshots = await capture?.snapshots
     if (!capture || !snapshots) {
       const untracked = session.items.filter((id) => session.byId[id]?.kind === "user").map((_, at) => at)
-      return { bash: [], conflicts: [], untracked, imported: [], shells: [], restores: [], outside: [] }
+      const off = capture?.offReason() ?? undefined
+      return { bash: [], conflicts: [], untracked, off, imported: [], shells: [], restores: [], outside: [] }
     }
     await capture.settle()
     return preview(snapshots, session, session.info?.cwd || cwd, selected, pending(session))

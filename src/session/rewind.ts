@@ -24,6 +24,8 @@ export type RewindPoint = {
   hidden: boolean
   // No full snapshots: the prompt's files cannot be put back.
   untracked: boolean
+  // Why files are not tracked at all, when that is known.
+  untrackedWhy: string | null
   // Only claude's own backups cover the prompt, so only its Edit and Write calls can be undone.
   imported: boolean
   // Running background tasks the prompt started.
@@ -50,6 +52,8 @@ export type RewindExtras = {
   bash: { prompt: number; path: string; plus: number; minus: number; edit?: boolean }[]
   conflicts: string[]
   untracked: number[]
+  // Set when file rewind is off for the whole session.
+  off?: string
   imported: number[]
   shells: { prompt: number; names: string[] }[]
   restores: { prompt: number; paths: string[] }[]
@@ -150,6 +154,7 @@ export function rewindPoints(session: Session, extras: RewindExtras | null): Rew
       files,
       hidden: point.hidden,
       untracked: untracked.has(at),
+      untrackedWhy: extras?.off ?? null,
       imported: imported.has(at),
       tasks: tasks[at] ?? [],
       shells: (extras?.shells ?? []).filter((shell) => shell.prompt === at).flatMap((shell) => shell.names),
@@ -246,6 +251,7 @@ const extrasFile = z.object({
     .default([]),
   conflicts: z.array(z.string()).default([]),
   untracked: z.array(z.number()).default([]),
+  off: z.string().optional(),
   imported: z.array(z.number()).default([]),
   shells: z.array(z.object({ prompt: z.number(), names: z.array(z.string()) })).default([]),
   restores: z.array(z.object({ prompt: z.number(), paths: z.array(z.string()) })).default([]),

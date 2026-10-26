@@ -134,7 +134,10 @@ export function RewindDialog(
     const later = points().slice(at)
     const note = (id: string, text: string) =>
       lines.push({ id, spans: [{ text: cut(text, inner()), fg: theme.panelMuted }] })
-    if (later.some((point) => point.untracked)) note("untracked", "Files not tracked here")
+    if (later.some((point) => point.untracked)) {
+      const why = later.find((point) => point.untrackedWhy)?.untrackedWhy
+      note("untracked", why ? `Files not tracked: ${why}` : "Files not tracked here")
+    }
     if (later.some((point) => point.imported)) note("imported", "Only Claude's edits here")
     const tasks = later.flatMap((point) => point.tasks)
     if (tasks.length > 0) note("tasks", `Stops ${plural(tasks.length, "background task")}: ${tasks.join(", ")}`)
