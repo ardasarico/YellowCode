@@ -48,7 +48,13 @@ import {
 import { EFFORT_LEVELS } from "../theme/brand.ts"
 import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
 import { pluginEntries } from "../session/plugins.ts"
-import { failedSaves, modeLabel, type PermissionMode, SAVE_PROBLEM } from "../session/settings-file.ts"
+import {
+  failedSaves,
+  modeLabel,
+  PERMISSION_MODES,
+  type PermissionMode,
+  SAVE_PROBLEM,
+} from "../session/settings-file.ts"
 import { hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
@@ -426,6 +432,7 @@ export function App(props: AppProps) {
     const name = renamed()
     return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()
   }
+  const copyText = (text: string) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied))
   if (!untrack(() => props.readOnly)) {
     useModEvents(
       renderer,
@@ -1425,6 +1432,8 @@ export function App(props: AppProps) {
         return false
       }
       const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
+      // The mode changes before the message goes out, so the message runs in it; a refused send puts it back.
+      const modeBefore = PERMISSION_MODES.find((mode) => mode === props.session.permissionMode)
       if (planned !== null) planMode()
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
@@ -1435,7 +1444,10 @@ export function App(props: AppProps) {
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
         : giveBack
       const accepted = ended() ? (props.onRestart?.(out, images, back) ?? false) : props.onSubmit(out, images, back)
-      if (!accepted) return false
+      if (!accepted) {
+        if (planned !== null && modeBefore) chooseMode(modeBefore)
+        return false
+      }
       if (message) emitModEvent("message-sent", { text: changed })
       jumpDown()
       if (to) setMessageTo(null)
@@ -1519,6 +1531,10 @@ export function App(props: AppProps) {
     if (mod) return modSpan(mod)
     const note = rewindNote()
     if (note) return { text: note, fg: theme.muted }
+    if (ended()) {
+      const restart = props.onRestart ? " · Enter: restart" : ""
+      return { text: `✗ Claude Code exited · Ctrl+C: quit${restart}`, fg: theme.error }
+    }
     return live() && props.session.status === "starting" ? startingNotice() : null
   }
   const openBackup = () => {
