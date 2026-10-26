@@ -79,8 +79,12 @@ export const LONG = 3
 export const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
 export const opensList = (setting: SettingDefinition) => setting.options.length > LONG
 
-export const currentOption = (setting: SettingDefinition) =>
-  setting.options.find((option) => option.value === settings[setting.key]) ?? setting.options[0]
+export function currentOption(setting: SettingDefinition): SettingOption | undefined {
+  const saved = settings[setting.key]
+  const found = setting.options.find((option) => option.value === saved)
+  if (found || setting.key !== "theme") return found ?? setting.options[0]
+  return { value: saved, label: `${saved} (not found)` }
+}
 
 export function step(setting: SettingDefinition, by: 1 | -1) {
   const count = setting.options.length
