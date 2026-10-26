@@ -205,7 +205,9 @@ function workflowChildren(session: Session, tool: ToolCall, parent: TreeNode): T
             : count("stopped") > 0
               ? "stopped"
               : queued > 0
-                ? "running"
+                ? running
+                  ? "running"
+                  : "stopped"
                 : completed === 0
                   ? "failed"
                   : "completed",
