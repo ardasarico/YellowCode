@@ -1356,7 +1356,7 @@ export function App(props: AppProps) {
       sent.push({ conversation: props.session.conversation, draft: { ...draft, text: `!${line}` } })
       return true
     }
-    const [, commandName = "", commandArgs = ""] = /^\/(\S+)\s*(.*)$/.exec(command) ?? []
+    const [, commandName = "", commandArgs = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(command) ?? []
     if (BLOCKED_COMMANDS.includes(commandName)) {
       waitNotice("Not available in YellowCode")
       return false
