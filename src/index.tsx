@@ -517,8 +517,7 @@ function relaunch(
   connection.start()
   if (!text.trim() && images.length === 0) return true
   // The resumed conversation still holds the prompts a rewind hid.
-  if (session.state.rewound)
-    void queueRewind(() => sendAfterRewinds(connection, text, images, giveBack)).catch(() => {})
+  if (session.state.rewound) sendRewound(connection, text, images, giveBack)
   else sendPrompt(connection, text, images, giveBack)
   return true
 }
@@ -642,6 +641,15 @@ async function goBack(live: Connection, prompts: (string | undefined)[]): Promis
   restarting = false
   const spawn = cut === null ? { sessionId: crypto.randomUUID() } : { resume: id, at: cut }
   return relaunch(live, "", [], spawn) ? connection : null
+}
+
+// The prompt is already cleared when this runs, so a failure gives the text back.
+function sendRewound(live: Connection, text: string, images: OutgoingImage[], giveBack: () => void): void {
+  void queueRewind(() => sendAfterRewinds(live, text, images, giveBack)).catch((error: unknown) => {
+    log.error("cannot send after the rewind", error)
+    giveBack()
+    setControlProblem({ text: "The message did not go out" })
+  })
 }
 
 // A message goes out after the rewinds before it, to the claude that runs its session by then: a restart keeps the
@@ -900,7 +908,7 @@ function Main() {
                 // The prompt clears once this returns; a chat item before that would take the welcome screen's draft
                 // with it.
                 const live = connection
-                void queueRewind(() => sendAfterRewinds(live, text, images, giveBack)).catch(() => {})
+                sendRewound(live, text, images, giveBack)
                 return true
               }}
               onRestart={mode.kind === "live" ? restart : undefined}
@@ -993,7 +1001,10 @@ function Main() {
                       },
                       onRedo: () => {
                         const live = connection
-                        void queueRewind(() => redoLive(live)).catch(() => {})
+                        void queueRewind(() => redoLive(live)).catch((error: unknown) => {
+                          log.error("redo failed", error)
+                          noticeRewind("Cannot bring the conversation back")
+                        })
                       },
                     }
               }
