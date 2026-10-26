@@ -92,6 +92,10 @@ export function InputBlock(props: InputBlockProps) {
     loadImage,
     onLeaveDown: () => props.onLeaveDown?.(),
     onQuit: () => props.onQuit?.(),
+    onEscape: () => props.onEscape?.(),
+    onBackspaceEmpty: () => props.onBackspaceEmpty?.() ?? false,
+    onBang: () => props.onBang?.() ?? false,
+    onRecall: (to) => props.onRecall?.(to),
     fill: () => props.fill,
     history: () => props.history?.() ?? [],
   })
@@ -103,6 +107,7 @@ export function InputBlock(props: InputBlockProps) {
     if (!props.model) return ""
     return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth())
   }
+  const prefixWidth = () => (props.shell ? 2 : 0) + (props.messageTo ? props.messageTo.name.length + 2 : 0)
   const unfold = () =>
     completion.unfoldable() &&
     Bun.stringWidth(modelLabel()) + 2 + UNFOLD_HINT.length + rightWidth() <= props.width - 2 * TILE_PADDING
@@ -121,6 +126,18 @@ export function InputBlock(props: InputBlockProps) {
         <box flexDirection="column" paddingX={TILE_PADDING} paddingBottom={1}>
           <ImageStrip chips={completion.chips()} />
           <box flexDirection="row">
+            <Show when={props.shell}>
+              <text fg={theme.shell} flexShrink={0}>
+                {"! "}
+              </text>
+            </Show>
+            <Show when={props.messageTo}>
+              {(to) => (
+                <text fg={theme.accent} flexShrink={0} wrapMode="none">
+                  {`@${to().name} `}
+                </text>
+              )}
+            </Show>
             <textarea
               ref={completion.ref}
               flexGrow={1}
@@ -145,7 +162,7 @@ export function InputBlock(props: InputBlockProps) {
             />
             <Show when={completion.hint()}>
               {(hint) => (
-                <text position="absolute" top={0} left={hint().left} zIndex={1} fg={theme.muted}>
+                <text position="absolute" top={0} left={prefixWidth() + hint().left} zIndex={1} fg={theme.muted}>
                   {hint().text}
                 </text>
               )}
