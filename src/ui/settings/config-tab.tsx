@@ -24,13 +24,11 @@ const SECTIONS = [...new Set(SETTINGS.map((setting) => setting.section))]
 const SEARCH_ROWS = 3
 const CRUMB_ROWS = 2
 
-const ROWS_FOOTER: FooterAction[] = [
-  { key: "↑↓", action: "select" },
-  { key: "←→", action: "change" },
-  { key: "enter", action: "open" },
-  { key: "ctrl+r", action: "reset" },
-  { key: "esc", action: "close" },
-]
+const SELECT: FooterAction = { key: "↑↓", action: "select" }
+const CHANGE: FooterAction = { key: "←→", action: "change" }
+const OPEN: FooterAction = { key: "enter", action: "open" }
+const RESET: FooterAction = { key: "ctrl+r", action: "reset" }
+const CLOSE: FooterAction = { key: "esc", action: "close" }
 const LIST_FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
   { key: "enter", action: "choose" },
@@ -179,8 +177,13 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
   untrack(() => props.api).bind({
     footer: () => {
       const listing = list() ?? claudeList()
-      if (selectedId() === undefined) return searchFooter(listing ? "back" : "close")
-      return listing ? LIST_FOOTER : ROWS_FOOTER
+      const id = selectedId()
+      if (id === undefined) return searchFooter(listing ? "back" : "close")
+      if (listing) return LIST_FOOTER
+      const claude = claudeFor(id)
+      if (claude) return [SELECT, ...(claude.options.length > LONG ? [OPEN] : [CHANGE]), CLOSE]
+      const setting = settingFor(id)
+      return [SELECT, CHANGE, ...(setting && opensList(setting) ? [OPEN] : []), RESET, CLOSE]
     },
     keys: (key) => {
       const id = selectedId()
