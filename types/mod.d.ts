@@ -5,6 +5,7 @@ import type { Component, JSX } from "solid-js"
 export declare const apiVersion = "0.1.0"
 
 export type ModTheme = {
+  readonly background: RGBA | null
   readonly text: RGBA
   readonly muted: RGBA
   readonly faint: RGBA
@@ -110,6 +111,7 @@ export type ModPaneViewProps = {
   height: number
   focused: boolean
   onKey: (handler: (key: KeyEvent) => void) => Dispose
+  onPaste: (handler: (text: string) => void) => Dispose
 }
 export type ModPaneOptions = {
   id: string

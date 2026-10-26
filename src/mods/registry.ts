@@ -120,6 +120,15 @@ export function setPaneKeys(pane: string, handler: (key: KeyEvent) => void): Dis
 }
 export const paneKeys = (pane: string) => keySinks.get(pane)
 
+const pasteSinks = new Map<string, (text: string) => void>()
+export function setPanePaste(pane: string, handler: (text: string) => void): Dispose {
+  pasteSinks.set(pane, handler)
+  return () => {
+    if (pasteSinks.get(pane) === handler) pasteSinks.delete(pane)
+  }
+}
+export const panePaste = (pane: string) => pasteSinks.get(pane)
+
 function setVisible(pane: string, visible: boolean): void {
   setShown((current) => {
     const next = new Set(current)
@@ -160,6 +169,7 @@ export function addPane(mod: string, options: ModPaneOptions): { pane: ModPane; 
   const dispose = () => {
     setVisible(key, false)
     keySinks.delete(key)
+    pasteSinks.delete(key)
     setPanes((list) => list.filter((other) => other !== entry))
   }
   const focus = () => {

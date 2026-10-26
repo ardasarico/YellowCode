@@ -7,6 +7,7 @@ import {
   reportModError,
   setFocusedPane,
   setPaneKeys,
+  setPanePaste,
 } from "../mods/registry.ts"
 import { theme } from "../theme/theme.ts"
 
@@ -40,6 +41,7 @@ export function ModPaneView(props: {
       return focused()
     },
     onKey: (handler) => setPaneKeys(props.pane.key, handler),
+    onPaste: (handler) => setPanePaste(props.pane.key, handler),
   }
   const content = () => (
     <box

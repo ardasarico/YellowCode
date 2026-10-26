@@ -327,7 +327,8 @@ click in the pane also gives it the focus. `title` is optional and names the pan
 
 `view` gets the room inside the pane (`width`, `height`), whether it has the focus, and `onKey`, which returns a
 function that removes the handler. While the pane has the focus every key goes to the `onKey` handler, Esc and ctrl+c
-included, except the mods' shortcuts and ctrl+], which leaves the pane for the chat. While the pane has the focus, keys
+included, except the mods' shortcuts and ctrl+], which leaves the pane for the chat. Text the user pastes goes to the
+`onPaste` handler instead of the prompt. While the pane has the focus, keys
 never answer a question Claude asks; the user leaves the pane first. The view is built again each time the pane is shown: keep state that must survive outside
 the view, as the scratch text is here.
 
@@ -516,7 +517,7 @@ mod.commands.add({
 
 `yellowcode/mod` also exports a few of the app's parts, so a mod's views look like the rest of YellowCode:
 
-- `theme`: the current theme's colors: `text`, `muted`, `faint`, `accent`, `success`, `warning`, `error`, `frame`,
+- `theme`: the current theme's colors: `background` (null when the theme leaves the terminal's own), `text`, `muted`, `faint`, `accent`, `success`, `warning`, `error`, `frame`,
   `selection` (null when the theme has none), `diffAddText` and `diffDelText`. Read them inside a view and the view
   follows a theme change. Only these are part of the API (`ModTheme`).
 - `Diff`: a unified diff, as `git diff` prints it, drawn like the diffs in the chat. Props: `diff`, and optionally

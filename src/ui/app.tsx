@@ -1,6 +1,6 @@
 import { ModDialogView } from "./mod-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
-import type { ScrollBoxRenderable } from "@opentui/core"
+import { decodePasteBytes, type PasteEvent, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -99,6 +99,7 @@ import {
   modKeys,
   modPanes,
   paneKeys,
+  panePaste,
   type RegisteredPane,
   setAppBridge,
   setAppDialogOpen,
@@ -448,6 +449,19 @@ export function App(props: AppProps) {
       },
     })
     onMount(() => setAppShown(true))
+    // A paste goes to the focused element, the prompt; while a mod's pane has the focus it goes to the pane.
+    function pasteToPane(event: PasteEvent): void {
+      const pane = focusedPane()
+      if (pane === null || dialog()) return
+      event.preventDefault()
+      event.stopPropagation()
+      const sink = panePaste(pane)
+      if (sink) guarded(pane.slice(0, pane.indexOf("/")), () => sink(decodePasteBytes(event.bytes)))
+    }
+    onMount(() => {
+      renderer.keyInput.on("paste", pasteToPane)
+      onCleanup(() => renderer.keyInput.off("paste", pasteToPane))
+    })
     onCleanup(() => {
       setAppBridge(null)
       setAppShown(false)

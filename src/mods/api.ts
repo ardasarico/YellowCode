@@ -78,6 +78,8 @@ export type ModPaneViewProps = {
   // While the pane has the focus, every key but the mods' shortcuts and ctrl+] (which leaves the pane) comes here, ctrl+c
   // and Esc included. The last handler given wins; the returned function removes it.
   onKey: (handler: (key: KeyEvent) => void) => Dispose
+  // Text the user pastes while the pane has the focus. The last handler given wins; without one a paste is dropped.
+  onPaste: (handler: (text: string) => void) => Dispose
 }
 
 export type ModPaneOptions = {

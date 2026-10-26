@@ -8,6 +8,8 @@ import { CodeBlock } from "../ui/markdown/code-block.tsx"
 
 // The theme colors a mod may use. Themes can reshape the rest, so only these are promised.
 export type ModTheme = {
+  // Null when the theme leaves the terminal's own background.
+  readonly background: RGBA | null
   readonly text: RGBA
   readonly muted: RGBA
   readonly faint: RGBA
