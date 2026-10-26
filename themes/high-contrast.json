@@ -1,0 +1,65 @@
+{
+  "name": "High contrast",
+  "dark": {
+    "background": "#000000",
+    "text": "#ffffff",
+    "muted": "#c4c4c4",
+    "frame": "#8c8c8c",
+    "accent": "#ffd400",
+    "warning": "#ffb000",
+    "error": "#ff6b6b",
+    "band": "#141414",
+    "tile": "#242424",
+    "selection": "#292200",
+    "diffAdd": "#14351b",
+    "diffDel": "#381b1b",
+    "diffAddText": "#5df07a",
+    "diffDelText": "#ff7a7a",
+    "agents": [
+      "#00e0ff",
+      "#ff8cff",
+      "#5df07a",
+      "#ffd400",
+      "#8cb4ff"
+    ],
+    "syntax": {
+      "keyword": "#ff8cff",
+      "string": "#5df07a",
+      "number": "#ffd400",
+      "function": "#00e0ff",
+      "type": "#ffb000",
+      "comment": "#b0b0b0"
+    }
+  },
+  "light": {
+    "background": "#ffffff",
+    "text": "#000000",
+    "muted": "#3a3a3a",
+    "frame": "#666666",
+    "accent": "#0038b8",
+    "warning": "#7a4200",
+    "error": "#b00020",
+    "band": "#f0f0f0",
+    "tile": "#e6e6e6",
+    "selection": "#d6dff4",
+    "diffAdd": "#dbeae0",
+    "diffDel": "#f4dbe0",
+    "diffAddText": "#006b1f",
+    "diffDelText": "#b00020",
+    "agents": [
+      "#005f8a",
+      "#8a0094",
+      "#006b1f",
+      "#7a4200",
+      "#0038b8"
+    ],
+    "syntax": {
+      "keyword": "#8a0094",
+      "string": "#006b1f",
+      "number": "#7a4200",
+      "function": "#0038b8",
+      "type": "#005f8a",
+      "comment": "#4d4d4d"
+    }
+  }
+}
