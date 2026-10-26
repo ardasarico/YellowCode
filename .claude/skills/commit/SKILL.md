@@ -10,17 +10,14 @@ push without the user's explicit approval of the plan in step 5.
 
 ## Conventions
 
-- **Branch:** commit directly on `main` until the first public release. Do not
-  create feature branches unless the user asks.
+- **Branch:** do not create feature branches unless the user asks.
 - **Format:** [Conventional Commits](https://www.conventionalcommits.org/):
   `type(scope): subject`
   - Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`,
     `chore`.
   - Scope is optional and names the area, e.g. `core`, `ui`.
   - Subject: imperative, lowercase, no trailing period, about 50 characters.
-  - Body is optional: a few plain sentences a person can read at a glance,
-    explaining what changed and why. No long bullet lists, no file-by-file
-    walkthroughs, no restating the diff.
+  - Subject only; at most one short sentence of body.
 - **English only:** message, code, comments, and docs.
 
 ## Steps
@@ -33,7 +30,7 @@ push without the user's explicit approval of the plan in step 5.
    anything is found, stop and tell the user. Do not commit it.
 3. **English check.** Read the added lines and the planned message. Flag any
    non-English text.
-4. **Run checks.** Run `bun run check` (typecheck, lint, format check, tests).
+4. **Run checks.** Run `bun run check` (typecheck, lint, format check, mod types check, tests).
    If it fails, show the failure and stop.
 5. **Propose a plan.** Group the changes into logical commits, one concern per
    commit. For each commit, list its files and its message. Ask the user to
