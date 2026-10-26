@@ -28,7 +28,9 @@ export function editorChoices(current: Editor): Editor[] {
 export const editorUrl = (scheme: string, path: string, line?: number) =>
   `${scheme}://file${path.split("/").map(encodeURIComponent).join("/")}${line ? `:${line}` : ""}`
 
-async function open(args: string[], command = "open"): Promise<boolean> {
+const OPENER = process.platform === "darwin" ? "open" : "xdg-open"
+
+async function open(args: string[], command = OPENER): Promise<boolean> {
   try {
     const child = Bun.spawn([command, ...args], { stdout: "ignore", stderr: "pipe" })
     if ((await child.exited) === 0) return true
@@ -39,8 +41,8 @@ async function open(args: string[], command = "open"): Promise<boolean> {
   return false
 }
 
-export const openFolder = (path: string) => open([path], process.platform === "darwin" ? "open" : "xdg-open")
-export const openUrl = (url: string) => open([url], process.platform === "darwin" ? "open" : "xdg-open")
+export const openFolder = (path: string) => open([path])
+export const openUrl = (url: string) => open([url])
 
 // False when the chosen editor could not open the file and the default app was used instead.
 export async function openFile(path: string, line?: number): Promise<boolean> {
@@ -48,6 +50,6 @@ export async function openFile(path: string, line?: number): Promise<boolean> {
   const inEditor = editor === "default" || (await open([editorUrl(APPS[editor].scheme, path, line)]))
   if (inEditor && editor !== "default") return true
   // A file no app claims, such as settings.json.bak, opens in the default text editor.
-  if (!(await open([path]))) await open(["-t", path])
+  if (!(await open([path])) && OPENER === "open") await open(["-t", path])
   return editor === "default"
 }
