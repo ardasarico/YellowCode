@@ -1,7 +1,7 @@
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, Show, untrack } from "solid-js"
 import { CLAUDE_SETTINGS, type ClaudeSetting } from "../../session/claude-settings.ts"
 import { resetSetting, settings } from "../../session/settings.ts"
-import { theme } from "../../theme/theme.ts"
+import { reloadThemes, theme } from "../../theme/theme.ts"
 import { searchFooter, type TabApi } from "../dialog/tabbed-dialog.tsx"
 import { type DialogSection, dialogLines, filterSections, moveSelection, selectableIds } from "../dialog/list.ts"
 import { type FooterAction, ListView, PAD_X, printable } from "../dialog/list-view.tsx"
@@ -156,6 +156,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
 
   const openList = (setting: SettingDefinition) =>
     batch(() => {
+      if (setting.key === "theme") reloadThemes()
       setQuery("")
       setList(setting)
       setChosen(settings[setting.key])

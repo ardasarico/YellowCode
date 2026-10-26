@@ -1,10 +1,10 @@
 import { setSetting, settings } from "../../session/settings.ts"
 import { PERMISSION_MODES, type PermissionMode, type StoredSettings } from "../../session/settings-file.ts"
-import { setTheme, themeId, themes } from "../../theme/theme.ts"
-import type { DialogSection } from "../dialog/list.ts"
+import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
+import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
 
-export type SettingOption<V extends string = string> = { value: V; label: string; note?: string }
+export type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
 
 // The settings picked from a list; disabledMods is changed in /mods.
 type ChoiceKey = { [K in keyof StoredSettings]: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]
@@ -32,7 +32,9 @@ export const SETTINGS: SettingDefinition[] = [
     section: "Appearance",
     label: "Theme",
     get options() {
-      return themes().map(({ id, name }) => ({ value: id, label: name }))
+      return themeEntries()
+        .filter((entry) => entry.problem === null)
+        .map(({ id, name, source }) => ({ value: id, label: name, tag: source === "user" ? "user" : undefined }))
     },
   },
   { key: "sidebar", section: "Appearance", label: "Sidebar", options: same(["auto", "shown", "hidden"]) },
@@ -98,14 +100,26 @@ export function choose(setting: SettingDefinition, value: string) {
 export const optionSections = (setting: SettingDefinition, title = setting.label): DialogSection[] => [
   {
     title,
-    rows: setting.options.map((option) => ({
-      id: option.value,
-      label: option.label,
-      value: option.value === settings[setting.key] ? "current" : undefined,
-      note: option.note,
-    })),
+    rows: [
+      ...setting.options.map((option) => ({
+        id: option.value,
+        label: option.label,
+        value: option.value === settings[setting.key] ? "current" : undefined,
+        note: option.note,
+        tag: option.tag,
+      })),
+      ...(setting.key === "theme" ? brokenThemes() : []),
+    ],
   },
 ]
+
+// Theme files that did not load, with why; they cannot be picked.
+const brokenThemes = (): DialogItem[] =>
+  themeEntries().flatMap((entry) =>
+    entry.problem === null
+      ? []
+      : [{ id: `broken-${entry.id}`, spans: [{ text: `  ${entry.name} · ${entry.problem}`, fg: theme.warning }] }],
+  )
 
 export const preview = (id: string) => {
   if (id !== themeId()) setTheme(id)

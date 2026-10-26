@@ -1,8 +1,11 @@
 import { settings } from "../../session/settings.ts"
+import { reloadThemes } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import { choose, optionSections, preview, settingFor } from "./options.ts"
 
 export function ThemeDialog(props: { onClose: () => void }) {
+  // A theme file added since the last look shows up.
+  reloadThemes()
   const setting = settingFor("theme")
   const close = () => {
     preview(settings.theme)
