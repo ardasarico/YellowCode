@@ -9,7 +9,7 @@ import { answersInResult, askKeys, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { writtenContent } from "../session/tool-summary.ts"
-import { useDuration } from "./agents/agent-line.tsx"
+import { shellColor, useDuration } from "./agents/agent-line.tsx"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
@@ -84,13 +84,6 @@ export function toolLines(
   if (settled) return [settled]
   const answers = question ? answerLines(tool, ask) : []
   return answers.length > 0 ? answers : [resultSummary(tool)]
-}
-
-function shellColor(shell: Task | null) {
-  if (shell?.state === "running") return theme.accent
-  if (shell?.state === "failed") return theme.error
-  if (shell?.state === "stopped") return theme.warning
-  return theme.muted
 }
 
 function backToChat(ask: Ask): boolean {
@@ -178,7 +171,7 @@ export function ToolCallRow(props: {
     if (props.ask && (backToChat(props.ask) || props.ask.status === "cancelled")) return theme.muted
     const settled = props.ask ? null : settledQuestion(props.item)
     if (settled === "back to chat" || settled === "cancelled") return theme.muted
-    if (background() && !waiting() && !denied()) return shellColor(shell())
+    if (background() && !waiting() && !denied()) return shell() ? shellColor(shell()!.state) : theme.muted
     if (props.ask && waiting()) return severe(props.ask) ? theme.error : theme.warning
     if (denied() || props.item.status === "error") return theme.error
     if (props.item.status === "stopped") return theme.warning

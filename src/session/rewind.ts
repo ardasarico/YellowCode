@@ -2,7 +2,7 @@ import { shownText } from "./agent-message.ts"
 import { relative } from "node:path"
 import { z } from "zod"
 import { fileInput, inputFile, WRITE_TOOLS } from "../rewind/common.ts"
-import type { Item, ItemId, Session, Task, ToolCall } from "./types.ts"
+import type { Hunk, Item, ItemId, Session, Task, ToolCall } from "./types.ts"
 
 export type FileChange = {
   path: string
@@ -61,18 +61,23 @@ export type RewindExtras = {
 // Worked out each time the rewind dialog opens; `selected` is the prompt the dialog opens on.
 export type RewindPreview = (session: Session, selected: number) => Promise<RewindExtras | null>
 
+export function patchCounts(patch: Hunk[]): { plus: number; minus: number } {
+  let plus = 0
+  let minus = 0
+  for (const hunk of patch)
+    for (const line of hunk.lines) {
+      if (line.startsWith("+")) plus++
+      else if (line.startsWith("-")) minus++
+    }
+  return { plus, minus }
+}
+
 function toolChange(tool: ToolCall, cwd: string): FileChange | null {
   if (!WRITE_TOOLS.has(tool.name) || tool.status !== "done" || tool.unchanged) return null
   const input = fileInput.safeParse(tool.input)
   const file = inputFile(tool.input)
   if (!file) return null
-  let plus = 0
-  let minus = 0
-  for (const hunk of tool.patch ?? [])
-    for (const line of hunk.lines) {
-      if (line.startsWith("+")) plus++
-      else if (line.startsWith("-")) minus++
-    }
+  let { plus, minus } = patchCounts(tool.patch ?? [])
   // A new file written whole has no patch, only its content.
   if (tool.createdFile && plus === 0) {
     const content = (input.success ? (input.data.content ?? "") : "").replace(/\n$/, "")

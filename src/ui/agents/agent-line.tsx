@@ -28,7 +28,7 @@ export function useDuration(node: () => Timed): () => number {
   }
 }
 
-function stateColor(state: TreeNode["state"]): RGBA {
+export function shellColor(state: TreeNode["state"]): RGBA {
   if (state === "failed") return theme.error
   if (state === "stopped") return theme.warning
   return state === "running" ? theme.accent : theme.muted
@@ -59,7 +59,7 @@ function Line(props: {
         <span style={{ fg: theme.text, bold: true }}>{` ${name()}`}</span>
         <span style={{ fg: theme.text }}>{detail()}</span>
         <Show when={props.stats}>
-          <span style={{ fg: stateColor(props.node.state) }}>{` · ${props.stats}`}</span>
+          <span style={{ fg: shellColor(props.node.state) }}>{` · ${props.stats}`}</span>
         </Show>
         <span style={{ fg: theme.faint }}>{MORE}</span>
       </text>
@@ -138,7 +138,7 @@ function workflowParts(node: TreeNode, duration: number): Part[] {
   else if (running) parts.push({ text: "starting…", color: theme.muted })
   if (bar && bar.failed > 0) parts.push({ text: `${bar.failed} failed`, color: theme.error })
   else if (node.state === "failed" || node.state === "stopped")
-    parts.push({ text: node.state, color: stateColor(node.state) })
+    parts.push({ text: node.state, color: shellColor(node.state) })
   parts.push({ text: formatDuration(duration), color: running ? theme.accent : theme.muted })
   if (bar && bar.tokens > 0) parts.push({ text: tokenCount(bar.tokens), color: theme.muted })
   return parts

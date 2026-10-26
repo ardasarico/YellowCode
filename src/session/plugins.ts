@@ -1,5 +1,5 @@
 import type { PluginHook, SettingsSource, SkillRow } from "../protocol/messages.ts"
-import { pluginGroup } from "./skills.ts"
+import { PROJECT_SCOPES, pluginGroup } from "./skills.ts"
 import type { SessionInfo } from "./types.ts"
 
 export type Plugin = {
@@ -10,7 +10,6 @@ export type Plugin = {
   brings: { skills: string[]; mcp: string[]; commands: string[]; agents: string[]; hooks: string[] }
 }
 
-const PROJECT_SOURCES = new Set(["projectSettings", "localSettings"])
 // The setting sources `claude plugin enable|disable --scope` writes.
 const CLI_SCOPES: Record<string, "user" | "project" | "local"> = {
   userSettings: "user",
@@ -44,7 +43,7 @@ function offPlugins(sources: SettingsSource[], on: Set<string>): Plugin[] {
   return [...last].flatMap(([id, { value, source }]) => {
     const [name = id, marketplace = null] = id.split("@")
     if (value !== false || on.has(name)) return []
-    const scope = PROJECT_SOURCES.has(source) ? "project" : "global"
+    const scope = PROJECT_SCOPES.has(source) ? "project" : "global"
     return [
       { name, marketplace, scope, on: false, brings: { skills: [], mcp: [], commands: [], agents: [], hooks: [] } },
     ]

@@ -24,7 +24,7 @@ export type Skill = {
 export type InitLists = { skills: string[]; slashCommands: string[] }
 
 const HIDDEN_SOURCES = new Set(["bundled", "built-in"])
-const PROJECT_SCOPES = new Set(["projectSettings", "localSettings"])
+export const PROJECT_SCOPES = new Set(["projectSettings", "localSettings"])
 
 export function pluginGroup(plugin: string, sources: SettingsSource[]): "global" | "project" {
   let group: "global" | "project" = "global"

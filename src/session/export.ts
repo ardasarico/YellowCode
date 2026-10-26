@@ -1,16 +1,10 @@
 import { existsSync } from "node:fs"
 import { resolve } from "node:path"
-import { shownItems } from "./rewind.ts"
+import { patchCounts, shownItems } from "./rewind.ts"
 import type { Hunk, Session, ToolCall } from "./types.ts"
 
 function changeCounts(patch: Hunk[]): string {
-  let plus = 0
-  let minus = 0
-  for (const hunk of patch)
-    for (const line of hunk.lines) {
-      if (line.startsWith("+")) plus++
-      else if (line.startsWith("-")) minus++
-    }
+  const { plus, minus } = patchCounts(patch)
   return plus + minus > 0 ? ` +${plus} −${minus}` : ""
 }
 

@@ -3,7 +3,7 @@ import { Index, Match, Switch } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { AgentMark } from "../figures.tsx"
 import { cut, formatDuration } from "../format.ts"
-import { useDuration } from "./agent-line.tsx"
+import { shellColor, useDuration } from "./agent-line.tsx"
 import type { TreeNode } from "./tree.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
@@ -12,12 +12,6 @@ const MARGIN = 2
 const MIN_NAME = 8
 
 export const agentColor = (index: number) => theme.agents[index % theme.agents.length] ?? theme.accent
-
-export function shellColor(state: TreeNode["state"]) {
-  if (state === "failed") return theme.error
-  if (state === "stopped") return theme.warning
-  return state === "running" ? theme.accent : theme.muted
-}
 
 type RowsProps = {
   selected: string | null

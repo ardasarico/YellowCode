@@ -6,7 +6,7 @@ import { theme } from "../../theme/theme.ts"
 import { cut, formatClock, formatDuration } from "../format.ts"
 import { useDuration } from "./agent-line.tsx"
 import { MetaLine, type PageProps } from "./agent-page.tsx"
-import { shellColor } from "./tree-rows.tsx"
+import { shellColor } from "./agent-line.tsx"
 
 const ID_PREFIX = shellNodeId("")
 // The page draws its own last line, so the tail's exit marker goes.
