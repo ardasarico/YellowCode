@@ -11,7 +11,7 @@ import type { Requests } from "./requests.ts"
 import { OWN_ASK_TIMEOUT_MS } from "./own-ask-tool.ts"
 import { commandOf, safeText } from "./safe-text.ts"
 
-// Each mod's tools are an in-process MCP server named mod-<id>; its manifest's servers are mod-<id>-<name>.
+// Each mod's tools are an in-process MCP server named mod-<id>; its manifest's servers are mod-<id>--<name>.
 const PREFIX = "mod-"
 const METHOD_NOT_FOUND = -32601
 const INVALID_PARAMS = -32602

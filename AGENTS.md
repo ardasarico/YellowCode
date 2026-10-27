@@ -1,7 +1,7 @@
 # YellowCode
 
-Alternative terminal UI for Claude Code. It spawns the user's unmodified
-`claude` binary and talks to it over stream-json. Stack: TypeScript, Bun,
+Terminal UI for coding agents. Today it runs Claude Code: it spawns the user's
+unmodified `claude` binary and talks to it over stream-json. Stack: TypeScript, Bun,
 OpenTUI (Solid).
 
 - Everything in this repo is written in English.
