@@ -24,7 +24,8 @@ type NoticeState = {
   settingsProblem: string | null
   mod: ModNotice | null
   asking: boolean
-  compacting: boolean
+  // Seconds the compaction has run, or null when none is going on.
+  compacting: number | null
   // The first send after a rewind waits for claude to go back in the conversation.
   goingBack: boolean
   quitArmed: boolean
@@ -104,7 +105,8 @@ function leftSpans(state: NoticeState): Span[] {
   if (warning) return [warning]
   if (state.asking) return []
   if (live && state.goingBack) return [{ text: "Going back in the conversation…", fg: theme.muted }]
-  if (live && state.compacting) return [{ text: "Compacting conversation…", fg: theme.muted }]
+  if (live && state.compacting !== null)
+    return [{ text: `Compacting conversation… ${state.compacting}s`, fg: theme.muted }]
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
   if (live) return state.status === "starting" ? [startingNotice()] : []
   const replay = state.replay

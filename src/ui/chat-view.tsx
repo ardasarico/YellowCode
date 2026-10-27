@@ -256,6 +256,12 @@ export function ChatView(props: ChatViewProps) {
     return rows()[index]?.kind === "end" ? rows()[index]?.id : undefined
   })
   const previousKind = createMemo(() => new Map(rows().map((row, index) => [row.id, rows()[index - 1]?.kind])))
+  // A divider right above the prompt's rule reads as one block, so it gets a row of its own.
+  const endsWithDivider = createMemo(() => {
+    const last = rows().at(-1)
+    const item = last?.kind === "system" ? props.session.byId[last.id] : undefined
+    return item?.kind === "system" && item.level === "info"
+  })
 
   createEffect(() => {
     const id = props.selected
@@ -330,6 +336,9 @@ export function ChatView(props: ChatViewProps) {
           )
         }}
       </For>
+      <Show when={endsWithDivider()}>
+        <box height={1} flexShrink={0} />
+      </Show>
     </scrollbox>
   )
 }

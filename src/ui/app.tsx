@@ -128,6 +128,7 @@ import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { buildRows } from "./structure.ts"
 import { hasThinkingText } from "./thinking.tsx"
+import { useElapsedSeconds } from "./elapsed.ts"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
@@ -1561,6 +1562,7 @@ export function App(props: AppProps) {
   }
 
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
+  const compactingFor = useElapsedSeconds(() => props.session.compacting)
   // Armed quit and rewind hints sit on the notice row, so the pill gives way to them.
   const newLines = () => {
     const { atBottom, newLines: lines } = scrollState()
@@ -1579,7 +1581,7 @@ export function App(props: AppProps) {
       settingsProblem: pasteNotice() ?? settingsProblem(),
       mod: modNotice(),
       asking: pending() !== null,
-      compacting: props.session.compacting,
+      compacting: props.session.compacting ? compactingFor() : null,
       goingBack: props.rewind?.goingBack?.() ?? false,
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
