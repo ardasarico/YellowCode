@@ -152,7 +152,7 @@ function Cat(props: { width: number; height: number }) {
   )
 }
 
-function CatOrBlank(props: { width: number; height: number }) {
+export function CatOrBlank(props: { width: number; height: number }) {
   return (
     <Show when={!blank()} fallback={<box width={props.width} height={props.height} flexShrink={0} />}>
       <Cat width={props.width} height={props.height} />

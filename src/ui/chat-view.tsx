@@ -5,6 +5,7 @@ import { shellNodeId } from "../session/shells.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { AgentRow } from "./agent.tsx"
+import { ConversationHeader } from "./conversation-header.tsx"
 import { invertCells } from "./invert.ts"
 import { EDGE_GAP } from "./layout.ts"
 import { Markdown } from "./markdown/markdown.tsx"
@@ -20,6 +21,7 @@ import { ToolCallRow } from "./tool-call.tsx"
 import { ToolGroupRow } from "./tool-group.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
 import { UserMessageRow } from "./user-message.tsx"
+import type { Workspace } from "./welcome.tsx"
 
 export type ScrollState = { atBottom: boolean; newLines: number }
 
@@ -41,6 +43,8 @@ type ChatProps = {
 }
 
 type ChatViewProps = ChatProps & {
+  workspace: Workspace
+  model: string | null
   earlier: boolean
   onReachTop: () => void
   onScrollState: (state: ScrollState) => void
@@ -301,6 +305,9 @@ export function ChatView(props: ChatViewProps) {
       paddingX={EDGE_GAP}
       verticalScrollbarOptions={{ visible: false }}
     >
+      <Show when={props.session.conversation > 0}>
+        <ConversationHeader workspace={props.workspace} model={props.model} width={props.width - 2 * EDGE_GAP} />
+      </Show>
       <Show when={props.earlier}>
         <box marginTop={1}>
           <Divider text="earlier conversation" />

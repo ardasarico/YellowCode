@@ -316,30 +316,8 @@ export function App(props: AppProps) {
   let scroll: ScrollBoxRenderable | undefined
   const renderer = useRenderer()
   const dimensions = useTerminalDimensions()
-  // Background work a /clear left running (an agent, a shell) keeps the chat up, so the agent panel, the shell
-  // counter and Ctrl+T still reach it.
-  const stillRunning = () =>
-    runningShellCount(props.session) > 0 ||
-    props.session.carried.some((id) => {
-      const item = props.session.byId[id]
-      return item?.kind === "tool" && item.taskId !== null && props.session.tasks[item.taskId]?.state === "running"
-    })
-  // A turn going on keeps it up too, so the screen does not flash between an agent's end and claude's turn about it.
-  const welcome = createMemo(
-    () => props.session.items.length === 0 && props.session.status !== "running" && !stillRunning(),
-  )
-  // The agent view and the chat focus belong to the chat; the welcome screen's input takes the keys again.
-  createEffect(
-    on(
-      welcome,
-      (shown) => {
-        if (!shown) return
-        setAgentView(null)
-        setFocus("input")
-      },
-      { defer: true },
-    ),
-  )
+  // The welcome screen is for a new session only: a /clear starts over in the chat, under a header.
+  const welcome = createMemo(() => props.session.items.length === 0 && props.session.conversation === 0)
   const [listed, setListed] = createSignal<SessionEntry[]>([])
   // The session claude writes is not one to go back to; after a /clear its id comes with the init after the clear.
   const unlisted = {
@@ -350,9 +328,8 @@ export function App(props: AppProps) {
     listed()
       .filter((entry) => entry.id !== props.session.info?.id)
       .slice(0, RECENT_ROWS)
-  // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held; a /clear
-  // brings it back with what the prompt bar held. A mod wrapping the prompt rebuilds it, and it comes back the same
-  // way. Read as a member, so each new input gets the latest.
+  // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held. A mod
+  // wrapping the prompt rebuilds it, and it comes back the same way. Read as a member, so each new input gets the latest.
   const heldDraft: { current: Draft | undefined } = { current: undefined }
   // The selected row of the welcome screen's recent sessions; null while the tile has the keys.
   const [recent, setRecent] = createSignal<number | null>(null)
@@ -586,7 +563,6 @@ export function App(props: AppProps) {
   // What was sent from here, by conversation: a /clear takes the chat's user rows, and ↑ still finds them, /clear too.
   const sent: { conversation: number; draft: Draft }[] = []
   const [cleared, setCleared] = createSignal<Draft[]>([])
-  // /clear empties the chat, so the welcome screen comes back with the session that was just left among the recents.
   createEffect(
     on(
       () => props.session.conversation,
@@ -599,7 +575,6 @@ export function App(props: AppProps) {
         setSelected(null)
         setAgentView(null)
         setFocus("input")
-        void loadRecents()
       },
       { defer: true },
     ),
@@ -1189,7 +1164,7 @@ export function App(props: AppProps) {
     if (key.ctrl && key.name === "t") {
       key.preventDefault()
       key.stopPropagation()
-      // The welcome screen has no agent view; agents a /clear carried over show again with the chat.
+      // The welcome screen has no agent view.
       if (!pending() && !welcome()) toggleAgentView()
       return
     }
@@ -1713,6 +1688,8 @@ export function App(props: AppProps) {
           <box flexDirection="column" width={chatWidth()} onMouseDown={() => setFocusedPane(null)}>
             <ChatView
               session={props.session}
+              workspace={props.workspace}
+              model={settings.model ?? props.model()}
               commands={props.provider.commands()}
               width={chatWidth()}
               selected={focus() === "chat" ? selected() : null}
