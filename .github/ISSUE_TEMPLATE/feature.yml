@@ -1,0 +1,25 @@
+name: Feature request
+description: Something YellowCode could do.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    attributes:
+      label: What would you like?
+      description: Describe what you want YellowCode to do. A sketch or a screenshot from another tool helps.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Why?
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Could it be a mod?
+      description: Many additions fit better as a [mod](https://github.com/ardasarico/YellowCode/blob/main/docs/mods.md).
+      options:
+        - I don't know
+        - "Yes"
+        - "No, it needs a change in YellowCode"

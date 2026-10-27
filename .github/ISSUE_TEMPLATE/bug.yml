@@ -1,0 +1,33 @@
+name: Bug report
+description: Something in YellowCode does not work as it should.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: The shortest way to make it happen again.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: yellowcode --report
+      description: >-
+        Paste what it prints. It has your versions, terminal, settings and the last lines of the log. Read it first: the
+        log can name files from your project.
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Does it happen with --no-mods?
+      options:
+        - "Yes"
+        - "No"
+        - I did not try
