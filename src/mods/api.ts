@@ -270,6 +270,8 @@ export type ModOverridePoints = {
       readonly interrupted: boolean
       readonly endedAt: number
     }[]
+    // Background agents still running after the latest turn.
+    readonly waiting: number
   }
   "system-row": {
     readonly item: {

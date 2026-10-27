@@ -11,7 +11,8 @@ import { blank, onBackground, trackImage } from "./images.ts"
 // The Claude mark is Anthropic's; it is shown only to say that Claude answered. YellowCode is not an Anthropic product.
 const SPARK = NativeImage.decode(readFileSync(join(import.meta.dir, "..", "..", "assets", "claude-spark.png")))
 
-export type TurnEndRowProps = { parts: TurnEnd[] }
+// `waiting` counts the background agents still running after the latest turn; claude goes on when they finish.
+export type TurnEndRowProps = { parts: TurnEnd[]; waiting: number }
 
 function TurnEndRowBase(props: TurnEndRowProps) {
   const [width, setWidth] = createSignal(0)
@@ -51,6 +52,11 @@ function TurnEndRowBase(props: TurnEndRowProps) {
       >
         <Match when={last()?.interrupted}>
           <text fg={theme.warning}>{`interrupted after ${duration()} · ${clock()}`}</text>
+        </Match>
+        <Match when={!last()?.error && props.waiting > 0}>
+          <text fg={theme.muted}>
+            {`✻ waiting for ${props.waiting} background ${props.waiting === 1 ? "agent" : "agents"} to finish`}
+          </text>
         </Match>
         <Match when={error()}>
           {(message) => (

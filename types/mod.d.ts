@@ -274,6 +274,7 @@ export type ModOverridePoints = {
       readonly interrupted: boolean
       readonly endedAt: number
     }[]
+    readonly waiting: number
   }
   "system-row": {
     readonly item: {

@@ -58,6 +58,7 @@ type RowProps = ChatProps & {
   askOf: (id: string) => Ask | null
   previous: Row["kind"] | undefined
   agentIndex: number
+  waiting: number
   viewport: () => Renderable | undefined
 }
 
@@ -189,7 +190,7 @@ function RowView(props: RowProps) {
         <Match when={item("shell-end")}>
           {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
         </Match>
-        <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} />}</Match>
+        <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} waiting={props.waiting} />}</Match>
       </Switch>
     </box>
   )
@@ -242,6 +243,17 @@ export function ChatView(props: ChatViewProps) {
       if (item?.kind === "ask") asks.set(item.toolUseId, item)
     }
     return asks
+  })
+  const waitingAgents = createMemo(
+    () =>
+      Object.values(props.session.tasks).filter(
+        (task) => task.type === "local_agent" && task.background && task.parentId === null && task.state === "running",
+      ).length,
+  )
+  // The end of the latest turn, unless a new message went out after it.
+  const latestEnd = createMemo(() => {
+    const index = rows().findLastIndex((row) => row.kind === "end" || row.kind === "user")
+    return rows()[index]?.kind === "end" ? rows()[index]?.id : undefined
   })
   const previousKind = createMemo(() => new Map(rows().map((row, index) => [row.id, rows()[index - 1]?.kind])))
 
@@ -310,6 +322,7 @@ export function ChatView(props: ChatViewProps) {
                   askOf={(tool) => askByTool().get(tool) ?? null}
                   previous={previous()}
                   agentIndex={index()}
+                  waiting={id === latestEnd() ? waitingAgents() : 0}
                   viewport={() => scroll?.viewport}
                 />
               )}

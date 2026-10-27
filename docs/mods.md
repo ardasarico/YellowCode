@@ -709,14 +709,14 @@ mod.overrides.wrap("turn-end", (Original) => (props) => (
 `wrap` gets `Original` and returns a component with the same props. What a wrap can read is typed in
 `ModOverridePoints`, a small read-only part of what the app passes:
 
-| Point          | Props                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| `user-message` | `item` (`id`, `text`, `to`), `selected`, `expanded`                                              |
-| `thinking`     | `item` (`id`, `text`, `streaming`, `durationMs`), `selected`, `expanded`                         |
-| `turn-end`     | `parts`, each with `durationMs`, tokens, `costUsd`, `error`, `retries`, `interrupted`, `endedAt` |
-| `system-row`   | `item` (`level`, `text`, `detail`)                                                               |
-| `prompt`       | `focused`, `width`, `placeholder`                                                                |
-| `status-line`  | `width`, `model`, `permissionMode`, `asking`                                                     |
+| Point          | Props                                                                                                       |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| `user-message` | `item` (`id`, `text`, `to`), `selected`, `expanded`                                                         |
+| `thinking`     | `item` (`id`, `text`, `streaming`, `durationMs`), `selected`, `expanded`                                    |
+| `turn-end`     | `parts`, each with `durationMs`, tokens, `costUsd`, `error`, `retries`, `interrupted`, `endedAt`; `waiting` |
+| `system-row`   | `item` (`level`, `text`, `detail`)                                                                          |
+| `prompt`       | `focused`, `width`, `placeholder`                                                                           |
+| `status-line`  | `width`, `model`, `permissionMode`, `asking`                                                                |
 
 Pass the props on to `Original` whole, `<Original {...props} />`: the original needs more than the typed fields. A wrap
 may change a field it can read, such as `item.text`, by passing `{...props, item: {...props.item, text}}`. When several mods wrap the same
