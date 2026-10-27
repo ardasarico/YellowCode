@@ -1,22 +1,23 @@
 # Writing themes
 
-A theme is a JSON file of colors. It runs no code, so any theme file is safe to try.
+A theme is a JSON file of colors. It runs no code, so any theme file is safe to try. Pick one with `/theme` or in
+`/settings`.
 
 ## Where themes live
 
-Put the file in `$XDG_CONFIG_HOME/yellowcode/themes/`, which is `~/.config/yellowcode/themes/` when `XDG_CONFIG_HOME`
-is not set. The file name is the theme's id: `forest.json` is the theme `forest`. Pick it with `/theme` or in
-`/settings`; both read the folder each time they open, so a new file shows up without a restart.
+Put the file in `$XDG_CONFIG_HOME/yellowcode/themes/`, which is `~/.config/yellowcode/themes/` when `XDG_CONFIG_HOME` is
+not set. The file name is the theme's id: `moss.json` is the theme `moss`. `/theme` and `/settings` read the folder each
+time they open, so a new file shows up without a restart.
 
-The built-in themes are files in the same format, in this repo's `themes/` folder. Copying one is the quickest way to
-start a new theme. A file with the same name as a built-in theme, like `dusk.json`, stays in the list as a broken row ("a built-in theme
-has this name") and cannot be picked; give it another name.
+The built-in themes are files in the same format, in this repo's [`themes/`](../themes) folder. Copying one is the
+quickest way to start. Give your copy a new file name: a file named like a built-in theme, such as `dusk.json`, or
+`terminal.json`, shows as a broken row ("a built-in theme has this name") and cannot be picked.
 
 ## The format
 
 ```json
 {
-  "name": "Forest",
+  "name": "Moss",
   "dark": {
     "background": "#14201a",
     "text": "#d5e4da",
@@ -48,7 +49,7 @@ has this name") and cannot be picked; give it another name.
 `name` is what the pickers show. `dark` is used when the terminal has a dark background and `light` when it has a light
 one. A theme may give only one of them; it is then used on every terminal.
 
-Every key is required, and every color is a `#rrggbb` hex string:
+Every key is required, every color is a `#rrggbb` hex string, and `agents` needs at least one color:
 
 | Key           | Used for                                                                                    |
 | ------------- | ------------------------------------------------------------------------------------------- |
@@ -69,14 +70,13 @@ Every key is required, and every color is a `#rrggbb` hex string:
 | `agents`      | The colors agents are drawn in, used in turn; the second one also marks `!` shell commands. |
 | `syntax`      | Code highlighting: `keyword`, `string`, `number`, `function`, `type` and `comment`.         |
 
-Claude's orange is not part of a theme.
+The mark your agent shows after each answer, like Claude's orange spark, keeps its own color.
 
 ## When a theme does not load
 
-A file that is not valid JSON, misses a key or has a value of the wrong kind stays in the list, in the warning color with
-what is wrong, like `Forest · dark.tile missing`, `Forest · dark.accent is not a color` or
-`Forest · dark.agents is not a list of colors`, and cannot be picked.
-Fix the file and open `/theme` again.
+A file that is not valid JSON, misses a key or has a value of the wrong kind stays in the list, in the warning color
+with what is wrong, like `Moss · dark.tile missing`, `Moss · dark.accent is not a color` or `Moss · dark.agents is not a
+list of colors`, and cannot be picked. Fix the file and open `/theme` again.
 
 If the theme you chose is gone when YellowCode starts, it says `settings.json: invalid theme, using the default` and
 uses the default theme. Your choice stays saved, so the theme comes back when its file does.
