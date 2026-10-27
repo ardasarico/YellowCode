@@ -8,12 +8,12 @@ import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DEC
 import { answersInResult, askKeys, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { writtenContent } from "../session/tool-summary.ts"
+import { isBackgroundShell, writtenContent } from "../session/tool-summary.ts"
 import { shellColor, useDuration } from "./agents/agent-line.tsx"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
-import { FoldHint } from "./fold-hint.tsx"
+import { FoldHint, foldHintWidth } from "./fold-hint.tsx"
 import { cut, cutPath, formatDuration, mcpTool } from "./format.ts"
 import { ImageLabels } from "./image-label.tsx"
 import { CodeBlock } from "./markdown/code-block.tsx"
@@ -51,14 +51,6 @@ export function resultSummary(tool: ToolCall): string {
   if (tool.name === "Glob") return count(lines.length, "file")
   if (lines.length === 0) return "no output"
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
-}
-
-// Claude starts a shell in the background, or the user sends a running one there with Ctrl+B.
-function isBackgroundShell(tool: ToolCall, task: Pick<Task, "background"> | null): boolean {
-  const input = tool.input
-  const asked = typeof input === "object" && input !== null && "run_in_background" in input
-  const background = (asked && input.run_in_background === true) || task?.background === true
-  return tool.name === "Bash" && tool.taskId !== null && background
 }
 
 // The result of a background Bash only says it was launched, so the line follows the shell's task instead.
@@ -154,6 +146,9 @@ export function ToolCallRow(props: {
   selection?: string | null
   onOpenShell?: (taskId: string) => void
   onOpenImage?: (id: string) => void
+  // A finished call folded to its header line, with its result at the end.
+  brief?: boolean
+  onToggle?: (id: string) => void
 }) {
   const [width, setWidth] = createSignal(0)
   const waiting = () => props.ask?.status === "pending"
@@ -210,12 +205,20 @@ export function ToolCallRow(props: {
     const mcp = mcpTool(props.item.name)
     return mcp ? { server: `${mcp.server}/`, tool: mcp.tool } : { server: "", tool: props.item.name }
   }
+  const targetText = () =>
+    modRow()?.parts.text ??
+    relative(props.item.summary || (label().server ? mcpArguments(props.item.input) : ""), props.cwd)
+  const hintWidth = () => foldHintWidth({ open: false, selected: props.selected, gap: " · " })
+  // A folded call's result takes the room its target leaves, and at least a third of the line.
+  const briefResult = () => {
+    const free = width() - Bun.stringWidth(label().server + label().tool + targetText()) - 7 - hintWidth()
+    return cut((lines()[0] ?? "").trim(), Math.max(free, Math.floor(width() / 3)))
+  }
+  const after = () => (folded() ? Bun.stringWidth(` · ${briefResult()}`) + hintWidth() : 0)
   const target = () => {
-    const text = modRow()?.parts.text
-    if (text !== undefined) return cut(text, width() - Bun.stringWidth(label().tool) - 4)
-    const summary = props.item.summary || (label().server ? mcpArguments(props.item.input) : "")
-    const value = relative(summary, props.cwd)
-    const room = width() - Bun.stringWidth(label().server + label().tool) - 4
+    const value = targetText()
+    if (modRow()?.parts.text !== undefined) return cut(value, width() - Bun.stringWidth(label().tool) - 4 - after())
+    const room = width() - Bun.stringWidth(label().server + label().tool) - 4 - after()
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
   // While a command runs, Claude's description of it says what it is waiting for.
@@ -246,6 +249,8 @@ export function ToolCallRow(props: {
     return !tool.createdFile && tool.patch && tool.patch.length > 0 ? { rows: diffRows(tool.patch), tail: false } : null
   }
 
+  const folded = () => props.brief === true && !props.expanded
+
   // A new file reads as code from its first line; a long one folds after a few.
   const created = () => {
     const tool = props.item
@@ -269,6 +274,11 @@ export function ToolCallRow(props: {
         setWidth(this.width)
       }}
       onMouseDown={(event) => {
+        if (props.brief && props.onToggle) {
+          event.preventDefault()
+          props.onToggle(props.item.id)
+          return
+        }
         const taskId = props.item.taskId
         if (!background() || !taskId || !props.onOpenShell) return
         event.preventDefault()
@@ -286,6 +296,10 @@ export function ToolCallRow(props: {
               {modRow()?.parts.text !== undefined ? `  ${target()}` : `(${target()})`}
             </span>
             <span style={{ fg: theme.muted }}>{description() ? `  ${description()}` : ""}</span>
+            <Show when={props.brief}>
+              <span style={{ fg: lineColor() }}>{folded() ? ` · ${briefResult()}` : ""}</span>
+              <FoldHint open={props.expanded} selected={props.selected} gap=" · " />
+            </Show>
           </text>
         }
       >
@@ -294,67 +308,70 @@ export function ToolCallRow(props: {
           <span style={{ fg: theme.text, bold: true }}>{` ${cut(props.item.summary, width() - 2)}`}</span>
         </text>
       </Show>
-      <Show
-        when={modRow()?.parts.body}
-        fallback={
-          <Show
-            when={tail()}
-            fallback={
-              <Index each={lines()}>
-                {(line, index) => (
+      {/* Opened, a folded call shows its output right under its header. */}
+      <Show when={!props.brief}>
+        <Show
+          when={modRow()?.parts.body}
+          fallback={
+            <Show
+              when={tail()}
+              fallback={
+                <Index each={lines()}>
+                  {(line, index) => (
+                    <text wrapMode="none">
+                      <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
+                      <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                    </text>
+                  )}
+                </Index>
+              }
+            >
+              {(shown) => (
+                <>
                   <text wrapMode="none">
-                    <span style={{ fg: theme.frame }}>{index === 0 ? RESULT_INDENT : LINE_INDENT}</span>
-                    <span style={{ fg: lineColor() }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                    <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
+                    <span style={{ fg: theme.muted }}>{props.expanded ? resultSummary(props.item) : ""}</span>
+                    <FoldHint
+                      open={props.expanded}
+                      selected={props.selected}
+                      hidden={shown().hidden}
+                      gap={props.expanded ? " · " : undefined}
+                    />
                   </text>
-                )}
-              </Index>
-            }
-          >
-            {(shown) => (
-              <>
-                <text wrapMode="none">
-                  <span style={{ fg: theme.frame }}>{RESULT_INDENT}</span>
-                  <span style={{ fg: theme.muted }}>{props.expanded ? resultSummary(props.item) : ""}</span>
-                  <FoldHint
-                    open={props.expanded}
-                    selected={props.selected}
-                    hidden={shown().hidden}
-                    gap={props.expanded ? " · " : undefined}
-                  />
-                </text>
-                <Show when={!props.expanded}>
-                  <Index each={shown().last}>
-                    {(line) => (
-                      <text wrapMode="none">
-                        <span style={{ fg: theme.frame }}>{LINE_INDENT}</span>
-                        <span style={{ fg: theme.muted }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
-                      </text>
-                    )}
-                  </Index>
-                </Show>
-              </>
-            )}
-          </Show>
-        }
-      >
-        {(body) => (
-          <ErrorBoundary
-            fallback={(error: unknown) => {
-              const mod = modRow()?.mod
-              if (mod) queueMicrotask(() => reportModError(mod, error))
-              return null
-            }}
-          >
-            {createComponent(body(), {
-              get width() {
-                return width()
-              },
-              get expanded() {
-                return props.expanded
-              },
-            })}
-          </ErrorBoundary>
-        )}
+                  <Show when={!props.expanded}>
+                    <Index each={shown().last}>
+                      {(line) => (
+                        <text wrapMode="none">
+                          <span style={{ fg: theme.frame }}>{LINE_INDENT}</span>
+                          <span style={{ fg: theme.muted }}>{cut(line(), width() - RESULT_INDENT.length)}</span>
+                        </text>
+                      )}
+                    </Index>
+                  </Show>
+                </>
+              )}
+            </Show>
+          }
+        >
+          {(body) => (
+            <ErrorBoundary
+              fallback={(error: unknown) => {
+                const mod = modRow()?.mod
+                if (mod) queueMicrotask(() => reportModError(mod, error))
+                return null
+              }}
+            >
+              {createComponent(body(), {
+                get width() {
+                  return width()
+                },
+                get expanded() {
+                  return props.expanded
+                },
+              })}
+            </ErrorBoundary>
+          )}
+        </Show>
       </Show>
       <Show when={props.item.local?.told === false && props.item.status !== "running"}>
         <text wrapMode="none" fg={theme.faint}>

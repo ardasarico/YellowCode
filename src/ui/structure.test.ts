@@ -5,7 +5,7 @@ import { interruptRequest, userMessage } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
 import { parseRecording } from "../source/recording.ts"
-import { buildRows } from "./structure.ts"
+import { buildRows, groupLabel } from "./structure.ts"
 
 function rowsOf(name: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -83,4 +83,39 @@ test("a finished turn keeps its own end row when the turn claude starts next is 
   const ends = ["user", "markdown", "end×1", "markdown", "end×1"]
   expect(rowsWith({ ...result, subtype: "error_during_execution", is_error: true })).toEqual(ends)
   expect(rowsWith({ ...result, is_error: true, result: "API Error: 529 Overloaded" })).toEqual(ends)
+})
+
+test("finished reads, searches and commands fold, and those in a row share one group", () => {
+  expect(rowsOf("tools")).toEqual(["user", "brief", "tool", "brief", "markdown", "end×1"])
+
+  const session = createSession()
+  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  let n = 0
+  const assistant = (block: object) => receive({ type: "assistant", message: { id: `m${n++}`, content: [block] } })
+  const call = (id: string, name: string, failed = false) => {
+    assistant({ type: "tool_use", id, name, input: {} })
+    receive({
+      type: "user",
+      message: { content: [{ type: "tool_result", tool_use_id: id, content: "out", is_error: failed }] },
+    })
+  }
+  session.apply("out", parse(userMessage("look around")), 0)
+  call("t1", "Bash")
+  assistant({ type: "thinking", thinking: "next" })
+  call("t2", "Bash", true)
+  call("t3", "Grep")
+  assistant({ type: "thinking", thinking: "skipped" })
+  assistant({ type: "thinking", thinking: "answer" })
+  assistant({ type: "text", text: "found it" })
+  receive(result)
+
+  const rows = buildRows(session.state)
+  expect(rows.map((row) => row.kind)).toEqual(["user", "group", "thinking", "markdown", "end"])
+  const group = rows[1]
+  if (group?.kind !== "group") throw new Error("no group")
+  expect(group.members.map((id) => session.state.byId[id]?.kind)).toEqual(["tool", "thinking", "tool", "tool"])
+  expect(groupLabel(session.state, group.members)).toEqual({
+    text: "Ran 2 shell commands, searched 1 pattern",
+    failed: 1,
+  })
 })

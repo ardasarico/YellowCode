@@ -126,6 +126,7 @@ import { ExportDialog } from "./export/export-dialog.tsx"
 import { TodoDialog } from "./todos/todo-dialog.tsx"
 import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
+import { buildRows } from "./structure.ts"
 import { hasThinkingText } from "./thinking.tsx"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
@@ -709,8 +710,16 @@ export function App(props: AppProps) {
     return ids
   }
   const shownItems = () => itemsShown(props.session.items, props.session.rewound)
+  const rows = createMemo(() => buildRows(props.session))
+  // The rows' items in order: a hidden thought gives none, a group its own id and, while open, its calls and thoughts.
+  const rowItems = () =>
+    rows().flatMap((row) => {
+      if (row.kind === "group") return [row.id].concat(expanded[row.id] === true ? row.members : [])
+      return row.kind === "end" || row.kind === "rewound" ? [] : [row.id]
+    })
   const selectableIds = () =>
-    shownItems().flatMap((id) => {
+    rowItems().flatMap((id) => {
+      if (id.endsWith("/group")) return [id]
       const item = props.session.byId[id]
       const own =
         item?.kind === "tool" || (item?.kind === "thinking" && hasThinkingText(item)) || overflowing[id] === true

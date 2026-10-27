@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { Agent } from "./types.ts"
+import type { Agent, Task, ToolCall } from "./types.ts"
 
 const fields = z.looseObject({
   file_path: z.string().optional(),
@@ -93,4 +93,12 @@ export function sendMessageSummary(input: unknown, tasks: Record<string, { name:
   const line = oneLine((parsed.data.message ?? "").split("\n")[0])
   const summary = line ? `${tasks[to]?.name || to} · ${line}` : tasks[to]?.name || to
   return summary.length <= MAX_LENGTH ? summary : `${summary.slice(0, MAX_LENGTH - 1)}…`
+}
+
+// Claude starts a shell in the background, or the user sends a running one there with Ctrl+B.
+export function isBackgroundShell(tool: ToolCall, task: Pick<Task, "background"> | null): boolean {
+  const input = tool.input
+  const asked = typeof input === "object" && input !== null && "run_in_background" in input
+  const background = (asked && input.run_in_background === true) || task?.background === true
+  return tool.name === "Bash" && tool.taskId !== null && background
 }

@@ -17,10 +17,13 @@ import { ThinkingRow } from "./thinking.tsx"
 import { TODO_TOOLS } from "../session/todos.ts"
 import { TodoRow } from "./todos/todo-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
+import { ToolGroupRow } from "./tool-group.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
 import { UserMessageRow } from "./user-message.tsx"
 
 export type ScrollState = { atBottom: boolean; newLines: number }
+
+const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id, index) => b[index] === id)
 
 type ChatProps = {
   session: Session
@@ -52,6 +55,7 @@ function isKind<K extends Item["kind"]>(item: Item, kind: K): item is Extract<It
 type RowProps = ChatProps & {
   row: Row
   ask: Ask | null
+  askOf: (id: string) => Ask | null
   previous: Row["kind"] | undefined
   agentIndex: number
   viewport: () => Renderable | undefined
@@ -78,7 +82,12 @@ function RowView(props: RowProps) {
       renderAfter={function () {
         const id = props.selected
         if (!id || theme.selection !== null) return
-        if (id === props.row.id) invertCells(this, props.viewport())
+        const row = props.row
+        // A group's header and each call in it are selected on their own.
+        if (row.kind === "group") {
+          const part = id === row.id || row.members.includes(id) ? this.findDescendantById(id) : undefined
+          if (part) invertCells(part, props.viewport())
+        } else if (id === row.id) invertCells(this, props.viewport())
         // A selected reference is reversed in its own text run.
         else if (id.startsWith(`${props.row.id}/`) && !refTarget(id)) {
           const label = this.findDescendantById(id)
@@ -104,7 +113,7 @@ function RowView(props: RowProps) {
         <Match when={props.row.kind === "tool" && TODO_TOOLS.has(item("tool")?.name ?? "") && item("tool")}>
           {(tool) => <TodoRow session={props.session} item={tool()} selected={props.selected === tool().id} />}
         </Match>
-        <Match when={props.row.kind === "tool" && item("tool")}>
+        <Match when={(props.row.kind === "tool" || props.row.kind === "brief") && item("tool")}>
           {(tool) => (
             <ToolCallRow
               item={tool()}
@@ -114,8 +123,24 @@ function RowView(props: RowProps) {
               selected={props.selected === tool().id}
               expanded={props.expanded[tool().id] === true}
               selection={props.selected}
+              brief={props.row.kind === "brief"}
+              onToggle={props.onToggle}
               onOpenShell={openShell}
               onOpenImage={props.onOpenImage}
+            />
+          )}
+        </Match>
+        <Match when={props.row.kind === "group" ? props.row : undefined}>
+          {(group) => (
+            <ToolGroupRow
+              session={props.session}
+              id={group().id}
+              members={group().members}
+              cwd={props.session.info?.cwd ?? ""}
+              selection={props.selected}
+              expanded={props.expanded}
+              askOf={props.askOf}
+              onToggle={props.onToggle}
             />
           )}
         </Match>
@@ -182,10 +207,9 @@ export function ChatView(props: ChatViewProps) {
     return buildRows(props.session).map((row) => {
       const kept = old.get(row.id)
       if (!kept || kept.kind !== row.kind) return row
-      if (kept.kind !== "end" || row.kind !== "end") return kept
-      const same =
-        kept.turnEnds.length === row.turnEnds.length && kept.turnEnds.every((id, index) => row.turnEnds[index] === id)
-      return same ? kept : row
+      if (kept.kind === "end" && row.kind === "end") return sameIds(kept.turnEnds, row.turnEnds) ? kept : row
+      if (kept.kind === "group" && row.kind === "group") return sameIds(kept.members, row.members) ? kept : row
+      return kept
     })
   }, [])
   const rowIds = createMemo(() => rows().map((row) => row.id))
@@ -283,6 +307,7 @@ export function ChatView(props: ChatViewProps) {
                   width={props.width - 2 * EDGE_GAP}
                   row={row()}
                   ask={ask()}
+                  askOf={(tool) => askByTool().get(tool) ?? null}
                   previous={previous()}
                   agentIndex={index()}
                   viewport={() => scroll?.viewport}
