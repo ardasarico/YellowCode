@@ -44,7 +44,7 @@ export function NodeRow(props: { node: TreeNode; selected: boolean; width: numbe
   const background = () => (props.selected ? theme.selection : hovered() ? theme.band : null)
   const time = () => ` · ${formatDuration(duration())}`
   // The selection bar, the mark and the gap after it.
-  const room = () => props.width - 3
+  const room = () => props.width - 4
   const name = () => cut(props.node.name, Math.max(1, room() - Bun.stringWidth(time())))
   const detailRoom = () => room() - Bun.stringWidth(name()) - Bun.stringWidth(time()) - 3
   const detail = () => {
@@ -74,7 +74,7 @@ export function NodeRow(props: { node: TreeNode; selected: boolean; width: numbe
       <AgentMark
         color={mark()?.color ?? agentColor(props.node.colorIndex)}
         state={mark()?.state ?? (props.node.state === "queued" ? "running" : props.node.state)}
-        size="small"
+        size="medium"
         background={background() ?? theme.background}
       />
       <text wrapMode="none">
