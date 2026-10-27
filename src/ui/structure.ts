@@ -102,7 +102,8 @@ function foldable(session: Session, asks: Map<string, Ask>, tool: ToolCall): boo
 }
 
 // Finished reads, searches and commands shrink to one line, and those in a row with only thoughts between them
-// share one. A finished thought stays only right before Claude's reply.
+// share one once something else follows; until then each keeps its own line, so the work is seen going on. A
+// finished thought stays only right before Claude's reply.
 function fold(session: Session, rows: Row[]): Row[] {
   const asks = new Map<string, Ask>()
   for (const id of session.items) {
@@ -116,6 +117,17 @@ function fold(session: Session, rows: Row[]): Row[] {
   const finishedThought = (row: Row) => {
     const item = session.byId[row.id]
     return row.kind === "thinking" && item?.kind === "thinking" && !item.streaming
+  }
+
+  const running = (row: Row) => {
+    const item = session.byId[row.id]
+    return row.kind === "tool" && item?.kind === "tool" && FOLDED_TOOLS.has(item.name) && item.status === "running"
+  }
+  let tail = rows.length
+  while (tail > 0) {
+    const row = rows[tail - 1]
+    if (!row || !(folded(row) || running(row) || row.kind === "thinking")) break
+    tail--
   }
 
   const out: Row[] = []
@@ -135,7 +147,7 @@ function fold(session: Session, rows: Row[]): Row[] {
     }
     run = []
   }
-  for (const row of rows) {
+  for (const row of rows.slice(0, tail)) {
     if (folded(row) || finishedThought(row)) {
       run.push(row)
       continue
@@ -144,6 +156,7 @@ function fold(session: Session, rows: Row[]): Row[] {
     out.push(row)
   }
   flush()
+  for (const row of rows.slice(tail)) out.push(folded(row) ? { kind: "brief", id: row.id } : row)
   return out.filter((row, index) => !finishedThought(row) || out[index + 1]?.kind === "markdown")
 }
 

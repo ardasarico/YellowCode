@@ -85,7 +85,7 @@ test("a finished turn keeps its own end row when the turn claude starts next is 
   expect(rowsWith({ ...result, is_error: true, result: "API Error: 529 Overloaded" })).toEqual(ends)
 })
 
-test("finished reads, searches and commands fold, and those in a row share one group", () => {
+test("finished reads, searches and commands fold, and those in a row share one group once something follows", () => {
   expect(rowsOf("tools")).toEqual(["user", "brief", "tool", "brief", "markdown", "end×1"])
 
   const session = createSession()
@@ -104,6 +104,8 @@ test("finished reads, searches and commands fold, and those in a row share one g
   assistant({ type: "thinking", thinking: "next" })
   call("t2", "Bash", true)
   call("t3", "Grep")
+  // Nothing follows the calls yet, so each keeps its own line.
+  expect(buildRows(session.state).map((row) => row.kind)).toEqual(["user", "brief", "brief", "brief"])
   assistant({ type: "thinking", thinking: "skipped" })
   assistant({ type: "thinking", thinking: "answer" })
   assistant({ type: "text", text: "found it" })
