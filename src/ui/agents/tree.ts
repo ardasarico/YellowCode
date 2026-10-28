@@ -22,6 +22,8 @@ export type TreeNode = {
   progress?: WorkflowBar
   // A failed agent's error, from its task or its error result.
   error?: string
+  // How many lines of its script claude has written so far, while the workflow call is still being written.
+  scriptLines?: number
 }
 
 type WorkflowBar = { done: number; failed: number; total: number; tokens: number }
@@ -120,6 +122,17 @@ export function agentNode(
   }
 }
 
+// The script so far while claude is still writing the call, with the JSON escapes undone loosely.
+function draftScript(inputText: string): string {
+  const start = /"script"\s*:\s*"/.exec(inputText)
+  if (!start) return ""
+  return inputText
+    .slice(start.index + start[0].length)
+    .replace(/\\(.)/g, (_, char: string) => (char === "n" ? "\n" : char === "t" ? "\t" : char))
+}
+
+const writing = (tool: ToolCall) => tool.status === "running" && tool.input === undefined
+
 export function workflowNode(
   session: Session,
   tool: ToolCall,
@@ -131,12 +144,13 @@ export function workflowNode(
   const state = task?.state ?? toolState(tool.status)
   const workflow = snapshot(task)
   const agents = workflow?.agents ?? []
+  const script = !task && writing(tool) ? draftScript(tool.inputText) : null
   return {
     id: tool.id,
     kind: "workflow",
     depth,
     parentId,
-    name: task?.workflowName || task?.description || workflowPlan(tool.input)?.name || "workflow",
+    name: task?.workflowName || task?.description || workflowPlan(tool.input ?? { script })?.name || "workflow",
     state,
     detail: workflowStatus(workflow, state === "running"),
     toolUses: agents.length,
@@ -150,6 +164,7 @@ export function workflowNode(
       total: agents.length,
       tokens: task?.tokens ?? 0,
     },
+    scriptLines: script === null ? undefined : script ? script.split("\n").length : 0,
   }
 }
 
@@ -339,7 +354,13 @@ export function activeNodes(session: Session): TreeNode[] {
   const shown = shownItems(unwrap(session.items), session.rewound)
   const lastUser = shown.findLastIndex((id) => byId[id]?.kind === "user")
   const recent = new Set(shown.slice(lastUser + 1))
-  return nodes.filter((node) => node.state === "running" || recent.has(node.id))
+  // A call claude is still writing, or a workflow waiting to start, keeps its progress in its chat row.
+  const started = (node: TreeNode) => {
+    if (node.kind === "workflow") return node.startedAt !== null
+    const tool = session.byId[node.id]
+    return tool?.kind !== "tool" || !writing(tool)
+  }
+  return nodes.filter((node) => (node.state === "running" || recent.has(node.id)) && started(node))
 }
 
 // claude refuses to resume an agent the user stopped, so only top-level agents that ran or failed take messages.

@@ -25,6 +25,7 @@ export function AgentRow(props: {
   index: number
   session: Session
   selected: boolean
+  docked: boolean
   onOpen: (id: string) => void
 }) {
   const [width, setWidth] = createSignal(0)
@@ -40,6 +41,7 @@ export function AgentRow(props: {
     color: agentColor(props.index),
     width: width(),
     background: background(),
+    docked: props.docked,
   })
 
   return (

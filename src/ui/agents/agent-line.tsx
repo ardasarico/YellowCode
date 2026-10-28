@@ -9,6 +9,8 @@ import { agentNode, barCells, barSize, type TreeNode, workflowNode } from "./tre
 
 const MARK_WIDTH = 3
 const MORE = " ›"
+// A docked row's live progress is in the agent panel below the prompt.
+const DOCKED = "running below"
 
 export const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`
 
@@ -41,6 +43,7 @@ function Line(props: {
   background?: RGBA | null
   detail: string
   stats: string
+  statsColor?: RGBA
 }) {
   const room = () => Math.max(0, props.width - MARK_WIDTH)
   const tail = () => `${props.stats ? ` · ${props.stats}` : ""}${MORE}`
@@ -59,7 +62,7 @@ function Line(props: {
         <span style={{ fg: theme.text, bold: true }}>{` ${name()}`}</span>
         <span style={{ fg: theme.text }}>{detail()}</span>
         <Show when={props.stats}>
-          <span style={{ fg: shellColor(props.node.state) }}>{` · ${props.stats}`}</span>
+          <span style={{ fg: props.statsColor ?? shellColor(props.node.state) }}>{` · ${props.stats}`}</span>
         </Show>
         <span style={{ fg: theme.faint }}>{MORE}</span>
       </text>
@@ -94,13 +97,14 @@ export function AgentLine(props: {
   width: number
   background?: RGBA | null
   inner?: TreeNode[]
+  docked?: boolean
 }) {
   const node = createMemo(() => agentNode(props.session, props.tool, 0, null, 0))
   const duration = useDuration(node)
   // Running inner agents have their own rows, which say what is going on better than the agent's activity.
   const inner = () => props.inner ?? []
   const waiting = () => inner().some((child) => child.state === "running")
-  const detail = () => (node().state === "running" && !waiting() ? node().detail : "")
+  const detail = () => (node().state === "running" && !waiting() && !props.docked ? node().detail : "")
   // The mark, the space and ` · ` before the stats, and the more sign after them.
   const room = () => props.width - MARK_WIDTH - 1 - Bun.stringWidth(node().name) - 3 - MORE.length
   const tools = () => Math.max(0, node().toolUses - inner().filter((child) => child.depth === 2).length)
@@ -109,7 +113,7 @@ export function AgentLine(props: {
     const own = tools() > 0 || !agents ? count(tools(), "tool") : ""
     return [agents, own].filter(Boolean).join(" · ")
   }
-  const stats = () => outcome(node(), `${work()} · ${formatDuration(duration())}`, room())
+  const stats = () => (props.docked ? DOCKED : outcome(node(), `${work()} · ${formatDuration(duration())}`, room()))
   return (
     <Line
       node={node()}
@@ -118,6 +122,7 @@ export function AgentLine(props: {
       background={props.background}
       detail={detail()}
       stats={stats()}
+      statsColor={props.docked ? theme.muted : undefined}
     />
   )
 }
@@ -130,7 +135,13 @@ function tokenCount(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M tok`
 }
 
-function workflowParts(node: TreeNode, duration: number): Part[] {
+function workflowParts(node: TreeNode, duration: number, docked: boolean): Part[] {
+  if (docked) return [{ text: DOCKED, color: theme.muted }]
+  if (node.scriptLines !== undefined)
+    return [
+      { text: "writing script", color: theme.muted },
+      { text: count(node.scriptLines, "line"), color: theme.text },
+    ]
   const bar = node.progress
   const running = node.state === "running"
   const parts: Part[] = []
@@ -139,7 +150,8 @@ function workflowParts(node: TreeNode, duration: number): Part[] {
   if (bar && bar.failed > 0) parts.push({ text: `${bar.failed} failed`, color: theme.error })
   else if (node.state === "failed" || node.state === "stopped")
     parts.push({ text: node.state, color: shellColor(node.state) })
-  parts.push({ text: formatDuration(duration), color: running ? theme.accent : theme.muted })
+  if (!running || node.startedAt !== null)
+    parts.push({ text: formatDuration(duration), color: running ? theme.accent : theme.muted })
   if (bar && bar.tokens > 0) parts.push({ text: tokenCount(bar.tokens), color: theme.muted })
   return parts
 }
@@ -151,15 +163,22 @@ export function workflowMark(node: TreeNode, color: RGBA): { color: RGBA; state:
 }
 
 // `room` is the width left after the mark and the space before the name; `tail` is any text drawn after the stats.
-export function useWorkflowRow(node: () => TreeNode, duration: () => number, room: () => number, tail = 0) {
-  const parts = createMemo(() => workflowParts(node(), duration()))
+export function useWorkflowRow(
+  node: () => TreeNode,
+  duration: () => number,
+  room: () => number,
+  tail = 0,
+  docked = () => false,
+) {
+  const parts = createMemo(() => workflowParts(node(), duration(), docked()))
   const stats = () =>
     Bun.stringWidth(
       parts()
         .map((part) => part.text)
         .join(" · "),
     ) + tail
-  const size = () => barSize(room() - Bun.stringWidth(node().name) - stats())
+  const size = () =>
+    docked() || node().scriptLines !== undefined ? 0 : barSize(room() - Bun.stringWidth(node().name) - stats())
   const name = () => cut(node().name, Math.max(1, room() - stats() - (size() > 0 ? size() + 4 : 2)))
   return { name, size, parts }
 }
@@ -195,10 +214,17 @@ export function WorkflowLine(props: {
   color: RGBA
   width: number
   background?: RGBA | null
+  docked?: boolean
 }) {
   const node = createMemo(() => workflowNode(props.session, props.tool, 0, null, 0))
   const duration = useDuration(node)
-  const row = useWorkflowRow(node, duration, () => Math.max(0, props.width - MARK_WIDTH), MORE.length)
+  const row = useWorkflowRow(
+    node,
+    duration,
+    () => Math.max(0, props.width - MARK_WIDTH),
+    MORE.length,
+    () => props.docked === true,
+  )
   const mark = () => workflowMark(node(), props.color)
   return (
     <box flexDirection="row" height={1}>

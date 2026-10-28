@@ -38,6 +38,8 @@ type ChatProps = {
   onOpenAgent: (id: string) => void
   onOpenImage: (id: string) => void
   onOpenRef: (id: string) => void
+  // Whether a running agent or workflow shows its progress in the agent panel instead of its chat row.
+  docked: (id: string) => boolean
   // See `imagesBefore` in markdown/refs.ts.
   imagesBefore: (id: string) => number
 }
@@ -156,6 +158,7 @@ function RowView(props: RowProps) {
               index={props.agentIndex}
               session={props.session}
               selected={props.selected === tool().id}
+              docked={props.docked(tool().id)}
               onOpen={props.onOpenAgent}
             />
           )}

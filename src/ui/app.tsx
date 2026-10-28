@@ -839,7 +839,9 @@ export function App(props: AppProps) {
 
   const panel = createMemo(() => (pending() ? [] : panelNodes(props.session)))
   const [panelPick, setPanelPick] = createSignal<string | null>(null)
-  const panelIds = () => shownNodes(panel(), focus() === "panel" ? panelPick() : null).map((node) => node.id)
+  const panelShown = () => shownNodes(panel(), focus() === "panel" ? panelPick() : null)
+  const panelIds = () => panelShown().map((node) => node.id)
+  const docked = createMemo(() => new Set(panelShown().flatMap((node) => (node.state === "running" ? [node.id] : []))))
   const panelSelected = () => {
     if (focus() !== "panel") return null
     const ids = panelIds()
@@ -1722,6 +1724,7 @@ export function App(props: AppProps) {
               onOpenAgent={openAgentView}
               onOpenImage={openImage}
               onOpenRef={openRef}
+              docked={(id) => docked().has(id)}
               imagesBefore={imagesOf}
               earlier={props.earlier ?? false}
               onReachTop={() => props.onEarlier?.()}
