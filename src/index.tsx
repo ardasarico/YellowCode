@@ -58,6 +58,7 @@ import type { Requests } from "./source/requests.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import { App } from "./ui/app.tsx"
+import { themeTextSelection } from "./ui/text-selection.ts"
 import { removeViewedImages } from "./ui/dialog/image-view.tsx"
 import { forgetRefs } from "./ui/markdown/refs.ts"
 import type { McpActions } from "./ui/mcp/mcp-tab.tsx"
@@ -1052,6 +1053,7 @@ function Main() {
   )
 }
 
+themeTextSelection()
 await render(
   () => (
     <Show when={checking() ? terminal : null} fallback={<Main />}>

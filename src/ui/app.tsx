@@ -1,6 +1,13 @@
 import { ModDialogView } from "./mod-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
-import { decodePasteBytes, type PasteEvent, type ScrollBoxRenderable } from "@opentui/core"
+import { Toast } from "./toast.tsx"
+import {
+  CliRenderEvents,
+  decodePasteBytes,
+  type PasteEvent,
+  type ScrollBoxRenderable,
+  type Selection,
+} from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -137,6 +144,7 @@ const QUIT_WINDOW = 2000
 // Past this the rewind dialog opens without what the snapshots know.
 const PREVIEW_MS = 1000
 const NOTE_MS = 4000
+const TOAST_MS = 1500
 const REPORT_COPIED = "Copied the report · ctrl+o view"
 // Bare, these open their row in /settings; with a value they go to Claude Code as typed.
 const CLAUDE_ROWS: Record<string, string> = {
@@ -1001,6 +1009,21 @@ export function App(props: AppProps) {
     clearTimeout(clearRewindNote)
     clearRewindNote = setTimeout(() => setRewindNote(null), NOTE_MS)
   }
+  const [toast, setToast] = createSignal<string | null>(null)
+  let clearToast: ReturnType<typeof setTimeout> | undefined
+  onCleanup(() => clearTimeout(clearToast))
+  const copySelection = (selection: Selection) => {
+    const text = selection.getSelectedText()
+    if (!text.trim()) return
+    void copyText(text).then((copied) => {
+      if (!copied) return waitNotice("Could not copy the selection")
+      setToast("Copied")
+      clearTimeout(clearToast)
+      clearToast = setTimeout(() => setToast(null), TOAST_MS)
+    })
+  }
+  renderer.on(CliRenderEvents.SELECTION, copySelection)
+  onCleanup(() => renderer.off(CliRenderEvents.SELECTION, copySelection))
   createEffect(
     on(busy, (running) => {
       if (!running || untrack(dialog)?.name !== "rewind") return
@@ -1738,6 +1761,7 @@ export function App(props: AppProps) {
               </box>
             </Show>
             <BottomPane width={chatWidth()} />
+            <Show when={toast()}>{(text) => <Toast text={text()} width={chatWidth()} />}</Show>
           </box>
           <RightPane />
           <Show when={sidebar() !== "hidden"}>
