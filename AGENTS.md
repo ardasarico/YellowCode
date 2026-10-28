@@ -6,7 +6,9 @@ OpenTUI (Solid).
 
 - Everything in this repo is written in English.
 - Ask before every commit and push.
-- Never read or handle credentials, and never call the Anthropic API directly.
-  All requests go through the `claude` binary.
+- Never show, store, log or send credentials. If an agent's API returns them,
+  keep only the fields you need and drop the rest right away.
+- Never call a model provider's API directly. Every request goes through the
+  agent's own binary.
 - Keep code plain. Add a comment only when the code cannot explain itself.
 - Write tests only where they guard real risk, and keep them minimal.
