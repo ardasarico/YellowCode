@@ -3,6 +3,7 @@ import { useRenderer } from "@opentui/solid"
 import type { Token } from "marked"
 import { createContext, createMemo, For, Show, useContext } from "solid-js"
 import { theme } from "../../theme/theme.ts"
+import { openUrl } from "../dialog/open-file.ts"
 import { isLocalImage } from "./images.ts"
 import { mathSpans } from "./math.ts"
 import { refId, textParts } from "./refs.ts"
@@ -228,7 +229,7 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
     if (at < 0) return undefined
     for (const run of runs()) {
       at -= Bun.stringWidth(run.text)
-      if (at < 0) return run.ref
+      if (at < 0) return run
     }
     return undefined
   }
@@ -238,10 +239,15 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
         id={selected()}
         fg={props.fg ?? theme.text}
         onMouseDown={function (event) {
-          const id = context?.() && clicked(this, event.x, event.y)
-          if (!id) return
-          event.preventDefault()
-          context?.()?.onOpen(id)
+          const run = clicked(this, event.x, event.y)
+          const ref = context?.() && run?.ref
+          if (ref) {
+            event.preventDefault()
+            context?.()?.onOpen(ref)
+          } else if (run?.url && /^https?:\/\//i.test(run.url)) {
+            event.preventDefault()
+            void openUrl(run.url)
+          }
         }}
       >
         <For each={runs()}>
