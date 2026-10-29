@@ -24,8 +24,11 @@ crash and its exit code stay readable.
 
 ### Live
 
-Without `--replay` the app spawns the real `claude` in its working directory,
-with the user's account, settings and tools. Isolate a live run:
+Without `--replay` the app starts a real agent in its working directory, with
+the user's account, settings and tools. It opens the Default agent saved in
+`/settings`, else the first installed one of Claude Code, opencode and Codex.
+To use another, type `/agent` once the app is up and pick it; that starts a new
+session. A replay is always a Claude Code recording. Isolate a live run:
 
 - Run it in a throwaway directory (a fresh `git init` repo under `/tmp`), with
   the app started through `bin/yellowcode` by its absolute path, so tools cannot
@@ -49,6 +52,20 @@ Pass `-L yc` to every `tmux` command below for such a session. The app logs
 `claude started` and `claude exited` to `~/.yellowcode/logs/yellowcode.log`
 (or `$YELLOWCODE_LOG_DIR`). After quitting, check that no claude is left:
 `pgrep -fl -- --input-format=stream-json`.
+
+With Codex or opencode, `ANTHROPIC_MODEL` does nothing; pick a cheap model in
+the app with `/model` instead.
+
+- Codex: each session runs its own `codex app-server` in the working directory,
+  with the user's `~/.codex`. After quitting, check that none is left:
+  `pgrep -fl 'codex app-server'`.
+- opencode: the app connects to the user's shared opencode service, or starts
+  `opencode serve --service`, which keeps running after the app quits. Leave
+  that service alone: other opencode windows use it.
+
+For runs that must not touch the user's Codex or opencode files, use the
+recorders in `tools/codex/` and `tools/opencode/` instead; they run the agent
+in a throwaway home against a mock model API.
 
 ## Wait for the screen
 

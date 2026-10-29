@@ -328,7 +328,8 @@ export const askUserQuestionInput = z.looseObject({
 // claude's result for a call the user interrupted.
 export const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool use."
 
-// Our own ask reaches claude as the one tool of an SDK MCP server that YellowCode serves over stdio.
+// Our own ask reaches the agent as the one tool of an MCP server that YellowCode serves; claude's is an SDK server
+// over stdio.
 export const OWN_ASK_SERVER = "yellowcode"
 export const OWN_ASK = `mcp__${OWN_ASK_SERVER}__ask`
 
@@ -347,7 +348,7 @@ const askPage = z.looseObject({
 })
 
 // Our own ask tool takes either question pages, in stock's shape plus pictures, or one matrix. Counts and repeats
-// are checked by ownAskProblem, so Claude learns what to fix.
+// are checked by ownAskProblem, so the model learns what to fix.
 export const ownAskPages = z.looseObject({ questions: z.array(askPage) })
 export const ownAskMatrix = z.looseObject({
   matrix: z.looseObject({

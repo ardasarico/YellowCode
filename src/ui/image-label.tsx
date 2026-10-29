@@ -26,7 +26,7 @@ type Entry = { bytes: Uint8Array; size?: Size | null; shrinking: Accessor<boolea
 const files = new Map<string, Entry>()
 let cached = 0
 const found = new Map<string, boolean>()
-// When a file was last not there; it is read again after RETRY_MS, as Claude may write it later.
+// When a file was last not there; it is read again after RETRY_MS, as the agent may write it later.
 const missing = new Map<string, number>()
 const RETRY_MS = 5000
 

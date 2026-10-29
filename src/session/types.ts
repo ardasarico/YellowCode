@@ -8,8 +8,8 @@ import type { Rewound } from "./rewind.ts"
 export type ItemId = string
 
 export type ChatImage = { name: string; mediaType: string; data: string | null; path: string | null }
-// `queue` is "queued" from a send during a turn until claude takes the message in, and "not sent" when claude
-// ended before that. `uuid` is the one the message went out with, or its transcript entry's.
+// `queue` is "queued" from a send during a turn until the agent takes the message in, and "not sent" when the
+// agent ended before that. `uuid` is the one the message went out with, or its transcript entry's.
 export type UserMessage = {
   kind: "user"
   id: ItemId
@@ -17,12 +17,12 @@ export type UserMessage = {
   images: ChatImage[]
   // The background agent a message was written to; `text` is then the message itself.
   to: { id: string; name: string } | null
-  // Set once claude took the message on to the agent.
+  // Set once the message was passed on to that agent.
   delivery?: "sent" | "resumed"
   queue: "queued" | "not sent" | null
   uuid?: string
 }
-// `local` marks claude's own output for a local command (/context, /model), which belongs to no model turn.
+// `local` marks the agent's own output for a local command (/context, /model), which belongs to no model turn.
 // `quiet` marks what the main model does to pass a message on to an agent; the chat leaves it out.
 export type AssistantText = {
   kind: "text"
@@ -71,7 +71,7 @@ export type ToolCall = {
   agent: Agent | null
   taskId: string | null
   quiet?: boolean
-  // A `!` command YellowCode ran itself; told once it went out with a message Claude reads.
+  // A `!` command YellowCode ran itself; told once it went out with a message the agent reads.
   local?: { told: boolean }
 }
 export type Agent = {
@@ -89,11 +89,11 @@ export type Agent = {
   error: string | null
   // What the running agent is doing now, from its latest task_progress.
   activity: string
-  // The user stopped it (x or an interrupt); claude does not resume such an agent.
+  // The user stopped it (x or an interrupt); the agent does not resume it.
   stoppedByUser: boolean
 }
 export type TaskState = "running" | "completed" | "failed" | "stopped"
-// A background or foreground unit of work Claude reports with task_* messages: a subagent, a shell, a workflow.
+// A background or foreground unit of work the agent reports: a subagent, a shell, a workflow.
 export type Task = {
   id: string
   type: string
@@ -122,7 +122,7 @@ export type Task = {
   command: string
   // Epoch milliseconds, shifted like every other replayed time.
   endedAt: number | null
-  // The latest get_task_output tail; null until a response arrives.
+  // The latest tail of its output; null until the agent sends one.
   output: string | null
   outputBytes: number
   truncated: boolean
@@ -217,7 +217,7 @@ export type SystemEvent = {
   // A compaction's context size before and after.
   tokens?: { before: number; after: number | undefined }
 }
-// Why Claude Code went away, for the row that ends the chat; `detail` is the tail of its stderr.
+// Why the agent went away, for the row that ends the chat; `detail` is the tail of its stderr, if any.
 export type SessionEnd = { text: string; detail: string[] }
 export type ShellEnd = { kind: "shell-end"; id: ItemId; taskId: string }
 
@@ -266,7 +266,7 @@ export type Usage = {
   warning: { status: string; type: string; resetsAt: number } | null
 }
 
-// "starting" lasts until Claude Code first writes or the first message goes out.
+// "starting" lasts until the agent is ready or the first message goes out.
 export type SessionStatus = "starting" | "idle" | "running" | "ended"
 
 export type Session = {
@@ -275,17 +275,18 @@ export type Session = {
   items: ItemId[]
   byId: Record<ItemId, Item>
   tasks: Record<string, Task>
-  // What claude reported after the last init (mcp_status, reload_plugins), live only; it wins over info's lists.
+  // What Claude reported after the last init (mcp_status, reload_plugins), live only; it wins over info's lists.
   mcpServers: McpServer[] | null
   plugins: SessionInfo["plugins"] | null
   usage: Usage
   rewound: Rewound | null
   // An interrupt went out and its turn has not ended yet.
   interrupting: boolean
-  // The turn claude is working on, from its start to its result, and who started it: a user message, or claude
-  // itself (a background task's end). The status can stay "running" without one while messages wait to be taken in.
+  // The turn the agent is working on, from its start to its result, and who started it: a user message, or the
+  // agent itself (a background task's end). The status can stay "running" without one while messages wait to be
+  // taken in.
   turn: "user" | "claude" | null
-  // The permission mode claude says the session runs in ("default" is shown as manual).
+  // The permission mode the agent says the session runs in (Claude's "default" is shown as manual).
   permissionMode: string | null
   // The modes an agent that lists its own said it has; absent until it does.
   modes?: ModeRow[]
@@ -295,11 +296,11 @@ export type Session = {
   effort?: EffortId | null
   // The working plan an agent tells as steps outside any tool call; absent until it does.
   todos?: Todo[]
-  // The title Claude Code keeps for the session: the last rename, YellowCode's own or a typed /rename.
+  // The title the agent keeps for the session: the last rename, YellowCode's own or a typed /rename.
   claudeTitle: string | null
-  // How many times claude started the conversation over (/clear).
+  // How many times the agent started the conversation over (/clear).
   conversation: number
-  // claude is summarizing the conversation (/compact, or on its own when the context is full).
+  // The agent is summarizing the conversation (/compact, or on its own when the context is full).
   compacting: boolean
   // Agent and workflow calls from before a /clear whose task still ran then: off the chat, still in the agent panel.
   carried: ItemId[]

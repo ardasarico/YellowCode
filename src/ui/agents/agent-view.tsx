@@ -265,7 +265,7 @@ export function AgentView(props: {
     setNotice(text)
     timer = setTimeout(() => setNotice(null), NOTICE_MS)
   }
-  // The row changes when claude reports the task stopped, so only a failed request shows anything.
+  // The row changes when the agent reports the task stopped, so only a failed request shows anything.
   const stop = (target: TreeNode, taskId: string) => {
     if (!props.tasks) return showNotice(SAVED_NOTICE)
     void props.tasks.stop(taskId).then((outcome) => {

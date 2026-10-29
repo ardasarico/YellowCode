@@ -40,7 +40,7 @@ export function addedRows(content: string): DiffRow[] {
     .map((text, index) => ({ kind: "add", number: index + 1, text }))
 }
 
-// A unified diff as Claude writes it in a ```diff block: `@@` headers number the lines, file headers are skipped.
+// A unified diff as the agent writes it in a ```diff block: `@@` headers number the lines, file headers are skipped.
 export function unifiedHunks(text: string): Hunk[] {
   const hunks: Hunk[] = []
   let hunk: Hunk | undefined

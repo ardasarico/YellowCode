@@ -71,7 +71,7 @@ export function withOwnCommands(commands: Command[]): Command[] {
   return [...kept, ...OWN_COMMANDS]
 }
 
-// A mod's command never hides one of YellowCode's or Claude Code's; it is left out, and the clash is logged.
+// A mod's command never hides one of YellowCode's or the agent's; it is left out, and the clash is logged.
 const clashes = new Set<string>()
 export function withModCommands(commands: Command[]): Command[] {
   const taken = new Set(
@@ -197,7 +197,7 @@ export function findCommand(commands: Command[], name: string): Command | null {
 
 const TITLED_WORDS = 3
 
-// A message running one of Claude Code's own commands gives a session no title (/model sonnet), unless the user's own
+// A message running one of the agent's own commands gives a session no title (/model sonnet), unless the user's own
 // words follow it (/deep-research tokio against smol); /rename names the session itself.
 export function untitledCommand(commands: Command[], text: string): boolean {
   const [, name, args = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(text.trim()) ?? []

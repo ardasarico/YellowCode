@@ -99,7 +99,7 @@ export type Capture = {
 }
 
 // The turn being recorded. `own` marks a before taken for it alone, which goes when the segment does. `base` is the
-// snapshot before a turn claude started by itself.
+// snapshot before a turn the agent started by itself.
 type Current = { before: Promise<Point | null>; beforeAt: number; from: ItemId | null; own: boolean; base?: Take }
 
 type Prompt = {
@@ -577,7 +577,7 @@ export function createCapture(cwd: string): Capture {
           bytes && { sha1: blobId(bytes, ""), sha256: blobId(bytes, "0".repeat(64)) },
         )
       })
-      // Prompts whose first turn ended, and the latest of them, which a turn claude starts by itself goes on.
+      // Prompts whose first turn ended, and the latest of them, which a turn the agent starts by itself goes on.
       const closed = new Map<string, Prompt>()
       let last: Prompt | null = null
       // Agent calls already counted: in a turn, or in an agent segment.
@@ -658,7 +658,7 @@ export function createCapture(cwd: string): Capture {
         })
       }
 
-      // A turn claude starts by itself goes on the last prompt as a segment of its own, from a snapshot taken now.
+      // A turn the agent starts by itself goes on the last prompt as a segment of its own, from a snapshot taken now.
       const claudeStarted = () => {
         if (!last || open.has(last.uuid) || !promptsAt(state).has(last.uuid)) return
         const base = latest && !discarded.has(latest.point) ? latest : undefined

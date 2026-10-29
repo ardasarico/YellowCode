@@ -4,16 +4,17 @@ import type { AgentKindId, EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { EffortRow, ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
 import { DEFAULT_SETTINGS, saveSettings, startModeIn, type StoredSettings } from "./settings-file.ts"
 
-// Replay has no model list from claude, so these stand in until the live process provides one.
+// A Claude replay has no model list, so these stand in until the live process provides one.
 export const MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"]
 
-// A model Shift+←→ steps to: `id` is shown and compared with what claude reports, `ref` is the listed row that switches
-// to it.
+// A model Shift+←→ steps to: `id` is shown and compared with what the agent reports, `ref` is the listed row that
+// switches to it.
 export type ModelChoice = { id: string; ref: ModelRef }
 
 let choices: ModelChoice[] = []
 
-// Something claude refused (a model, an effort, …); a new object each time, so the same text shows again.
+// Something that did not happen (a model the agent refused, an agent that could not start, …); a new object each
+// time, so the same text shows again.
 export const [controlProblem, setControlProblem] = createSignal<{ text: string } | null>(null)
 
 export function setModelChoices(next: ModelChoice[]): void {
@@ -29,8 +30,8 @@ export function modelRef(id: string): ModelRef {
 // The id the knobs keep for a model of an agent with several providers, which can list one id under two of them.
 export const providerModelId = (provider: string, id: string): string => `${provider}/${id}`
 
-// The family rows (opus, sonnet, …) in claude's order, each under the id it stands for; every row when there are none.
-// Rows of an agent with several providers are each a choice of their own.
+// The family rows (opus, sonnet, …) in the agent's order, each under the id it stands for; every row when there are
+// none. Rows of an agent with several providers are each a choice of their own.
 export function modelChoices(models: ModelRow[]): ModelChoice[] {
   if (models.some(({ ref }) => ref.provider !== null))
     return models.flatMap(({ ref }) =>
@@ -78,7 +79,7 @@ export function initSettings(stored: StoredSettings): void {
   setSettings(stored)
 }
 
-// What claude says the session uses, or nothing shown while that is unknown.
+// What the agent says the session uses, or nothing shown while that is unknown.
 export function setKnobs(knobs: Partial<Pick<Settings, "model" | "effort" | "ultracode">>): void {
   setSettings(knobs)
 }
@@ -135,7 +136,7 @@ export function modelFor(name: string): string | null {
   )
 }
 
-// Nothing to step from while claude has not said what it uses (or the model has no effort levels).
+// Nothing to step from while the agent has not said what it uses (or the model has no effort levels).
 export function stepEffort(levels: EffortId[], step: 1 | -1): EffortId | null {
   if (settings.effort === null) return null
   const index = levels.indexOf(settings.effort)

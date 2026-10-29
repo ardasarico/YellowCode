@@ -28,18 +28,18 @@ type NoticeState = {
   asking: boolean
   // Seconds the compaction has run, or null when none is going on.
   compacting: number | null
-  // The first send after a rewind waits for claude to go back in the conversation.
+  // The first send after a rewind waits for the agent to go back in the conversation.
   goingBack: boolean
   quitArmed: boolean
   rewindArmed: boolean
   // A short-lived message, such as why a command cannot run now.
   note: string | null
-  // Keys are held after claude took back the ask the user was typing for.
+  // Keys are held after the agent took back the ask the user was typing for.
   held: boolean
   interruptible: boolean
   // A foreground command or agent has run long enough to be worth sending to the background.
   backgroundable: boolean
-  // Shift+Tab changes the permission mode only with Claude Code running.
+  // Shift+Tab changes the permission mode only with the agent running.
   modes: boolean
   // Says what Shift+Tab does in plan mode, in place of the plain hint.
   planHint: string | null

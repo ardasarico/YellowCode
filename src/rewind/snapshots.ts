@@ -47,7 +47,7 @@ export type Snapshots = {
   hashes: (paths: readonly string[]) => Promise<Map<string, string | null>>
   missing: (shas: readonly string[]) => Promise<Set<string>>
   ignored: (paths: readonly string[]) => Promise<Set<string>>
-  // A tree under refs/yc/<id> that holds each path with the bytes of its source file (claude's own backups).
+  // A tree under refs/yc/<id> that holds each path with the bytes of its source file (the agent's own backups).
   plant: (id: string, files: readonly Planted[]) => Promise<Taken>
 }
 

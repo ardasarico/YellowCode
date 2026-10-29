@@ -7,7 +7,7 @@ export type SessionTitle = { title: string; summary: string }
 export type OneShot = NonNullable<AgentKind["oneShot"]>
 
 const RECENT_MESSAGES = 12
-// Haiku is asked for a few words; a runaway line would also become the session's name in claude's transcript.
+// The model is asked for a few words; a runaway line would also become the session's name where the agent keeps it.
 const TITLE_MAX = 60
 
 function instructions(recent: readonly string[]): string {
@@ -28,8 +28,8 @@ function instructions(recent: readonly string[]): string {
   ].join("\n")
 }
 
-// Run in the project, claude would tell Haiku its directory and git status, and a vague message would be named after
-// the repository.
+// Run in the project, an agent such as claude would tell its model the directory and git status, and a vague message
+// would be named after the repository.
 function neutralDir(): string {
   const dir = join(tmpdir(), "yellowcode-titler")
   try {

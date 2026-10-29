@@ -27,13 +27,13 @@ export function SettingsDialog(props: {
   // Live only.
   agentSettings?: AgentSettings
   info: SessionInfo | null
-  // The session's MCP servers; null while the agent has named none. Live, claude lists them before the first
+  // The session's MCP servers; null while the agent has named none. Live, the agent lists them before the first
   // message, when there is no info yet.
   servers: McpServerRow[] | null
   // Live only.
   extensions?: Pick<Agent, "mcp" | "plugins">
   caps: Pick<Capabilities, "mcp" | "plugins" | "lists">
-  // As claude reports it ("default", "acceptEdits", …).
+  // As the agent reports it ("default", "acceptEdits", …).
   permissionMode: string | null
   title: string | null
   model: string | null
@@ -48,7 +48,8 @@ export function SettingsDialog(props: {
     const info = props.info
     return {
       version: props.version,
-      claudeVersion: info?.cliVersion ?? null,
+      agent: props.agent.name,
+      agentVersion: info?.cliVersion ?? null,
       title: props.title,
       sessionId: info?.id ?? null,
       model: props.model,

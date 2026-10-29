@@ -13,7 +13,7 @@ const ANSWER_MS = 500
 const WORDMARK = wordmark()
 const WORDMARK_ROWS = 26
 const NAMES: Record<string, string> = { Apple_Terminal: "Terminal.app" }
-const BREAKS = ["images and screenshots Claude shows", "previews of images you paste", "the cat"]
+const BREAKS = ["images and screenshots your agent shows", "previews of images you paste", "the cat"]
 const CHOICES = ["Continue anyway", "Quit"]
 const HINTS: [string, string][] = [
   ["↑↓", "select"],

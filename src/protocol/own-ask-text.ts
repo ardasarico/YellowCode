@@ -35,7 +35,7 @@ export function ownAskAnswerText(
   return `Your questions have been answered: ${body}. You can now continue with these answers in mind.`
 }
 
-// The answers as the Claude adapter gives them for its own ask. A page's extra note joins the last question's notes.
+// The answers as an adapter gives them for our own ask. A page's extra note joins the last question's notes.
 export function ownAskAnswered(
   input: unknown,
   given: Answers,

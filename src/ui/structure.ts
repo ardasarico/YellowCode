@@ -83,7 +83,7 @@ export function buildRows(session: Session): Row[] {
       lastEnd = null
       carried = []
     } else if (lastEnd && (item.kind === "text" || item.kind === "thinking" || item.kind === "tool")) {
-      // Claude went on without a new user message, so this continues the turn that just ended.
+      // The agent went on without a new user message, so this continues the turn that just ended.
       rows.splice(rows.indexOf(lastEnd), 1)
       carried = lastEnd.turnEnds
       lastEnd = null
@@ -105,7 +105,7 @@ function foldable(session: Session, asks: Map<string, Ask>, tool: ToolCall): boo
 
 // Finished reads, searches and commands shrink to one line, and those in a row with only thoughts between them
 // share one once something else follows; until then each keeps its own line, so the work is seen going on. A
-// finished thought stays only right before Claude's reply.
+// finished thought stays only right before the agent's reply.
 function fold(session: Session, rows: Row[]): Row[] {
   const asks = new Map<string, Ask>()
   for (const id of session.items) {

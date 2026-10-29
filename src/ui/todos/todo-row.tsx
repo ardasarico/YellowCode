@@ -16,7 +16,7 @@ const changeMark = (change: Exclude<TodoChange, { kind: "planned" }>) =>
 
 const planned = (change: TodoChange) => (change.kind === "planned" ? change.count : 0)
 
-// One line per change to Claude's task list; the whole list is in the sidebar, and Enter opens it here too.
+// One line per change to the agent's task list; the whole list is in the sidebar, and Enter opens it here too.
 export function TodoRow(props: { session: Session; item: ToolCall; selected: boolean }) {
   const [width, setWidth] = createSignal(0)
   const change = () => todoChange(props.session, props.item.id)

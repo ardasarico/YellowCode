@@ -44,7 +44,7 @@ function settle(): void {
   release = setTimeout(settle, until - now)
 }
 
-// An ask that claude takes back while the user types an answer for it leaves the rest of that typing to the prompt,
+// An ask that the agent takes back while the user types an answer for it leaves the rest of that typing to the prompt,
 // or to the next ask, where it is no answer: keys are dropped while they keep coming less than a second apart.
 export function holdKeys(isAsking: () => boolean): void {
   const now = Date.now()

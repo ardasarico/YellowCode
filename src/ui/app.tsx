@@ -151,7 +151,7 @@ const TOAST_MS = 1500
 const REPORT_COPIED = "Copied the report · ctrl+o view"
 const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
 
-// A bare /rename takes up the title Claude Code sets this soon after.
+// A bare /rename takes up the title the agent sets this soon after.
 const ADOPT_TITLE_MS = 10_000
 const BACKGROUND_HINT_MS = 3000
 // What "Yes, start" sends after a plan the agent reported without asking.
@@ -204,7 +204,7 @@ export type AppProps = {
   onSubmit: (message: Message, giveBack: () => void) => boolean
   // A typed /clear on an agent with no /clear of its own starts a new session of it. False: it cannot start now.
   onClear?: () => boolean
-  // Enter once Claude Code has exited starts it again and sends what was typed, if anything. Live only.
+  // Enter once the agent has exited starts it again and sends what was typed, if anything. Live only.
   onRestart?: (message: Message, giveBack: () => void) => boolean
   onAnswer: (ask: Ask, reply: AskReply) => void
   onQuit: () => void
@@ -217,7 +217,7 @@ export type AppProps = {
   tasks?: Agent["tasks"]
   // The running agent's model, effort, mode and thinking; none in a replay or a saved conversation.
   knobs?: KnobActions
-  // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
+  // Each new title YellowCode's titler made, so the agent can keep it for the session.
   onTitle?: (title: string) => void
   // The running agent's /context, /usage and settings; none in a replay or a saved conversation.
   info?: Pick<Agent, "context" | "usage" | "settings">
@@ -412,7 +412,7 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  // Claude Code's own commands (/model, /clear, /context) name no work unless the user's words follow them; a skill
+  // The agent's own commands (/model, /clear, /context) name no work unless the user's words follow them; a skill
   // or a custom command carries them, so it is titled.
   const runsBuiltin = (text: string) => untitledCommand(props.provider.commands(), text)
   const haikuTitle = useSessionTitle(
@@ -422,7 +422,7 @@ export function App(props: AppProps) {
     untrack(() => props.readOnly ?? props.title),
     runsBuiltin,
   )
-  // A name given with /rename (or the one Claude Code makes for a bare /rename) wins over both sources until a /clear.
+  // A name given with /rename (or the one the agent makes for a bare /rename) wins over both sources until a /clear.
   const [renamed, setRenamed] = createSignal<string | null>(null)
   const toAgentTitle = (title: string) => {
     if (props.caps.rename) props.onTitle?.(title)
@@ -460,12 +460,12 @@ export function App(props: AppProps) {
     ),
   )
   createEffect(on(haikuTitle, (next) => next && !renamed() && toAgentTitle(next.title), { defer: true }))
-  // Claude Code's own title has no summary, so the sidebar shows the first message under it.
+  // The agent's own title has no summary, so the sidebar shows the first message under it.
   const claudeTitle = () => {
     const text = props.session.claudeTitle
     return text === null ? null : { title: text, summary: "" }
   }
-  // A resumed session shows the title it was listed under until claude reports one, or a /clear starts over.
+  // A resumed session shows the title it was listed under until the agent reports one, or a /clear starts over.
   const listedTitle = untrack(() => props.title) ?? null
   // claude carries a title over into the session a /clear starts, so YellowCode's own source shows only its own.
   // An agent that titles its own sessions shows its titles when YellowCode cannot make them.
@@ -582,7 +582,7 @@ export function App(props: AppProps) {
     if (focusedKey !== null && !placed.has(focusedKey)) setFocusedPane(null)
   })
   const pending = createMemo(() => pendingAsk(props.session))
-  // A question from claude counts as a dialog for mods: a mod's dialog closes and new ones resolve as cancelled.
+  // A question from the agent counts as a dialog for mods: a mod's dialog closes and new ones resolve as cancelled.
   createEffect(() => setAppDialogOpen(dialog() !== null || pending() !== null))
   createEffect(
     on(pending, (ask) => {
@@ -674,9 +674,9 @@ export function App(props: AppProps) {
   createEffect(on(lastUser, () => setMcpFailure(null), { defer: true }))
 
   const [settingsProblem, setSettingsProblem] = createSignal(untrack(() => props.settingsProblem))
-  // What claude refused while a settings file problem was in view.
+  // What the agent refused while a settings file problem was in view.
   let waiting: string | null = null
-  // What claude refused shows until the next Enter; a broken settings file stays past the Enter that leaves the
+  // What the agent refused shows until the next Enter; a broken settings file stays past the Enter that leaves the
   // welcome screen (`previous` is undefined on the first run and null on that Enter).
   const refusalShown = () => settingsProblem() !== null && settingsProblem() === controlProblem()?.text
   createEffect(
@@ -703,7 +703,7 @@ export function App(props: AppProps) {
     ),
   )
   createEffect(on(failedSaves, () => setSettingsProblem(SAVE_PROBLEM), { defer: true }))
-  // A problem with the settings file stays in view (it may offer the backup); what claude refused meanwhile waits
+  // A problem with the settings file stays in view (it may offer the backup); what the agent refused meanwhile waits
   // until it has gone.
   const fileProblemShown = () => {
     const shown = settingsProblem()
@@ -715,7 +715,7 @@ export function App(props: AppProps) {
       (problem, previous) => {
         if (problem && fileProblemShown()) waiting = problem.text
         else if (problem) setSettingsProblem(problem.text)
-        // Taken back by claude: the refused change came true after all.
+        // Taken back by the agent: the refused change came true after all.
         else if (previous && waiting === previous.text) waiting = null
         else if (previous && settingsProblem() === previous.text) setSettingsProblem(null)
       },
@@ -1069,7 +1069,7 @@ export function App(props: AppProps) {
     const now = Date.now()
     return foreground().some((task) => task.startedAt !== null && now - task.startedAt >= BACKGROUND_HINT_MS)
   }
-  // Ctrl+C interrupts once per turn, so a claude that refuses the interrupt can still be quit; Esc can try again.
+  // Ctrl+C interrupts once per turn, so an agent that refuses the interrupt can still be quit; Esc can try again.
   let interruptedByCtrlC = false
   createEffect(
     on(
@@ -1103,13 +1103,14 @@ export function App(props: AppProps) {
   let clearRewindNote: ReturnType<typeof setTimeout> | undefined
   onCleanup(() => clearTimeout(clearRewindNote))
   let previewing = false
-  // No rewind while a turn runs, one claude started by itself included.
+  // No rewind while a turn runs, one the agent started by itself included.
   const exportText = () =>
     conversationMarkdown(props.session, {
       title: title()?.title || "Conversation",
       model: modelName(settings.model ?? props.model() ?? ""),
       cwd: process.cwd(),
       date: new Date(),
+      agent: called(),
     })
   const exportTo = async (name: string, replace: boolean) => {
     setDialog(null)
@@ -1127,6 +1128,16 @@ export function App(props: AppProps) {
     const copied = await copyText(exportText())
     waitNotice(copied ? "Conversation copied" : "Could not copy the conversation")
   }
+  const reportVersions = async (info: SessionInfo | null) => {
+    const installed = props.agents ? (props.agents.installed() ?? (await props.agents.detect())) : []
+    return (props.agents?.known ?? [props.agent]).map(({ id, name }) => ({
+      name,
+      version:
+        (id === props.agent.id ? info?.cliVersion : undefined) ??
+        installed.find((choice) => choice.id === id)?.version ??
+        null,
+    }))
+  }
   // ctrl+o shows the copied report while its notice is up.
   let copiedReport = ""
   const copyReport = async () => {
@@ -1135,7 +1146,7 @@ export function App(props: AppProps) {
     const plugins = props.provider.plugins(info) ?? []
     const mode = props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null
     const text = reportMarkdown({
-      environment: [...hostFacts(info?.cliVersion ?? null), ...terminalFacts(renderer.capabilities)],
+      environment: [...hostFacts(await reportVersions(info)), ...terminalFacts(renderer.capabilities)],
       settings: settingsFacts(
         settings,
         { id: props.agent.id, name: props.agent.name, modes: props.provider.modes() },
@@ -1206,7 +1217,7 @@ export function App(props: AppProps) {
     const prompts = shownItems().some((id) => props.session.byId[id]?.kind === "user")
     if (rewind && !prompts) return waitNotice("Nothing to rewind")
     if (!rewind || pending() || previewing || dialog() !== null) return
-    // While Claude Code works the list still opens; only rewinding waits.
+    // While the agent works the list still opens; only rewinding waits.
     if (busy() || rewind.working?.() || !canRewind()) return openTimeline(null, null)
     previewing = true
     // The dialog opens on the newest prompt an earlier rewind did not hide.
@@ -1279,7 +1290,7 @@ export function App(props: AppProps) {
       key.stopPropagation()
       return
     }
-    // A focused mod pane takes every key but the shortcuts mods registered, even while claude asks something: keys
+    // A focused mod pane takes every key but the shortcuts mods registered, even while the agent asks something: keys
     // typed for the pane must not answer the ask. Ctrl+], a click on the chat or the pane's own key leaves it.
     const pane = focusedPane()
     if (pane !== null && !dialog()) {
@@ -1307,8 +1318,8 @@ export function App(props: AppProps) {
       return
     }
     if (key.ctrl && key.name === "c") {
-      // A turn the user started is interrupted first, whatever is open; the draft stays. A turn claude started on its
-      // own (Esc interrupts it) is not what the user meant to stop, so Ctrl+C clears or quits there.
+      // A turn the user started is interrupted first, whatever is open; the draft stays. A turn the agent started on
+      // its own (Esc interrupts it) is not what the user meant to stop, so Ctrl+C clears or quits there.
       if (interruptible() && props.session.turn === "user" && !interruptedByCtrlC) {
         interruptedByCtrlC = true
         key.preventDefault()
@@ -1432,7 +1443,7 @@ export function App(props: AppProps) {
       props.onInterrupt?.()
       return
     }
-    // With Claude Code gone there is nothing to change.
+    // With the agent gone there is nothing to change.
     const knob = (key.shift && ["up", "down", "left", "right"].includes(key.name)) || key.name === "f4"
     if (knob && ended()) {
       key.preventDefault()
@@ -1595,7 +1606,7 @@ export function App(props: AppProps) {
         setRenamed(name)
         return true
       }
-      // Claude Code makes the name; its title change brings it here.
+      // The agent makes the name; its title change brings it here.
       adoptTitleUntil = Date.now() + ADOPT_TITLE_MS
     }
     if (command === "/reload-skills" && props.extensions && props.caps.skills.reload) {
@@ -1653,7 +1664,7 @@ export function App(props: AppProps) {
     else if (command === "/plan") planMode()
     else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim(), false)
     else {
-      // Mods see what the user typed, not the commands Claude Code runs.
+      // Mods see what the user typed, not the commands the agent runs.
       const message = text.trim() !== "" && !text.trim().startsWith("/")
       const changed = message ? beforeSend(text) : text
       if (changed === null) {
@@ -2062,6 +2073,7 @@ export function App(props: AppProps) {
           uses={skillUses(props.session, props.provider.skills() ?? [])}
           actions={props.extensions?.skills}
           toggles={props.caps.skills.toggle}
+          agent={props.agent.name}
           onUse={(command) => {
             setDialog(null)
             setFill((previous) => ({ draft: { text: `/${command} `, chips: [] }, seq: (previous?.seq ?? 0) + 1 }))

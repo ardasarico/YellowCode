@@ -10,7 +10,8 @@ import type { SettingsTab } from "./settings-dialog.tsx"
 
 export type StatusFacts = {
   version: string
-  claudeVersion: string | null
+  agent: string
+  agentVersion: string | null
   title: string | null
   sessionId: string | null
   model: string | null
@@ -66,7 +67,7 @@ export function StatusTab(props: { api: TabApi<SettingsTab>; facts: StatusFacts 
         title: "",
         rows: [
           fact("YellowCode", facts.version),
-          fact("Claude Code", facts.claudeVersion),
+          fact(facts.agent, facts.agentVersion),
           blank("gap-versions"),
           fact("Session", facts.title),
           fact("Session ID", facts.sessionId),

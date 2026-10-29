@@ -51,6 +51,8 @@ export function SkillsDialog(props: {
   actions?: Agent["skills"]
   // The agent turns skills on and off.
   toggles: boolean
+  // The agent's name, for its locked skills.
+  agent: string
   onUse: (command: string) => void
   onClose: () => void
 }) {
@@ -90,7 +92,7 @@ export function SkillsDialog(props: {
         const skill = skillOf(row)
         if (!skill) return true
         if (skill.locked) {
-          showNotice("Locked by Claude Code settings")
+          showNotice(`Locked by ${props.agent} settings`)
           return true
         }
         if (props.actions)

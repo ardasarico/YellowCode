@@ -25,18 +25,18 @@ function toolLine(tool: ToolCall, cwd: string, answered: boolean): string {
   const summary = cwd && tool.summary.startsWith(`${cwd}/`) ? tool.summary.slice(cwd.length + 1) : tool.summary
   const call = summary ? `${tool.name}(${summary})` : tool.name
   const counts = tool.patch ? changeCounts(tool.patch) : ""
-  // A denied call's result is claude's own wording, which the chat does not show either.
+  // A denied call's result is the agent's own wording, which the chat does not show either.
   const failed = tool.status === "error" ? ` · failed${answered ? failedOutput(tool, cwd) : ""}` : ""
   return `- ${call}${counts}${failed}`
 }
 
-// The shown conversation as Markdown: the user's messages, Claude's replies and one line per tool call. Thinking,
+// The shown conversation as Markdown: the user's messages, the agent's replies and one line per tool call. Thinking,
 // quiet lines and tool output stay out, except the last lines of a failed call.
 export function conversationMarkdown(
   session: Session,
-  meta: { title: string; model: string; cwd: string; date: Date },
+  meta: { title: string; model: string; cwd: string; date: Date; agent: string },
 ): string {
-  const { title, model, cwd, date } = meta
+  const { title, model, cwd, date, agent } = meta
   const day = date.toISOString().slice(0, 10)
   const parts = [`# ${title}`, `Exported from YellowCode on ${day}${model ? ` · ${model}` : ""}`]
   let speaker: "you" | "claude" | null = null
@@ -47,7 +47,7 @@ export function conversationMarkdown(
   }
   const say = (who: "you" | "claude") => {
     flushTools()
-    if (speaker !== who) parts.push(who === "you" ? "## You" : "## Claude")
+    if (speaker !== who) parts.push(who === "you" ? "## You" : `## ${agent}`)
     speaker = who
   }
   const refused = new Set(

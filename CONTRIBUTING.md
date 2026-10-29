@@ -28,8 +28,8 @@ bun run dev
 
 ### Without an agent
 
-The repo has recorded sessions in `fixtures/sessions/`. A replay plays one back without starting the agent, so it
-needs no login and costs nothing:
+The repo has recorded Claude Code sessions in `fixtures/sessions/`. A replay plays one back without starting the
+agent, so it needs no login and costs nothing:
 
 ```sh
 bun run dev --replay fixtures/sessions/chat.jsonl
@@ -47,9 +47,16 @@ quits.
   tests.
 - If you change the mod API, run `bun run types` and update [the Mod API guide](docs/mod-api.md).
 
-The stream between YellowCode and the agent is not a public API, so a change that reads or sends new messages needs a
-recorded session that shows them. The scenarios are in `tools/record/scenarios.ts`: add one there and run
-`bun run record <name>`. Recording runs a live agent on your account.
+What passes between YellowCode and an agent is not a public API, so a change that reads or sends new messages needs a
+recorded session that shows them.
+
+- Claude Code: the scenarios are in `tools/record/scenarios.ts`. Add one there and run `bun run record <name>`. This
+  runs a live `claude` on your account.
+- Codex and opencode: the scenarios are in `tools/codex/scenarios/` and `tools/opencode/scenarios/`. Add one there and
+  run `bun tools/codex/record.ts <name>` or `bun tools/opencode/record.ts <name>`. These run your installed `codex`, or
+  `opencode` from `~/.opencode/bin`, in a throwaway home against a local stand-in for the model API, so they need no
+  login and cost nothing. The recordings go to `fixtures/codex/` and `fixtures/opencode/`. `--check` records again and
+  compares the result with the committed one.
 
 ## Commits and pull requests
 

@@ -1,4 +1,4 @@
-// What an action Claude Code would run says when no claude is running (a replay or a saved conversation).
+// What an action the agent would run says when no agent is running (a replay or a saved conversation).
 export const SAVED_NOTICE = "Not available in a saved conversation"
 // Shown in place of a title when a session has no words to name it by.
 export const NO_PROMPT = "(no prompt)"

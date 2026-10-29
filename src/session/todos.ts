@@ -16,7 +16,7 @@ function stateOf(status: unknown): TodoState | null {
   return null
 }
 
-// Still reads Claude's TodoWrite / TaskCreate / TaskUpdate inputs until the todo events are settled.
+// Reads Claude's TodoWrite / TaskCreate / TaskUpdate inputs; an agent that sends todo events never gets here.
 function apply(list: Todo[], tool: ToolCall): Todo[] {
   const input = record(tool.input)
   if (tool.name === "TodoWrite" && Array.isArray(input.todos))

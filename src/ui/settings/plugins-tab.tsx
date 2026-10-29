@@ -82,7 +82,7 @@ export function PluginsTab(props: {
     if (!ids.delete(id)) ids.add(id)
     setOpened({ plugin: row.id, ids })
   }
-  // The row changes once claude has reloaded its plugins.
+  // The row changes once the agent has reloaded its plugins.
   const turn = (row: DialogRow) => {
     const plugin = pluginFor(row)
     const actions = props.actions

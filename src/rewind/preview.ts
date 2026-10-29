@@ -180,7 +180,7 @@ export async function conflictsNow(
       continue
     }
     const found = latest.get(path)
-    // Claude's backups have no after: what its last call left stands in, and a path where that is unknown is ⚠.
+    // The agent's backups have no after: what its last call left stands in, and a path where that is unknown is ⚠.
     if (found?.segment.kind === "imported") {
       const left = found.segment.left?.[path]
       if (!covers(safety.unknown, path) && (left === undefined || blobOf(now.get(path)) !== left)) conflicts.push(path)
@@ -274,7 +274,7 @@ async function preview(
   return extras
 }
 
-// Outside the project a file goes back only from what the capture kept of it, and only over what Claude left there.
+// Outside the project a file goes back only from what the capture kept of it, and only over what the agent left there.
 // The ones that stay are listed by prompt.
 async function outside(
   snapshots: Snapshots,

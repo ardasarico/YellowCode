@@ -363,7 +363,7 @@ export function ToolCallRow(props: {
       </Show>
       <Show when={props.item.local?.told === false && props.item.status !== "running"}>
         <text wrapMode="none" fg={theme.faint}>
-          {`${LINE_INDENT}Claude sees this with your next message`}
+          {`${LINE_INDENT}The agent sees this with your next message`}
         </text>
       </Show>
       <ImageLabels

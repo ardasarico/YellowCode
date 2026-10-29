@@ -10,7 +10,7 @@ export type FileChange = {
   created: boolean
   // Changed through Bash, which only our own snapshots see.
   bash: boolean
-  // Changed by someone else after Claude touched it, so a rewind would overwrite that.
+  // Changed by someone else after the agent touched it, so a rewind would overwrite that.
   conflict: boolean
 }
 
@@ -38,7 +38,7 @@ export type RewindPoint = {
 }
 
 // What the session has rewound: `userId` and everything after it up to `last` are hidden until a redo or the next
-// send. `last` is the newest item when the session rewound; what comes after it (a turn claude starts because a
+// send. `last` is the newest item when the session rewound; what comes after it (a turn the agent starts because a
 // background task from a kept prompt finished) stays in view.
 export type Rewound = { userId: ItemId; prompts: number; files: FileChange[]; keptFiles: boolean; last?: ItemId }
 
@@ -206,7 +206,7 @@ export function shownItems(items: ItemId[], rewound: Rewound | null): ItemId[] {
   return span ? [...items.slice(0, span.start), ...items.slice(span.end)] : items
 }
 
-// The final reply of each turn claude started by itself after the rewind, oldest first.
+// The final reply of each turn the agent started by itself after the rewind, oldest first.
 export function keptReplies(session: Session): string[] {
   const span = hiddenSpan(session.items, session.rewound)
   if (!span) return []
@@ -223,7 +223,7 @@ export function keptReplies(session: Session): string[] {
   return replies
 }
 
-// The uuids of the prompts a rewind hides that went out to claude, newest first; undefined for one sent without.
+// The uuids of the prompts a rewind hides that went out to the agent, newest first; undefined for one sent without.
 export function hiddenPrompts(session: Session): (string | undefined)[] {
   const start = session.rewound ? session.items.indexOf(session.rewound.userId) : -1
   if (start === -1) return []

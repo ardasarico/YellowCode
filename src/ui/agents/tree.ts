@@ -354,7 +354,7 @@ export function activeNodes(session: Session): TreeNode[] {
   const shown = shownItems(unwrap(session.items), session.rewound)
   const lastUser = shown.findLastIndex((id) => byId[id]?.kind === "user")
   const recent = new Set(shown.slice(lastUser + 1))
-  // A call claude is still writing, or a workflow waiting to start, keeps its progress in its chat row.
+  // A call the agent is still writing, or a workflow waiting to start, keeps its progress in its chat row.
   const started = (node: TreeNode) => {
     if (node.kind === "workflow") return node.startedAt !== null
     const tool = session.byId[node.id]

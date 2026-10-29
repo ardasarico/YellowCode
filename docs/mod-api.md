@@ -148,7 +148,8 @@ working through every 0.2.x and stops at 0.3.
 
 ### Agents
 
-YellowCode runs one agent at a time, and `agents` says which ones the mod is made for, by id: `"claude"` is Claude Code.
+YellowCode runs one agent at a time, and `agents` says which ones the mod is made for, by id: `"claude"`, `"codex"` or
+`"opencode"`.
 On an agent the list leaves out, the mod does not load at all, and `/mods` shows it as "not for this agent". A mod that
 uses only YellowCode's own API, such as commands, panes, fences or the sidebar, can say `"any"` to load with every
 agent; YellowCode does not check that it stays out of the agent-bound parts. Those are the tools a mod gives the agent
@@ -722,9 +723,10 @@ unique in the mod. `inputSchema` is the JSON schema of the arguments. `run` gets
 so check them yourself. It returns the text the agent reads, or `{ text, isError: true }` for an error, and may be
 `async`.
 
-The server is added to the agent when the mod loads and removed when it stops, without a restart. A tool added or
-removed later reaches the agent too: YellowCode hands it the server again so it lists the tools anew. Tools only work in
-a live session; a replay has no agent to call them.
+With Claude Code and opencode, the server is added to the agent when the mod loads and removed when it stops, without a
+restart. A tool added or removed later reaches the agent too: YellowCode hands it the server again so it lists the tools
+anew. Codex takes the tools only when a session starts, under the mod's namespace, and keeps them for that session; a
+change reaches it in the next one. Tools only work in a live session; a replay has no agent to call them.
 
 ## MCP servers in the manifest
 
@@ -750,7 +752,7 @@ remote server. Any other field fails the manifest.
 A server name may use letters, digits, `_` and `-`. Each one is given to the agent as `mod-<id>--<name>`, here
 `mod-dice--memory`, while the mod is on. A `command` is not resolved against the mod's folder. If a server cannot
 connect, `/mods` shows the error on the mod's page. On an agent that takes no MCP servers or tools from YellowCode, a mod
-that adds them does not load, and `/mods` says why.
+that adds them does not load, and `/mods` says why. opencode takes a mod's tools but not its MCP servers.
 
 ## Events
 

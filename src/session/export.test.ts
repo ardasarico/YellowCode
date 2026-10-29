@@ -26,6 +26,7 @@ test("exports messages, replies and one line per tool call", () => {
     model: "Opus 5.5",
     cwd: "/Users/user/project",
     date: new Date("2026-10-23"),
+    agent: "Claude",
   })
   expect(text.split("\n").slice(0, 5)).toEqual([
     "# Port",
@@ -63,6 +64,7 @@ test("a failed tool call carries the last lines of its output", () => {
       model: "",
       cwd: "/Users/user/project",
       date: new Date("2026-10-23"),
+      agent: "Claude",
     },
   )
   expect(text).toContain("· failed\n```\nline 5 a.ts\n")
