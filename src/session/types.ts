@@ -1,5 +1,7 @@
 import type { Ask as AgentAsk, AskOption, AskOutcome, Denial, Questions } from "../agent/ask.ts"
 import type { AgentEvent } from "../agent/events.ts"
+import type { EffortId, ModeId, ModelRef } from "../agent/ids.ts"
+import type { ModelGroup, ModeRow } from "../agent/lists.ts"
 import type { FileChange, ToolKind } from "../agent/tools.ts"
 import type { Rewound } from "./rewind.ts"
 
@@ -177,6 +179,8 @@ export type Ask = {
   agent?: string
   // Set for a call to our own ask tool, which is answered with an MCP result under this JSON-RPC id.
   mcp?: { rpcId: string | number }
+  // A finished plan the agent reported without asking: YellowCode answers it, and "Yes, start" goes on in `next`.
+  ownPlan?: { next: ModeId | null }
 }
 export type TurnEnd = {
   kind: "turn-end"
@@ -192,7 +196,15 @@ export type TurnEnd = {
   endedAt: number
 }
 // `at` is epoch milliseconds, shifted like every other replayed time.
-export type Retry = { attempt: number; max: number; delayMs: number; status: number | null; reason: string; at: number }
+// `max` is null when the agent does not say how many tries it makes.
+export type Retry = {
+  attempt: number
+  max: number | null
+  delayMs: number
+  status: number | null
+  reason: string
+  at: number
+}
 export type SystemEvent = {
   kind: "system"
   id: ItemId
@@ -273,6 +285,12 @@ export type Session = {
   turn: "user" | "claude" | null
   // The permission mode claude says the session runs in ("default" is shown as manual).
   permissionMode: string | null
+  // The modes an agent that lists its own said it has; absent until it does.
+  modes?: ModeRow[]
+  // The same for models, and the model and effort such an agent says the session runs.
+  models?: ModelGroup[]
+  model?: ModelRef | null
+  effort?: EffortId | null
   // The title Claude Code keeps for the session: the last rename, YellowCode's own or a typed /rename.
   claudeTitle: string | null
   // How many times claude started the conversation over (/clear).

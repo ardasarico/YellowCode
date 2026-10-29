@@ -27,24 +27,26 @@ export function attentionState(session: Session): Attention {
   return { state: "idle", id: null }
 }
 
-function attentionMessage(attention: Attention): string | null {
+// `agent` is the agent's short name.
+function attentionMessage(attention: Attention, agent: string): string | null {
   if (attention.state === "blocked")
-    return attention.kind === "question" ? "Claude has a question" : `Permission needed: ${attention.tool}`
+    return attention.kind === "question" ? `${agent} has a question` : `Permission needed: ${attention.tool}`
   if (attention.state === "done") return "Done"
   if (attention.state === "error") return `Error: ${attention.error.split("\n")[0]}`
   return null
 }
 
-export function notification(attention: Attention, level: NotificationSetting): string | null {
+export function notification(attention: Attention, level: NotificationSetting, agent: string): string | null {
   if (level === "off") return null
   if (level === "waiting" && attention.state === "done") return null
-  return attentionMessage(attention)
+  return attentionMessage(attention, agent)
 }
 
 export function useAttention(
   renderer: CliRenderer,
   session: () => Session,
   level: () => NotificationSetting,
+  agent: () => string,
 ): Accessor<boolean> {
   const [focused, setFocused] = createSignal(true)
   // Set from a notification until the user comes back to the terminal or replies.
@@ -67,7 +69,7 @@ export function useAttention(
   createEffect(
     on(attention, (current) => {
       const capabilities = renderer.capabilities
-      const message = attentionMessage(current) ?? undefined
+      const message = attentionMessage(current, agent()) ?? undefined
       if (capabilities?.program_status) {
         renderer.setProgramStatus(
           current.state === "blocked"
@@ -76,7 +78,7 @@ export function useAttention(
         )
       }
       const away = capabilities?.focus_tracking === false || !focused()
-      const text = notification(current, level())
+      const text = notification(current, level(), agent())
       const notified = away && text !== null && renderer.triggerNotification(text, "YellowCode")
       if (notified) setFlagged(true)
       // Terminals without focus reports never send the focus that clears the flag; working again means the user replied.

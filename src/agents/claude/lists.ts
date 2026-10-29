@@ -1,5 +1,5 @@
 import type { ModeId } from "../../agent/ids.ts"
-import type { CommandRow, EffortRow, ModelRow, ModeRow } from "../../agent/lists.ts"
+import type { CommandRow, EffortRow, Knob, ModelRow, ModeRow } from "../../agent/lists.ts"
 import { rowsOf } from "../../json.ts"
 import { modelInfo, type ModelInfo, slashCommand, type SlashCommand } from "../../protocol/messages.ts"
 
@@ -7,7 +7,11 @@ export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
 
 export const EFFORT_LEVELS: EffortLevel[] = ["low", "medium", "high", "xhigh", "max"]
 
-export const CLAUDE_EFFORTS: EffortRow[] = EFFORT_LEVELS.map((id) => ({ id, label: id }))
+// claude's /effort auto hands the level back to claude; its control requests take only the levels.
+export const CLAUDE_EFFORTS: EffortRow[] = [
+  ...EFFORT_LEVELS.map((id) => ({ id, label: id })),
+  { id: "auto", label: "auto", note: "Claude Code picks the level", message: "/effort auto" },
+]
 
 // In the order Shift+Tab walks the cycling ones: auto, accept edits, plan. "default" is "manual" to the user.
 export const CLAUDE_MODES: ModeRow[] = [
@@ -68,6 +72,10 @@ const SETTING_COMMANDS: Record<string, string> = {
 
 export const settingOf = (name: string): string | null => SETTING_COMMANDS[name] ?? null
 
+const KNOB_COMMANDS: Record<string, Knob> = { model: "model", effort: "effort" }
+
+export const knobOf = (name: string): Knob | null => KNOB_COMMANDS[name] ?? null
+
 // The / list leaves out help, internal commands (__x) and the ones YellowCode does not offer.
 export const toCommandRows = (commands: SlashCommand[]): CommandRow[] =>
   commands
@@ -79,6 +87,7 @@ export const toCommandRows = (commands: SlashCommand[]): CommandRow[] =>
       aliases: aliases ?? [],
       builtin: builtin ?? false,
       setting: settingOf(name),
+      knob: knobOf(name),
     }))
 
 export const commandsOf = (rows: unknown[]): CommandRow[] => toCommandRows(rowsOf(slashCommand, rows).rows)

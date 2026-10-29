@@ -15,8 +15,7 @@ import {
   recordedSkillRows,
 } from "../../source/recording.ts"
 import { MODELS } from "../../session/settings.ts"
-import { BLOCKED_COMMANDS, CLAUDE_EFFORTS, CLAUDE_MODES, settingOf } from "./lists.ts"
-import { mcpRows } from "./mcp-rows.ts"
+import { BLOCKED_COMMANDS, CLAUDE_EFFORTS, CLAUDE_MODES, knobOf, settingOf } from "./lists.ts"
 import { pluginEntries } from "./plugins.ts"
 import { type InitLists, skillList } from "./skills.ts"
 
@@ -72,6 +71,7 @@ export function liveProvider(files: (query: string) => Promise<string[]>): LiveP
     commands: () => withModCommands(commands()),
     blocked,
     setting: settingOf,
+    knob: knobOf,
     models,
     modes: () => CLAUDE_MODES,
     setCommands(next) {
@@ -90,8 +90,7 @@ export function liveProvider(files: (query: string) => Promise<string[]>): LiveP
       for (const skill of skills) skill.enabled = pending().get(skill.name) ?? skill.enabled
       return skills
     },
-    plugins: (info) => pluginEntries(info, sources(), skillRows() ?? [], hooks()),
-    mcp: mcpRows,
+    plugins: (info) => info && pluginEntries(info, sources(), skillRows() ?? [], hooks()),
     settingSources: () => sourceNames(sources()),
     skillRows,
     settingsSources: sources,
@@ -127,11 +126,11 @@ export function replayProvider(recording: Recording): InputProvider {
     commands: () => withModCommands(commands),
     blocked,
     setting: settingOf,
+    knob: knobOf,
     models: () => models,
     modes: () => CLAUDE_MODES,
     skills: () => skills,
-    plugins: (info) => pluginEntries(info, sources, rows, hooks),
-    mcp: mcpRows,
+    plugins: (info) => info && pluginEntries(info, sources, rows, hooks),
     settingSources: () => names,
     plan: () => null,
     files: suggestFiles,
@@ -142,6 +141,6 @@ export function replayProvider(recording: Recording): InputProvider {
 export const savedProvider = (provider: InputProvider): InputProvider => ({
   ...provider,
   skills: () => null,
-  plugins: (info) => pluginEntries(info, [], [], []),
+  plugins: (info) => info && pluginEntries(info, [], [], []),
   settingSources: () => [],
 })

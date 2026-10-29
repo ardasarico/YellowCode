@@ -9,9 +9,16 @@ export type CommandRow = {
   builtin: boolean
   // The /settings row the command opens when typed bare.
   setting: string | null
+  // The knob the command sets. Typed bare it opens the knob's picker; with a value the knob takes, YellowCode sets it;
+  // any other value goes to the agent as typed.
+  knob: Knob | null
 }
 
-export type EffortRow = { id: EffortId; label: string }
+export type Knob = "model" | "effort"
+
+// `message`: the agent sets this level only from a message of its own, which YellowCode sends as the user's. Such a
+// row comes after the levels and is never stepped to.
+export type EffortRow = { id: EffortId; label: string; note?: string; message?: string }
 
 export type ModelRow = {
   ref: ModelRef
@@ -88,6 +95,8 @@ export type McpServerRow = {
   server: { name: string; version: string } | null
   // Null when the row does not list them; SessionInfo.tools names each tool's server.
   tools: string[] | null
+  // The server name the server's tool calls carry (`tool.start` mcp.server), which can differ from `name`.
+  toolServer: string
 }
 
 // A plugin a running session loaded.

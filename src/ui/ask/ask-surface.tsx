@@ -13,6 +13,8 @@ import { QuestionAsk } from "./question-ask.tsx"
 export type AskViewProps = {
   ask: Ask
   width: number
+  // The agent's short name, for the notes' texts.
+  agent: string
   answered: boolean
   onAnswer: (reply: AskReply) => void
   onOpenImages?: (images: ChatImage[], index: number) => void
@@ -55,6 +57,7 @@ export function AskSurface(props: AskSurfaceProps) {
         <PermissionBand
           ask={props.ask}
           width={props.width}
+          agent={props.agent}
           answered={answered()}
           onAnswer={answer}
           onOpenScript={props.onOpenScript}
@@ -66,6 +69,7 @@ export function AskSurface(props: AskSurfaceProps) {
         <PlanBand
           ask={props.ask}
           width={props.width}
+          agent={props.agent}
           answered={answered()}
           onAnswer={answer}
           onPlanApproved={props.onPlanApproved}
@@ -73,7 +77,14 @@ export function AskSurface(props: AskSurfaceProps) {
       </Match>
       <Match when={view()?.matrix}>
         {(matrix) => (
-          <MatrixAsk ask={props.ask} matrix={matrix()} width={props.width} answered={answered()} onAnswer={answer} />
+          <MatrixAsk
+            ask={props.ask}
+            matrix={matrix()}
+            width={props.width}
+            agent={props.agent}
+            answered={answered()}
+            onAnswer={answer}
+          />
         )}
       </Match>
       <Match when={view()?.pages}>
@@ -82,6 +93,7 @@ export function AskSurface(props: AskSurfaceProps) {
             ask={props.ask}
             pages={pages()}
             width={props.width}
+            agent={props.agent}
             answered={answered()}
             onAnswer={answer}
             onOpenImages={props.onOpenImages}

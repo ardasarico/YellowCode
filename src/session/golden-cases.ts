@@ -245,6 +245,7 @@ export function askServerLines(): Record<string, unknown[]> {
   const server = createAskServer(
     (line) => emitted.push(line.replace(version, '"version":"<version>"')),
     (toolUseId) => emitted.push(`open ${toolUseId}`),
+    () => [],
   )
   const line = (toolUseId: string, parent: string | null) =>
     server.seen({

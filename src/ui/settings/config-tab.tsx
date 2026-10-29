@@ -9,6 +9,7 @@ import { type DialogSection, dialogLines, filterSections, moveSelection, selecta
 import { type FooterAction, ListView, PAD_X, printable } from "../dialog/list-view.tsx"
 import { SearchField } from "../dialog/search-field.tsx"
 import {
+  type AgentOption,
   currentOption,
   LONG,
   opensList,
@@ -61,16 +62,17 @@ const mainSections = (definitions: SettingDefinition[]): DialogSection[] =>
       }),
   }))
 
-// `agent` is the agent whose YellowCode settings the tab shows, with its `modes`; `agentSettings` its own, on a live
-// session.
+// `agent` is the agent whose YellowCode settings the tab shows, with its `modes`; `agents` the installed ones;
+// `agentSettings` its own, on a live session.
 export function ConfigTab(props: {
   api: TabApi
   agent: AgentKindId
   modes: ModeRow[]
+  agents: AgentOption[]
   agentSettings?: AgentSettings
   row?: string
 }) {
-  const definitions = createMemo(() => settingsFor(props.agent, props.modes))
+  const definitions = createMemo(() => settingsFor(props.agent, props.modes, props.agents))
   const settingFor = (id: string) => definitions().find((setting) => setting.key === id)
   const [list, setList] = createSignal<SettingDefinition | null>(null)
   const [agentList, setAgentList] = createSignal<SettingRow | null>(null)
@@ -92,8 +94,9 @@ export function ConfigTab(props: {
     if (value === null) return "…"
     return choicesOf(row).find((option) => option.value === value)?.label ?? String(value)
   }
+  // Interim until owner questions 7 and 8 say how read-only rows, `applies` and `origin` are drawn: only writable rows.
   const agentSections = (): DialogSection[] => {
-    const rows = props.agentSettings?.rows ?? []
+    const rows = (props.agentSettings?.rows ?? []).filter((row) => row.writable)
     return [...new Set(rows.map((row) => row.section))].map((section) => ({
       title: section || (props.agentSettings?.name ?? ""),
       rows: rows

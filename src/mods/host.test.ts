@@ -180,6 +180,57 @@ export default defineMod({
   expect(calls).toEqual(["tick 0", "tick 1"])
 })
 
+// A mod that adds the tool `name`, whose run fails when the input says so.
+const withTool = (name: string) => `import { defineMod } from "yellowcode/mod"
+const calls = (globalThis as any).modTestCalls
+export default defineMod({
+  setup(mod) {
+    calls.push("setup ${name}")
+    mod.tools.add({
+      name: "${name}",
+      description: "A tool",
+      inputSchema: { type: "object" },
+      annotations: { readOnlyHint: true },
+      run: (input) => { if (input.fail) throw new Error("no luck"); return { text: "ran ${name}" } },
+    })
+    return () => calls.push("cleanup ${name}")
+  },
+})`
+
+test("another agent loads the mods again: a mod for Claude only is elsewhere there, and only the others' tools are left", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(folder, "anywhere", "^0.2", withTool("any_tool"))
+  writeMod(folder, "claude-only", "^0.2", withTool("claude_tool"), ["claude"])
+  calls.length = 0
+  const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {} })
+  host.discover(claude)
+  await host.loadAll()
+  expect(host.clientTools().map((tool) => [tool.server, tool.name])).toEqual([
+    ["mod-anywhere", "any_tool"],
+    ["mod-claude-only", "claude_tool"],
+  ])
+
+  host.discover({ id: "second", caps: { clientTools: "live", mcpServers: "none" } })
+  await host.loadAll()
+  const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
+  expect(status).toEqual({ anywhere: "on", "claude-only": "elsewhere" })
+  expect(calls).toEqual([
+    "setup any_tool",
+    "setup claude_tool",
+    "cleanup any_tool",
+    "cleanup claude_tool",
+    "setup any_tool",
+  ])
+  const [tool, ...others] = host.clientTools()
+  expect(others).toEqual([])
+  expect(tool?.annotations).toEqual({ readOnly: true, destructive: undefined, title: undefined })
+  expect(await tool?.run({})).toEqual({ text: "ran any_tool", error: false })
+  expect(await tool?.run({ fail: true })).toEqual({ text: "no luck", error: true })
+  host.unloadAll()
+})
+
 test("a manifest with the old yellowcode field says to use api", () => {
   const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "old")
   mkdirSync(folder, { recursive: true })

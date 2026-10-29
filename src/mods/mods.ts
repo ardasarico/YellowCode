@@ -57,11 +57,12 @@ onModNotify((mod, text, level) => {
   setModNotice({ text: `${name}: ${text}`, problem: level !== "info" })
 })
 
-export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
-  if (off) {
-    setModNotice({ text: "Mods are off (--no-mods)", problem: false })
-    return
-  }
+// The agent the mods loaded for last, and the load of the moment; null while mods are off.
+let loadedFor: ModAgent | null = null
+let loading = Promise.resolve()
+
+async function loadFor(agent: ModAgent): Promise<void> {
+  loadedFor = agent
   const failed: string[] = []
   const stop = mods.onFailure(({ id }) => failed.push(id))
   mods.discover(agent)
@@ -71,9 +72,25 @@ export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
   if (failed.length === 1) setModNotice({ text: `Mod ${failed[0]} failed · /mods`, problem: true })
   else if (failed.length > 1) setModNotice({ text: `${failed.length} mods failed · /mods`, problem: true })
   for (const entry of mods.entries) log.info(`mod ${entry.id}: ${entry.status}`, entry.problem ?? undefined)
+}
+
+export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
+  if (off) {
+    setModNotice({ text: "Mods are off (--no-mods)", problem: false })
+    return
+  }
+  await loadFor(agent)
   mods.onFailure(({ id, late }) => {
     if (late) setModNotice({ text: `Mod ${id} failed and was turned off · /mods`, problem: true })
   })
+}
+
+// A session of another agent: every mod loads again for it, with its own manifest list and what it takes.
+export function modsFor(agent: ModAgent): Promise<void> {
+  loading = loading
+    .then(() => (loadedFor && loadedFor.id !== agent.id ? loadFor(agent) : undefined))
+    .catch((error: unknown) => log.error(`mods did not load for ${agent.id}`, error))
+  return loading
 }
 
 // The version each mod was updated to on disk since this start; the running copy stays the old one.

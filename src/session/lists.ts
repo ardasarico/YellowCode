@@ -1,6 +1,7 @@
 import type { McpServer, Session, SessionInfo } from "./types.ts"
 
-// The newest server list: claude's own report after init (live), else init's, else what stands in for init.
+// The newest server list in claude's shape: its own report after init (live), else init's, else what stands in for
+// init.
 export function currentServers(session: Session, fallback: SessionInfo | null): McpServer[] | null {
   return session.mcpServers ?? session.info?.mcpServers ?? fallback?.mcpServers ?? null
 }

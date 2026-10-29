@@ -1,0 +1,2190 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793248733994
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793248733994
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "rules": []
+      },
+      "at": 1793248733996
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "KILO show me around",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793248734483
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793248734485
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793248734491
+    },
+    {
+      "type": "title",
+      "title": "Asking first",
+      "at": 1793248734511
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "rules": []
+      },
+      "at": 1793248734511
+    },
+    {
+      "type": "reply",
+      "at": 1793248734805
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248734805
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793248734805
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793248734807
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Listing first.",
+      "at": 1793248734816
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Listing first.",
+      "at": 1793248734816
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248734817
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "ls"
+      },
+      "summary": "ls",
+      "detail": null,
+      "command": "ls",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248734822
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_1",
+        "kind": "permission",
+        "call": "toolu_mock0001",
+        "tool": {
+          "name": "shell",
+          "kind": "shell",
+          "mcp": null
+        },
+        "title": "shell",
+        "input": {
+          "resources": [
+            "ls"
+          ]
+        },
+        "target": "ls",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "ls *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "ls *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248734837
+    },
+    {
+      "type": "ask.close",
+      "id": "per_1",
+      "outcome": {
+        "status": "allowed"
+      },
+      "at": 1793248734841
+    },
+    {
+      "type": "task.start",
+      "id": "sh_1",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0001",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "ls",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793248734843
+    },
+    {
+      "type": "task.end",
+      "id": "sh_1",
+      "state": "completed",
+      "report": {
+        "summary": "exit code 0",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0001",
+      "at": 1793248734848
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "README.md\nsrc\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248734849
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248734858
+    },
+    {
+      "type": "reply",
+      "at": 1793248734871
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248734871
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248734872
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "git status"
+      },
+      "summary": "git status",
+      "detail": null,
+      "command": "git status",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248734873
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_2",
+        "kind": "permission",
+        "call": "toolu_mock0002",
+        "tool": {
+          "name": "shell",
+          "kind": "shell",
+          "mcp": null
+        },
+        "title": "shell",
+        "input": {
+          "resources": [
+            "git status"
+          ]
+        },
+        "target": "git status",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "git status *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "git status *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248734875
+    },
+    {
+      "type": "ask.close",
+      "id": "per_2",
+      "outcome": {
+        "status": "allowed"
+      },
+      "at": 1793248734878
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "rules": [
+          {
+            "id": "psv_1",
+            "subject": "shell",
+            "pattern": "git status *",
+            "effect": "allow",
+            "lasts": "project",
+            "origin": null,
+            "mode": null,
+            "removable": true
+          }
+        ]
+      },
+      "at": 1793248734878
+    },
+    {
+      "type": "task.start",
+      "id": "sh_2",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0002",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "git status",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793248734879
+    },
+    {
+      "type": "task.end",
+      "id": "sh_2",
+      "state": "completed",
+      "report": {
+        "summary": "exit code 0",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0002",
+      "at": 1793248735050
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "On branch main\nnothing to commit, working tree clean\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248735050
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735058
+    },
+    {
+      "type": "reply",
+      "at": 1793248735068
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735068
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248735069
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "git status"
+      },
+      "summary": "git status",
+      "detail": null,
+      "command": "git status",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248735070
+    },
+    {
+      "type": "task.start",
+      "id": "sh_3",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0003",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "git status",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793248735072
+    },
+    {
+      "type": "task.end",
+      "id": "sh_3",
+      "state": "completed",
+      "report": {
+        "summary": "exit code 0",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0003",
+      "at": 1793248735083
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "On branch main\nnothing to commit, working tree clean\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248735083
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735090
+    },
+    {
+      "type": "reply",
+      "at": 1793248735102
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735102
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0004",
+      "parent": null,
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248735102
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts",
+        "oldString": "\"hello\"",
+        "newString": "\"hi\""
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248735103
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [
+          "<root>/project/src/a.ts"
+        ],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_3",
+        "kind": "permission",
+        "call": "toolu_mock0004",
+        "tool": {
+          "name": "edit",
+          "kind": "edit",
+          "mcp": null
+        },
+        "title": "edit",
+        "input": {
+          "resources": [
+            "src/a.ts"
+          ]
+        },
+        "target": "src/a.ts",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "*",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "*"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248735105
+    },
+    {
+      "type": "ask.close",
+      "id": "per_3",
+      "outcome": {
+        "status": "denied",
+        "said": "Keep the greeting as it is.",
+        "why": "declined",
+        "note": "Keep the greeting as it is."
+      },
+      "at": 1793248735106
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0004",
+      "status": "error",
+      "result": "Keep the greeting as it is.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": {
+        "status": "denied",
+        "said": "Keep the greeting as it is.",
+        "why": "declined",
+        "note": "Keep the greeting as it is."
+      },
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248735107
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735114
+    },
+    {
+      "type": "reply",
+      "at": 1793248735131
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735131
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0005",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248735132
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0005",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/b.ts",
+        "content": "export const b = 1\n"
+      },
+      "summary": "<root>/project/src/b.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248735133
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [
+          "<root>/project/src/b.ts"
+        ],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_4",
+        "kind": "permission",
+        "call": "toolu_mock0005",
+        "tool": {
+          "name": "write",
+          "kind": "write",
+          "mcp": null
+        },
+        "title": "write",
+        "input": {
+          "resources": [
+            "src/b.ts"
+          ]
+        },
+        "target": "src/b.ts",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "*",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "*"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248735135
+    },
+    {
+      "type": "ask.close",
+      "id": "per_4",
+      "outcome": {
+        "status": "allowed"
+      },
+      "at": 1793248735136
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0005",
+      "status": "done",
+      "result": "Created file successfully: src/b.ts",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "export const b = 1\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/src/b.ts",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "export const b = 1\n"
+        }
+      ],
+      "at": 1793248735137
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735173
+    },
+    {
+      "type": "reply",
+      "at": 1793248735184
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735184
+    },
+    {
+      "type": "text.start",
+      "part": "msg_6:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793248735185
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_6:text:0",
+      "text": "The tour is done.",
+      "at": 1793248735190
+    },
+    {
+      "type": "text.end",
+      "part": "msg_6:text:0",
+      "text": "The tour is done.",
+      "at": 1793248735190
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735198
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 713,
+      "inputTokens": 7200,
+      "outputTokens": 1080,
+      "tokens": 8280,
+      "sessionCostUsd": 0.05060999999999999,
+      "prompts": [],
+      "at": 1793248735198
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "LIMA again, say hi",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793248735201
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793248735201
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793248735203
+    },
+    {
+      "type": "reply",
+      "at": 1793248735213
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735213
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0006",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248735214
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0006",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "echo hi"
+      },
+      "summary": "echo hi",
+      "detail": null,
+      "command": "echo hi",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248735214
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_5",
+        "kind": "permission",
+        "call": "toolu_mock0006",
+        "tool": {
+          "name": "shell",
+          "kind": "shell",
+          "mcp": null
+        },
+        "title": "shell",
+        "input": {
+          "resources": [
+            "echo hi"
+          ]
+        },
+        "target": "echo hi",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "echo *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "echo *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248735215
+    },
+    {
+      "type": "ask.close",
+      "id": "per_5",
+      "outcome": {
+        "status": "denied",
+        "said": "",
+        "why": "declined",
+        "note": ""
+      },
+      "at": 1793248735217
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0006",
+      "status": "stopped",
+      "result": "The user declined this tool call",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248735217
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735224
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": true,
+      "local": false,
+      "durationMs": 24,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.059009999999999986,
+      "prompts": [],
+      "at": 1793248735225
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "MIKE once more, where are we",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793248735227
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793248735227
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793248735229
+    },
+    {
+      "type": "reply",
+      "at": 1793248735283
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735283
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0007",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793248735284
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0007",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "pwd"
+      },
+      "summary": "pwd",
+      "detail": null,
+      "command": "pwd",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793248735288
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "per_6",
+        "kind": "permission",
+        "call": "toolu_mock0007",
+        "tool": {
+          "name": "shell",
+          "kind": "shell",
+          "mcp": null
+        },
+        "title": "shell",
+        "input": {
+          "resources": [
+            "pwd"
+          ]
+        },
+        "target": "pwd",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "pwd *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "pwd *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ]
+      },
+      "at": 1793248735289
+    },
+    {
+      "type": "ask.close",
+      "id": "per_6",
+      "outcome": {
+        "status": "allowed"
+      },
+      "at": 1793248735291
+    },
+    {
+      "type": "task.start",
+      "id": "sh_4",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0007",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "pwd",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793248735293
+    },
+    {
+      "type": "task.end",
+      "id": "sh_4",
+      "state": "completed",
+      "report": {
+        "summary": "exit code 0",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0007",
+      "at": 1793248735294
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0007",
+      "status": "done",
+      "result": "<root>/project\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793248735295
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735302
+    },
+    {
+      "type": "reply",
+      "at": 1793248735313
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793248735313
+    },
+    {
+      "type": "text.start",
+      "part": "msg_9:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793248735313
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_9:text:0",
+      "text": "Still in the project.",
+      "at": 1793248735318
+    },
+    {
+      "type": "text.end",
+      "part": "msg_9:text:0",
+      "text": "Still in the project.",
+      "at": 1793248735318
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793248735325
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 99,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.07580999999999999,
+      "prompts": [],
+      "at": 1793248735326
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "rules": []
+      },
+      "at": 1793248735326
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793248735326
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "ask-per_1",
+      "toolu_mock0002",
+      "ask-per_2",
+      "toolu_mock0003",
+      "toolu_mock0004",
+      "ask-per_3",
+      "toolu_mock0005",
+      "ask-per_4",
+      "text-3",
+      "turn-4",
+      "user-5",
+      "toolu_mock0006",
+      "ask-per_5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0007",
+      "ask-per_6",
+      "text-8",
+      "turn-9"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "KILO show me around",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Listing first.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"ls\"}",
+        "input": {
+          "command": "ls"
+        },
+        "summary": "ls",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "README.md\nsrc\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_1"
+      },
+      "ask-per_1": {
+        "kind": "ask",
+        "id": "ask-per_1",
+        "requestId": "per_1",
+        "toolUseId": "toolu_mock0001",
+        "toolName": "shell",
+        "toolKind": "shell",
+        "server": null,
+        "displayName": "shell",
+        "input": {
+          "resources": [
+            "ls"
+          ]
+        },
+        "target": "ls",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "ls *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "ls *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "allowed",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"git status\"}",
+        "input": {
+          "command": "git status"
+        },
+        "summary": "git status",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "On branch main\nnothing to commit, working tree clean\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_2"
+      },
+      "ask-per_2": {
+        "kind": "ask",
+        "id": "ask-per_2",
+        "requestId": "per_2",
+        "toolUseId": "toolu_mock0002",
+        "toolName": "shell",
+        "toolKind": "shell",
+        "server": null,
+        "displayName": "shell",
+        "input": {
+          "resources": [
+            "git status"
+          ]
+        },
+        "target": "git status",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "git status *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "git status *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "allowed",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"git status\"}",
+        "input": {
+          "command": "git status"
+        },
+        "summary": "git status",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "On branch main\nnothing to commit, working tree clean\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_3"
+      },
+      "toolu_mock0004": {
+        "kind": "tool",
+        "id": "toolu_mock0004",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\",\"oldString\":\"\\\"hello\\\"\",\"newString\":\"\\\"hi\\\"\"}",
+        "input": {
+          "path": "src/a.ts",
+          "oldString": "\"hello\"",
+          "newString": "\"hi\""
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "error",
+        "result": "Keep the greeting as it is.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": {
+          "status": "denied",
+          "said": "Keep the greeting as it is.",
+          "why": "declined",
+          "note": "Keep the greeting as it is."
+        },
+        "agent": null,
+        "taskId": null
+      },
+      "ask-per_3": {
+        "kind": "ask",
+        "id": "ask-per_3",
+        "requestId": "per_3",
+        "toolUseId": "toolu_mock0004",
+        "toolName": "edit",
+        "toolKind": "edit",
+        "server": null,
+        "displayName": "edit",
+        "input": {
+          "resources": [
+            "src/a.ts"
+          ]
+        },
+        "target": "src/a.ts",
+        "writes": [
+          "<root>/project/src/a.ts"
+        ],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "*",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "*"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "denied",
+        "answers": {},
+        "notes": {},
+        "denial": "Keep the greeting as it is.",
+        "why": "declined",
+        "note": "Keep the greeting as it is."
+      },
+      "toolu_mock0005": {
+        "kind": "tool",
+        "id": "toolu_mock0005",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"src/b.ts\",\"content\":\"export const b = 1\\n\"}",
+        "input": {
+          "path": "src/b.ts",
+          "content": "export const b = 1\n"
+        },
+        "summary": "<root>/project/src/b.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: src/b.ts",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "export const b = 1\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/src/b.ts",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "export const b = 1\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-per_4": {
+        "kind": "ask",
+        "id": "ask-per_4",
+        "requestId": "per_4",
+        "toolUseId": "toolu_mock0005",
+        "toolName": "write",
+        "toolKind": "write",
+        "server": null,
+        "displayName": "write",
+        "input": {
+          "resources": [
+            "src/b.ts"
+          ]
+        },
+        "target": "src/b.ts",
+        "writes": [
+          "<root>/project/src/b.ts"
+        ],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "*",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "*"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "allowed",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "The tour is done.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.05060999999999999,
+        "durationMs": 713,
+        "inputTokens": 7200,
+        "outputTokens": 1080,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793248735198
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "LIMA again, say hi",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0006": {
+        "kind": "tool",
+        "id": "toolu_mock0006",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"echo hi\"}",
+        "input": {
+          "command": "echo hi"
+        },
+        "summary": "echo hi",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-per_5": {
+        "kind": "ask",
+        "id": "ask-per_5",
+        "requestId": "per_5",
+        "toolUseId": "toolu_mock0006",
+        "toolName": "shell",
+        "toolKind": "shell",
+        "server": null,
+        "displayName": "shell",
+        "input": {
+          "resources": [
+            "echo hi"
+          ]
+        },
+        "target": "echo hi",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "echo *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "echo *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "denied",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": "declined",
+        "note": ""
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.059009999999999986,
+        "durationMs": 24,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 1793248735225
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "MIKE once more, where are we",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0007": {
+        "kind": "tool",
+        "id": "toolu_mock0007",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"pwd\"}",
+        "input": {
+          "command": "pwd"
+        },
+        "summary": "pwd",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "<root>/project\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_4"
+      },
+      "ask-per_6": {
+        "kind": "ask",
+        "id": "ask-per_6",
+        "requestId": "per_6",
+        "toolUseId": "toolu_mock0007",
+        "toolName": "shell",
+        "toolKind": "shell",
+        "server": null,
+        "displayName": "shell",
+        "input": {
+          "resources": [
+            "pwd"
+          ]
+        },
+        "target": "pwd",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "once",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "pwd *",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": [
+              "pwd *"
+            ]
+          },
+          {
+            "id": "reject",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "allowed",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Still in the project.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0.07580999999999999,
+        "durationMs": 99,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793248735326
+      }
+    },
+    "tasks": {
+      "sh_1": {
+        "id": "sh_1",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0001",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "ls",
+        "description": "ls",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 0",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "ls",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      },
+      "sh_2": {
+        "id": "sh_2",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0002",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "git status",
+        "description": "git status",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 0",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "git status",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      },
+      "sh_3": {
+        "id": "sh_3",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0003",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "git status",
+        "description": "git status",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 0",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "git status",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      },
+      "sh_4": {
+        "id": "sh_4",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0007",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "pwd",
+        "description": "pwd",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 0",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "pwd",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 12420,
+      "costUsd": 0.07580999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Asking first",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

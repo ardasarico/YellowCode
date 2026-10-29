@@ -1,0 +1,1776 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234372269
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234372269
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "OSCAR try every tool",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234372759
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234372760
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234372765
+    },
+    {
+      "type": "title",
+      "title": "Tool tour",
+      "at": 1793234372782
+    },
+    {
+      "type": "reply",
+      "at": 1793234373077
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373077
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234373077
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234373079
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Reading first.",
+      "at": 1793234373088
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Reading first.",
+      "at": 1793234373088
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373089
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts"
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373094
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234373097
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373104
+    },
+    {
+      "type": "reply",
+      "at": 1793234373118
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373118
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "glob",
+      "kind": "search",
+      "title": "glob",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373118
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "pattern": "**/*.ts"
+      },
+      "summary": "**/*.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373120
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "<root>/project/src/a.ts",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "file"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234373128
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373135
+    },
+    {
+      "type": "reply",
+      "at": 1793234373147
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373147
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "grep",
+      "kind": "search",
+      "title": "grep",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373148
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "pattern": "greeting",
+        "path": "src"
+      },
+      "summary": "greeting",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373148
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "Found 1 matches\n<root>/project/src/a.ts:\n  Line 1: export const greeting = \"hello\"\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "match"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234373160
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373167
+    },
+    {
+      "type": "reply",
+      "at": 1793234373178
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373178
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0004",
+      "parent": null,
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373179
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts",
+        "oldString": "\"hello\"",
+        "newString": "\"hi\""
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373180
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0004",
+      "status": "done",
+      "result": "Edited src/a.ts (1 replacement)",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 1,
+          "newStart": 1,
+          "newLines": 1,
+          "lines": [
+            "-export const greeting = \"hello\"",
+            "+export const greeting = \"hi\""
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/src/a.ts",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 1,
+              "newStart": 1,
+              "newLines": 1,
+              "lines": [
+                "-export const greeting = \"hello\"",
+                "+export const greeting = \"hi\""
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793234373182
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373212
+    },
+    {
+      "type": "reply",
+      "at": 1793234373222
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373222
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0005",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373223
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0005",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/b.ts",
+        "content": "export const b = 1\n"
+      },
+      "summary": "<root>/project/src/b.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373224
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0005",
+      "status": "done",
+      "result": "Created file successfully: src/b.ts",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "export const b = 1\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/src/b.ts",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "export const b = 1\n"
+        }
+      ],
+      "at": 1793234373226
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373256
+    },
+    {
+      "type": "reply",
+      "at": 1793234373276
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373276
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0006",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373277
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0006",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "README.md",
+        "content": "# demo\n\nChanged.\n"
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373281
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0006",
+      "status": "done",
+      "result": "Wrote file successfully: README.md",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": "# demo\n\nChanged.\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/README.md",
+          "change": "update",
+          "movedTo": null,
+          "patch": null,
+          "after": "# demo\n\nChanged.\n"
+        }
+      ],
+      "at": 1793234373283
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234373320
+    },
+    {
+      "type": "reply",
+      "at": 1793234373331
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234373331
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0007",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234373332
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0007",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3"
+      },
+      "summary": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+      "detail": null,
+      "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234373333
+    },
+    {
+      "type": "task.start",
+      "id": "sh_1",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0007",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793234373349
+    },
+    {
+      "type": "task.end",
+      "id": "sh_1",
+      "state": "failed",
+      "report": {
+        "summary": "exit code 3",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0007",
+      "at": 1793234374274
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0007",
+      "status": "error",
+      "result": "line 1\nline 2\nline 3\n\nExited with code 3",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 3,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234374275
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234374284
+    },
+    {
+      "type": "reply",
+      "at": 1793234374298
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234374298
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0008",
+      "parent": null,
+      "name": "webfetch",
+      "kind": "fetch",
+      "title": "webfetch",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234374298
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0008",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "url": "https://example.com/"
+      },
+      "summary": "https://example.com/",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234374299
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0008",
+      "status": "error",
+      "result": "Transport error (GET https://example.com/)",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234374301
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234374307
+    },
+    {
+      "type": "reply",
+      "at": 1793234374319
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234374319
+    },
+    {
+      "type": "text.start",
+      "part": "msg_9:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234374319
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_9:text:0",
+      "text": "All done.",
+      "at": 1793234374320
+    },
+    {
+      "type": "text.end",
+      "part": "msg_9:text:0",
+      "text": "All done.",
+      "at": 1793234374320
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234374327
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 1569,
+      "inputTokens": 10800,
+      "outputTokens": 1620,
+      "tokens": 12420,
+      "sessionCostUsd": 0.07580999999999999,
+      "prompts": [],
+      "at": 1793234374329
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234374329
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "OSCAR try every tool",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234372765
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234372772
+          },
+          {
+            "type": "reply",
+            "at": 1793234372772
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234372772
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "Reading first.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234372772
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "Reading first.",
+            "at": 1793234372772
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234372772
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/a.ts"
+            },
+            "summary": "<root>/project/src/a.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234372772
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 1,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234372772
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234372772
+          },
+          {
+            "type": "reply",
+            "at": 1793234373109
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373109
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0002",
+            "parent": null,
+            "name": "glob",
+            "kind": "search",
+            "title": "glob",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373109
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0002",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "pattern": "**/*.ts"
+            },
+            "summary": "**/*.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373109
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0002",
+            "status": "done",
+            "result": "<root>/project/src/a.ts",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 1,
+              "noun": "file"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234373109
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373109
+          },
+          {
+            "type": "reply",
+            "at": 1793234373140
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373140
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0003",
+            "parent": null,
+            "name": "grep",
+            "kind": "search",
+            "title": "grep",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373140
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0003",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "pattern": "greeting",
+              "path": "src"
+            },
+            "summary": "greeting",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373140
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0003",
+            "status": "done",
+            "result": "Found 1 matches\n<root>/project/src/a.ts:\n  Line 1: export const greeting = \"hello\"\n",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 1,
+              "noun": "match"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234373140
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373140
+          },
+          {
+            "type": "reply",
+            "at": 1793234373171
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373171
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0004",
+            "parent": null,
+            "name": "edit",
+            "kind": "edit",
+            "title": "edit",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373171
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0004",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/a.ts",
+              "oldString": "\"hello\"",
+              "newString": "\"hi\""
+            },
+            "summary": "<root>/project/src/a.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373171
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0004",
+            "status": "done",
+            "result": "Edited src/a.ts (1 replacement)",
+            "images": [],
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hi\""
+                ]
+              }
+            ],
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/src/a.ts",
+                "change": "update",
+                "movedTo": null,
+                "patch": [
+                  {
+                    "oldStart": 1,
+                    "oldLines": 1,
+                    "newStart": 1,
+                    "newLines": 1,
+                    "lines": [
+                      "-export const greeting = \"hello\"",
+                      "+export const greeting = \"hi\""
+                    ]
+                  }
+                ],
+                "after": null
+              }
+            ],
+            "at": 1793234373171
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373171
+          },
+          {
+            "type": "reply",
+            "at": 1793234373216
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373216
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0005",
+            "parent": null,
+            "name": "write",
+            "kind": "write",
+            "title": "write",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373216
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0005",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/b.ts",
+              "content": "export const b = 1\n"
+            },
+            "summary": "<root>/project/src/b.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373216
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0005",
+            "status": "done",
+            "result": "Created file successfully: src/b.ts",
+            "images": [],
+            "patch": null,
+            "created": true,
+            "content": "export const b = 1\n",
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/src/b.ts",
+                "change": "create",
+                "movedTo": null,
+                "patch": null,
+                "after": "export const b = 1\n"
+              }
+            ],
+            "at": 1793234373216
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373216
+          },
+          {
+            "type": "reply",
+            "at": 1793234373260
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373260
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0006",
+            "parent": null,
+            "name": "write",
+            "kind": "write",
+            "title": "write",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373260
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0006",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "README.md",
+              "content": "# demo\n\nChanged.\n"
+            },
+            "summary": "<root>/project/README.md",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373260
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0006",
+            "status": "done",
+            "result": "Wrote file successfully: README.md",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": "# demo\n\nChanged.\n",
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/README.md",
+                "change": "update",
+                "movedTo": null,
+                "patch": null,
+                "after": "# demo\n\nChanged.\n"
+              }
+            ],
+            "at": 1793234373260
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373260
+          },
+          {
+            "type": "reply",
+            "at": 1793234373324
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234373324
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0007",
+            "parent": null,
+            "name": "shell",
+            "kind": "shell",
+            "title": "shell",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234373324
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0007",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3"
+            },
+            "summary": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+            "detail": null,
+            "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234373324
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0007",
+            "status": "error",
+            "result": "line 1\nline 2\nline 3\n\nExited with code 3",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": 3,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234373324
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234373324
+          },
+          {
+            "type": "reply",
+            "at": 1793234374289
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234374289
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0008",
+            "parent": null,
+            "name": "webfetch",
+            "kind": "fetch",
+            "title": "webfetch",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234374289
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0008",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "url": "https://example.com/"
+            },
+            "summary": "https://example.com/",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234374289
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0008",
+            "status": "error",
+            "result": "Transport error (GET https://example.com/)",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234374289
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234374289
+          },
+          {
+            "type": "reply",
+            "at": 1793234374311
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234374311
+          },
+          {
+            "type": "text.start",
+            "part": "msg_9:text:0",
+            "parent": null,
+            "text": "All done.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234374311
+          },
+          {
+            "type": "text.end",
+            "part": "msg_9:text:0",
+            "text": "All done.",
+            "at": 1793234374311
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234374311
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "toolu_mock0002",
+      "toolu_mock0003",
+      "toolu_mock0004",
+      "toolu_mock0005",
+      "toolu_mock0006",
+      "toolu_mock0007",
+      "toolu_mock0008",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "OSCAR try every tool",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Reading first.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\"}",
+        "input": {
+          "path": "src/a.ts"
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "glob",
+        "toolKind": "search",
+        "title": "glob",
+        "server": null,
+        "inputText": "{\"pattern\":\"**/*.ts\"}",
+        "input": {
+          "pattern": "**/*.ts"
+        },
+        "summary": "**/*.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "<root>/project/src/a.ts",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "file"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "grep",
+        "toolKind": "search",
+        "title": "grep",
+        "server": null,
+        "inputText": "{\"pattern\":\"greeting\",\"path\":\"src\"}",
+        "input": {
+          "pattern": "greeting",
+          "path": "src"
+        },
+        "summary": "greeting",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Found 1 matches\n<root>/project/src/a.ts:\n  Line 1: export const greeting = \"hello\"\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "match"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0004": {
+        "kind": "tool",
+        "id": "toolu_mock0004",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\",\"oldString\":\"\\\"hello\\\"\",\"newString\":\"\\\"hi\\\"\"}",
+        "input": {
+          "path": "src/a.ts",
+          "oldString": "\"hello\"",
+          "newString": "\"hi\""
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Edited src/a.ts (1 replacement)",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 1,
+            "newStart": 1,
+            "newLines": 1,
+            "lines": [
+              "-export const greeting = \"hello\"",
+              "+export const greeting = \"hi\""
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/src/a.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hi\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0005": {
+        "kind": "tool",
+        "id": "toolu_mock0005",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"src/b.ts\",\"content\":\"export const b = 1\\n\"}",
+        "input": {
+          "path": "src/b.ts",
+          "content": "export const b = 1\n"
+        },
+        "summary": "<root>/project/src/b.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: src/b.ts",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "export const b = 1\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/src/b.ts",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "export const b = 1\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0006": {
+        "kind": "tool",
+        "id": "toolu_mock0006",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"README.md\",\"content\":\"# demo\\n\\nChanged.\\n\"}",
+        "input": {
+          "path": "README.md",
+          "content": "# demo\n\nChanged.\n"
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Wrote file successfully: README.md",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": "# demo\n\nChanged.\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/README.md",
+            "change": "update",
+            "movedTo": null,
+            "patch": null,
+            "after": "# demo\n\nChanged.\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0007": {
+        "kind": "tool",
+        "id": "toolu_mock0007",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3\"}",
+        "input": {
+          "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3"
+        },
+        "summary": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+        "detail": null,
+        "background": false,
+        "status": "error",
+        "result": "line 1\nline 2\nline 3\n\nExited with code 3",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_1"
+      },
+      "toolu_mock0008": {
+        "kind": "tool",
+        "id": "toolu_mock0008",
+        "name": "webfetch",
+        "toolKind": "fetch",
+        "title": "webfetch",
+        "server": null,
+        "inputText": "{\"url\":\"https://example.com/\"}",
+        "input": {
+          "url": "https://example.com/"
+        },
+        "summary": "https://example.com/",
+        "detail": null,
+        "background": false,
+        "status": "error",
+        "result": "Transport error (GET https://example.com/)",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "All done.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.07580999999999999,
+        "durationMs": 1569,
+        "inputTokens": 10800,
+        "outputTokens": 1620,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234374329
+      }
+    },
+    "tasks": {
+      "sh_1": {
+        "id": "sh_1",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0007",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "failed",
+        "name": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+        "description": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 3",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 12420,
+      "costUsd": 0.07580999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Tool tour",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

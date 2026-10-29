@@ -1,0 +1,1531 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234375783
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234375783
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "PAPA ask a helper",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234376266
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234376267
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234376272
+    },
+    {
+      "type": "title",
+      "title": "Helpers",
+      "at": 1793234376291
+    },
+    {
+      "type": "reply",
+      "at": 1793234376584
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234376584
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234376584
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234376586
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Asking a helper.",
+      "at": 1793234376595
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Asking a helper.",
+      "at": 1793234376595
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "subagent",
+      "kind": "agent",
+      "title": "subagent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234376596
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "agent": "general",
+        "description": "Change the greeting",
+        "prompt": "QUEBEC change it"
+      },
+      "summary": "Change the greeting",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "general",
+        "task": "Change the greeting",
+        "prompt": "QUEBEC change it",
+        "type": "general",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793234376602
+    },
+    {
+      "type": "task.start",
+      "id": "ses_2",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "toolu_mock0001",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "Change the greeting",
+      "prompt": "QUEBEC change it",
+      "workflow": "",
+      "agentType": "general",
+      "at": 1793234376606
+    },
+    {
+      "type": "subagent.model",
+      "call": "toolu_mock0001",
+      "model": "claude-opus-5-5",
+      "at": 1793234376625
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": "toolu_mock0001",
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234376626
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts"
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234376627
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_2",
+      "activity": "src/a.ts",
+      "lastTool": "read",
+      "toolUses": 1,
+      "durationMs": 21,
+      "tokens": 0,
+      "at": 1793234376627
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234376629
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": "toolu_mock0001",
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234376649
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts",
+        "oldString": "\"hello\"",
+        "newString": "\"hey\""
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234376650
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_2",
+      "activity": "src/a.ts",
+      "lastTool": "edit",
+      "toolUses": 2,
+      "durationMs": 44,
+      "tokens": 1380,
+      "at": 1793234376650
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "Edited src/a.ts (1 replacement)",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 1,
+          "newStart": 1,
+          "newLines": 1,
+          "lines": [
+            "-export const greeting = \"hello\"",
+            "+export const greeting = \"hey\""
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/src/a.ts",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 1,
+              "newStart": 1,
+              "newLines": 1,
+              "lines": [
+                "-export const greeting = \"hello\"",
+                "+export const greeting = \"hey\""
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793234376652
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": "toolu_mock0001",
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234376694
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "The greeting now says hey.",
+      "at": 1793234376706
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "The greeting now says hey.",
+      "at": 1793234376706
+    },
+    {
+      "type": "task.end",
+      "id": "ses_2",
+      "state": "completed",
+      "report": {
+        "summary": "The greeting now says hey.",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 2,
+          "durationMs": 109,
+          "tokens": 4140
+        },
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0001",
+      "at": 1793234376715
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "The greeting now says hey.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": "ses_2",
+      "files": [],
+      "at": 1793234376716
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234376731
+    },
+    {
+      "type": "reply",
+      "at": 1793234376741
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234376741
+    },
+    {
+      "type": "text.start",
+      "part": "msg_6:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234376742
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_6:text:0",
+      "text": "The helper changed it.",
+      "at": 1793234376748
+    },
+    {
+      "type": "text.end",
+      "part": "msg_6:text:0",
+      "text": "The helper changed it.",
+      "at": 1793234376748
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234376755
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 489,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.04221,
+      "prompts": [],
+      "at": 1793234376756
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "ROMEO wait for a helper",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234376758
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234376759
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234376760
+    },
+    {
+      "type": "reply",
+      "at": 1793234376804
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234376804
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0004",
+      "parent": null,
+      "name": "subagent",
+      "kind": "agent",
+      "title": "subagent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234376804
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "agent": "general",
+        "description": "Wait for ever",
+        "prompt": "SIERRA wait"
+      },
+      "summary": "Wait for ever",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "general",
+        "task": "Wait for ever",
+        "prompt": "SIERRA wait",
+        "type": "general",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793234376809
+    },
+    {
+      "type": "task.start",
+      "id": "ses_3",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "toolu_mock0004",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "Wait for ever",
+      "prompt": "SIERRA wait",
+      "workflow": "",
+      "agentType": "general",
+      "at": 1793234376812
+    },
+    {
+      "type": "subagent.model",
+      "call": "toolu_mock0004",
+      "model": "claude-opus-5-5",
+      "at": 1793234376823
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0005",
+      "parent": "toolu_mock0004",
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234376824
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0005",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "README.md"
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234376825
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_3",
+      "activity": "README.md",
+      "lastTool": "read",
+      "toolUses": 1,
+      "durationMs": 13,
+      "tokens": 0,
+      "at": 1793234376825
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0005",
+      "status": "done",
+      "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 3,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234376826
+    },
+    {
+      "type": "task.stopping",
+      "id": "ses_3",
+      "at": 1793234376826
+    },
+    {
+      "type": "task.end",
+      "id": "ses_3",
+      "state": "stopped",
+      "report": {
+        "summary": "",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 1,
+          "durationMs": 22,
+          "tokens": 1380
+        },
+        "stoppedByUser": true
+      },
+      "call": "toolu_mock0004",
+      "at": 1793234376834
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0004",
+      "status": "stopped",
+      "result": "Subagent cancelled (sessionID: ses_3)",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": "ses_3",
+      "files": [],
+      "at": 1793234376834
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234376843
+    },
+    {
+      "type": "reply",
+      "at": 1793234376856
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234376856
+    },
+    {
+      "type": "text.start",
+      "part": "msg_10:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234376861
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_10:text:0",
+      "text": "The helper was stopped.",
+      "at": 1793234376862
+    },
+    {
+      "type": "text.end",
+      "part": "msg_10:text:0",
+      "text": "The helper was stopped.",
+      "at": 1793234376862
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234376870
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 112,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.06741,
+      "prompts": [],
+      "at": 1793234376871
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234376871
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "PAPA ask a helper",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234376272
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234376279
+          },
+          {
+            "type": "reply",
+            "at": 1793234376279
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234376279
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "Asking a helper.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234376279
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "Asking a helper.",
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "subagent",
+            "kind": "agent",
+            "title": "subagent",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "agent": "general",
+              "description": "Change the greeting",
+              "prompt": "QUEBEC change it"
+            },
+            "summary": "Change the greeting",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": {
+              "name": "general",
+              "task": "Change the greeting",
+              "prompt": "QUEBEC change it",
+              "type": "general",
+              "model": ""
+            },
+            "message": null,
+            "todos": null,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0002",
+            "parent": "toolu_mock0001",
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0002",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/a.ts"
+            },
+            "summary": "<root>/project/src/a.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0002",
+            "status": "done",
+            "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 1,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0003",
+            "parent": "toolu_mock0001",
+            "name": "edit",
+            "kind": "edit",
+            "title": "edit",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0003",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/a.ts",
+              "oldString": "\"hello\"",
+              "newString": "\"hey\""
+            },
+            "summary": "<root>/project/src/a.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0003",
+            "status": "done",
+            "result": "Edited src/a.ts (1 replacement)",
+            "images": [],
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hey\""
+                ]
+              }
+            ],
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/src/a.ts",
+                "change": "update",
+                "movedTo": null,
+                "patch": [
+                  {
+                    "oldStart": 1,
+                    "oldLines": 1,
+                    "newStart": 1,
+                    "newLines": 1,
+                    "lines": [
+                      "-export const greeting = \"hello\"",
+                      "+export const greeting = \"hey\""
+                    ]
+                  }
+                ],
+                "after": null
+              }
+            ],
+            "at": 1793234376279
+          },
+          {
+            "type": "text.start",
+            "part": "msg_5:text:0",
+            "parent": "toolu_mock0001",
+            "text": "The greeting now says hey.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234376279
+          },
+          {
+            "type": "text.end",
+            "part": "msg_5:text:0",
+            "text": "The greeting now says hey.",
+            "at": 1793234376279
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "The greeting now says hey.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": "ses_2",
+            "files": [],
+            "at": 1793234376279
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234376279
+          },
+          {
+            "type": "reply",
+            "at": 1793234376734
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234376734
+          },
+          {
+            "type": "text.start",
+            "part": "msg_6:text:0",
+            "parent": null,
+            "text": "The helper changed it.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234376734
+          },
+          {
+            "type": "text.end",
+            "part": "msg_6:text:0",
+            "text": "The helper changed it.",
+            "at": 1793234376734
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234376734
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "ROMEO wait for a helper",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234376760
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234376762
+          },
+          {
+            "type": "reply",
+            "at": 1793234376762
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0004",
+            "parent": null,
+            "name": "subagent",
+            "kind": "agent",
+            "title": "subagent",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0004",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "agent": "general",
+              "description": "Wait for ever",
+              "prompt": "SIERRA wait"
+            },
+            "summary": "Wait for ever",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": {
+              "name": "general",
+              "task": "Wait for ever",
+              "prompt": "SIERRA wait",
+              "type": "general",
+              "model": ""
+            },
+            "message": null,
+            "todos": null,
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0005",
+            "parent": "toolu_mock0004",
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0005",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "README.md"
+            },
+            "summary": "<root>/project/README.md",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0005",
+            "status": "done",
+            "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 3,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234376762
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0004",
+            "status": "stopped",
+            "result": "Subagent cancelled (sessionID: ses_3)",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234376762
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234376762
+          },
+          {
+            "type": "reply",
+            "at": 1793234376849
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234376849
+          },
+          {
+            "type": "text.start",
+            "part": "msg_10:text:0",
+            "parent": null,
+            "text": "The helper was stopped.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234376849
+          },
+          {
+            "type": "text.end",
+            "part": "msg_10:text:0",
+            "text": "The helper was stopped.",
+            "at": 1793234376849
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234376849
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "text-4",
+      "turn-5",
+      "user-6",
+      "toolu_mock0004",
+      "text-7",
+      "turn-8"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "PAPA ask a helper",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Asking a helper.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "subagent",
+        "toolKind": "agent",
+        "title": "subagent",
+        "server": null,
+        "inputText": "{\"agent\":\"general\",\"description\":\"Change the greeting\",\"prompt\":\"QUEBEC change it\"}",
+        "input": {
+          "agent": "general",
+          "description": "Change the greeting",
+          "prompt": "QUEBEC change it"
+        },
+        "summary": "Change the greeting",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "The greeting now says hey.",
+        "children": [
+          "toolu_mock0002",
+          "toolu_mock0003",
+          "text-3"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "general",
+          "task": "Change the greeting",
+          "prompt": "QUEBEC change it",
+          "type": "general",
+          "model": "claude-opus-5-5",
+          "tokens": 4140,
+          "state": "completed",
+          "toolUses": 2,
+          "durationMs": 109,
+          "report": "The greeting now says hey.",
+          "error": null,
+          "activity": "src/a.ts",
+          "stoppedByUser": false
+        },
+        "taskId": "ses_2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\"}",
+        "input": {
+          "path": "src/a.ts"
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\",\"oldString\":\"\\\"hello\\\"\",\"newString\":\"\\\"hey\\\"\"}",
+        "input": {
+          "path": "src/a.ts",
+          "oldString": "\"hello\"",
+          "newString": "\"hey\""
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Edited src/a.ts (1 replacement)",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 1,
+            "newStart": 1,
+            "newLines": 1,
+            "lines": [
+              "-export const greeting = \"hello\"",
+              "+export const greeting = \"hey\""
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/src/a.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hey\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "The greeting now says hey.",
+        "streaming": false
+      },
+      "text-4": {
+        "kind": "text",
+        "id": "text-4",
+        "markdown": "The helper changed it.",
+        "streaming": false
+      },
+      "turn-5": {
+        "kind": "turn-end",
+        "id": "turn-5",
+        "costUsd": 0.04221,
+        "durationMs": 489,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234376756
+      },
+      "user-6": {
+        "kind": "user",
+        "id": "user-6",
+        "text": "ROMEO wait for a helper",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0004": {
+        "kind": "tool",
+        "id": "toolu_mock0004",
+        "name": "subagent",
+        "toolKind": "agent",
+        "title": "subagent",
+        "server": null,
+        "inputText": "{\"agent\":\"general\",\"description\":\"Wait for ever\",\"prompt\":\"SIERRA wait\"}",
+        "input": {
+          "agent": "general",
+          "description": "Wait for ever",
+          "prompt": "SIERRA wait"
+        },
+        "summary": "Wait for ever",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [
+          "toolu_mock0005"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "general",
+          "task": "Wait for ever",
+          "prompt": "SIERRA wait",
+          "type": "general",
+          "model": "claude-opus-5-5",
+          "tokens": 1380,
+          "state": "stopped",
+          "toolUses": 1,
+          "durationMs": 22,
+          "report": "",
+          "error": null,
+          "activity": "README.md",
+          "stoppedByUser": true
+        },
+        "taskId": "ses_3"
+      },
+      "toolu_mock0005": {
+        "kind": "tool",
+        "id": "toolu_mock0005",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"README.md\"}",
+        "input": {
+          "path": "README.md"
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 3,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-7": {
+        "kind": "text",
+        "id": "text-7",
+        "markdown": "The helper was stopped.",
+        "streaming": false
+      },
+      "turn-8": {
+        "kind": "turn-end",
+        "id": "turn-8",
+        "costUsd": 0.06741,
+        "durationMs": 112,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234376871
+      }
+    },
+    "tasks": {
+      "ses_2": {
+        "id": "ses_2",
+        "type": "local_agent",
+        "toolUseId": "toolu_mock0001",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "general",
+        "description": "Change the greeting",
+        "prompt": "QUEBEC change it",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "src/a.ts",
+        "lastTool": "edit",
+        "toolUses": 2,
+        "durationMs": 109,
+        "tokens": 4140,
+        "summary": "The greeting now says hey.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      },
+      "ses_3": {
+        "id": "ses_3",
+        "type": "local_agent",
+        "toolUseId": "toolu_mock0004",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "stopped",
+        "name": "general",
+        "description": "Wait for ever",
+        "prompt": "SIERRA wait",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "README.md",
+        "lastTool": "read",
+        "toolUses": 1,
+        "durationMs": 22,
+        "tokens": 1380,
+        "summary": "",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0.06741,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Helpers",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

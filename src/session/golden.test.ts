@@ -389,7 +389,8 @@ test("every fixture has a golden and every golden a fixture", () => {
   wanted.sort()
   const present = existsSync(GOLDENS)
     ? readdirSync(GOLDENS, { recursive: true, encoding: "utf8" })
-        .filter((file) => file.endsWith(".json"))
+        // opencode's goldens are its adapter's own, written with UPDATE_OPENCODE_GOLDENS.
+        .filter((file) => file.endsWith(".json") && !file.startsWith("opencode/"))
         .toSorted()
     : []
   if (UPDATE) {

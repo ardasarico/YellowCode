@@ -1,5 +1,6 @@
 import { log } from "../log/log.ts"
 import { modCommands } from "../mods/registry.ts"
+import type { Prompt } from "../agent/agent.ts"
 import type { CommandRow as ListedCommand, ModelRow } from "../agent/lists.ts"
 
 // `builtin` is the agent's own command (/model, /clear, and a few bundled skills), not a skill or a custom command.
@@ -23,6 +24,7 @@ export const OWN_COMMANDS: Command[] = [
   { name: "settings", description: "Open YellowCode settings", argumentHint: "", aliases: [] },
   { name: "report", description: "Copy a summary of your setup for a bug report", argumentHint: "", aliases: [] },
   { name: "resume", description: "Resume a session from this project", argumentHint: "", aliases: [] },
+  { name: "agent", description: "Start a new session with another agent", argumentHint: "", aliases: [] },
   { name: "rewind", description: "Go back to before a prompt", argumentHint: "", aliases: [] },
   { name: "timeline", description: "Move through the prompts of this session", argumentHint: "", aliases: [] },
   { name: "redo", description: "Bring back what the last rewind hid", argumentHint: "", aliases: [] },
@@ -48,6 +50,14 @@ export function agentCommands(commands: ListedCommand[], terminalOnly: readonly 
       builtin,
     })),
   )
+}
+
+// The agent's listed command a message runs: its text starts with the command's name or an alias.
+export function commandOf(text: string, commands: ListedCommand[] = []): Prompt["command"] {
+  const typed = /^\/(\S+)(?:\s+([\s\S]*))?$/.exec(text)
+  const name = typed?.[1]
+  const found = name && commands.find((command) => command.name === name || command.aliases.includes(name))
+  return found ? { name: found.name, args: typed?.[2]?.trim() ?? "" } : null
 }
 
 // An own command hides recorded commands and aliases with its name, so the list shows it once.

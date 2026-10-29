@@ -23,10 +23,12 @@ const restoresOf = (points: RewindPoint[]) =>
   new Map(points.flatMap((point, at) => (point.restores ? [[at, point.restores] as const] : [])))
 
 // The timeline: the prompts newest first, and the chat follows the selected one. Under them, one line on what rewinding
-// to it undoes, notes on what it cannot undo or will stop, and one for files changed after Claude. Enter opens what
+// to it undoes, notes on what it cannot undo or will stop, and one for files changed after the agent. Enter opens what
 // can be done with the prompt; `r` rewinds the code and the conversation at once, `c` only the conversation.
 export function RewindDialog(
   props: RewindLook & {
+    // What the chat calls the agent in short texts.
+    agent: string
     // What the snapshots know, when it came too late for the dialog to open with it.
     late?: Promise<RewindLook | null>
     // Resolves once the rewind is done, or with what changed since the dialog showed its ⚠; then it stays open.
@@ -138,7 +140,7 @@ export function RewindDialog(
       const why = later.find((point) => point.untrackedWhy)?.untrackedWhy
       note("untracked", why ? `Files not tracked: ${why}` : "Files not tracked here")
     }
-    if (later.some((point) => point.imported)) note("imported", "Only Claude's edits here")
+    if (later.some((point) => point.imported)) note("imported", `Only ${props.agent}'s edits here`)
     const tasks = later.flatMap((point) => point.tasks)
     if (tasks.length > 0) note("tasks", `Stops ${plural(tasks.length, "background task")}: ${tasks.join(", ")}`)
     const shells = later.flatMap((point) => point.shells)
@@ -152,8 +154,8 @@ export function RewindDialog(
     if (conflicts.length > 0) {
       const text =
         conflicts.length === 1 && only
-          ? `⚠ ${only.path} changed after Claude`
-          : `⚠ ${conflicts.length} files changed after Claude: ${conflicts.map((file) => file.path).join(", ")}`
+          ? `⚠ ${only.path} changed after ${props.agent}`
+          : `⚠ ${conflicts.length} files changed after ${props.agent}: ${conflicts.map((file) => file.path).join(", ")}`
       lines.push({ id: "conflicts", spans: [{ text: cut(text, inner()), fg: theme.warning }] })
     }
     if (unchecked().has(at)) {

@@ -1,0 +1,786 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234095949
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234095949
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "OSCAR one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234096433
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234096434
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234096440
+    },
+    {
+      "type": "title",
+      "title": "Compacting",
+      "at": 1793234096458
+    },
+    {
+      "type": "reply",
+      "at": 1793234096485
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234096485
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234096485
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234096486
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "The first turn is done.",
+      "at": 1793234096487
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "The first turn is done.",
+      "at": 1793234096487
+    },
+    {
+      "type": "context.used",
+      "tokens": 152000,
+      "at": 1793234096495
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 62,
+      "inputTokens": 2000,
+      "outputTokens": 180,
+      "tokens": 152180,
+      "sessionCostUsd": 0.04181,
+      "prompts": [],
+      "at": 1793234096496
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234096499
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793234096500
+    },
+    {
+      "type": "compacted",
+      "before": 152000,
+      "after": 180,
+      "at": 1793234096673
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": true,
+      "durationMs": 175,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": 0.05021,
+      "prompts": [],
+      "at": 1793234096673
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "OSCAR two, after the summary",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234096680
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234096680
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234096682
+    },
+    {
+      "type": "reply",
+      "at": 1793234096699
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234096699
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234096700
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "Going on from the summary.",
+      "at": 1793234096704
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "Going on from the summary.",
+      "at": 1793234096704
+    },
+    {
+      "type": "context.used",
+      "tokens": 3000,
+      "at": 1793234096712
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 33,
+      "inputTokens": 3000,
+      "outputTokens": 180,
+      "tokens": 3180,
+      "sessionCostUsd": 0.06581,
+      "prompts": [],
+      "at": 1793234096713
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "OSCAR three, near the end of the window",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234096714
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234096715
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793234096716
+    },
+    {
+      "type": "reply",
+      "at": 1793234096725
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234096725
+    },
+    {
+      "type": "text.start",
+      "part": "msg_6:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234096726
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_6:text:0",
+      "text": "The context is nearly full.",
+      "at": 1793234096738
+    },
+    {
+      "type": "text.end",
+      "part": "msg_6:text:0",
+      "text": "The context is nearly full.",
+      "at": 1793234096738
+    },
+    {
+      "type": "context.used",
+      "tokens": 196000,
+      "at": 1793234096746
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 31,
+      "inputTokens": 1000,
+      "outputTokens": 180,
+      "tokens": 196180,
+      "sessionCostUsd": 0.11241,
+      "prompts": [],
+      "at": 1793234096746
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "OSCAR four, past the window",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234096748
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234096748
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-4"
+      ],
+      "at": 1793234096750
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793234096751
+    },
+    {
+      "type": "compacted",
+      "before": 196000,
+      "after": 180,
+      "at": 1793234096879
+    },
+    {
+      "type": "reply",
+      "at": 1793234096895
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234096895
+    },
+    {
+      "type": "text.start",
+      "part": "msg_10:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234096896
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_10:text:0",
+      "text": "Going on after the second summary.",
+      "at": 1793234096900
+    },
+    {
+      "type": "text.end",
+      "part": "msg_10:text:0",
+      "text": "Going on after the second summary.",
+      "at": 1793234096901
+    },
+    {
+      "type": "context.used",
+      "tokens": 4000,
+      "at": 1793234096917
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 171,
+      "inputTokens": 4000,
+      "outputTokens": 180,
+      "tokens": 4180,
+      "sessionCostUsd": 0.14041,
+      "prompts": [],
+      "at": 1793234096919
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234096919
+    }
+  ],
+  "outputs": [
+    {
+      "context": {
+        "model": "anthropic/claude-opus-5-5",
+        "used": 4000,
+        "window": 200000,
+        "categories": [],
+        "files": [],
+        "tools": []
+      }
+    },
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "OSCAR one",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234096440
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234096447
+          },
+          {
+            "type": "reply",
+            "at": 1793234096447
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234096447
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "The first turn is done.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234096447
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "The first turn is done.",
+            "at": 1793234096447
+          },
+          {
+            "type": "context.used",
+            "tokens": 152000,
+            "at": 1793234096447
+          },
+          {
+            "type": "compacted",
+            "before": 152000,
+            "after": 180,
+            "at": 1793234096500
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "OSCAR two, after the summary",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234096682
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234096685
+          },
+          {
+            "type": "reply",
+            "at": 1793234096685
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234096685
+          },
+          {
+            "type": "text.start",
+            "part": "msg_5:text:0",
+            "parent": null,
+            "text": "Going on from the summary.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234096685
+          },
+          {
+            "type": "text.end",
+            "part": "msg_5:text:0",
+            "text": "Going on from the summary.",
+            "at": 1793234096685
+          },
+          {
+            "type": "context.used",
+            "tokens": 3000,
+            "at": 1793234096685
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-3",
+            "text": "OSCAR three, near the end of the window",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234096716
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234096718
+          },
+          {
+            "type": "reply",
+            "at": 1793234096718
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234096718
+          },
+          {
+            "type": "text.start",
+            "part": "msg_6:text:0",
+            "parent": null,
+            "text": "The context is nearly full.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234096718
+          },
+          {
+            "type": "text.end",
+            "part": "msg_6:text:0",
+            "text": "The context is nearly full.",
+            "at": 1793234096718
+          },
+          {
+            "type": "context.used",
+            "tokens": 196000,
+            "at": 1793234096718
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-4",
+            "text": "OSCAR four, past the window",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234096750
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234096751
+          },
+          {
+            "type": "compacted",
+            "before": 196000,
+            "after": 180,
+            "at": 1793234096751
+          },
+          {
+            "type": "reply",
+            "at": 1793234096883
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234096883
+          },
+          {
+            "type": "text.start",
+            "part": "msg_10:text:0",
+            "parent": null,
+            "text": "Going on after the second summary.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234096883
+          },
+          {
+            "type": "text.end",
+            "part": "msg_10:text:0",
+            "text": "Going on after the second summary.",
+            "at": 1793234096883
+          },
+          {
+            "type": "context.used",
+            "tokens": 4000,
+            "at": 1793234096883
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "system-4",
+      "user-5",
+      "text-6",
+      "turn-7",
+      "user-8",
+      "text-9",
+      "turn-10",
+      "user-11",
+      "system-12",
+      "text-13",
+      "turn-14"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "OSCAR one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The first turn is done.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.04181,
+        "durationMs": 62,
+        "inputTokens": 2000,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234096496
+      },
+      "system-4": {
+        "kind": "system",
+        "id": "system-4",
+        "text": "context compacted",
+        "level": "info",
+        "tokens": {
+          "before": 152000,
+          "after": 180
+        }
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "OSCAR two, after the summary",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "Going on from the summary.",
+        "streaming": false
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "costUsd": 0.06581,
+        "durationMs": 33,
+        "inputTokens": 3000,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234096713
+      },
+      "user-8": {
+        "kind": "user",
+        "id": "user-8",
+        "text": "OSCAR three, near the end of the window",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-9": {
+        "kind": "text",
+        "id": "text-9",
+        "markdown": "The context is nearly full.",
+        "streaming": false
+      },
+      "turn-10": {
+        "kind": "turn-end",
+        "id": "turn-10",
+        "costUsd": 0.11241,
+        "durationMs": 31,
+        "inputTokens": 1000,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234096746
+      },
+      "user-11": {
+        "kind": "user",
+        "id": "user-11",
+        "text": "OSCAR four, past the window",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "system-12": {
+        "kind": "system",
+        "id": "system-12",
+        "text": "context compacted",
+        "level": "info",
+        "tokens": {
+          "before": 196000,
+          "after": 180
+        }
+      },
+      "text-13": {
+        "kind": "text",
+        "id": "text-13",
+        "markdown": "Going on after the second summary.",
+        "streaming": false
+      },
+      "turn-14": {
+        "kind": "turn-end",
+        "id": "turn-14",
+        "costUsd": 0.14041,
+        "durationMs": 171,
+        "inputTokens": 4000,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234096919
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 355720,
+      "costUsd": 0.14041,
+      "context": {
+        "used": 4000,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Compacting",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

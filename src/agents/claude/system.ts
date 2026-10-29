@@ -4,7 +4,7 @@ import { log } from "../../log/log.ts"
 import { isOwnAskServer, type ProtocolMessage } from "../../protocol/messages.ts"
 import { type Draft, textOf } from "./draft.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
-import { placeOf, shortName, stateOf } from "./mcp-rows.ts"
+import { placeOf, shortName, stateOf, toolServer } from "./mcp-rows.ts"
 import { mcpOf } from "./tools.ts"
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
@@ -39,13 +39,14 @@ export function initInfo(message: System<"init">): SessionInfo {
         place: placeOf(server.source ?? null),
         state: stateOf(server.status),
         status: server.status,
-        // claude's own word: the store keeps it as the server's source until it keeps these rows.
+        // claude's own word, which the store keeps as the server's source; the rows it shows come from mcpRows.
         origin: server.source ?? null,
         scope: null,
         error: server.error ?? null,
         config: null,
         server: null,
         tools: null,
+        toolServer: toolServer(server.name),
       })),
     skills: message.skills,
     commands: message.slash_commands ?? [],

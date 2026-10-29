@@ -1,10 +1,11 @@
-import { createEffect, createMemo, createRoot, on } from "solid-js"
+import { type Accessor, createEffect, createMemo, createRoot, on } from "solid-js"
 import { z } from "zod"
 import packageJson from "../../package.json"
+import type { ClientTool } from "../agent/agent.ts"
 import { log } from "../log/log.ts"
-import type { ModToolResult } from "../mods/api.ts"
 import { MOD_SERVER_PREFIX as PREFIX, type ModHost } from "../mods/host.ts"
-import { modTools, setModServerErrors } from "../mods/registry.ts"
+import { setModServerErrors } from "../mods/registry.ts"
+import { callClientTool, mcpToolEntry } from "../protocol/mcp-tools.ts"
 import { type McpMessage, OWN_ASK_SERVER } from "../protocol/messages.ts"
 import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "./requests.ts"
@@ -15,31 +16,17 @@ const METHOD_NOT_FOUND = -32601
 const INVALID_PARAMS = -32602
 
 export const isModServer = (name: string) => name.startsWith(PREFIX)
-const modOf = (server: string) => server.slice(PREFIX.length)
 
-const toolCall = z.object({ name: z.string(), arguments: z.record(z.string(), z.unknown()).optional() })
 const initializeParams = z.looseObject({ protocolVersion: z.string() })
 
-function resultOf(result: ModToolResult) {
-  const { text, isError } = typeof result === "string" ? { text: result, isError: false } : result
-  return { content: [{ type: "text", text }], isError: isError === true }
-}
-
-// A throwing tool is an error Claude reads; it does not turn the mod off.
-async function call(mod: string, params: unknown) {
-  const parsed = toolCall.safeParse(params)
-  const tool = parsed.success ? modTools().find((entry) => entry.mod === mod && entry.name === parsed.data.name) : null
-  if (!parsed.success || !tool) return { content: [{ type: "text", text: "Unknown tool" }], isError: true }
-  try {
-    return resultOf(await tool.run(parsed.data.arguments ?? {}))
-  } catch (error) {
-    log.warn(`mod ${mod}: tool ${tool.name} failed`, error)
-    return { content: [{ type: "text", text: error instanceof Error ? error.message : String(error) }], isError: true }
-  }
-}
-
-export function serveModTools(send: (line: string) => void, requestId: string, request: McpMessage): void {
-  const mod = modOf(request.server_name)
+// `tools` are the agent's client tools; the server's own are those it groups.
+export function serveModTools(
+  send: (line: string) => void,
+  requestId: string,
+  request: McpMessage,
+  tools: readonly ClientTool[],
+): void {
+  const served = tools.filter((tool) => tool.server === request.server_name)
   const { id, method, params } = request.message
   if (id === undefined) return send(mcpAck(requestId))
   switch (method) {
@@ -57,17 +44,9 @@ export function serveModTools(send: (line: string) => void, requestId: string, r
     case "ping":
       return send(mcpResponse(requestId, id, {}))
     case "tools/list":
-      return send(
-        mcpResponse(requestId, id, {
-          tools: modTools()
-            .filter((tool) => tool.mod === mod)
-            .map(({ name, description, inputSchema, annotations }) =>
-              annotations ? { name, description, inputSchema, annotations } : { name, description, inputSchema },
-            ),
-        }),
-      )
+      return send(mcpResponse(requestId, id, { tools: served.map(mcpToolEntry) }))
     case "tools/call":
-      void call(mod, params).then((result) => send(mcpResponse(requestId, id, result)))
+      void callClientTool(served, params).then((result) => send(mcpResponse(requestId, id, result)))
       return
     case undefined:
     default:
@@ -76,14 +55,18 @@ export function serveModTools(send: (line: string) => void, requestId: string, r
 }
 
 // The servers claude should have: our ask server, every running mod's tools, and its manifest's servers.
-export function modServerConfigs(host: Pick<ModHost, "entries" | "servers">): Record<string, unknown> {
+export function modServerConfigs(
+  host: Pick<ModHost, "entries" | "servers">,
+  tools: readonly ClientTool[],
+): Record<string, unknown> {
   const servers: Record<string, unknown> = {
     [OWN_ASK_SERVER]: { type: "sdk", name: OWN_ASK_SERVER, timeout: OWN_ASK_TIMEOUT_MS },
   }
-  const withTools = new Set(modTools().map((tool) => tool.mod))
+  const withTools = new Set(tools.map((tool) => tool.server))
   for (const entry of host.entries) {
     if (entry.status !== "on") continue
-    if (withTools.has(entry.id)) servers[`${PREFIX}${entry.id}`] = { type: "sdk", name: `${PREFIX}${entry.id}` }
+    const name = `${PREFIX}${entry.id}`
+    if (withTools.has(name)) servers[name] = { type: "sdk", name }
     Object.assign(servers, host.servers(entry.id))
   }
   return servers
@@ -91,16 +74,20 @@ export function modServerConfigs(host: Pick<ModHost, "entries" | "servers">): Re
 
 const setServersReply = z.looseObject({ errors: z.record(z.string(), z.string()).optional() })
 
-// Each mod's tool names, so a change in them can be told apart from a change in the servers.
-function toolNames(): Record<string, string> {
+// Each server's tool names, so a change in them can be told apart from a change in the servers.
+function toolNames(tools: readonly ClientTool[]): Record<string, string> {
   const names: Record<string, string[]> = {}
-  for (const tool of modTools()) (names[tool.mod] ??= []).push(tool.name)
-  return Object.fromEntries(Object.entries(names).map(([mod, list]) => [mod, list.toSorted().join(",")]))
+  for (const tool of tools) (names[tool.server] ??= []).push(tool.name)
+  return Object.fromEntries(Object.entries(names).map(([server, list]) => [server, list.toSorted().join(",")]))
 }
 
-// Keeps claude's dynamic MCP servers in step with the running mods, from initialize on.
-export function syncModServers(requests: Requests, host: Pick<ModHost, "entries" | "servers">): () => void {
-  const configs = () => modServerConfigs(host)
+// Keeps claude's dynamic MCP servers in step with the client tools and the running mods' servers, from initialize on.
+export function syncModServers(
+  requests: Requests,
+  host: Pick<ModHost, "entries" | "servers">,
+  clientTools: Accessor<readonly ClientTool[]>,
+): () => void {
+  const configs = () => modServerConfigs(host, clientTools())
   const setServers = (servers: Record<string, unknown>) =>
     requests
       .send((id) => mcpSetServersRequest(id, servers))
@@ -118,20 +105,18 @@ export function syncModServers(requests: Requests, host: Pick<ModHost, "entries"
   let sentTools: Record<string, string> = {}
   return createRoot((dispose) => {
     // Entries change on every load and error; only a different config or tool list is sent.
-    const wanted = createMemo(() => JSON.stringify([configs(), toolNames()]))
+    const wanted = createMemo(() => JSON.stringify([configs(), toolNames(clientTools())]))
     createEffect(
       on(wanted, () => {
         const servers = configs()
-        const tools = toolNames()
+        const tools = toolNames(clientTools())
         // claude lists a server's tools once and ignores a config it already has, so a server whose tools changed
         // is removed and added again to make claude list them anew.
         const changed = Object.keys(tools).filter(
-          (mod) => sentTools[mod] !== undefined && sentTools[mod] !== tools[mod] && `${PREFIX}${mod}` in servers,
+          (server) => sentTools[server] !== undefined && sentTools[server] !== tools[server] && server in servers,
         )
         sentTools = tools
-        const without = Object.fromEntries(
-          Object.entries(servers).filter(([name]) => !changed.some((mod) => name === `${PREFIX}${mod}`)),
-        )
+        const without = Object.fromEntries(Object.entries(servers).filter(([name]) => !changed.includes(name)))
         void (changed.length > 0 ? setServers(without).then(() => setServers(servers)) : setServers(servers))
       }),
     )

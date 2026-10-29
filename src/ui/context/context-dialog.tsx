@@ -75,8 +75,41 @@ function sectionsOf(usage: ContextReport, open: ReadonlySet<string>): DialogSect
   return [{ title: "", rows }]
 }
 
-// What fills the context window, from the agent's own count.
-export function ContextDialog(props: { load: () => Promise<ContextReport>; onClose: () => void }) {
+// The bar and the total, for an agent that counts no categories.
+function totalOf(usage: ContextReport, agent: string): DialogSection[] {
+  const bar = BAR - 6
+  const filled = usage.window > 0 ? Math.min(bar, Math.round((usage.used / usage.window) * bar)) : 0
+  const used = formatTokens(usage.used)
+  return [
+    {
+      title: "",
+      rows: [
+        {
+          id: "bar",
+          spans: [
+            { text: "█".repeat(filled), fg: theme.accent },
+            { text: "░".repeat(bar - filled), fg: theme.panelFaint },
+            { text: `  ${percent(usage.used, usage.window)}`, fg: theme.text },
+          ],
+        },
+        { id: "gap", spans: [] },
+        {
+          id: "total",
+          spans: [
+            {
+              text: `${usage.window > 0 ? `${used} of ${formatTokens(usage.window)}` : used} tokens used`,
+              fg: theme.text,
+            },
+          ],
+        },
+        { id: "note", spans: [{ text: `${agent} doesn't break this down further.`, fg: theme.panelMuted }] },
+      ],
+    },
+  ]
+}
+
+// What fills the context window, from the agent's own count. `total` names the agent when it counts no categories.
+export function ContextDialog(props: { load: () => Promise<ContextReport>; total?: string; onClose: () => void }) {
   const [usage, setUsage] = createSignal<ContextReport | null>(null)
   const [problem, setProblem] = createSignal<string | null>(null)
   const [open, setOpen] = createSignal(new Set<string>())
@@ -85,19 +118,27 @@ export function ContextDialog(props: { load: () => Promise<ContextReport>; onClo
   })
   return (
     <Dialog
-      title="Context"
+      title={(() => {
+        const shown = usage()
+        return props.total !== undefined && shown ? `Context · ${shown.model}` : "Context"
+      })()}
       width={WIDTH}
       sections={(() => {
         const shown = usage()
+        if (shown && props.total !== undefined) return totalOf(shown, props.total)
         if (shown) return sectionsOf(shown, open())
         const failed = problem()
         return message(failed ? `Could not read the context: ${failed}` : "Reading the context…")
       })()}
-      footer={[
-        { key: "↑↓", action: "select" },
-        { key: "enter", action: "open", needsRow: true },
-        { key: "esc", action: "close" },
-      ]}
+      footer={
+        props.total === undefined
+          ? [
+              { key: "↑↓", action: "select" },
+              { key: "enter", action: "open", needsRow: true },
+              { key: "esc", action: "close" },
+            ]
+          : [{ key: "esc", action: "close" }]
+      }
       footerStyle="keys"
       search={false}
       view="context"

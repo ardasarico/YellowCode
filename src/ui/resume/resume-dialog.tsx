@@ -3,37 +3,40 @@ import { log } from "../../log/log.ts"
 import type { SessionEntry } from "../../agent/sessions.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
-import { formatAgo, NO_PROMPT } from "../format.ts"
+import { NO_PROMPT } from "../format.ts"
+import { rowEnd, type SessionList } from "./rows.ts"
 
 // Sessions of different agents may share an id.
 const rowId = (entry: SessionEntry) => `${entry.ref.agent}:${entry.ref.id}`
 
-export type ResumeSessions = { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
+export type ResumeSessions = { list(): Promise<SessionList>; open(entry: SessionEntry): void }
 
 export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => void }) {
-  const [entries, setEntries] = createSignal<SessionEntry[] | null>(null)
+  const [list, setList] = createSignal<SessionList | null>(null)
   const [failed, setFailed] = createSignal(false)
   onMount(() => {
     props.sessions
       .list()
-      .then(setEntries)
+      .then(setList)
       .catch((error: unknown) => {
         log.warn("sessions could not be read", String(error))
         setFailed(true)
-        setEntries([])
+        setList({ entries: [], names: null })
       })
   })
 
+  const entries = () => list()?.entries ?? null
   const sections = () => {
-    const now = Date.now()
+    const shown = list() ?? { entries: [], names: null }
+    const end = rowEnd(shown, Date.now())
     return [
       {
         title: "",
-        rows: (entries() ?? []).map((entry) => ({
+        rows: shown.entries.map((entry) => ({
           id: rowId(entry),
           label: entry.title || NO_PROMPT,
           labelColor: entry.title ? undefined : theme.panelMuted,
-          value: formatAgo(entry.modified, now),
+          value: end(entry),
           search: `${entry.title}\n${entry.firstPrompt}`,
         })),
       },

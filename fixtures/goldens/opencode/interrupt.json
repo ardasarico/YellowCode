@@ -1,0 +1,432 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234393043
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234393043
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "ZULU write something long",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234393523
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234393524
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234393531
+    },
+    {
+      "type": "reply",
+      "at": 1793234393577
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234393577
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234393577
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234393579
+    },
+    {
+      "type": "title",
+      "title": "Stopping",
+      "at": 1793234393584
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Starting a long answer, and then",
+      "at": 1793234393682
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "ZULU steered while it hangs",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234393684
+    },
+    {
+      "type": "interrupt",
+      "state": "asked",
+      "at": 1793234393682
+    },
+    {
+      "type": "interrupt",
+      "state": "answered",
+      "at": 1793234393682
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Starting a long answer, and then",
+      "at": 1793234393686
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": true,
+      "local": false,
+      "durationMs": 173,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": 0.00021,
+      "prompts": [],
+      "at": 1793234393697
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234393698
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234393699
+    },
+    {
+      "type": "reply",
+      "at": 1793234393710
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234393710
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234393711
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "Stopped there. What else?",
+      "at": 1793234393812
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "Stopped there. What else?",
+      "at": 1793234393852
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234393867
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 170,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.00861,
+      "prompts": [],
+      "at": 1793234393868
+    },
+    {
+      "type": "interrupt",
+      "state": "asked",
+      "at": 1793234393868
+    },
+    {
+      "type": "interrupt",
+      "state": "refused",
+      "at": 1793234393868
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234393868
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "ZULU write something long",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234393531
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234393539
+          },
+          {
+            "type": "reply",
+            "at": 1793234393539
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234393539
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "Starting a long answer, and then",
+            "local": false,
+            "quiet": false,
+            "at": 1793234393539
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "Starting a long answer, and then",
+            "at": 1793234393539
+          },
+          {
+            "type": "turn.end",
+            "error": null,
+            "interrupted": true,
+            "local": false,
+            "durationMs": 158,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "tokens": 0,
+            "sessionCostUsd": null,
+            "prompts": [],
+            "at": 1793234393697
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "ZULU steered while it hangs",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234393699
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234393702
+          },
+          {
+            "type": "reply",
+            "at": 1793234393702
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234393702
+          },
+          {
+            "type": "text.start",
+            "part": "msg_2:text:0",
+            "parent": null,
+            "text": "Stopped there. What else?",
+            "local": false,
+            "quiet": false,
+            "at": 1793234393702
+          },
+          {
+            "type": "text.end",
+            "part": "msg_2:text:0",
+            "text": "Stopped there. What else?",
+            "at": 1793234393702
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234393702
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "user-3",
+      "turn-4",
+      "text-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "ZULU write something long",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Starting a long answer, and then",
+        "streaming": false
+      },
+      "user-3": {
+        "kind": "user",
+        "id": "user-3",
+        "text": "ZULU steered while it hangs",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.00021,
+        "durationMs": 173,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 1793234393697
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Stopped there. What else?",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.00861,
+        "durationMs": 170,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234393868
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0.00861,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Stopping",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

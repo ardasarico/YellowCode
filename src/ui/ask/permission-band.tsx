@@ -14,7 +14,7 @@ import { fitHints, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
-const HINTS = "↑↓ choose · enter confirm · n tell Claude instead · esc no"
+const hints = (agent: string) => `↑↓ choose · enter confirm · n tell ${agent} instead · esc no`
 const SHORT_HINTS = "↑↓ · enter · n · esc"
 const NO_NOTE_HINTS = "↑↓ choose · enter confirm · esc no"
 const SHORT_NO_NOTE_HINTS = "↑↓ · enter · esc"
@@ -278,7 +278,7 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
           <input
             focused
             flexGrow={1}
-            placeholder="tell Claude what to do instead"
+            placeholder={`tell ${props.agent} what to do instead`}
             placeholderColor={theme.muted}
             textColor={theme.text}
             focusedTextColor={theme.text}
@@ -294,7 +294,7 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
             : plan()
               ? fitHints(SCRIPT_HINTS, SHORT_SCRIPT_HINTS, props.width - 4)
               : noted()
-                ? fitHints(HINTS, SHORT_HINTS, props.width - 4)
+                ? fitHints(hints(props.agent), SHORT_HINTS, props.width - 4)
                 : fitHints(NO_NOTE_HINTS, SHORT_NO_NOTE_HINTS, props.width - 4)}
         </text>
       </box>

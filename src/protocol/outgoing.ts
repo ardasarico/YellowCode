@@ -1,4 +1,5 @@
-import { ownAskMatrix, ownAskPages, permissionReply, type PermissionUpdate, questionAnswers } from "./messages.ts"
+import { permissionReply, type PermissionUpdate, questionAnswers } from "./messages.ts"
+import { ownAskAnswerText, withAdditionalNote } from "./own-ask-text.ts"
 import { parse } from "./parse.ts"
 
 export type OutgoingImage = {
@@ -76,7 +77,6 @@ export function denyTool(requestId: string, message: string): string {
   return successResponse(requestId, { behavior: "deny", message })
 }
 
-// The model sees notes only under a question's own key, so an additional note joins the last question's notes.
 export function answerQuestions(
   requestId: string,
   input: { questions: { question: string }[] },
@@ -84,12 +84,7 @@ export function answerQuestions(
   notes: Record<string, string>,
   additionalNote = "",
 ): string {
-  const last = input.questions.at(-1)?.question
-  const withExtra = { ...notes }
-  if (additionalNote !== "" && last !== undefined) {
-    const extra = `Additional note: ${additionalNote}`
-    withExtra[last] = withExtra[last] ? `${withExtra[last]}\n${extra}` : extra
-  }
+  const withExtra = withAdditionalNote(notes, input.questions.at(-1)?.question, additionalNote)
   return allowAnswers(requestId, input, answers, withExtra)
 }
 
@@ -133,29 +128,15 @@ export function mcpToolError(requestId: string, rpcId: RpcId, text: string): str
   return mcpResponse(requestId, rpcId, { content: [{ type: "text", text }], isError: true })
 }
 
-// Our own ask's answer goes back as its MCP result, in the words stock AskUserQuestion gives Claude.
+// Our own ask's answer goes back as its MCP result.
 export function ownAskReply(ask: { requestId: string; input: unknown }, rpcId: RpcId, response: string): string {
   const line = parse(response)
   const sent = line.kind === "message" && line.message.type === "control_response" ? line.message.response : null
   const reply = permissionReply.safeParse(sent?.response).data
   if (reply?.behavior !== "allow") return mcpToolError(ask.requestId, rpcId, reply?.message ?? TOOL_DECLINED)
   const answered = questionAnswers.safeParse(reply.updatedInput).data
-  const answers = answered?.answers ?? {}
-  const pair = (key: string) => {
-    const note = answered?.annotations?.[key]?.notes
-    return `"${key}"="${answers[key]}"${note ? ` notes: ${note}` : ""}`
-  }
-  const pairs = (keys: string[]) =>
-    keys
-      .filter((key) => answers[key] !== undefined)
-      .map(pair)
-      .join(", ")
-  const matrix = ownAskMatrix.safeParse(ask.input).data?.matrix
-  const questions = ownAskPages.safeParse(ask.input).data?.questions ?? []
-  const body = matrix
-    ? `"${matrix.question}": ${pairs(matrix.rows.map((row) => row.label))}`
-    : pairs(questions.map((page) => page.question))
-  const text = `Your questions have been answered: ${body}. You can now continue with these answers in mind.`
+  const notes = Object.fromEntries(Object.entries(answered?.annotations ?? {}).map(([key, note]) => [key, note.notes]))
+  const text = ownAskAnswerText(ask.input, answered?.answers ?? {}, notes)
   return mcpResponse(ask.requestId, rpcId, { content: [{ type: "text", text }] })
 }
 

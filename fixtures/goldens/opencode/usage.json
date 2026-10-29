@@ -1,0 +1,357 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234031521
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234031521
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "NOVEMBER what is this project?",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234032001
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234032002
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234032006
+    },
+    {
+      "type": "title",
+      "title": "Counting tokens",
+      "at": 1793234032033
+    },
+    {
+      "type": "reply",
+      "at": 1793234032054
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234032054
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234032054
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234032055
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Reading the readme.",
+      "at": 1793234032056
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Reading the readme.",
+      "at": 1793234032056
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234032057
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "README.md"
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234032058
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 3,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234032061
+    },
+    {
+      "type": "context.used",
+      "tokens": 33000,
+      "at": 1793234032068
+    },
+    {
+      "type": "reply",
+      "at": 1793234032080
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234032080
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234032080
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "It is a small demo.",
+      "at": 1793234032086
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "It is a small demo.",
+      "at": 1793234032086
+    },
+    {
+      "type": "context.used",
+      "tokens": 84000,
+      "at": 1793234032096
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 95,
+      "inputTokens": 3000,
+      "outputTokens": 360,
+      "tokens": 117360,
+      "sessionCostUsd": 0.06141,
+      "prompts": [],
+      "at": 1793234032097
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234032097
+    }
+  ],
+  "outputs": [
+    {
+      "context": {
+        "model": "anthropic/claude-opus-5-5",
+        "used": 0,
+        "window": 200000,
+        "categories": [],
+        "files": [],
+        "tools": []
+      }
+    },
+    {
+      "context": {
+        "model": "anthropic/claude-opus-5-5",
+        "used": 84000,
+        "window": 200000,
+        "categories": [],
+        "files": [],
+        "tools": []
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "NOVEMBER what is this project?",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Reading the readme.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"README.md\"}",
+        "input": {
+          "path": "README.md"
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 3,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "It is a small demo.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.06141,
+        "durationMs": 95,
+        "inputTokens": 3000,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234032097
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 117360,
+      "costUsd": 0.06141,
+      "context": {
+        "used": 84000,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Counting tokens",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

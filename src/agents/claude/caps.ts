@@ -2,19 +2,11 @@ import { type Capabilities, FEATURES } from "../../agent/capabilities.ts"
 import type { ListName } from "../../agent/lists.ts"
 
 export const CLAUDE = "claude"
+export const CLAUDE_NAME = "Claude Code"
+export const CLAUDE_SHORT_NAME = "Claude"
 
-const ALL_LISTS: ListName[] = [
-  "commands",
-  "models",
-  "modes",
-  "skills",
-  "mcp",
-  "loaded",
-  "plugins",
-  "subagents",
-  "hooks",
-  "rules",
-]
+// Not "rules": claude keeps them in its own /permissions, which a typed /permissions opens.
+const LISTS: ListName[] = ["commands", "models", "modes", "skills", "mcp", "loaded", "plugins", "subagents", "hooks"]
 
 export const CLAUDE_CAPS: Capabilities = {
   steer: true,
@@ -45,7 +37,7 @@ export const CLAUDE_CAPS: Capabilities = {
   limits: true,
   cost: true,
   heldElsewhere: { atOpen: true, live: false },
-  lists: ALL_LISTS,
+  lists: LISTS,
   mcp: { toggle: true, reconnect: true, login: true },
   skills: { toggle: true, reload: true },
   plugins: { toggle: true, reload: true },

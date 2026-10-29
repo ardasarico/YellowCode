@@ -18,6 +18,7 @@ import {
   getSkillsDialogRequest,
   reloadPluginsRequest,
 } from "../protocol/outgoing.ts"
+import { showServers } from "../agents/claude/mcp-rows.ts"
 import { pluginScope } from "../agents/claude/plugins.ts"
 import type { SessionStore } from "../session/session.ts"
 import { printable } from "../ui/format.ts"
@@ -203,6 +204,7 @@ export function createExtensions(options: {
     })
     provider.setCommands(commandsOf(reply.data.commands))
     session.setLists({ plugins, mcpServers: mcpServers(reply.data.mcpServers) })
+    showServers(session)
     const errors = reply.data.error_count ?? 0
     const added = pluginErrors === null ? 0 : errors - pluginErrors
     pluginErrors = errors

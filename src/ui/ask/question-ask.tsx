@@ -338,7 +338,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                   flexGrow={1}
                   value={state.extra}
                   onInput={(text: string) => setState("extra", text)}
-                  placeholder="add a note for Claude…"
+                  placeholder={`add a note for ${props.agent}…`}
                   placeholderColor={theme.faint}
                   textColor={theme.text}
                   focusedTextColor={theme.text}
@@ -364,6 +364,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                     <GalleryPage
                       question={current()}
                       width={props.width}
+                      agent={props.agent}
                       focus={focus()}
                       chosen={state.chosen[state.page] ?? []}
                       notes={state.notes[state.page] ?? []}
@@ -428,7 +429,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                                   flexGrow={1}
                                   value={draft()}
                                   onInput={setDraft}
-                                  placeholder="a note for Claude"
+                                  placeholder={`a note for ${props.agent}`}
                                   placeholderColor={theme.muted}
                                   textColor={theme.accent}
                                   focusedTextColor={theme.accent}

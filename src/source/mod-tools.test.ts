@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { z } from "zod"
 import { parseJson } from "../json.ts"
+import { modClientTools } from "../mods/host.ts"
 import { addTool } from "../mods/registry.ts"
 import { serveModTools } from "./mod-tools.ts"
 
@@ -18,6 +19,7 @@ function serve(method: string, params: unknown) {
       },
       "req",
       request,
+      modClientTools(),
     )
   })
 }

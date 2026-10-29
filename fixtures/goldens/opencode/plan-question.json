@@ -1,0 +1,653 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234412852
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234412852
+    },
+    {
+      "type": "mode",
+      "mode": "plan",
+      "at": 1793234412897
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "VICTOR plan a --json flag for the report",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234413329
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234413330
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234413335
+    },
+    {
+      "type": "title",
+      "title": "Plan questions",
+      "at": 1793234413358
+    },
+    {
+      "type": "reply",
+      "at": 1793234413646
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234413646
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234413646
+    },
+    {
+      "type": "text.start",
+      "part": "msg_3:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234413648
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_3:text:0",
+      "text": "Looking first.",
+      "at": 1793234413657
+    },
+    {
+      "type": "text.end",
+      "part": "msg_3:text:0",
+      "text": "Looking first.",
+      "at": 1793234413657
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234413658
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts"
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234413664
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234413667
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234413676
+    },
+    {
+      "type": "reply",
+      "at": 1793234413689
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234413689
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234413690
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts",
+        "oldString": "\"hello\"",
+        "newString": "\"hi\""
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234413691
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "error",
+      "result": "Cannot use edit to modify files outside the Plan directory: <root>/home/.opencode/plan",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234413694
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234413701
+    },
+    {
+      "type": "reply",
+      "at": 1793234413712
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234413712
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234413713
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "Should the JSON include the log lines, or only the versions?",
+      "at": 1793234413736
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "Should the JSON include the log lines, or only the versions?",
+      "at": 1793234413736
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234413744
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 415,
+      "inputTokens": 3600,
+      "outputTokens": 540,
+      "tokens": 4140,
+      "sessionCostUsd": 0.025409999999999995,
+      "prompts": [],
+      "at": 1793234413745
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234413746
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "WHISKEY note it in the plan folder",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234413748
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234413748
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234413750
+    },
+    {
+      "type": "reply",
+      "at": 1793234413760
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234413760
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234413760
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "../home/.opencode/plan/report-json.md",
+        "content": "Notes\n"
+      },
+      "summary": "<root>/home/.opencode/plan/report-json.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234413761
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "Created file successfully: <root>/home/.opencode/plan/report-json.md",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "Notes\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/home/.opencode/plan/report-json.md",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "Notes\n"
+        }
+      ],
+      "at": 1793234413764
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234413770
+    },
+    {
+      "type": "reply",
+      "at": 1793234413781
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234413781
+    },
+    {
+      "type": "text.start",
+      "part": "msg_8:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234413782
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_8:text:0",
+      "text": "Noted.",
+      "at": 1793234413782
+    },
+    {
+      "type": "text.end",
+      "part": "msg_8:text:0",
+      "text": "Noted.",
+      "at": 1793234413782
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234413790
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 42,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.04220999999999999,
+      "prompts": [],
+      "at": 1793234413790
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234413790
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "toolu_mock0002",
+      "text-3",
+      "turn-4",
+      "user-5",
+      "toolu_mock0003",
+      "text-6",
+      "turn-7"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "VICTOR plan a --json flag for the report",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Looking first.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\"}",
+        "input": {
+          "path": "src/a.ts"
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\",\"oldString\":\"\\\"hello\\\"\",\"newString\":\"\\\"hi\\\"\"}",
+        "input": {
+          "path": "src/a.ts",
+          "oldString": "\"hello\"",
+          "newString": "\"hi\""
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "error",
+        "result": "Cannot use edit to modify files outside the Plan directory: <root>/home/.opencode/plan",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "Should the JSON include the log lines, or only the versions?",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.025409999999999995,
+        "durationMs": 415,
+        "inputTokens": 3600,
+        "outputTokens": 540,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234413745
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "WHISKEY note it in the plan folder",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"../home/.opencode/plan/report-json.md\",\"content\":\"Notes\\n\"}",
+        "input": {
+          "path": "../home/.opencode/plan/report-json.md",
+          "content": "Notes\n"
+        },
+        "summary": "<root>/home/.opencode/plan/report-json.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: <root>/home/.opencode/plan/report-json.md",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "Notes\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/home/.opencode/plan/report-json.md",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "Notes\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "Noted.",
+        "streaming": false
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "costUsd": 0.04220999999999999,
+        "durationMs": 42,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234413790
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 6900,
+      "costUsd": 0.04220999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Plan questions",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

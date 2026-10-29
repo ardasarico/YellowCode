@@ -1,0 +1,789 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234404042
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234404042
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "ALPHA echo it",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234404687
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234404688
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234404693
+    },
+    {
+      "type": "title",
+      "title": "Mod tools",
+      "at": 1793234404709
+    },
+    {
+      "type": "reply",
+      "at": 1793234404732
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234404732
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234404732
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234404733
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools[\"mod-demo\"].echo({ text: \"hi\" })"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234404735
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "echo hi",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234404745
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234404753
+    },
+    {
+      "type": "reply",
+      "at": 1793234404765
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234404765
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234404766
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "Echoed.",
+      "at": 1793234404766
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "Echoed.",
+      "at": 1793234404766
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234404773
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 86,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234404774
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "BRAVO again, louder",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234405280
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234405280
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234405284
+    },
+    {
+      "type": "reply",
+      "at": 1793234405295
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234405295
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234405296
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return [await tools[\"mod-demo\"].shout({ text: \"hey\" }), await tools[\"mod-other\"].count({})]"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234405297
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "[\n  \"HEY\",\n  \"3\"\n]",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234405301
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234405308
+    },
+    {
+      "type": "reply",
+      "at": 1793234405320
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234405320
+    },
+    {
+      "type": "text.start",
+      "part": "msg_4:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234405320
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_4:text:0",
+      "text": "Shouted and counted.",
+      "at": 1793234405325
+    },
+    {
+      "type": "text.end",
+      "part": "msg_4:text:0",
+      "text": "Shouted and counted.",
+      "at": 1793234405325
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234405332
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 53,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.03380999999999999,
+      "prompts": [],
+      "at": 1793234405333
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "CHARLIE third one, broken",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234405872
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234405872
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793234405876
+    },
+    {
+      "type": "reply",
+      "at": 1793234405886
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234405886
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234405887
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools[\"mod-demo\"].broken({})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234405888
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "no luck",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234405891
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234405898
+    },
+    {
+      "type": "reply",
+      "at": 1793234405909
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234405909
+    },
+    {
+      "type": "text.start",
+      "part": "msg_6:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234405910
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_6:text:0",
+      "text": "It broke.",
+      "at": 1793234405910
+    },
+    {
+      "type": "text.end",
+      "part": "msg_6:text:0",
+      "text": "It broke.",
+      "at": 1793234405911
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234405918
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 47,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.05060999999999999,
+      "prompts": [],
+      "at": 1793234405919
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "HOTEL the very last one, after everything else",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234408928
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234408929
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-4"
+      ],
+      "at": 1793234408931
+    },
+    {
+      "type": "reply",
+      "at": 1793234408944
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234408944
+    },
+    {
+      "type": "text.start",
+      "part": "msg_11:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234408945
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_11:text:0",
+      "text": "Last one.",
+      "at": 1793234408945
+    },
+    {
+      "type": "text.end",
+      "part": "msg_11:text:0",
+      "text": "Last one.",
+      "at": 1793234408945
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234408953
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 25,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.059009999999999986,
+      "prompts": [],
+      "at": 1793234408954
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234408954
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "toolu_mock0002",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0003",
+      "text-8",
+      "turn-9",
+      "user-10",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "ALPHA echo it",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools[\\\"mod-demo\\\"].echo({ text: \\\"hi\\\" })\"}",
+        "input": {
+          "code": "return await tools[\"mod-demo\"].echo({ text: \"hi\" })"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "echo hi",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Echoed.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 86,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234404774
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "BRAVO again, louder",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return [await tools[\\\"mod-demo\\\"].shout({ text: \\\"hey\\\" }), await tools[\\\"mod-other\\\"].count({})]\"}",
+        "input": {
+          "code": "return [await tools[\"mod-demo\"].shout({ text: \"hey\" }), await tools[\"mod-other\"].count({})]"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "[\n  \"HEY\",\n  \"3\"\n]",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Shouted and counted.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.03380999999999999,
+        "durationMs": 53,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234405333
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "CHARLIE third one, broken",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools[\\\"mod-demo\\\"].broken({})\"}",
+        "input": {
+          "code": "return await tools[\"mod-demo\"].broken({})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "no luck",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "It broke.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0.05060999999999999,
+        "durationMs": 47,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234405919
+      },
+      "user-10": {
+        "kind": "user",
+        "id": "user-10",
+        "text": "HOTEL the very last one, after everything else",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "Last one.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0.059009999999999986,
+        "durationMs": 25,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234408954
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 9660,
+      "costUsd": 0.059009999999999986,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Mod tools",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

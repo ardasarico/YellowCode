@@ -24,13 +24,15 @@ export function PlanBand(props: AskViewProps) {
     const sent = props.ask.plan?.text.trim()
     if (sent) return sent
     const path = props.ask.plan?.path
-    return path ? `_The plan is in ${path}._` : "_Claude sent no plan text._"
+    return path ? `_The plan is in ${path}._` : `_${props.agent} sent no plan text._`
   }
   const [cursor, setCursor] = createSignal(0)
   const [noting, setNoting] = createSignal(false)
   let field: InputRenderable | undefined
   // "Yes, start" is the agent's first yes, "Keep planning" its first no.
   const optionId = (effect: "allow" | "deny") => props.ask.options.find((option) => option.effect === effect)?.id
+  // Without a note, "Keep planning" closes the band like Esc.
+  const takesNote = () => props.ask.options.find((option) => option.effect === "deny")?.note === true
   const send = (effect: "allow" | "deny", note: string | null) => {
     const option = optionId(effect)
     if (option) props.onAnswer({ type: "option", option, note })
@@ -53,7 +55,7 @@ export function PlanBand(props: AskViewProps) {
     }
     const choose = (index: number) => {
       key.preventDefault()
-      if (index === 0) respond(0)
+      if (index === 0 || !takesNote()) respond(index)
       else setNoting(true)
     }
     if (key.name === "up") setCursor(0)
@@ -106,7 +108,7 @@ export function PlanBand(props: AskViewProps) {
           <input
             focused
             flexGrow={1}
-            placeholder="tell Claude what to change"
+            placeholder={`tell ${props.agent} what to change`}
             placeholderColor={theme.muted}
             textColor={theme.text}
             focusedTextColor={theme.text}

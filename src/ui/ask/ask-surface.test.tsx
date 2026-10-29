@@ -55,7 +55,7 @@ const ask: Ask = {
 test("an ask sends only its first response", async () => {
   const sent: AskReply[] = []
   const setup = await testRender(
-    () => <AskSurface caps={CAPS} ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
+    () => <AskSurface caps={CAPS} agent="Claude" ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
     {
       width: 80,
       height: 20,
@@ -70,7 +70,15 @@ test("an ask sends only its first response", async () => {
 
   const pressOne = async (severe: Partial<Ask>) => {
     const risky = await testRender(
-      () => <AskSurface caps={CAPS} ask={{ ...ask, ...severe }} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
+      () => (
+        <AskSurface
+          caps={CAPS}
+          agent="Claude"
+          ask={{ ...ask, ...severe }}
+          width={80}
+          onAnswer={(_, reply) => sent.push(reply)}
+        />
+      ),
       { width: 80, height: 20 },
     )
     risky.mockInput.pressKey("1")
@@ -88,6 +96,7 @@ test("a severe ask starts on the no that lasts once, wherever it sits", async ()
     () => (
       <AskSurface
         caps={CAPS}
+        agent="Claude"
         ask={{ ...ask, defaultToNo: true, options: [YES, NO, always] }}
         width={80}
         onAnswer={(_, reply) => sent.push(reply)}
@@ -105,7 +114,7 @@ test("the first key still typed into the prompt as an ask appears does not answe
   setSystemTime(new Date(10_000))
   noteKey()
   const setup = await testRender(
-    () => <AskSurface caps={CAPS} ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
+    () => <AskSurface caps={CAPS} agent="Claude" ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
     {
       width: 80,
       height: 20,
@@ -168,6 +177,7 @@ test("arrows on the own-answer row edit the text instead of switching question",
     () => (
       <AskSurface
         caps={CAPS}
+        agent="Claude"
         ask={{ ...ask, toolName: "AskUserQuestion", toolKind: "question", options: [], questions }}
         width={80}
         onAnswer={(_, reply) => sent.push(reply)}
@@ -194,6 +204,7 @@ test("Enter in a matrix picks the step and goes to the next open row, then sends
     () => (
       <AskSurface
         caps={CAPS}
+        agent="Claude"
         ask={{ ...ask, toolName: "ask", toolKind: "question", options: [], questions: { matrix } }}
         width={80}
         onAnswer={(_, reply) => sent.push(reply)}
@@ -224,6 +235,7 @@ test("a gallery picks a design with ←→ and keeps its note", async () => {
     () => (
       <AskSurface
         caps={CAPS}
+        agent="Claude"
         ask={{ ...ask, toolName: "ask", toolKind: "question", options: [], questions }}
         width={100}
         onAnswer={(_, reply) => sent.push(reply)}

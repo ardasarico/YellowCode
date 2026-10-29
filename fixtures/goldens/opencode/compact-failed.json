@@ -1,0 +1,419 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793235529171
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793235529171
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "PAPA one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793235529658
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793235529659
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793235529665
+    },
+    {
+      "type": "title",
+      "title": "Failing to compact",
+      "at": 1793235529693
+    },
+    {
+      "type": "reply",
+      "at": 1793235529722
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793235529722
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793235529722
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793235529723
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "The context is nearly full.",
+      "at": 1793235529725
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "The context is nearly full.",
+      "at": 1793235529725
+    },
+    {
+      "type": "context.used",
+      "tokens": 196000,
+      "at": 1793235529737
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 80,
+      "inputTokens": 1000,
+      "outputTokens": 180,
+      "tokens": 196180,
+      "sessionCostUsd": 0.046810000000000004,
+      "prompts": [],
+      "at": 1793235529739
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793235529743
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793235529746
+    },
+    {
+      "type": "compaction",
+      "running": false,
+      "at": 1793235529772
+    },
+    {
+      "type": "notice",
+      "level": "warning",
+      "text": "Compaction summary did not match the required template",
+      "at": 1793235529772
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": true,
+      "durationMs": 30,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": 0.06361,
+      "prompts": [],
+      "at": 1793235529772
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "PAPA two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793235529783
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793235529784
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793235529785
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793235529786
+    },
+    {
+      "type": "compaction",
+      "running": false,
+      "at": 1793235529805
+    },
+    {
+      "type": "turn.end",
+      "error": "Compaction summary did not match the required template",
+      "interrupted": false,
+      "local": false,
+      "durationMs": 21,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": 0.08041000000000001,
+      "prompts": [],
+      "at": 1793235529805
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793235529805
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "PAPA one",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793235529665
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793235529673
+          },
+          {
+            "type": "reply",
+            "at": 1793235529673
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793235529673
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "The context is nearly full.",
+            "local": false,
+            "quiet": false,
+            "at": 1793235529673
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "The context is nearly full.",
+            "at": 1793235529673
+          },
+          {
+            "type": "context.used",
+            "tokens": 196000,
+            "at": 1793235529673
+          },
+          {
+            "type": "compaction",
+            "running": false,
+            "at": 1793235529746
+          },
+          {
+            "type": "notice",
+            "level": "warning",
+            "text": "Compaction summary did not match the required template",
+            "at": 1793235529746
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "PAPA two",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793235529785
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793235529786
+          },
+          {
+            "type": "compaction",
+            "running": false,
+            "at": 1793235529786
+          },
+          {
+            "type": "turn.end",
+            "error": "Compaction summary did not match the required template",
+            "interrupted": false,
+            "local": false,
+            "durationMs": 19,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "tokens": 0,
+            "sessionCostUsd": null,
+            "prompts": [],
+            "at": 1793235529805
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "system-4",
+      "user-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "PAPA one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The context is nearly full.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.046810000000000004,
+        "durationMs": 80,
+        "inputTokens": 1000,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793235529739
+      },
+      "system-4": {
+        "kind": "system",
+        "id": "system-4",
+        "text": "Compaction summary did not match the required template",
+        "level": "warning"
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "PAPA two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.08041000000000001,
+        "durationMs": 21,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": "Compaction summary did not match the required template",
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793235529805
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 196180,
+      "costUsd": 0.08041000000000001,
+      "context": {
+        "used": 196000,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Failing to compact",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,1087 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234378381
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234378381
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "TANGO start it in the background",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234378858
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234378859
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234378864
+    },
+    {
+      "type": "title",
+      "title": "Background work",
+      "at": 1793234378886
+    },
+    {
+      "type": "reply",
+      "at": 1793234379175
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234379175
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234379175
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234379177
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "sleep 1; echo bg done",
+        "background": true
+      },
+      "summary": "sleep 1; echo bg done",
+      "detail": null,
+      "command": "sleep 1; echo bg done",
+      "background": true,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234379181
+    },
+    {
+      "type": "task.start",
+      "id": "sh_1",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0001",
+      "parent": null,
+      "depth": null,
+      "background": true,
+      "resumed": false,
+      "description": "sleep 1; echo bg done",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793234379199
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Command moved to the background (shell ID: sh_1).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_1.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "sh_1",
+      "files": [],
+      "at": 1793234379200
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234379208
+    },
+    {
+      "type": "reply",
+      "at": 1793234379221
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234379221
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234379222
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "It runs in the background.",
+      "at": 1793234379233
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "It runs in the background.",
+      "at": 1793234379233
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234379240
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 383,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234379242
+    },
+    {
+      "type": "task.end",
+      "id": "sh_1",
+      "state": "completed",
+      "report": {
+        "summary": "exit code 0",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0001",
+      "at": 1793234380205
+    },
+    {
+      "type": "task.output",
+      "id": "sh_1",
+      "text": "bg done\n",
+      "bytes": 8,
+      "truncated": false,
+      "at": 1793234380205
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [
+        "sh_1"
+      ],
+      "at": 1793234380208
+    },
+    {
+      "type": "reply",
+      "at": 1793234380225
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234380225
+    },
+    {
+      "type": "text.start",
+      "part": "msg_4:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234380226
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_4:text:0",
+      "text": "The command finished.",
+      "at": 1793234380228
+    },
+    {
+      "type": "text.end",
+      "part": "msg_4:text:0",
+      "text": "The command finished.",
+      "at": 1793234380228
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234380237
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 30,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.025409999999999995,
+      "prompts": [],
+      "at": 1793234380238
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "UNIFORM runs long",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234380240
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234380240
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234380242
+    },
+    {
+      "type": "reply",
+      "at": 1793234380253
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234380253
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "shell",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234380253
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "command": "echo first; sleep 2; echo second; sleep 30; echo late"
+      },
+      "summary": "echo first; sleep 2; echo second; sleep 30; echo late",
+      "detail": null,
+      "command": "echo first; sleep 2; echo second; sleep 30; echo late",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234380254
+    },
+    {
+      "type": "task.start",
+      "id": "sh_2",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "toolu_mock0002",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "echo first; sleep 2; echo second; sleep 30; echo late",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793234380257
+    },
+    {
+      "type": "task.update",
+      "id": "sh_2",
+      "error": null,
+      "background": true,
+      "at": 1793234380258
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "Command moved to the background (shell ID: sh_2).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_2.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "sh_2",
+      "files": [],
+      "at": 1793234380258
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234380269
+    },
+    {
+      "type": "reply",
+      "at": 1793234380308
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234380308
+    },
+    {
+      "type": "text.start",
+      "part": "msg_7:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234380309
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_7:text:0",
+      "text": "Moved on.",
+      "at": 1793234380313
+    },
+    {
+      "type": "text.end",
+      "part": "msg_7:text:0",
+      "text": "Moved on.",
+      "at": 1793234380313
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234380321
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 82,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.04220999999999999,
+      "prompts": [],
+      "at": 1793234380322
+    },
+    {
+      "type": "task.stopping",
+      "id": "sh_2",
+      "at": 1793234380324
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234380324
+    },
+    {
+      "type": "task.end",
+      "id": "sh_2",
+      "state": "stopped",
+      "report": {
+        "summary": "",
+        "outputFile": null,
+        "usage": null,
+        "stoppedByUser": true
+      },
+      "call": "toolu_mock0002",
+      "at": 1793234380329
+    },
+    {
+      "type": "reply",
+      "at": 1793234380336
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234380336
+    },
+    {
+      "type": "text.start",
+      "part": "msg_9:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234380337
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_9:text:0",
+      "text": "It was stopped.",
+      "at": 1793234380342
+    },
+    {
+      "type": "text.end",
+      "part": "msg_9:text:0",
+      "text": "It was stopped.",
+      "at": 1793234380342
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234380350
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 26,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.05060999999999999,
+      "prompts": [],
+      "at": 1793234380350
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234380350
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "TANGO start it in the background",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234378864
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234378870
+          },
+          {
+            "type": "reply",
+            "at": 1793234378870
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234378870
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "shell",
+            "kind": "shell",
+            "title": "shell",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234378870
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "command": "sleep 1; echo bg done",
+              "background": true
+            },
+            "summary": "sleep 1; echo bg done",
+            "detail": null,
+            "command": "sleep 1; echo bg done",
+            "background": true,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234378870
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "Command moved to the background (shell ID: sh_1).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_1.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": true,
+            "task": "sh_1",
+            "files": [],
+            "at": 1793234378870
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234378870
+          },
+          {
+            "type": "reply",
+            "at": 1793234379214
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234379214
+          },
+          {
+            "type": "text.start",
+            "part": "msg_2:text:0",
+            "parent": null,
+            "text": "It runs in the background.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234379214
+          },
+          {
+            "type": "text.end",
+            "part": "msg_2:text:0",
+            "text": "It runs in the background.",
+            "at": 1793234379214
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234379214
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234380215
+          },
+          {
+            "type": "reply",
+            "at": 1793234380215
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234380215
+          },
+          {
+            "type": "text.start",
+            "part": "msg_4:text:0",
+            "parent": null,
+            "text": "The command finished.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234380215
+          },
+          {
+            "type": "text.end",
+            "part": "msg_4:text:0",
+            "text": "The command finished.",
+            "at": 1793234380215
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234380215
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "UNIFORM runs long",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234380242
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234380245
+          },
+          {
+            "type": "reply",
+            "at": 1793234380245
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234380245
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0002",
+            "parent": null,
+            "name": "shell",
+            "kind": "shell",
+            "title": "shell",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234380245
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0002",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "command": "echo first; sleep 2; echo second; sleep 30; echo late"
+            },
+            "summary": "echo first; sleep 2; echo second; sleep 30; echo late",
+            "detail": null,
+            "command": "echo first; sleep 2; echo second; sleep 30; echo late",
+            "background": true,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234380245
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0002",
+            "status": "done",
+            "result": "Command moved to the background (shell ID: sh_2).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_2.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": true,
+            "task": "sh_2",
+            "files": [],
+            "at": 1793234380245
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234380245
+          },
+          {
+            "type": "reply",
+            "at": 1793234380274
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234380274
+          },
+          {
+            "type": "text.start",
+            "part": "msg_7:text:0",
+            "parent": null,
+            "text": "Moved on.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234380274
+          },
+          {
+            "type": "text.end",
+            "part": "msg_7:text:0",
+            "text": "Moved on.",
+            "at": 1793234380274
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234380274
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234380328
+          },
+          {
+            "type": "reply",
+            "at": 1793234380328
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234380328
+          },
+          {
+            "type": "text.start",
+            "part": "msg_9:text:0",
+            "parent": null,
+            "text": "It was stopped.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234380328
+          },
+          {
+            "type": "text.end",
+            "part": "msg_9:text:0",
+            "text": "It was stopped.",
+            "at": 1793234380328
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234380328
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "text-2",
+      "turn-3",
+      "shell-end-4",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0002",
+      "text-8",
+      "turn-9",
+      "shell-end-10",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "TANGO start it in the background",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"sleep 1; echo bg done\",\"background\":true}",
+        "input": {
+          "command": "sleep 1; echo bg done",
+          "background": true
+        },
+        "summary": "sleep 1; echo bg done",
+        "detail": null,
+        "background": true,
+        "status": "done",
+        "result": "Command moved to the background (shell ID: sh_1).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_1.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "It runs in the background.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 383,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234379242
+      },
+      "shell-end-4": {
+        "kind": "shell-end",
+        "id": "shell-end-4",
+        "taskId": "sh_1"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "The command finished.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.025409999999999995,
+        "durationMs": 30,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234380238
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "UNIFORM runs long",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "shell",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"echo first; sleep 2; echo second; sleep 30; echo late\"}",
+        "input": {
+          "command": "echo first; sleep 2; echo second; sleep 30; echo late"
+        },
+        "summary": "echo first; sleep 2; echo second; sleep 30; echo late",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "Command moved to the background (shell ID: sh_2).\nOutput is streaming to: <root>/data/opencode/shell/bfccc43888bc80db3d917259797c89828f93b2ae/sh_2.out\nYou will be notified automatically when the command finishes. The notification will include the command's output. Unless the user explicitly asks otherwise, DO NOT poll for completion, even if you need the final result to continue. Repeatedly sleeping and reading or searching the output file is polling, not useful work. You may read the current output if it lets you do useful work now, but do not repeatedly check it while waiting for the command to finish. Keep working on anything that does not depend on the result. If you have nothing else to do, end your response; you will be resumed automatically when the command finishes.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "sh_2"
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Moved on.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0.04220999999999999,
+        "durationMs": 82,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234380322
+      },
+      "shell-end-10": {
+        "kind": "shell-end",
+        "id": "shell-end-10",
+        "taskId": "sh_2"
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "It was stopped.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0.05060999999999999,
+        "durationMs": 26,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234380350
+      }
+    },
+    "tasks": {
+      "sh_1": {
+        "id": "sh_1",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0001",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "completed",
+        "name": "sleep 1; echo bg done",
+        "description": "sleep 1; echo bg done",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "exit code 0",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "sleep 1; echo bg done",
+        "endedAt": 1800000000000,
+        "output": "bg done\n",
+        "outputBytes": 8,
+        "truncated": false
+      },
+      "sh_2": {
+        "id": "sh_2",
+        "type": "local_bash",
+        "toolUseId": "toolu_mock0002",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "stopped",
+        "name": "echo first; sleep 2; echo second; sleep 30; echo late",
+        "description": "echo first; sleep 2; echo second; sleep 30; echo late",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "echo first; sleep 2; echo second; sleep 30; echo late",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 8280,
+      "costUsd": 0.05060999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Background work",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,344 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234277565
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234277565
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "GOLF what is in this image?",
+      "images": [
+        {
+          "name": "Image 1",
+          "mediaType": "image/png",
+          "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          "path": null
+        }
+      ],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234278054
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234278056
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234278063
+    },
+    {
+      "type": "reply",
+      "at": 1793234278105
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234278105
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234278105
+    },
+    {
+      "type": "thinking.start",
+      "part": "msg_1:reasoning:0",
+      "parent": null,
+      "text": "",
+      "live": true,
+      "at": 1793234278106
+    },
+    {
+      "type": "title",
+      "title": "Describing the pixel",
+      "at": 1793234278201
+    },
+    {
+      "type": "thinking.delta",
+      "part": "msg_1:reasoning:0",
+      "text": "The image is a single pixel, so ther",
+      "at": 1793234278207
+    },
+    {
+      "type": "thinking.delta",
+      "part": "msg_1:reasoning:0",
+      "text": "e is little to describe.",
+      "at": 1793234278382
+    },
+    {
+      "type": "thinking.end",
+      "part": "msg_1:reasoning:0",
+      "text": "The image is a single pixel, so there is little to describe.",
+      "at": 1793234278404
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234278406
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "It is one pixel, nearly ",
+      "at": 1793234278507
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "transparent. There is no",
+      "at": 1793234278629
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "thing else in it.",
+      "at": 1793234278768
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "It is one pixel, nearly transparent. There is nothing else in it.",
+      "at": 1793234278791
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234278815
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 761,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.00861,
+      "prompts": [],
+      "at": 1793234278817
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234278817
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "GOLF what is in this image?",
+            "images": [
+              {
+                "name": "Image 1",
+                "mediaType": "image/png",
+                "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+                "path": null
+              }
+            ],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234278063
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234278072
+          },
+          {
+            "type": "reply",
+            "at": 1793234278072
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234278072
+          },
+          {
+            "type": "thinking.start",
+            "part": "msg_1:reasoning:0",
+            "parent": null,
+            "text": "The image is a single pixel, so there is little to describe.",
+            "live": false,
+            "at": 1793234278072
+          },
+          {
+            "type": "thinking.end",
+            "part": "msg_1:reasoning:0",
+            "text": "The image is a single pixel, so there is little to describe.",
+            "at": 1793234278072
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "It is one pixel, nearly transparent. There is nothing else in it.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234278072
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "It is one pixel, nearly transparent. There is nothing else in it.",
+            "at": 1793234278072
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234278072
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "thinking-2",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "GOLF what is in this image?",
+        "images": [
+          {
+            "name": "Image 1",
+            "mediaType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "path": null
+          }
+        ],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "thinking-2": {
+        "kind": "thinking",
+        "id": "thinking-2",
+        "text": "The image is a single pixel, so there is little to describe.",
+        "streaming": false,
+        "durationMs": 298
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "It is one pixel, nearly transparent. There is nothing else in it.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.00861,
+        "durationMs": 761,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234278817
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0.00861,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Describing the pixel",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

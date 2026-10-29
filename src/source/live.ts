@@ -5,6 +5,8 @@ import { commandRows, modelRows, OWN_ASK } from "../protocol/messages.ts"
 import { allowTool, initializeRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import type { SessionStore } from "../session/session.ts"
+import type { Accessor } from "solid-js"
+import type { ClientTool } from "../agent/agent.ts"
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
@@ -140,8 +142,10 @@ export function connect(options: {
   onKnobs?: (knobs: Partial<Knobs>) => void
   // The mode a restarted session goes on in; the saved one otherwise.
   mode?: ModeId
+  // Served as claude's dynamic MCP servers, kept in step from initialize on.
+  clientTools: Accessor<readonly ClientTool[]>
 }): Connection {
-  const { cwd, session, spawn, stored, provider, carry, onKnobs } = options
+  const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools } = options
   const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
@@ -157,6 +161,7 @@ export function connect(options: {
   const asks = createAskServer(
     (line) => source.send(line),
     (toolUseId) => openHeldAsk(session, toolUseId),
+    clientTools,
   )
   log.info("claude flags", { permissionMode: launch.mode, thinking: stored.thinking, bypass: launch.bypass, ...spawn })
 
@@ -205,7 +210,7 @@ export function connect(options: {
     initialize()
     void initialized.promise.then((reply) => {
       if (reply) controls.initialized(reply)
-      if (reply) stopModServers = syncModServers(requests, mods)
+      if (reply) stopModServers = syncModServers(requests, mods, clientTools)
     })
     if (carry) controls.carry(carry)
     tasks.start()

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSy
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { parseJson } from "../json.ts"
-import { DEFAULT_SETTINGS, loadSettings, saveSettings, UNREADABLE_PROBLEM } from "./settings-file.ts"
+import { DEFAULT_SETTINGS, loadSettings, pickAgent, saveSettings, UNREADABLE_PROBLEM } from "./settings-file.ts"
 
 function fileWith(content: string | null): string {
   const path = join(mkdtempSync(join(tmpdir(), "yellowcode-settings-")), "settings.json")
@@ -79,4 +79,38 @@ test("a second repair keeps the first backup", () => {
   writeFileSync(path, '{"sidebar": "hidden",')
   loadSettings(path)
   expect(readFileSync(`${path}.bak`, "utf8")).toBe(TRUNCATED)
+})
+
+test("a default agent is saved only once picked, and a bad one is reset", () => {
+  const path = fileWith(null)
+  saveSettings(DEFAULT_SETTINGS, path)
+  expect(readFileSync(path, "utf8")).not.toContain("defaultAgent")
+  saveSettings({ ...DEFAULT_SETTINGS, defaultAgent: "opencode" }, path)
+  expect(loadSettings(path).settings.defaultAgent).toBe("opencode")
+  const bad = loadSettings(fileWith('{"defaultAgent":7}'))
+  expect(bad.settings.defaultAgent).toBeUndefined()
+  expect(bad.problem).toBe("settings.json: invalid defaultAgent, using the default")
+})
+
+test("a start opens the saved agent when it runs here, else the first installed one", async () => {
+  const asked: string[] = []
+  const runs = (installed: string[]) => (agent: string) => {
+    asked.push(agent)
+    return Promise.resolve(installed.includes(agent))
+  }
+  const agents = ["claude", "opencode", "codex"]
+  // Nothing saved: the first installed one, and the last left is not asked.
+  expect(await pickAgent(undefined, agents, runs(["opencode"]))).toBe("opencode")
+  expect(asked).toEqual(["claude", "opencode"])
+  // An agent YellowCode does not know counts as nothing saved.
+  expect(await pickAgent("gone", agents, runs(["claude"]))).toBe("claude")
+  // A saved agent that is not installed (or cannot run) gives the first installed one.
+  asked.length = 0
+  expect(await pickAgent("codex", agents, runs(["opencode"]))).toBe("opencode")
+  expect(asked).toEqual(["codex", "claude"])
+  expect(await pickAgent("opencode", agents, runs(["opencode", "claude"]))).toBe("opencode")
+  // With one agent nothing is asked.
+  asked.length = 0
+  expect(await pickAgent(undefined, ["claude"], runs([]))).toBe("claude")
+  expect(asked).toEqual([])
 })

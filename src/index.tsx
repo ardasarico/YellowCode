@@ -4,18 +4,26 @@ import { constants } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
-import type { Agent, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
+import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
-import { createRegistry } from "./agent/registry.ts"
-import type { HistoryCursor, SessionEntry } from "./agent/sessions.ts"
-import { type ClaudeAgent, claudeKind, showPrompt } from "./agents/claude/agent.ts"
-import { CLAUDE, CLAUDE_CAPS } from "./agents/claude/caps.ts"
+import type { AgentKindId } from "./agent/ids.ts"
+import { createRegistry, type SessionKind } from "./agent/registry.ts"
+import type { HistoryCursor, SessionEntry, SessionRef } from "./agent/sessions.ts"
+import { type ClaudeHooks, claudeKind, showPrompt } from "./agents/claude/agent.ts"
+import { CLAUDE, CLAUDE_NAME } from "./agents/claude/caps.ts"
 import { CLAUDE_MODES } from "./agents/claude/lists.ts"
+import { mcpRows } from "./agents/claude/mcp-rows.ts"
 import { stopOneShots } from "./agents/claude/one-shot.ts"
 import { liveProvider, replayProvider, savedProvider } from "./agents/claude/provider.ts"
+import { opencodeKind } from "./agents/opencode/agent.ts"
+import { OPENCODE, OPENCODE_NAME } from "./agents/opencode/caps.ts"
+import { opencodeProvider } from "./agents/opencode/provider.ts"
+import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
+import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { tildePath } from "./rewind/common.ts"
+import { follow, showEarly } from "./session/follow.ts"
 import { createSession, loadHistory, type SessionStore } from "./session/session.ts"
 import {
   controlProblem,
@@ -26,8 +34,8 @@ import {
   settings,
 } from "./session/settings.ts"
 import { claudeCliVersion, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
-import { loadSettings } from "./session/settings-file.ts"
-import { modOfError, mods, startModUpdates, startMods } from "./mods/mods.ts"
+import { loadSettings, pickAgent } from "./session/settings-file.ts"
+import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
 import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
 import packageJson from "../package.json"
@@ -51,6 +59,7 @@ import { loadRecording, RecordingError, recordedInfo } from "./source/recording.
 import { parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
+import type { AgentChoice } from "./ui/agent-dialog.tsx"
 import { App, type KnobActions, type Message } from "./ui/app.tsx"
 import { themeTextSelection } from "./ui/text-selection.ts"
 import { removeViewedImages } from "./ui/dialog/image-view.tsx"
@@ -117,7 +126,15 @@ if (values.report) {
   process.stdout.write(
     reportMarkdown({
       environment: [...hostFacts(claudeCliVersion()), ...terminalFacts(null)],
-      settings: settingsFacts(loaded.settings, CLAUDE, CLAUDE_MODES, loaded.problem),
+      settings: settingsFacts(
+        loaded.settings,
+        { id: CLAUDE, name: CLAUDE_NAME, modes: CLAUDE_MODES },
+        [
+          { id: CLAUDE, name: CLAUDE_NAME },
+          { id: OPENCODE, name: OPENCODE_NAME },
+        ],
+        loaded.problem,
+      ),
       log: logTail(50),
     }),
   )
@@ -145,49 +162,79 @@ const firstSession = createSession({ starting: values.replay === undefined })
 // claude starts with flags from the saved settings, so they are read first.
 const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
-await startMods(values["no-mods"], { id: CLAUDE, caps: CLAUDE_CAPS })
+
+type Back = { ok: true } | { ok: false; problem: string | null }
+
+// How the app runs one kind of agent.
+type Runner = {
+  kind: SessionKind & Pick<AgentKind, "detect" | "heldElsewhere" | "oneShot" | "fileHistory">
+  provider: InputProvider
+  // The store follows the agent's events. Claude's agent still feeds the store itself, and brings the hooks the app
+  // still needs of it; an agent of another kind brings none. `goBack` takes the cut before a message after a rewind
+  // goes out, so the chat shows it only once the conversation went back; an agent without one takes the cut with the
+  // send. Not ok: the message does not go out; `problem` null when there is nothing to tell.
+  start(
+    options: StartOptions,
+    store: SessionStore,
+  ): Promise<{ agent: Agent; hooks: Partial<ClaudeHooks>; goBack?: () => Promise<Back> }>
+  // The prompt in the chat at Enter, before it goes out; the store's own showEarly for an agent without one.
+  show?: (store: SessionStore, prompt: Prompt) => void
+  // The output of `!` commands goes to the agent with the next message (Prompt.shells).
+  hearsShells: boolean
+  // The agent starts over on a typed /clear itself; otherwise YellowCode starts a new session of it.
+  clears: boolean
+}
+
+// A running agent and the store its events go to.
+type Live = {
+  runner: Runner
+  agent: Agent
+  store: SessionStore
+  hooks: Partial<ClaudeHooks>
+  goBack?: () => Promise<Back>
+}
 
 // The agent of the session YellowCode runs now; another session replaces it. Never set in a replay.
-let agent: ClaudeAgent
+let live: Live
 // One for the app's life: each claude fills it from its initialize reply.
-const claudeLists = liveProvider((query) => agent.files(query))
+const claudeLists = liveProvider((query) => live.agent.files(query))
 
 // No task of a saved conversation runs, so none can be sent to the background.
 const recorded = (caps: Capabilities): Capabilities => ({ ...caps, backgroundNow: false })
 
 // The App's intents go to the agent of the moment, so a restart under the same App keeps working.
 const taskActions: Agent["tasks"] = {
-  stop: (id) => agent.tasks.stop(id),
-  background: () => agent.tasks.background(),
+  stop: (id) => live.agent.tasks.stop(id),
+  background: () => live.agent.tasks.background(),
 }
 const extensions: Pick<Agent, "mcp" | "skills" | "plugins"> = {
   mcp: {
-    toggle: (name, enabled) => agent.mcp.toggle(name, enabled),
-    reconnect: (name) => agent.mcp.reconnect(name),
-    login: (name) => agent.mcp.login(name),
+    toggle: (name, enabled) => live.agent.mcp.toggle(name, enabled),
+    reconnect: (name) => live.agent.mcp.reconnect(name),
+    login: (name) => live.agent.mcp.login(name),
   },
   skills: {
-    toggle: (id, enabled) => agent.skills.toggle(id, enabled),
-    reload: () => agent.skills.reload(),
+    toggle: (id, enabled) => live.agent.skills.toggle(id, enabled),
+    reload: () => live.agent.skills.reload(),
   },
   plugins: {
-    toggle: (id, enabled) => agent.plugins.toggle(id, enabled),
-    reload: () => agent.plugins.reload(),
+    toggle: (id, enabled) => live.agent.plugins.toggle(id, enabled),
+    reload: () => live.agent.plugins.reload(),
   },
 }
 const knobs: KnobActions = {
-  setMode: (mode) => agent.setMode(mode),
-  setModel: (model) => agent.setModel(model),
-  setEffort: (effort) => agent.setEffort(effort),
-  setExtraEffort: (ultracode) => agent.setExtraEffort(ultracode),
-  setThinking: (shown) => agent.setThinking(shown),
+  setMode: (mode) => live.agent.setMode(mode),
+  setModel: (model) => live.agent.setModel(model),
+  setEffort: (effort) => live.agent.setEffort(effort),
+  setExtraEffort: (ultracode) => live.agent.setExtraEffort(ultracode),
+  setThinking: (shown) => live.agent.setThinking(shown),
 }
 const infoReads: Pick<Agent, "context" | "usage" | "settings"> = {
-  context: () => agent.context(),
-  usage: () => agent.usage(),
+  context: () => live.agent.context(),
+  usage: () => live.agent.usage(),
   settings: {
-    rows: () => agent.settings.rows(),
-    write: (id, value) => agent.settings.write(id, value),
+    rows: () => live.agent.settings.rows(),
+    write: (id, value) => live.agent.settings.write(id, value),
   },
 }
 const claude = claudeKind(
@@ -198,35 +245,126 @@ const claude = claudeKind(
   },
   values.sessions ?? null,
 )
-// The agents whose sessions /resume and Recent list.
-const installed = createRegistry([claude])
+const claudeRunner: Runner = {
+  kind: claude,
+  provider: claudeLists,
+  start: (options, store) =>
+    claude
+      .start(options, store)
+      .then((agent) => ({ agent, hooks: agent, goBack: () => agent.goBack(restartOptions()) })),
+  show: showPrompt,
+  hearsShells: true,
+  clears: true,
+}
+const opencode = opencodeKind()
+const opencodeRunner: Runner = {
+  kind: opencode,
+  // The lists of the session on screen, which is opencode's while this runner's provider is in use.
+  provider: opencodeProvider(
+    () => chat().session,
+    (query) => live.agent.files(query),
+  ),
+  start: (options, store) =>
+    opencode.start(options).then((agent) => {
+      // opencode tells its lists, the model the session runs and its saved rules once asked.
+      for (const list of ["models", "rules", "commands", "skills", "mcp", "plugins"] as const) agent.refresh(list)
+      return {
+        agent,
+        hooks: {},
+        // The cut goes in at the oldest prompt the store hides.
+        goBack: () => agent.goBack(hiddenPrompts(store.state).at(-1) ?? null),
+      }
+    }),
+  hearsShells: false,
+  clears: false,
+}
+// The agents YellowCode can run, Claude first.
+const runners: Runner[] = [claudeRunner, opencodeRunner]
+const installed = createRegistry(runners.map((runner) => runner.kind))
 
-// Claude starts with the saved thinking display and mode, and its own model and effort.
-const startOptions = (resume: StartOptions["resume"]): StartOptions => ({
+function runnerOf(ref: SessionRef): Runner {
+  const runner = runners.find((candidate) => candidate.kind.id === ref.agent)
+  if (!runner) throw new Error(`no installed agent ${ref.agent}`)
+  return runner
+}
+
+// One that cannot tell counts as not installed.
+const detect = (kind: Runner["kind"]): Promise<Detection> =>
+  kind.detect().catch((error: unknown) => {
+    log.warn(`${kind.id} detection failed`, String(error))
+    return { installed: false }
+  })
+
+async function runsHere(runner: Runner): Promise<boolean> {
+  const found = await detect(runner.kind)
+  return found.installed && found.blocked === null
+}
+
+const runnerById = (id: AgentKindId | undefined) => runners.find((runner) => runner.kind.id === id)
+
+// The saved default agent when it runs here. With none running, Claude starts and says why it cannot.
+async function pickFirst(): Promise<Runner> {
+  const asked = new Set<AgentKindId>()
+  const first = await pickAgent(
+    stored.defaultAgent,
+    runners.map((runner) => runner.kind.id),
+    (id) => {
+      asked.add(id)
+      return runsHere(runnerById(id) ?? claudeRunner)
+    },
+  )
+  const picked = runnerById(first) ?? claudeRunner
+  // pickAgent leaves the last candidate unasked; only Claude starts unchecked.
+  return picked === claudeRunner || asked.has(picked.kind.id) || (await runsHere(picked)) ? picked : claudeRunner
+}
+
+// A replay is a Claude recording.
+const firstRunner = values.replay === undefined ? await pickFirst() : claudeRunner
+await startMods(values["no-mods"], { id: firstRunner.kind.id, caps: firstRunner.kind.caps })
+
+async function startLive(runner: Runner, options: StartOptions, store: SessionStore): Promise<Live> {
+  const { agent, hooks, goBack } = await runner.start(options, store)
+  void follow(agent.events, store)
+  return { runner, agent, store, hooks, goBack }
+}
+
+// The agent of the moment, compared by identity: Claude's changes with each claude its agent starts.
+const runOf = (running: Live) => running.hooks.run ?? running.agent
+
+// An agent starts with the saved thinking display and mode, and its own model and effort.
+const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOptions => ({
   cwd,
   resume,
   mode: null,
-  defaultMode: defaultModeOf(claude.id),
+  defaultMode: defaultModeOf(runner.kind.id),
   model: null,
   effort: null,
   extraEffort: false,
   thinking: settings.thinking !== "hidden",
   instructions: [],
-  clientTools: [],
+  clientTools: mods.clientTools(),
   mcpServers: [],
 })
 
+// An agent that takes tools mid-session gets the mods' tools of the moment.
+function giveTools(target: Live, tools = mods.clientTools()): void {
+  if (target.agent.caps.clientTools !== "live") return
+  void target.agent.setClientTools(tools).then((done) => {
+    if (!done.ok) log.warn(`${target.runner.kind.id} did not take the mods' tools`, done.problem)
+  })
+}
+
 // A restarted session goes on in the mode it was in, unless the user picked a saved mode since (see modePicked).
 const restartOptions = (): RestartOptions => ({
-  mode: modePicked ? defaultModeOf(claude.id) : null,
-  defaultMode: defaultModeOf(claude.id),
+  mode: modePicked ? defaultModeOf(live.runner.kind.id) : null,
+  defaultMode: defaultModeOf(live.runner.kind.id),
   thinking: settings.thinking !== "hidden",
 })
 
 // Agents asked to close whose claude may still run, with the promise of it being gone.
-const stopped = new Map<ClaudeAgent, Promise<void>>()
+const stopped = new Map<Agent, Promise<void>>()
 
-function stop(old: ClaudeAgent): Promise<void> {
+function stop(old: Agent): Promise<void> {
   let gone = stopped.get(old)
   if (!gone) {
     gone = old.close().finally(() => stopped.delete(old))
@@ -237,7 +375,7 @@ function stop(old: ClaudeAgent): Promise<void> {
 
 // Ends what feeds the chat: the live agent, or the replay.
 function closeSource(): void {
-  if (mode.kind === "live") void stop(agent)
+  if (mode.kind === "live") void stop(live.agent)
   else void mode.replay.close()
 }
 
@@ -245,12 +383,11 @@ async function liveMode() {
   try {
     // Live shows the model and effort claude reports, and nothing until it does.
     setKnobs({ model: null, effort: null, ultracode: false })
-    agent = await claude.start(startOptions(null), firstSession)
-    return { kind: "live" as const, provider: claudeLists, first: agent }
+    live = await startLive(firstRunner, startOptions(firstRunner, null), firstSession)
+    return { kind: "live" as const, first: live }
   } catch (error) {
-    return fail(
-      `Cannot start claude: ${error instanceof Error ? error.message : String(error)}. Is Claude Code installed?`,
-    )
+    const { id, name } = firstRunner.kind
+    return fail(`Cannot start ${id}: ${error instanceof Error ? error.message : String(error)}. Is ${name} installed?`)
   }
 }
 
@@ -279,15 +416,15 @@ const capture = mode.kind === "live" ? createCapture(cwd) : null
 // Asks the first claude, even when another session runs by the time the snapshots are ready.
 if (mode.kind === "live" && capture) {
   const { first } = mode
-  void pruneAtStart(capture.snapshots, () => first.sessionDays())
+  void pruneAtStart(capture.snapshots, () => first.hooks.sessionDays?.() ?? Promise.resolve(null))
 }
 let unfollow = capture?.follow(firstSession)
 const fileRewind = createFileRewind(capture, cwd)
 const preview = livePreview(capture, cwd, (session) => fileRewind.pending(session))
 const firstInfo = mode.kind === "replay" ? recordedInfo(mode.recording) : null
+const firstServers = firstInfo && mcpRows(firstInfo.mcpServers, firstInfo.tools)
 const firstModel = firstInfo?.model ?? null
-const provider = mode.provider
-const readOnlyProvider = mode.kind === "live" ? savedProvider(provider) : provider
+const readOnlyProvider = mode.kind === "live" ? savedProvider(claudeLists) : mode.provider
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",
@@ -398,7 +535,7 @@ process.on("SIGHUP", () => {
 })
 
 function start(): void {
-  if (mode.kind === "live") agent.begin()
+  if (mode.kind === "live") live.hooks.begin?.()
   else mode.replay.begin()
 }
 
@@ -416,21 +553,31 @@ const [chat, setChat] = createSignal<{ session: SessionStore; resumed: View | nu
   session: firstSession,
   resumed: null,
 })
+// The kind of the agent that runs now; another agent's session changes it.
+const [runningKind, setRunningKind] = createSignal(firstRunner.kind.id)
 // A mode picked after claude last said which one it uses wins at a restart: claude may never have applied it (picked
 // while claude was down or restarting, bypassPermissions without the allow flag).
 let modePicked = false
 createRoot(() => {
   createEffect(
-    on(
-      () => defaultModeOf(claude.id),
-      () => (modePicked = true),
-      { defer: true },
-    ),
+    on([runningKind, () => defaultModeOf(runningKind())], ([kind], before) => {
+      // Another agent starts with its own saved mode; nothing was picked for it.
+      if (before?.[0] === kind) modePicked = true
+    }),
   )
   createEffect(
     on(
       () => chat().session.state.permissionMode,
       () => (modePicked = false),
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => mods.clientTools(),
+      (tools) => {
+        if (mode.kind === "live") giveTools(live, tools)
+      },
       { defer: true },
     ),
   )
@@ -458,70 +605,169 @@ async function open(entry: SessionEntry): Promise<void> {
   setView({ entry, session: opened, earlier, setEarlier })
 }
 
-// A turn that runs keeps the session it belongs to; background tasks alone stop, as on quit.
-function working(): boolean {
+// A turn that runs keeps the session it belongs to; background tasks alone stop, as on quit. `then` is what waits.
+function working(then = "open the session"): boolean {
+  const { name } = live.runner.kind
   // A restart that waits for the old claude to end sends the typed message once it has started.
-  if (agent.restarting) setControlProblem({ text: "Claude Code is starting again · open the session once it runs" })
-  else if (agent.store.state.status === "running")
-    setControlProblem({ text: "Claude Code is working · Esc interrupts it, then open the session" })
+  if (live.hooks.restarting) setControlProblem({ text: `${name} is starting again · ${then} once it runs` })
+  else if (live.store.state.status === "running")
+    setControlProblem({ text: `${name} is working · Esc interrupts it, then ${then}` })
   else return false
   return true
 }
 
+// Sessions of different agents may share an id.
+const sameSession = (a: SessionRef, b: SessionRef) => a.agent === b.agent && a.id === b.id
+
 // Continues a session of this project in place, or as a copy when another process runs it (two writers on one file).
 async function openLive(entry: SessionEntry): Promise<void> {
-  const current = agent
-  const { run } = current
+  const current = live
+  const run = runOf(current)
   const { ref } = entry
-  if (ref.id === current.session.id || working()) return
+  if (sameSession(ref, current.agent.session) || working()) return
   const token = ++opening
-  const part = await claude.history(ref, null)
+  const runner = runnerOf(ref)
+  const { kind } = runner
+  const part = await kind.history(ref, null)
   if (quitting) return
   // A session left a moment ago may still be writing its file.
-  await Promise.all([...stopped].flatMap(([old, gone]) => (old.session.id === ref.id ? [gone] : [])))
-  if (quitting || token !== opening || agent.run !== run || working()) return
-  const copy = await claude.heldElsewhere(ref)
-  if (quitting || token !== opening || agent.run !== run || working()) return
+  await Promise.all([...stopped].flatMap(([old, gone]) => (sameSession(old.session, ref) ? [gone] : [])))
+  if (quitting || token !== opening || runOf(live) !== run || working()) return
+  const copy = kind.heldElsewhere ? await kind.heldElsewhere(ref) : false
+  if (quitting || token !== opening || runOf(live) !== run || working()) return
+  await modsFor(kind)
+  if (quitting || token !== opening || runOf(live) !== run || working()) return void modsFor(live.runner.kind)
   const session = createSession({ starting: true })
   session.prepend(part.events)
   const following = capture?.follow(session)
   // Prompts made in the agent itself rewind the files they changed from its own backups.
-  if (claude.caps.features.includes("fileHistory")) capture?.adopt(ref.id, (wanted) => claude.fileHistory(ref, wanted))
-  let next: ClaudeAgent
+  if (kind.caps.features.includes("fileHistory"))
+    capture?.adopt(ref.id, (wanted) => kind.fileHistory?.(ref, wanted) ?? Promise.resolve([]))
+  let next: Live
   try {
-    next = await claude.start(startOptions({ ref, fork: copy, at: null }), session)
+    next = await startLive(runner, startOptions(runner, { ref, fork: copy, at: null }), session)
   } catch (error) {
-    log.error("cannot start claude", error)
+    log.error(`cannot start ${kind.id}`, error)
     following?.()
-    setControlProblem({ text: `Cannot start Claude Code: ${error instanceof Error ? error.message : String(error)}` })
+    void modsFor(live.runner.kind)
+    setControlProblem({ text: `Cannot start ${kind.name}: ${error instanceof Error ? error.message : String(error)}` })
     return
   }
-  if (quitting || token !== opening || agent.run !== run) {
-    void next.close()
+  if (quitting || token !== opening || runOf(live) !== run) {
+    void next.agent.close()
     following?.()
+    void modsFor(live.runner.kind)
     return
   }
+  const [earlier, setEarlier] = createSignal(part.earlier)
+  replaceLive(current, next, following, { entry, session, earlier, setEarlier })
+  if (copy) setControlProblem({ text: "This session is open in another process, so it opened as a copy" })
+}
+
+// The next session takes the screen in place of the current one, whose agent closes.
+function replaceLive(current: Live, next: Live, following: (() => void) | undefined, resumed: View | null): void {
   // Its background agents may write until its claude is gone, and those writes still go to its prompts.
   const left = unfollow
   unfollow = following
-  void stop(current).finally(() => left?.())
+  void stop(current.agent).finally(() => left?.())
   fileRewind.release()
-  // Opening another session starts from Claude Code's own model and effort.
+  // Opening another session starts from the agent's own model and effort.
   setKnobs({ model: null, effort: null, ultracode: false })
-  agent = next
-  next.begin()
-  const [earlier, setEarlier] = createSignal(part.earlier)
-  setChat({ session, resumed: { entry, session, earlier, setEarlier } })
-  if (copy) setControlProblem({ text: "This session is open in another process, so it opened as a copy" })
+  live = next
+  setRunningKind(next.runner.kind.id)
+  // The mods may have changed while it started.
+  giveTools(next)
+  next.hooks.begin?.()
+  setChat({ session: next.store, resumed })
 }
+
+// A new session of another agent; the one left stays in /resume.
+async function switchAgent(id: AgentKindId): Promise<void> {
+  const runner = runnerById(id)
+  if (runner && runner !== live.runner) await startNew(runner, "switch the agent")
+}
+
+// A /clear on an agent with none of its own: a new session of the same agent, the one left stays in /resume.
+function clearLive(): boolean {
+  if (working("start a new session")) return false
+  startNew(live.runner, "start a new session").catch((error: unknown) => log.error("cannot start a new session", error))
+  return true
+}
+
+// A new session of the agent takes the screen; `then` is what waits for a running turn.
+async function startNew(runner: Runner, then: string): Promise<void> {
+  const current = live
+  const run = runOf(current)
+  if (working(then)) return
+  const token = ++opening
+  // The mods load for the agent before it starts, so it starts with their tools.
+  await modsFor(runner.kind)
+  if (quitting || token !== opening || runOf(live) !== run || working(then)) return void modsFor(live.runner.kind)
+  const session = createSession({ starting: true })
+  const following = capture?.follow(session)
+  let next: Live
+  try {
+    next = await startLive(runner, startOptions(runner, null), session)
+  } catch (error) {
+    log.error(`cannot start ${runner.kind.id}`, error)
+    following?.()
+    void modsFor(live.runner.kind)
+    setControlProblem({
+      text: `Cannot start ${runner.kind.name}: ${error instanceof Error ? error.message : String(error)}`,
+    })
+    return
+  }
+  if (quitting || token !== opening || runOf(live) !== run) {
+    void next.agent.close()
+    following?.()
+    void modsFor(live.runner.kind)
+    return
+  }
+  replaceLive(current, next, following, null)
+}
+
+// The last look at the installed agents, for /agent and the default agent.
+const [agentChoices, setAgentChoices] = createSignal<AgentChoice[] | null>(null)
+let detecting: Promise<AgentChoice[]> | null = null
+
+// The running agent is listed even when its binary no longer answers.
+function detectAgents(): Promise<AgentChoice[]> {
+  detecting ??= Promise.all(
+    runners.map(async ({ kind }): Promise<AgentChoice[]> => {
+      const found = await detect(kind)
+      const { id, name } = kind
+      if (found.installed) return [{ id, name, version: found.version, blocked: found.blocked }]
+      return kind === live.runner.kind ? [{ id, name, version: live.agent.version, blocked: null }] : []
+    }),
+  )
+    .then((lists) => {
+      const choices = lists.flat()
+      setAgentChoices(choices)
+      return choices
+    })
+    .finally(() => (detecting = null))
+  return detecting
+}
+
+const agents = {
+  known: runners.map(({ kind }) => ({ id: kind.id, name: kind.name })),
+  installed: agentChoices,
+  detect: detectAgents,
+  pick: (id: AgentKindId) => void switchAgent(id).catch((error: unknown) => log.error("cannot switch agent", error)),
+}
+
+// The live agent whose restart was refused for good; Enter no longer offers one for it.
+const [restartRefused, setRestartRefused] = createSignal<Live | null>(null)
 
 // Claude Code went away on its own: a new claude continues the same conversation, and the message goes to it. One
 // that stopped responding can still be running out its grace, so the agent waits for it, and Enter again only refuses
 // to send.
 function restart(message: Message, giveBack: () => void): boolean {
   if (quitting) return false
-  const target = agent
-  const restarted = target.restartNow(restartOptions())
+  const target = live
+  const restarted = target.hooks.restartNow
+    ? target.hooks.restartNow(restartOptions())
+    : target.agent.restart(restartOptions())
   // Nothing had to wait: a claude that cannot be started leaves the message in the prompt.
   if (!(restarted instanceof Promise)) {
     if (!restarted.ok) return false
@@ -530,13 +776,15 @@ function restart(message: Message, giveBack: () => void): boolean {
   }
   void restarted.then((done) => {
     if (done.ok) return relaunch(target, message, giveBack)
-    log.warn("the restarted claude took no message")
+    log.warn("the restarted agent took no message", done.problem)
+    // The chat already says why. Claude's restart can be tried again; another agent's refusal stands for the session.
+    if (!target.hooks.restartNow) setRestartRefused(target)
     giveBack()
   })
   return true
 }
 
-function relaunch(target: ClaudeAgent, message: Message, giveBack: () => void): void {
+function relaunch(target: Live, message: Message, giveBack: () => void): void {
   if (message.to === null && !message.text.trim() && message.images.length === 0) return
   // The resumed conversation still holds the prompts a rewind hid.
   if (target.store.state.rewound) sendRewound(target, message, giveBack)
@@ -552,7 +800,7 @@ let turnSend = Promise.resolve()
 // `giveBack` returns the text to an empty prompt when the message cannot go out. `kept` goes out before the text but
 // is not shown.
 function sendPrompt(
-  target: ClaudeAgent,
+  target: Live,
   message: Message,
   giveBack?: () => void,
   kept: string[] = [],
@@ -562,11 +810,14 @@ function sendPrompt(
   // A send makes a rewind final, so /redo has nothing to bring back.
   fileRewind.release()
   const uuid = crypto.randomUUID()
-  const prompt: Prompt = { ...message, id: uuid, command: null, delivery: "steer", kept, shells }
-  const { store: session, run } = target
+  const { store: session } = target
+  const command = message.to === null ? commandOf(message.text, session.lists().commands) : null
+  const prompt: Prompt = { ...message, id: uuid, command, delivery: "steer", kept, shells }
+  const run = runOf(target)
   const startsTurn = session.state.status !== "running"
-  showPrompt(session, prompt)
-  const ready = capture?.before(uuid, target.session.id || null, session)
+  const show = target.runner.show ?? showEarly
+  show(session, prompt)
+  const ready = capture?.before(uuid, target.agent.session.id || null, session)
   const unsent = () => {
     capture?.drop(uuid)
     session.notSent(uuid)
@@ -576,11 +827,11 @@ function sendPrompt(
     .then(() => ready)
     .then(() => {
       // A claude started since (a restart, another session) is not the one the message was typed for.
-      if (agent.run !== run) {
+      if (runOf(live) !== run) {
         log.warn("claude changed before the message went out; dropped it")
         return unsent()
       }
-      return target.send(prompt).then((sent) => {
+      return target.agent.send(prompt).then((sent) => {
         if (sent.ok) return
         unsent()
         setControlProblem({ text: sent.problem })
@@ -594,14 +845,14 @@ const [goingBack, setGoingBack] = createSignal(false)
 
 // False when the live claude cannot take the message.
 function sendLive(message: Message, giveBack: () => void): boolean {
-  if (!agent.accepts()) return false
+  if (live.hooks.accepts?.() === false) return false
   // The prompt clears once this returns; a chat item before that would take the welcome screen's draft with it.
-  sendRewound(agent, message, giveBack)
+  sendRewound(live, message, giveBack)
   return true
 }
 
 // The prompt is already cleared when this runs, so a failure gives the text back.
-function sendRewound(target: ClaudeAgent, message: Message, giveBack: () => void): void {
+function sendRewound(target: Live, message: Message, giveBack: () => void): void {
   void queueRewind(() => sendAfterRewinds(target, message, giveBack)).catch((error: unknown) => {
     log.error("cannot send after the rewind", error)
     giveBack()
@@ -611,11 +862,12 @@ function sendRewound(target: ClaudeAgent, message: Message, giveBack: () => void
 
 // A message goes out after the rewinds before it: the conversation goes back to the rewound prompt first, and the
 // chat shows the message only then. A restart keeps the session.
-async function sendAfterRewinds(target: ClaudeAgent, message: Message, giveBack: () => void) {
+async function sendAfterRewinds(target: Live, message: Message, giveBack: () => void) {
   const session = target.store
   const steps = hiddenPrompts(session.state).length > 0
-  if (steps) setGoingBack(true)
-  const back = await target.goBack(restartOptions()).finally(() => setGoingBack(false))
+  const { goBack } = target
+  if (steps && goBack) setGoingBack(true)
+  const back = goBack ? await goBack().finally(() => setGoingBack(false)) : { ok: true as const }
   if (!back.ok) {
     if (back.problem !== null) noticeRewind(back.problem)
     return giveBack()
@@ -635,7 +887,8 @@ let untoldShells: { session: SessionStore; shells: Prompt["shells"] } | null = n
 
 // A replay sends nothing, so its commands are told from the start.
 function runShellCommand(session: SessionStore, command: string): void {
-  const told = mode.kind !== "live"
+  // An agent that does not hear them has nothing to be told.
+  const told = mode.kind !== "live" || !live.runner.hearsShells
   const id = session.startShell(command, told)
   const run = runShell(command, cwd, (output) => session.shellOutput(id, output))
   shellRun = run
@@ -685,10 +938,10 @@ function queueRewind<T>(work: () => Promise<T>): Promise<T> {
 
 // The conversation goes back with the next send; until then the agent hides the turns the rewound prompts' tasks
 // start.
-function cutConversation(target: ClaudeAgent, rewound: Rewound): void {
+function cutConversation(target: Live, rewound: Rewound): void {
   const item = target.store.state.byId[rewound.userId]
   if (item?.kind !== "user" || item.uuid === undefined) return log.warn("rewound prompt has no id; its task turns show")
-  void target.cut(item.uuid).then((done) => {
+  void target.agent.cut(item.uuid).then((done) => {
     if (!done.ok) log.warn("cut refused", done.problem)
   })
 }
@@ -696,7 +949,7 @@ function cutConversation(target: ClaudeAgent, rewound: Rewound): void {
 // Enter in the rewind dialog: the background tasks the rewound prompts started stop, their files go back, and only
 // then does the session rewind. False when the files could not be touched and nothing was rewound; the ⚠ paths and
 // files when they changed since the dialog showed them, so it asks again.
-async function rewindLive(target: ClaudeAgent, rewound: Rewound, seen: string[]): Promise<boolean | RewindRecheck> {
+async function rewindLive(target: Live, rewound: Rewound, seen: string[]): Promise<boolean | RewindRecheck> {
   const session = target.store
   const refused = fileRewind.refused(session.state)
   if (refused) {
@@ -709,7 +962,7 @@ async function rewindLive(target: ClaudeAgent, rewound: Rewound, seen: string[])
   cutConversation(target, rewound)
   const stops = await Promise.all(
     tasks.map((task) =>
-      target.tasks.stop(task.id).then((done) => {
+      target.agent.tasks.stop(task.id).then((done) => {
         if (done.ok) return null
         log.warn("rewind did not stop a task", done.problem)
         return task.description || task.command || task.name
@@ -723,6 +976,9 @@ async function rewindLive(target: ClaudeAgent, rewound: Rewound, seen: string[])
     stoppedCount > 0 ? `Stopped ${stoppedCount} background task${stoppedCount === 1 ? "" : "s"}` : null
   const files = await fileRewind.rewind(session.state, rewound.userId, new Set(seen))
   log.info("rewind files", files.kind === "done" ? { changed: files.paths.length, kept: files.kept.length } : files)
+  // The files did not go back, so the cut that already went out is taken back (a no-op on Claude). An earlier rewind
+  // still pending is staged again by goBack on the next send.
+  if (files.kind === "failed" || files.kind === "changed") void target.agent.undoCut()
   if (files.kind === "failed") {
     noticeRewind(sentences([`Cannot rewind the files: ${files.reason}`, tasksStopped, notStopped]))
     return false
@@ -745,18 +1001,19 @@ async function rewindLive(target: ClaudeAgent, rewound: Rewound, seen: string[])
 }
 
 // The conversation comes back even when the files cannot.
-async function redoLive(target: ClaudeAgent): Promise<void> {
+async function redoLive(target: Live): Promise<void> {
   const files = await fileRewind.redo(target.store.state)
   log.info("redo files", files.kind === "done" ? { changed: files.paths.length, kept: files.kept.length } : files)
   target.store.redo()
-  void target.undoCut()
-  if (files.kind === "failed") noticeRewind(`Cannot bring the files back: ${files.reason}`)
-  else noticeRewind(files.kind === "done" ? keptNotice(files.kept) : null)
+  const undone = await target.agent.undoCut()
+  const notUndone = undone.ok ? null : undone.problem
+  if (files.kind === "failed") noticeRewind(sentences([`Cannot bring the files back: ${files.reason}`, notUndone]))
+  else noticeRewind(sentences([files.kind === "done" ? keptNotice(files.kept) : null, notUndone]))
 }
 
 // The session is the App's own; a title for a session left meanwhile is dropped.
 function rename(session: SessionStore, title: string): void {
-  if (session === agent.store) void agent.rename(title)
+  if (session === live.store) void live.agent.rename(title)
 }
 
 async function loadEarlier(shown: View): Promise<void> {
@@ -767,13 +1024,28 @@ async function loadEarlier(shown: View): Promise<void> {
   shown.setEarlier(part.earlier)
 }
 
+// The agents whose sessions /resume and Recent list: those the last look found usable, or a new look. A replay lists
+// Claude's.
+async function listedKinds(): Promise<SessionKind[]> {
+  if (mode.kind !== "live") return [claude]
+  const found = agentChoices() ?? (await detectAgents())
+  return runners.flatMap(({ kind }) =>
+    found.some((choice) => choice.id === kind.id && choice.blocked === null) ? [kind] : [],
+  )
+}
+
 const sessions = {
-  // The session claude runs is not one to open. Until claude reports it, that is the one it was started with; after
-  // that the App leaves out the id the session reports, which a /clear changes.
+  // The session the agent runs is not one to open. Until the agent reports it, that is the one it was started with;
+  // after that the App leaves out the id the session reports, which a /clear changes.
   list: async () => {
-    const entries = await installed.sessions(cwd)
-    const starting = mode.kind === "live" && agent.store.state.info === null ? agent.session : undefined
-    return entries.filter((entry) => entry.ref.agent !== starting?.agent || entry.ref.id !== starting.id)
+    const kinds = await listedKinds()
+    const entries = await createRegistry(kinds).sessions(cwd, mode.kind === "live" ? live.runner.kind.id : null)
+    const starting = mode.kind === "live" && live.store.state.info === null ? live.agent.session : undefined
+    return {
+      entries: entries.filter((entry) => !starting || !sameSession(entry.ref, starting)),
+      // With one agent listed the rows stay as they were, without a name.
+      names: kinds.length > 1 ? Object.fromEntries(kinds.map((kind) => [kind.id, kind.shortName ?? kind.name])) : null,
+    }
   },
   open: (entry: SessionEntry) => {
     const opened = mode.kind === "live" && values.sessions === undefined ? openLive(entry) : open(entry)
@@ -797,10 +1069,12 @@ function Main() {
           {(current) => (
             <App
               session={current.session.state}
-              agent={mode.kind === "live" ? installed.kindOf(agent.session) : claude}
-              caps={mode.kind === "live" ? agent.caps : mode.replay.caps}
+              agent={mode.kind === "live" ? live.runner.kind : claude}
+              caps={mode.kind === "live" ? live.agent.caps : mode.replay.caps}
               model={() => current.session.state.info?.model ?? firstModel}
               firstInfo={firstInfo}
+              firstServers={firstServers}
+              lists={current.session.lists}
               workspace={workspace}
               replay={mode.kind === "replay" ? mode.info : null}
               title={
@@ -808,13 +1082,16 @@ function Main() {
                   ? { title: current.resumed.entry.title, summary: current.resumed.entry.firstPrompt }
                   : undefined
               }
-              oneShot={mode.kind === "live" || values.titles === true ? claude.oneShot : undefined}
+              oneShot={
+                mode.kind === "live" ? live.runner.kind.oneShot : values.titles === true ? claude.oneShot : undefined
+              }
               // The App before it showed the settings file's problem already.
               settingsProblem={current.resumed ? null : problem}
               settingsBackup={current.resumed ? null : backup}
-              provider={provider}
+              provider={mode.kind === "live" ? live.runner.provider : mode.provider}
               extensions={mode.kind === "live" ? extensions : undefined}
               sessions={sessions}
+              agents={mode.kind === "live" ? agents : undefined}
               earlier={current.resumed ? current.resumed.earlier() !== null : false}
               onEarlier={() => {
                 if (!current.resumed) return
@@ -833,9 +1110,13 @@ function Main() {
                 }
                 return empty || sendLive(message, giveBack)
               }}
-              onRestart={mode.kind === "live" ? restart : undefined}
+              onClear={mode.kind === "live" && !live.runner.clears ? clearLive : undefined}
+              onRestart={
+                mode.kind === "live" && live.agent.caps.restart && restartRefused() !== live ? restart : undefined
+              }
               onAnswer={(ask, reply) => {
-                void (mode.kind === "replay" ? mode.replay : agent).answer(ask.requestId, reply)
+                if (ask.ownPlan) return current.session.settlePlan(ask.requestId, reply)
+                void (mode.kind === "replay" ? mode.replay : live.agent).answer(ask.requestId, reply)
               }}
               onQuit={() => void quit()}
               onShell={(command) => runShellCommand(current.session, command)}
@@ -845,7 +1126,7 @@ function Main() {
                   ? () => {
                       // The interrupt waits for a message that starts the turn, but the chat shows it at once.
                       current.session.interrupting()
-                      const asked = agent
+                      const asked = live.agent
                       void turnSend.then(() => asked.interrupt())
                     }
                   : undefined
@@ -854,6 +1135,15 @@ function Main() {
               onTitle={mode.kind === "live" ? (title) => rename(current.session, title) : undefined}
               knobs={mode.kind === "live" ? knobs : undefined}
               info={mode.kind === "live" ? infoReads : undefined}
+              permissions={
+                mode.kind === "live"
+                  ? {
+                      rules: () => current.session.lists().rules ?? null,
+                      refresh: () => live.agent.refresh("rules"),
+                      remove: (id) => live.agent.permissions.remove(id),
+                    }
+                  : undefined
+              }
               rewind={
                 mode.kind === "replay"
                   ? {
@@ -864,30 +1154,33 @@ function Main() {
                       },
                       onRedo: () => current.session.redo(),
                     }
-                  : {
-                      preview: (session, selected) => rewinding.then(() => preview(session, selected)),
-                      offReason: () => capture?.offReason(),
-                      working: () => rewindWork() > 0,
-                      goingBack,
-                      onRewind: (rewound, seen) => {
-                        log.info("rewind", { prompts: rewound.prompts, keptFiles: rewound.keptFiles })
-                        const target = agent
-                        if (rewound.keptFiles)
-                          return queueRewind(() => {
-                            cutConversation(target, rewound)
-                            target.store.rewind(rewound)
-                            return Promise.resolve(true)
+                  : // Without a cut the agent would keep the rewound turns, so nothing is rewound.
+                    live.agent.caps.cut
+                    ? {
+                        preview: (session, selected) => rewinding.then(() => preview(session, selected)),
+                        offReason: () => capture?.offReason(),
+                        working: () => rewindWork() > 0,
+                        goingBack,
+                        onRewind: (rewound, seen) => {
+                          log.info("rewind", { prompts: rewound.prompts, keptFiles: rewound.keptFiles })
+                          const target = live
+                          if (rewound.keptFiles)
+                            return queueRewind(() => {
+                              cutConversation(target, rewound)
+                              target.store.rewind(rewound)
+                              return Promise.resolve(true)
+                            })
+                          return queueRewind(() => rewindLive(target, rewound, seen)).catch(() => false)
+                        },
+                        onRedo: () => {
+                          const target = live
+                          void queueRewind(() => redoLive(target)).catch((error: unknown) => {
+                            log.error("redo failed", error)
+                            noticeRewind("Cannot bring the conversation back")
                           })
-                        return queueRewind(() => rewindLive(target, rewound, seen)).catch(() => false)
-                      },
-                      onRedo: () => {
-                        const target = agent
-                        void queueRewind(() => redoLive(target)).catch((error: unknown) => {
-                          log.error("redo failed", error)
-                          noticeRewind("Cannot bring the conversation back")
-                        })
-                      },
-                    }
+                        },
+                      }
+                    : undefined
               }
             />
           )}
@@ -897,6 +1190,7 @@ function Main() {
       {(shown) => (
         <App
           session={shown.session.state}
+          lists={shown.session.lists}
           agent={installed.kindOf(shown.entry.ref)}
           caps={recorded(installed.kindOf(shown.entry.ref).caps)}
           model={() => shown.entry.model?.id ?? firstModel}

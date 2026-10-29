@@ -1,7 +1,9 @@
+import { type Accessor, createSignal } from "solid-js"
 import { createStore, produce } from "solid-js/store"
-import type { Ask as AgentAsk, AskOutcome } from "../agent/ask.ts"
+import type { Ask as AgentAsk, AskOption, AskOutcome, AskReply } from "../agent/ask.ts"
 import type { AgentEvent, BackgroundTask, SessionInfo as AgentInfo, TaskKind } from "../agent/events.ts"
 import type { AskId, PartId, PromptId, TaskId, ToolId } from "../agent/ids.ts"
+import type { Lists, McpServerRow } from "../agent/lists.ts"
 import type { SubagentCall } from "../agent/tools.ts"
 import { log } from "../log/log.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
@@ -25,8 +27,13 @@ type Event<T extends AgentEvent["type"]> = Extract<AgentEvent, { type: T }>
 // A prompt as a `user` event gives it.
 type UserPrompt = Omit<Event<"user">, "type" | "at">
 
+// The lists the agent pushed, each absent until it does, and `infoServers`, the MCP servers its session info named.
+// They are kept apart from `state`, so the state goldens keep their shape; modes and models stay in `state`.
+export type PushedLists = Partial<Omit<Lists, "modes" | "models">> & { infoServers?: McpServerRow[] }
+
 export type SessionStore = {
   state: Session
+  lists: Accessor<PushedLists>
   event(event: AgentEvent): void
   // An earlier part of the conversation goes in a session of its own, which then goes before this one.
   prepend(events: AgentEvent[]): void
@@ -35,8 +42,11 @@ export type SessionStore = {
   // A message shown early never went out.
   notSent(prompt: PromptId): void
   stopRunning(): void
-  setLists(lists: Partial<Pick<Session, "mcpServers" | "plugins">>): void
+  // Claude's own server and plugin lists, and the server rows it shows for them.
+  setLists(lists: Partial<Pick<Session, "mcpServers" | "plugins"> & Pick<Lists, "mcp">>): void
   setPermissionMode(mode: string): void
+  // YellowCode's answer to a plan the agent reported without asking.
+  settlePlan(id: AskId, reply: AskReply): void
   // The user asked to interrupt the turn; the request may wait for the message that starts it.
   interrupting(): void
   rewind(rewound: Rewound): void
@@ -53,6 +63,18 @@ export type SessionStore = {
   // check it now; nothing keeps the text.
   onFileOriginal(listener: (toolUseId: string, path: string, original: string | null) => void): void
 }
+
+// The plan band's two answers. With no ask to answer, its no takes no note (question 30).
+const planOption = (id: string, effect: "allow" | "deny"): AskOption => ({
+  id,
+  effect,
+  lasts: "once",
+  label: null,
+  subject: null,
+  note: false,
+  endsTurn: false,
+  mode: null,
+})
 
 const FIVE_HOURS = 5 * 60
 const WEEK = 7 * 24 * 60
@@ -209,6 +231,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     compacting: false,
     carried: [],
   })
+  const [lists, setPushed] = createSignal<PushedLists>({})
+  const push = (pushed: PushedLists) => setPushed((before) => ({ ...before, ...pushed }))
   // Text and thinking parts by the agent's id; `main` is false for a subagent's.
   const parts = new Map<PartId, { id: ItemId; main: boolean }>()
   const originalListeners: ((toolUseId: string, path: string, original: string | null) => void)[] = []
@@ -294,10 +318,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
 
   function onRetry(event: Event<"retry">): void {
     retryAttempt = event.attempt
-    // The Session keeps numbers until the UI shows a retry without them (S4).
     const retry = {
       attempt: event.attempt,
-      max: event.max ?? 0,
+      max: event.max,
       delayMs: event.delayMs ?? 0,
       status: event.status,
       reason: event.reason,
@@ -508,6 +531,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return backgroundTasks(event.tasks)
       case "info":
         setState("info", sessionInfo(event.info))
+        push({ infoServers: event.info.mcpServers })
         return
       case "mode":
         setState("permissionMode", event.mode)
@@ -518,6 +542,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       case "user.taken":
         for (const prompt of event.prompts) settleQueued(prompt)
         return
+      case "user.dropped":
+        return dropQueued(event.prompt)
       case "turn.step":
         return stepTurn(event.prompts)
       case "turn.end":
@@ -550,21 +576,58 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return end(event.problem)
       case "seen":
         return
+      case "lists": {
+        const { modes, models, ...rest } = event.lists
+        if (modes) setState("modes", modes)
+        if (models) setState("models", models)
+        push(rest)
+        return
+      }
+      case "model":
+        // Kept as a copy: the store merges a new model into the object it holds, which would change the earlier event's.
+        setState("model", event.model && { ...event.model })
+        return
+      case "effort":
+        setState("effort", event.effort)
+        return
+      case "plan":
+        return ownPlan(event)
       // Not handled yet: nothing sends them yet, or a later stage handles them.
       case "held":
-      case "model":
-      case "effort":
       case "extraEffort":
       case "account":
-      case "lists":
-      case "user.dropped":
-      case "plan":
       case "todos":
-      case "cut":
-      case "cut.undone":
       case "workflow.draft":
         return
+      case "cut":
+        return cutElsewhere(event.before)
+      case "cut.undone":
+        return redo()
     }
+  }
+
+  // Another client cut the conversation: the span hides as a rewind that kept the files would hide it. One already
+  // hidden only moves where it starts, and keeps the files our rewind put back.
+  function cutElsewhere(before: PromptId): void {
+    let userId: ItemId | undefined
+    let count = 0
+    for (const id of state.items.toReversed()) {
+      const item = state.byId[id]
+      if (item?.kind !== "user") continue
+      count += 1
+      if (item.uuid !== before) continue
+      userId = id
+      break
+    }
+    if (userId === undefined || userId === state.rewound?.userId) return
+    const kept = state.rewound ?? { files: [], keptFiles: true, last: state.items.at(-1) }
+    setState("rewound", { ...kept, userId, prompts: count })
+  }
+
+  function redo(): void {
+    setState("rewound", null)
+    // A task we stopped may still bring its turn; one still running belongs to the conversation again.
+    for (const id of hideFor) if (state.tasks[id]?.state === "running") hideFor.delete(id)
   }
 
   function openAsk(ask: AgentAsk): void {
@@ -597,6 +660,47 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         note: "",
         ...(agent ? { agent } : {}),
         ...(ask.own ? { mcp: { rpcId: ask.own.handle } } : {}),
+      },
+      null,
+    )
+  }
+
+  // The plan band for a plan that came without an ask. An earlier one still open gives way to it.
+  function ownPlan(event: Extract<AgentEvent, { type: "plan" }>): void {
+    if (hiding) return
+    for (const id of state.items) {
+      const item = state.byId[id]
+      if (item?.kind === "ask" && item.ownPlan && item.status === "pending")
+        closeAsk(item.requestId, { status: "cancelled" })
+    }
+    const requestId = newId("plan")
+    add(
+      {
+        kind: "ask",
+        id: `ask-${requestId}`,
+        requestId,
+        toolUseId: "",
+        toolName: "",
+        toolKind: "plan",
+        server: null,
+        displayName: "",
+        input: null,
+        target: event.path ?? "",
+        writes: [],
+        description: "",
+        reason: "",
+        options: [planOption("yes", "allow"), planOption("no", "deny")],
+        questions: null,
+        plan: { text: event.text ?? "", path: event.path },
+        defaultToNo: false,
+        safetyCheck: false,
+        status: "pending",
+        answers: {},
+        notes: {},
+        denial: "",
+        why: null,
+        note: "",
+        ownPlan: { next: event.next },
       },
       null,
     )
@@ -762,6 +866,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     update(id, (item) => {
       if (item.kind === "user") item.queue = null
     })
+  }
+
+  // A prompt the agent dropped before taking it in; with no turn and nothing else waiting, the session is idle.
+  function dropQueued(prompt: PromptId): void {
+    early.delete(prompt)
+    const id = waiting.get(prompt)
+    if (!id) return
+    waiting.delete(prompt)
+    update(id, (item) => {
+      if (item.kind === "user") item.queue = "not sent"
+    })
+    if (state.turn === null && waiting.size === 0) setState("status", "idle")
   }
 
   const shifted = (window: { utilization: number; resetsAt: number }): Window => ({
@@ -1206,6 +1322,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
 
   return {
     state,
+    lists,
     event(event) {
       // A start or end of the agent alone keeps the clock of the last event and does not start the session's.
       if (event.type !== "starting" && event.type !== "ended") tick(event.at)
@@ -1271,11 +1388,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     rewind(rewound) {
       setState("rewound", { ...rewound, last: rewound.last ?? state.items.at(-1) })
     },
-    redo() {
-      setState("rewound", null)
-      // A task we stopped may still bring its turn; one still running belongs to the conversation again.
-      for (const id of hideFor) if (state.tasks[id]?.state === "running") hideFor.delete(id)
-    },
+    redo,
     onFileOriginal(listener) {
       originalListeners.push(listener)
     },
@@ -1302,12 +1415,21 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     },
     // For a stored transcript: work with no recorded outcome will never finish.
     stopRunning,
-    setLists(lists) {
-      if (lists.mcpServers !== undefined) setState("mcpServers", lists.mcpServers)
-      if (lists.plugins !== undefined) setState("plugins", lists.plugins)
+    setLists(next) {
+      if (next.mcpServers !== undefined) setState("mcpServers", next.mcpServers)
+      if (next.plugins !== undefined) setState("plugins", next.plugins)
+      if (next.mcp !== undefined) push({ mcp: next.mcp })
     },
     setPermissionMode(mode) {
       setState("permissionMode", mode)
+    },
+    settlePlan(id, reply) {
+      closeAsk(
+        id,
+        reply.type === "option" && reply.option === "yes"
+          ? { status: "allowed" }
+          : { status: "denied", said: "", why: "declined", note: "" },
+      )
     },
     interrupting() {
       if (state.turn !== null) setState("interrupting", true)

@@ -1,9 +1,12 @@
 import type { Agent, AgentKind, Prompt } from "../agent/agent.ts"
 import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
-import type { EffortId, ModeId, Outcome } from "../agent/ids.ts"
+import type { AgentKindId, EffortId, ModeId, Outcome } from "../agent/ids.ts"
+import type { Knob, McpServerRow, RuleRow } from "../agent/lists.ts"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
+import { type AgentChoice, AgentDialog } from "./agent-dialog.tsx"
 import { ModDialogView } from "./mod-dialog.tsx"
+import { PermissionsDialog } from "./permissions-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
 import { Toast } from "./toast.tsx"
 import {
@@ -14,7 +17,7 @@ import {
   type Selection,
 } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
-import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
+import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { findModCommand, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
@@ -25,7 +28,7 @@ import { within } from "../rewind/common.ts"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
 import type { SessionEntry } from "../agent/sessions.ts"
-import { currentInfo, currentServers } from "../session/lists.ts"
+import { currentInfo } from "../session/lists.ts"
 import {
   type RewindExtras,
   type RewindPreview,
@@ -38,6 +41,7 @@ import {
   controlProblem,
   defaultModeOf,
   effortsOf,
+  modelChoices,
   modelFor,
   modelIds,
   modelRef,
@@ -46,13 +50,16 @@ import {
   nextMode,
   pickEffort,
   pickModel,
+  providerModelId,
   setControlProblem,
+  setKnobs,
+  setModelChoices,
   settings,
   stepEffort,
   stepModel,
   toggleUltracode,
 } from "../session/settings.ts"
-import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
+import { type ChoiceGroup, ChoiceDialog } from "./dialog/choice-dialog.tsx"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { fileRewindFact, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
@@ -61,6 +68,7 @@ import { writeClipboard } from "../input/clipboard.ts"
 import { conversationMarkdown, exportFileName, freeExportName } from "../session/export.ts"
 import { skillUses } from "../session/skills.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
+import type { PushedLists } from "../session/session.ts"
 import type { OneShot, SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo, UserMessage } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
@@ -113,9 +121,11 @@ import { ModPaneView, setCrowded, shownPane } from "./mod-pane.tsx"
 import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
-import { ResumeDialog } from "./resume/resume-dialog.tsx"
+import { ResumeDialog, type ResumeSessions } from "./resume/resume-dialog.tsx"
+import type { SessionList } from "./resume/rows.ts"
 import { RewindDialog } from "./rewind/rewind-dialog.tsx"
 import type { AgentSettings } from "./settings/config-tab.tsx"
+import type { AgentOption } from "./settings/options.ts"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { relative } from "./tool-call.tsx"
@@ -141,17 +151,24 @@ const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(",
 // A bare /rename takes up the title Claude Code sets this soon after.
 const ADOPT_TITLE_MS = 10_000
 const BACKGROUND_HINT_MS = 3000
+// What "Yes, start" sends after a plan the agent reported without asking.
+const PLAN_START = "Implement the plan."
+// YellowCode's own knob commands, for an agent that has none of its own.
+const OWN_KNOBS: Partial<Record<string, Knob>> = { model: "model", effort: "effort" }
 const NO_LIMITS: Session["usage"]["limits"] = { fiveHour: null, week: null, models: {} }
 
 export type AppProps = {
   session: Session
   // The agent whose session this is.
-  agent: Pick<AgentKind, "id" | "name" | "settingChange" | "settingMessage">
+  agent: Pick<AgentKind, "id" | "name" | "shortName" | "settingChange" | "settingMessage">
   // What the agent can do; the UI leaves out the rest.
   caps: Capabilities
   model: () => string | null
-  // Stands in for session.info until the real init arrives.
+  // Stands in for session.info until the real init arrives, and its servers for the session's.
   firstInfo?: SessionInfo | null
+  firstServers?: McpServerRow[] | null
+  // What the session's agent pushed, kept beside `session`.
+  lists: Accessor<PushedLists>
   workspace: Workspace
   replay: ReplayInfo | null
   readOnly?: SessionTitle & { modified: number }
@@ -165,12 +182,25 @@ export type AppProps = {
   provider: InputProvider
   // Live only; without them the dialogs' actions show a notice.
   extensions?: Pick<Agent, "mcp" | "skills" | "plugins">
-  sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
+  sessions: ResumeSessions
+  // Live only: the agents installed here, in the order a start tries them.
+  agents?: {
+    // Every agent this build can run, installed or not.
+    known: { id: AgentKindId; name: string }[]
+    // The last look, null before the first.
+    installed: () => AgentChoice[] | null
+    // Looks again; never rejects.
+    detect(): Promise<AgentChoice[]>
+    // A new session of that agent replaces this one.
+    pick(id: AgentKindId): void
+  }
   earlier?: boolean
   onEarlier?: () => void
   // False when the message could not go out; the prompt keeps it.
   // `giveBack` is called when an accepted message could not go out after all.
   onSubmit: (message: Message, giveBack: () => void) => boolean
+  // A typed /clear on an agent with no /clear of its own starts a new session of it. False: it cannot start now.
+  onClear?: () => boolean
   // Enter once Claude Code has exited starts it again and sends what was typed, if anything. Live only.
   onRestart?: (message: Message, giveBack: () => void) => boolean
   onAnswer: (ask: Ask, reply: AskReply) => void
@@ -188,6 +218,12 @@ export type AppProps = {
   onTitle?: (title: string) => void
   // The running agent's /context, /usage and settings; none in a replay or a saved conversation.
   info?: Pick<Agent, "context" | "usage" | "settings">
+  // Live only: the rules the agent pushed (null until it does), for /permissions where caps.lists has "rules".
+  permissions?: {
+    rules: () => RuleRow[] | null
+    refresh(): void
+    remove: Agent["permissions"]["remove"]
+  }
   // Without it the session cannot rewind (a read-only transcript). A live rewind puts the files back first and
   // resolves false when the session was not rewound after all, or with the ⚠ that came up since the dialog showed
   // it. `seen` are the ⚠ paths the dialog showed.
@@ -214,16 +250,18 @@ export type Message = Pick<Prompt, "text" | "images" | "to">
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "skills" | "export" | "tasks" }
+  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "agent" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
   | { name: "choice"; kind: "model" | "effort" }
-  | { name: "context" | "usage" }
+  | { name: "context" | "usage" | "permissions" }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
 
 export function App(props: AppProps) {
+  // The agent's name in short texts, such as the ask bands' notes.
+  const called = () => props.agent.shortName ?? props.agent.name
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
@@ -254,6 +292,7 @@ export function App(props: AppProps) {
     on(
       () => settingsTab() !== null,
       (open) => {
+        if (open && props.agents?.installed() === null) void props.agents.detect()
         const info = props.info
         if (!open || !info) return
         setAgentRows(null)
@@ -264,6 +303,11 @@ export function App(props: AppProps) {
       },
     ),
   )
+  // What the default agent can be: the installed agents, or the running one before they were looked for.
+  const agentOptions = (): AgentOption[] => {
+    const { id, name } = props.agent
+    return props.agents?.installed()?.filter((agent) => agent.blocked === null) ?? [{ id, name }]
+  }
   const agentSettings = (): AgentSettings | undefined => {
     const info = props.info
     if (!info) return undefined
@@ -329,15 +373,15 @@ export function App(props: AppProps) {
   const dimensions = useTerminalDimensions()
   // The welcome screen is for a new session only: a /clear starts over in the chat, under a header.
   const welcome = createMemo(() => props.session.items.length === 0 && props.session.conversation === 0)
-  const [listed, setListed] = createSignal<SessionEntry[]>([])
+  const [listed, setListed] = createSignal<SessionList>({ entries: [], names: null })
   // The session the agent is running is not one to go back to; after a /clear its id comes with the next info.
   const notShown = (entry: SessionEntry) =>
     entry.ref.agent !== props.agent.id || entry.ref.id !== props.session.info?.id
   const unlisted = {
-    list: () => props.sessions.list().then((entries) => entries.filter(notShown)),
+    list: () => props.sessions.list().then((list) => ({ ...list, entries: list.entries.filter(notShown) })),
     open: (entry: SessionEntry) => props.sessions.open(entry),
   }
-  const recents = () => listed().filter(notShown).slice(0, RECENT_ROWS)
+  const recents = () => listed().entries.filter(notShown).slice(0, RECENT_ROWS)
   // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held. A mod
   // wrapping the prompt rebuilds it, and it comes back the same way. Read as a member, so each new input gets the latest.
   const heldDraft: { current: Draft | undefined } = { current: undefined }
@@ -346,7 +390,7 @@ export function App(props: AppProps) {
   const loadRecents = () =>
     props.sessions
       .list()
-      .then((entries) => setListed(entries.slice(0, RECENT_ROWS + 1)))
+      .then((list) => setListed({ ...list, entries: list.entries.slice(0, RECENT_ROWS + 1) }))
       .catch((error: unknown) => log.warn("recent sessions failed to load", String(error)))
   onMount(() => void loadRecents())
   const recentShown = () => welcome() && welcomeLayout(dimensions().width, dimensions().height, recents().length).recent
@@ -388,12 +432,13 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  // claude takes a title only once it has said the session's id, which can be after the /rename.
+  // Sent again once the session's id is known: claude takes a title only after it said the id, which can be after the
+  // /rename. An agent that never says one takes it at once.
   createEffect(
     on(
       () => [renamed(), props.session.info?.id] as const,
-      ([name, id]) => {
-        if (name && id) toAgentTitle(name)
+      ([name]) => {
+        if (name) toAgentTitle(name)
       },
     ),
   )
@@ -417,8 +462,9 @@ export function App(props: AppProps) {
   // A resumed session shows the title it was listed under until claude reports one, or a /clear starts over.
   const listedTitle = untrack(() => props.title) ?? null
   // claude carries a title over into the session a /clear starts, so YellowCode's own source shows only its own.
+  // An agent that titles its own sessions shows its titles whatever the setting says (owner question D).
   const sourceTitle = () =>
-    props.readOnly || settings.sessionTitle === "yellowcode"
+    props.readOnly || (settings.sessionTitle === "yellowcode" && props.caps.titles === "none")
       ? haikuTitle()
       : (claudeTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
   const title = () => {
@@ -474,6 +520,7 @@ export function App(props: AppProps) {
         renderer,
         () => props.session,
         () => settings.notifications,
+        () => called(),
       )
   createEffect(() => {
     const text = `${flagged() ? "(!) " : ""}${windowTitle(title()?.title ?? "") || "YellowCode"}`
@@ -554,10 +601,12 @@ export function App(props: AppProps) {
     }),
   )
   const [mcpFailure, setMcpFailure] = createSignal<string | null>(null)
+  // The servers the session has now, else the ones that stand in for them.
+  const shownServers = () => props.lists().mcp ?? props.firstServers ?? null
   const failedServers = new Set<string>()
 
   createEffect(() => {
-    for (const server of props.provider.mcp(props.session.info?.mcpServers ?? null, []) ?? []) {
+    for (const server of props.lists().infoServers ?? []) {
       if (server.state !== "failed") {
         failedServers.delete(server.name)
         continue
@@ -775,8 +824,59 @@ export function App(props: AppProps) {
   const toModel = (id: string | null) => {
     if (id !== null) void props.knobs?.setModel(modelRef(id))
   }
-  // The levels of the model the session uses.
+  // An agent that tells its models, model and effort as events has them in the session, and the knobs show them.
+  createEffect(
+    on(
+      () => props.session.models,
+      (groups) => {
+        if (groups) setModelChoices(modelChoices(groups.flatMap((group) => group.models)))
+      },
+    ),
+  )
+  const sessionModel = () => {
+    const ref = props.session.model
+    if (ref === undefined || ref === null) return ref
+    return ref.provider === null ? ref.id : providerModelId(ref.provider, ref.id)
+  }
+  createEffect(
+    on(sessionModel, (id) => {
+      if (id !== undefined) setKnobs({ model: id })
+    }),
+  )
+  createEffect(
+    on(
+      () => props.session.effort,
+      (effort) => {
+        if (effort !== undefined) setKnobs({ effort })
+      },
+    ),
+  )
+  // An agent with providers lists its models by provider, each a choice under its provider's heading.
+  const modelGroups = (): ChoiceGroup[] => {
+    const groups = props.provider.modelGroups?.()
+    if (!groups)
+      return [
+        {
+          title: "",
+          choices: modelIds().map((id) => ({
+            id,
+            label: modelName(id),
+            note: props.provider.models().find((model) => model.ref.id === modelRef(id).id)?.note,
+          })),
+        },
+      ]
+    return groups.map((group) => ({
+      title: group.provider?.name ?? "",
+      choices: group.models.map(({ ref, label, note }) => ({
+        id: ref.provider === null ? ref.id : providerModelId(ref.provider, ref.id),
+        label,
+        note,
+      })),
+    }))
+  }
+  // The levels of the model the session uses; `levels` leaves out the ones the agent sets from a message.
   const efforts = () => effortsOf(props.provider.models(), settings.model ?? props.model())
+  const levels = () => efforts().filter((level) => level.message === undefined)
   const toEffort = (level: EffortId | null) => {
     if (level !== null && props.caps.effort) void props.knobs?.setEffort(level)
   }
@@ -793,28 +893,40 @@ export function App(props: AppProps) {
   createEffect(
     on(
       () => defaultModeOf(props.agent.id),
-      (mode) => void props.knobs?.setMode(mode),
+      (mode) => {
+        if (mode !== null) void props.knobs?.setMode(mode)
+      },
       { defer: true },
     ),
   )
-  // /model and /effort with a value YellowCode knows pick it here; any other value goes on to Claude Code.
+  // A knob command with a value YellowCode knows picks it here. Any other value goes on to the agent's own command, and
+  // where the agent has none, YellowCode's own /model and /effort say why instead.
   const typedKnob = (name: string, value: string): boolean => {
-    if (!props.knobs || (name !== "model" && name !== "effort")) return false
-    if (name === "effort" && !props.caps.effort) return false
-    // A model without effort levels: Claude Code's own /effort says so.
-    if (name === "effort" && settings.effort === null) return false
-    if (!value) {
-      setDialog({ name: "choice", kind: name })
+    const agentKnob = props.provider.knob(name)
+    const knob = agentKnob ?? OWN_KNOBS[name]
+    if (!props.knobs || knob === undefined) return false
+    if (knob === "effort" && !props.caps.effort) return false
+    const untaken = (problem: string) => {
+      if (agentKnob !== null) return false
+      waitNotice(problem)
       return true
     }
-    if (name === "model") {
-      const id = modelFor(value)
-      if (id) toModel(pickModel(id))
-      return id !== null
+    // A model without effort levels: the agent's own command says so.
+    if (knob === "effort" && settings.effort === null) return untaken("This model has no effort levels")
+    if (!value) {
+      setDialog({ name: "choice", kind: knob })
+      return true
     }
-    const level = efforts().find((known) => known.id === value.toLowerCase())
-    if (level) toEffort(pickEffort(level.id))
-    return level !== undefined
+    if (knob === "model") {
+      const id = modelFor(value)
+      if (id === null) return untaken(`${props.agent.name} has no model ${value}`)
+      toModel(pickModel(id))
+      return true
+    }
+    const level = levels().find((known) => known.id === value.toLowerCase())
+    if (!level) return untaken(`${props.agent.name} has no effort ${value} for this model`)
+    toEffort(pickEffort(level.id))
+    return true
   }
 
   const imageView = () => {
@@ -1007,12 +1119,17 @@ export function App(props: AppProps) {
   let copiedReport = ""
   const copyReport = async () => {
     const info = currentInfo(props.session, props.firstInfo ?? null)
-    const servers = currentServers(props.session, props.firstInfo ?? null) ?? []
-    const plugins = info ? props.provider.plugins(info) : []
+    const servers = shownServers() ?? []
+    const plugins = props.provider.plugins(info) ?? []
     const mode = props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null
     const text = reportMarkdown({
       environment: [...hostFacts(info?.cliVersion ?? null), ...terminalFacts(renderer.capabilities)],
-      settings: settingsFacts(settings, props.agent.id, props.provider.modes(), settingsProblem()),
+      settings: settingsFacts(
+        settings,
+        { id: props.agent.id, name: props.agent.name, modes: props.provider.modes() },
+        props.agents?.known ?? [props.agent],
+        settingsProblem(),
+      ),
       session: [
         ["Model", modelName(settings.model ?? props.model() ?? "")],
         ["Effort", settings.effort],
@@ -1033,7 +1150,7 @@ export function App(props: AppProps) {
   }
   const busy = () =>
     props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
-  const waitNotice = (text = "Rewind waits until Claude Code is idle") => {
+  const waitNotice = (text = `Rewind waits until ${props.agent.name} is idle`) => {
     setRewindNote(text)
     clearTimeout(clearRewindNote)
     clearRewindNote = setTimeout(() => setRewindNote(null), NOTE_MS)
@@ -1314,7 +1431,7 @@ export function App(props: AppProps) {
       if (props.caps.effort)
         toEffort(
           stepEffort(
-            efforts().map((level) => level.id),
+            levels().map((level) => level.id),
             key.name === "up" ? 1 : -1,
           ),
         )
@@ -1390,6 +1507,29 @@ export function App(props: AppProps) {
     const plan = props.provider.modes().find((mode) => mode.kind === "plan")
     if (props.knobs && plan) chooseMode(plan.id)
   }
+  // A plan the agent reported without asking: "Yes, start" switches to the mode to go on in, then asks for the plan in
+  // the chat. A failed switch sends nothing.
+  const goOnFromPlan = async (next: ModeId | null, reply: AskReply) => {
+    if (reply.type !== "option" || reply.option !== "yes") return
+    if (next !== null && props.knobs) {
+      planBack.cancel()
+      const switched = await props.knobs.setMode(next)
+      if (!switched.ok) {
+        setControlProblem({ text: switched.problem })
+        return
+      }
+    }
+    submit({ text: PLAN_START, images: [], draft: { text: PLAN_START, chips: [] } })
+  }
+  // An agent that reports plans by itself says how to leave plan mode once none came, when Shift+Tab goes to build.
+  const planHint = () => {
+    if (props.caps.planSignal !== "file" && props.caps.planSignal !== "item") return null
+    const modes = props.provider.modes()
+    const current = props.session.permissionMode
+    if (modes.find((mode) => mode.id === current)?.kind !== "plan") return null
+    const start = modes.find((mode) => mode.id === nextMode(modes, current))
+    return start?.kind === "auto" ? `shift+tab ${start.label} to start` : null
+  }
 
   const submit = ({ text, images, draft }: Submission): boolean => {
     if (rushedSubmit()) return false
@@ -1449,6 +1589,13 @@ export function App(props: AppProps) {
       setDialog({ name: "settings", tab: "config", row: `agent:${setting}` })
       return true
     }
+    if (command === "/clear" && props.onClear) return props.onClear()
+    // An agent that fills the rules list has the dialog, which reads them again as it opens.
+    if (command === "/permissions" && props.caps.lists.includes("rules") && props.permissions) {
+      props.permissions.refresh()
+      setDialog({ name: "permissions" })
+      return true
+    }
     const report =
       command === "/context" ? props.caps.context !== "none" : command === "/usage" && props.caps.usageReport
     if (report && props.info) {
@@ -1457,8 +1604,8 @@ export function App(props: AppProps) {
     }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
-    if ((rewinding && !props.rewind) || (planning && !props.onInterrupt)) {
-      waitNotice(SAVED_NOTICE)
+    if ((rewinding && !props.rewind) || (planning && !props.onInterrupt) || (command === "/agent" && !props.agents)) {
+      waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name}`)
       return false
     }
     const [, typed = "", args = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(command) ?? []
@@ -1470,6 +1617,7 @@ export function App(props: AppProps) {
     if (command === "/report") void copyReport()
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
+    else if (command === "/agent") setDialog({ name: "agent" })
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
@@ -1551,9 +1699,9 @@ export function App(props: AppProps) {
             ? "Enter sends the next recorded message"
             : ended()
               ? props.onRestart
-                ? "Claude Code is not running · Enter restarts it"
-                : "Claude Code is not running"
-              : "Message Claude Code",
+                ? `${props.agent.name} is not running · Enter restarts it`
+                : `${props.agent.name} is not running`
+              : `Message ${props.agent.name}`,
     model: settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
@@ -1574,8 +1722,12 @@ export function App(props: AppProps) {
             ask={ask}
             width={promptInnerWidth(chatWidth())}
             caps={props.caps}
-            onAnswer={props.onAnswer}
-            onPlanApproved={() => planBack.approve()}
+            agent={called()}
+            onAnswer={(answered, reply) => {
+              props.onAnswer(answered, reply)
+              if (answered.ownPlan) void goOnFromPlan(answered.ownPlan.next, reply)
+            }}
+            onPlanApproved={ask.ownPlan ? undefined : () => planBack.approve()}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
             onOpenScript={(name, script) =>
               setDialog({ name: "code", refs: [{ path: `${name}.js`, text: script }], ids: [], index: 0 })
@@ -1596,9 +1748,9 @@ export function App(props: AppProps) {
     if (note) return { text: note, fg: theme.muted }
     if (ended()) {
       const restart = props.onRestart ? " · Enter: restart" : ""
-      return { text: `✗ Claude Code exited · Ctrl+C: quit${restart}`, fg: theme.error }
+      return { text: `✗ ${props.agent.name} exited · Ctrl+C: quit${restart}`, fg: theme.error }
     }
-    return live() && props.session.status === "starting" ? startingNotice() : null
+    return live() && props.session.status === "starting" ? startingNotice(props.agent.name) : null
   }
   const openBackup = () => {
     const backup = props.settingsBackup
@@ -1617,6 +1769,7 @@ export function App(props: AppProps) {
   const notice = () => {
     clock()
     return noticeFor({
+      agent: props.agent.name,
       usage: props.session.usage,
       replay: props.replay,
       readOnly: props.readOnly?.title ?? null,
@@ -1635,6 +1788,7 @@ export function App(props: AppProps) {
       interruptible: interruptible(),
       backgroundable: backgroundable(),
       modes: props.onInterrupt !== undefined,
+      planHint: planHint(),
       extraEffort: props.caps.extraEffort,
       limits: props.caps.limits,
       now: Date.now(),
@@ -1712,7 +1866,7 @@ export function App(props: AppProps) {
                 workspace={props.workspace}
                 notice={welcomeNotice()}
                 onNotice={openBackup()}
-                recent={{ entries: recents(), selected: recent() }}
+                recent={{ entries: recents(), names: listed().names, selected: recent() }}
                 width={dimensions().width - rightWidth()}
                 height={dimensions().height - bottomHeight()}
               />
@@ -1823,7 +1977,7 @@ export function App(props: AppProps) {
               workspace={props.workspace}
               modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
-              servers={props.provider.mcp(currentServers(props.session, null), props.session.info?.tools ?? [])}
+              servers={props.lists().mcp ?? null}
               caps={props.caps}
               width={shownWidth()}
               overlay={sidebar() === "overlay"}
@@ -1838,7 +1992,7 @@ export function App(props: AppProps) {
           <SettingsDialog
             tab={tab()}
             info={currentInfo(props.session, props.firstInfo ?? null)}
-            servers={currentServers(props.session, props.firstInfo ?? null)}
+            servers={shownServers()}
             extensions={props.extensions}
             caps={props.caps}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
@@ -1848,6 +2002,7 @@ export function App(props: AppProps) {
             provider={props.provider}
             row={settingsRow()}
             agent={props.agent.id}
+            agents={agentOptions()}
             agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}
             onClose={() => setDialog(null)}
@@ -1894,7 +2049,13 @@ export function App(props: AppProps) {
         )}
       </Show>
       <Show when={dialog()?.name === "context" && props.info}>
-        {(info) => <ContextDialog load={() => info().context()} onClose={() => setDialog(null)} />}
+        {(info) => (
+          <ContextDialog
+            load={() => info().context()}
+            total={props.caps.context === "total" ? called() : undefined}
+            onClose={() => setDialog(null)}
+          />
+        )}
       </Show>
       <Show when={dialog()?.name === "usage" && props.info}>
         {(info) => (
@@ -1905,14 +2066,20 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
+      <Show when={dialog()?.name === "permissions" && props.permissions}>
+        {(permissions) => (
+          <PermissionsDialog
+            agent={props.agent.name}
+            rules={permissions().rules()}
+            onRemove={(id) => permissions().remove(id)}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
       <Show when={choiceKind() === "model"}>
         <ChoiceDialog
           title="Model"
-          choices={modelIds().map((id) => ({
-            id,
-            label: modelName(id),
-            note: props.provider.models().find((model) => model.ref.id === modelRef(id).id)?.note,
-          }))}
+          groups={modelGroups()}
           current={settings.model ?? props.model()}
           onChoose={(id) => toModel(pickModel(id))}
           onClose={() => setDialog(null)}
@@ -1921,13 +2088,12 @@ export function App(props: AppProps) {
       <Show when={choiceKind() === "effort"}>
         <ChoiceDialog
           title="Effort"
-          choices={[...efforts(), { id: "auto", label: "auto", note: "Claude Code picks the level" }]}
+          groups={[{ title: "", choices: efforts() }]}
           current={settings.effort}
           onChoose={(id) => {
             const level = efforts().find((known) => known.id === id)
-            // auto is Claude Code's own, so its /effort sets it.
-            if (level) toEffort(pickEffort(level.id))
-            else props.onSubmit({ text: "/effort auto", images: [], to: null }, () => {})
+            if (level?.message !== undefined) props.onSubmit({ text: level.message, images: [], to: null }, () => {})
+            else if (level) toEffort(pickEffort(level.id))
           }}
           onClose={() => setDialog(null)}
         />
@@ -1947,6 +2113,16 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
+      <Show when={dialog()?.name === "agent" && props.agents}>
+        {(agents) => (
+          <AgentDialog
+            current={props.agent.id}
+            detect={() => agents().detect()}
+            onPick={(id) => agents().pick(id)}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />
       </Show>
@@ -1959,6 +2135,7 @@ export function App(props: AppProps) {
           )
           return (
             <RewindDialog
+              agent={called()}
               points={points}
               dryRun={open().extras?.dryRun}
               late={late}

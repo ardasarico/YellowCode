@@ -1,0 +1,1050 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234415293
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234415293
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "KILO one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234415782
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234415784
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234415788
+    },
+    {
+      "type": "title",
+      "title": "Cutting back",
+      "at": 1793234415806
+    },
+    {
+      "type": "reply",
+      "at": 1793234415831
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234415831
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234415831
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234415832
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "t1.txt",
+        "content": "one\n"
+      },
+      "summary": "<root>/project/t1.txt",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234415833
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Created file successfully: t1.txt",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "one\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/t1.txt",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "one\n"
+        }
+      ],
+      "at": 1793234415841
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234415875
+    },
+    {
+      "type": "reply",
+      "at": 1793234415886
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234415886
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234415887
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "One done.",
+      "at": 1793234415888
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "One done.",
+      "at": 1793234415888
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234415895
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 113,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234415897
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "KILO two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234415899
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234415899
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234415901
+    },
+    {
+      "type": "reply",
+      "at": 1793234415911
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234415911
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234415911
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "a.txt",
+        "oldString": "hello",
+        "newString": "HOTEL"
+      },
+      "summary": "<root>/project/a.txt",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234415912
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "Edited a.txt (1 replacement)",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 1,
+          "newStart": 1,
+          "newLines": 1,
+          "lines": [
+            "-hello",
+            "+HOTEL"
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/a.txt",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 1,
+              "newStart": 1,
+              "newLines": 1,
+              "lines": [
+                "-hello",
+                "+HOTEL"
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793234415915
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234415951
+    },
+    {
+      "type": "reply",
+      "at": 1793234415996
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234415996
+    },
+    {
+      "type": "text.start",
+      "part": "msg_4:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234415997
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_4:text:0",
+      "text": "Two done.",
+      "at": 1793234416001
+    },
+    {
+      "type": "text.end",
+      "part": "msg_4:text:0",
+      "text": "Two done.",
+      "at": 1793234416001
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234416008
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 110,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.03380999999999999,
+      "prompts": [],
+      "at": 1793234416009
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "KILO three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234416011
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234416011
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793234416013
+    },
+    {
+      "type": "reply",
+      "at": 1793234416023
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234416023
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234416024
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "t3.txt",
+        "content": "three\n"
+      },
+      "summary": "<root>/project/t3.txt",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234416025
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "Created file successfully: t3.txt",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "three\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/t3.txt",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "three\n"
+        }
+      ],
+      "at": 1793234416026
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234416059
+    },
+    {
+      "type": "reply",
+      "at": 1793234416071
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234416071
+    },
+    {
+      "type": "text.start",
+      "part": "msg_6:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234416072
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_6:text:0",
+      "text": "Three done.",
+      "at": 1793234416072
+    },
+    {
+      "type": "text.end",
+      "part": "msg_6:text:0",
+      "text": "Three done.",
+      "at": 1793234416072
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234416079
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 69,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.05060999999999999,
+      "prompts": [],
+      "at": 1793234416080
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "KILO again",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234416113
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234416114
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-4"
+      ],
+      "at": 1793234416115
+    },
+    {
+      "type": "reply",
+      "at": 1793234416125
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234416125
+    },
+    {
+      "type": "text.start",
+      "part": "msg_7:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234416125
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_7:text:0",
+      "text": "Back after the first turn.",
+      "at": 1793234416137
+    },
+    {
+      "type": "text.end",
+      "part": "msg_7:text:0",
+      "text": "Back after the first turn.",
+      "at": 1793234416137
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234416145
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 32,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.059009999999999986,
+      "prompts": [],
+      "at": 1793234416146
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234416146
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "KILO one",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234415788
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234415796
+          },
+          {
+            "type": "reply",
+            "at": 1793234415796
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234415796
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "write",
+            "kind": "write",
+            "title": "write",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234415796
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "t1.txt",
+              "content": "one\n"
+            },
+            "summary": "<root>/project/t1.txt",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234415796
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "Created file successfully: t1.txt",
+            "images": [],
+            "patch": null,
+            "created": true,
+            "content": "one\n",
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/t1.txt",
+                "change": "create",
+                "movedTo": null,
+                "patch": null,
+                "after": "one\n"
+              }
+            ],
+            "at": 1793234415796
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234415796
+          },
+          {
+            "type": "reply",
+            "at": 1793234415879
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234415879
+          },
+          {
+            "type": "text.start",
+            "part": "msg_2:text:0",
+            "parent": null,
+            "text": "One done.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234415879
+          },
+          {
+            "type": "text.end",
+            "part": "msg_2:text:0",
+            "text": "One done.",
+            "at": 1793234415879
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234415879
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-4",
+            "text": "KILO again",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234416115
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234416117
+          },
+          {
+            "type": "reply",
+            "at": 1793234416117
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234416117
+          },
+          {
+            "type": "text.start",
+            "part": "msg_7:text:0",
+            "parent": null,
+            "text": "Back after the first turn.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234416117
+          },
+          {
+            "type": "text.end",
+            "part": "msg_7:text:0",
+            "text": "Back after the first turn.",
+            "at": 1793234416117
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234416117
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "text-2",
+      "turn-3",
+      "user-10",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "KILO one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"t1.txt\",\"content\":\"one\\n\"}",
+        "input": {
+          "path": "t1.txt",
+          "content": "one\n"
+        },
+        "summary": "<root>/project/t1.txt",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: t1.txt",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "one\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/t1.txt",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "one\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "One done.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 113,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234415897
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "KILO two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"a.txt\",\"oldString\":\"hello\",\"newString\":\"HOTEL\"}",
+        "input": {
+          "path": "a.txt",
+          "oldString": "hello",
+          "newString": "HOTEL"
+        },
+        "summary": "<root>/project/a.txt",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Edited a.txt (1 replacement)",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 1,
+            "newStart": 1,
+            "newLines": 1,
+            "lines": [
+              "-hello",
+              "+HOTEL"
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/a.txt",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-hello",
+                  "+HOTEL"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Two done.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.03380999999999999,
+        "durationMs": 110,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234416009
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "KILO three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"t3.txt\",\"content\":\"three\\n\"}",
+        "input": {
+          "path": "t3.txt",
+          "content": "three\n"
+        },
+        "summary": "<root>/project/t3.txt",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: t3.txt",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "three\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/t3.txt",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "three\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Three done.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0.05060999999999999,
+        "durationMs": 69,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234416080
+      },
+      "user-10": {
+        "kind": "user",
+        "id": "user-10",
+        "text": "KILO again",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "Back after the first turn.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0.059009999999999986,
+        "durationMs": 32,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234416146
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 9660,
+      "costUsd": 0.059009999999999986,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Cutting back",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

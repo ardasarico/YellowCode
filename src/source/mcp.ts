@@ -6,7 +6,7 @@ import { mcpReconnectRequest, mcpStatusRequest, mcpToggleRequest } from "../prot
 import type { SessionStore } from "../session/session.ts"
 import type { McpConfig, McpServer } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
-import { shortName } from "../agents/claude/mcp-rows.ts"
+import { shortName, showServers } from "../agents/claude/mcp-rows.ts"
 import { type Requests, RequestTimeout } from "./requests.ts"
 import { commandOf, programOf, safeText, safeUrl } from "./safe-text.ts"
 
@@ -110,6 +110,10 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
   const commands = new Map<string, string>()
 
   const known = () => session.state.mcpServers ?? session.state.info?.mcpServers ?? []
+  const setServers = (servers: McpServer[]) => {
+    session.setLists({ mcpServers: servers })
+    showServers(session)
+  }
   const shown = (servers: McpServer[]) =>
     servers.map((server) => {
       const status = changing.get(server.name)?.status
@@ -137,7 +141,7 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
             if (found.success) commands.set(found.data.name, found.data.config.command)
           }
           const servers = mcpServers(rows)
-          session.setLists({ mcpServers: shown(servers) })
+          setServers(shown(servers))
           log.info("mcp status", {
             servers: servers.length,
             failed: count(servers, "failed"),
@@ -172,7 +176,7 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
     const before = known().find((server) => server.name === name)
     const previous = before ? { ...before } : null
     changing.set(name, { status, doing })
-    session.setLists({ mcpServers: shown(known()) })
+    setServers(shown(known()))
     return requests.send(build, CHANGE_TIMEOUT_MS).then(
       () => {
         changing.delete(name)
@@ -181,8 +185,7 @@ export function createMcpControls(options: { requests: Requests; session: Sessio
       (error: unknown) => {
         changing.delete(name)
         // Until claude's list says otherwise (and if it never comes), the row is as it was.
-        if (previous)
-          session.setLists({ mcpServers: known().map((server) => (server.name === name ? previous : server)) })
+        if (previous) setServers(known().map((server) => (server.name === name ? previous : server)))
         refresh()
         throw new Error(failureText(error, commands.get(name)))
       },

@@ -39,7 +39,11 @@ function listRow(entry: McpEntry): DialogRow {
     labelColor: state === "off" ? theme.panelFaint : undefined,
     valueColor: color,
   }
-  if (state === "connected") return { ...row, value: toolCount(entry.tools.length), valueColor: theme.panelFaint }
+  // A server whose tools the agent does not list shows no count.
+  if (state === "connected")
+    return entry.row.tools === null
+      ? row
+      : { ...row, value: toolCount(entry.tools.length), valueColor: theme.panelFaint }
   if (state === "needs-login") return { ...row, selectedValue: word }
   return { ...row, value: word }
 }

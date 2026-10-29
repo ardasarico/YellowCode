@@ -1,0 +1,1977 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234395378
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234395378
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "ALPHA pick a color",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234395855
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234395856
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234395861
+    },
+    {
+      "type": "title",
+      "title": "Asking our way",
+      "at": 1793234395884
+    },
+    {
+      "type": "reply",
+      "at": 1793234396173
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396173
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234396173
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396174
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396178
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "id": "own_1",
+        "kind": "question",
+        "call": null,
+        "tool": {
+          "name": "yellowcode.ask",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
+        },
+        "target": "Color, Sizes",
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": {
+          "handle": 2
+        }
+      },
+      "at": 1793234396183
+    },
+    {
+      "type": "ask.close",
+      "id": "own_1",
+      "outcome": {
+        "status": "answered",
+        "answers": {
+          "Which color?": "Blue",
+          "Which sizes?": "S, L"
+        },
+        "notes": {
+          "Which color?": "Dark",
+          "Which sizes?": "Additional note: Thanks"
+        }
+      },
+      "at": 1793234396183
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Your questions have been answered: \"Which color?\"=\"Blue\" notes: Dark, \"Which sizes?\"=\"S, L\" notes: Additional note: Thanks. You can now continue with these answers in mind.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234396187
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396196
+    },
+    {
+      "type": "reply",
+      "at": 1793234396208
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396208
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234396209
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "Blue in S and L.",
+      "at": 1793234396214
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "Blue in S and L.",
+      "at": 1793234396214
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396221
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 366,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234396222
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "BRAVO again, how sure",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234396224
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234396224
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234396226
+    },
+    {
+      "type": "reply",
+      "at": 1793234396237
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396237
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396237
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools.yellowcode.ask({\"matrix\":{\"question\":\"How sure are you?\",\"header\":\"Sure\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs are right\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396238
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "id": "own_2",
+        "kind": "question",
+        "call": null,
+        "tool": {
+          "name": "yellowcode.ask",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "ask",
+        "input": {
+          "matrix": {
+            "question": "How sure are you?",
+            "header": "Sure",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs are right"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "target": "How sure are you?",
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "matrix": {
+            "header": "Sure",
+            "question": "How sure are you?",
+            "rows": [
+              "Tests pass",
+              "Docs are right"
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": {
+          "handle": 3
+        }
+      },
+      "at": 1793234396240
+    },
+    {
+      "type": "ask.close",
+      "id": "own_2",
+      "outcome": {
+        "status": "denied",
+        "said": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
+        "why": "chat",
+        "note": ""
+      },
+      "at": 1793234396240
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234396242
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396249
+    },
+    {
+      "type": "reply",
+      "at": 1793234396261
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396261
+    },
+    {
+      "type": "text.start",
+      "part": "msg_4:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234396261
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_4:text:0",
+      "text": "Let us talk it over.",
+      "at": 1793234396267
+    },
+    {
+      "type": "text.end",
+      "part": "msg_4:text:0",
+      "text": "Let us talk it over.",
+      "at": 1793234396267
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396274
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 51,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.03380999999999999,
+      "prompts": [],
+      "at": 1793234396275
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "CHARLIE third one, through a helper",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234396277
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234396277
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793234396278
+    },
+    {
+      "type": "reply",
+      "at": 1793234396288
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396288
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "subagent",
+      "kind": "agent",
+      "title": "subagent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396289
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "agent": "general",
+        "description": "Ask for me",
+        "prompt": "DELTA child asks"
+      },
+      "summary": "Ask for me",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "general",
+        "task": "Ask for me",
+        "prompt": "DELTA child asks",
+        "type": "general",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793234396289
+    },
+    {
+      "type": "task.start",
+      "id": "ses_2",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "toolu_mock0003",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "Ask for me",
+      "prompt": "DELTA child asks",
+      "workflow": "",
+      "agentType": "general",
+      "at": 1793234396292
+    },
+    {
+      "type": "subagent.model",
+      "call": "toolu_mock0003",
+      "model": "claude-opus-5-5",
+      "at": 1793234396303
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0004",
+      "parent": "toolu_mock0003",
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396304
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396304
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_2",
+      "activity": "",
+      "lastTool": "execute",
+      "toolUses": 1,
+      "durationMs": 12,
+      "tokens": 0,
+      "at": 1793234396304
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0004",
+      "status": "done",
+      "result": "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final report, so the main agent can ask it.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234396308
+    },
+    {
+      "type": "text.start",
+      "part": "msg_8:text:0",
+      "parent": "toolu_mock0003",
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234396329
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_8:text:0",
+      "text": "I will put it in my report.",
+      "at": 1793234396341
+    },
+    {
+      "type": "text.end",
+      "part": "msg_8:text:0",
+      "text": "I will put it in my report.",
+      "at": 1793234396341
+    },
+    {
+      "type": "task.end",
+      "id": "ses_2",
+      "state": "completed",
+      "report": {
+        "summary": "I will put it in my report.",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 1,
+          "durationMs": 57,
+          "tokens": 2760
+        },
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0003",
+      "at": 1793234396349
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "I will put it in my report.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": "ses_2",
+      "files": [],
+      "at": 1793234396350
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396356
+    },
+    {
+      "type": "reply",
+      "at": 1793234396393
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396393
+    },
+    {
+      "type": "text.start",
+      "part": "msg_9:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234396394
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_9:text:0",
+      "text": "The helper could not ask.",
+      "at": 1793234396411
+    },
+    {
+      "type": "text.end",
+      "part": "msg_9:text:0",
+      "text": "The helper could not ask.",
+      "at": 1793234396411
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396423
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 147,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.06740999999999998,
+      "prompts": [],
+      "at": 1793234396424
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "ECHO with one option only",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234396425
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234396431
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-4"
+      ],
+      "at": 1793234396433
+    },
+    {
+      "type": "reply",
+      "at": 1793234396444
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396444
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0005",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396445
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0005",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Sure?\",\"header\":\"Sure\",\"options\":[{\"label\":\"Yes\"}]}]})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396445
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0005",
+      "status": "done",
+      "result": "Invalid arguments for tool \"yellowcode_ask\":\n- questions[0].options: Expected a value with a length of at least 2\n\nArguments provided:\n{\n  \"questions\": [\n    {\n      \"question\": \"Sure?\",\n      \"header\": \"Sure\",\n      \"options\": [\n        {\n          \"label\": \"Yes\"\n        }\n      ]\n    }\n  ]\n}\n\nUpdate the arguments and call the tool again.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234396447
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396454
+    },
+    {
+      "type": "reply",
+      "at": 1793234396465
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396465
+    },
+    {
+      "type": "text.start",
+      "part": "msg_11:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234396466
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_11:text:0",
+      "text": "Fixed.",
+      "at": 1793234396466
+    },
+    {
+      "type": "text.end",
+      "part": "msg_11:text:0",
+      "text": "Fixed.",
+      "at": 1793234396466
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396473
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 43,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.08420999999999998,
+      "prompts": [],
+      "at": 1793234396474
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-5",
+      "text": "FOXTROT asked then interrupted",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234396476
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234396476
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-5"
+      ],
+      "at": 1793234396477
+    },
+    {
+      "type": "reply",
+      "at": 1793234396487
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234396487
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0006",
+      "parent": null,
+      "name": "execute",
+      "kind": "other",
+      "title": "execute",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234396488
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0006",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396489
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "id": "own_3",
+        "kind": "question",
+        "call": null,
+        "tool": {
+          "name": "yellowcode.ask",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
+        },
+        "target": "Color, Sizes",
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": {
+          "handle": 5
+        }
+      },
+      "at": 1793234396490
+    },
+    {
+      "type": "interrupt",
+      "state": "asked",
+      "at": 1793234396490
+    },
+    {
+      "type": "interrupt",
+      "state": "answered",
+      "at": 1793234396490
+    },
+    {
+      "type": "ask.close",
+      "id": "own_3",
+      "outcome": {
+        "status": "cancelled"
+      },
+      "at": 1793234396490
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0006",
+      "status": "stopped",
+      "result": "Tool execution interrupted",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234396492
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234396501
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": true,
+      "local": false,
+      "durationMs": 27,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.09260999999999998,
+      "prompts": [],
+      "at": 1793234396503
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-6",
+      "text": "HOTEL the very last one, after everything else",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234399513
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234399514
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-6"
+      ],
+      "at": 1793234399516
+    },
+    {
+      "type": "reply",
+      "at": 1793234399531
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234399531
+    },
+    {
+      "type": "text.start",
+      "part": "msg_17:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234399532
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_17:text:0",
+      "text": "Last one.",
+      "at": 1793234399533
+    },
+    {
+      "type": "text.end",
+      "part": "msg_17:text:0",
+      "text": "Last one.",
+      "at": 1793234399533
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234399540
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 27,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.10100999999999999,
+      "prompts": [],
+      "at": 1793234399541
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234399541
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "ask-own_1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "toolu_mock0002",
+      "ask-own_2",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0003",
+      "text-9",
+      "turn-10",
+      "user-11",
+      "toolu_mock0005",
+      "text-12",
+      "turn-13",
+      "user-14",
+      "toolu_mock0006",
+      "ask-own_3",
+      "turn-15",
+      "user-16",
+      "text-17",
+      "turn-18"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "ALPHA pick a color",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "input": {
+          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Your questions have been answered: \"Which color?\"=\"Blue\" notes: Dark, \"Which sizes?\"=\"S, L\" notes: Additional note: Thanks. You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-own_1": {
+        "kind": "ask",
+        "id": "ask-own_1",
+        "requestId": "own_1",
+        "toolUseId": "",
+        "toolName": "yellowcode.ask",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
+        },
+        "target": "Color, Sizes",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Which color?": "Blue",
+          "Which sizes?": "S, L"
+        },
+        "notes": {
+          "Which color?": "Dark",
+          "Which sizes?": "Additional note: Thanks"
+        },
+        "denial": "",
+        "why": null,
+        "note": "",
+        "mcp": {
+          "rpcId": 2
+        }
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Blue in S and L.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 366,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234396222
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "BRAVO again, how sure",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"matrix\\\":{\\\"question\\\":\\\"How sure are you?\\\",\\\"header\\\":\\\"Sure\\\",\\\"rows\\\":[{\\\"label\\\":\\\"Tests pass\\\"},{\\\"label\\\":\\\"Docs are right\\\"}],\\\"scale\\\":[\\\"Yes\\\",\\\"No\\\",\\\"Unsure\\\"]}})\"}",
+        "input": {
+          "code": "return await tools.yellowcode.ask({\"matrix\":{\"question\":\"How sure are you?\",\"header\":\"Sure\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs are right\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-own_2": {
+        "kind": "ask",
+        "id": "ask-own_2",
+        "requestId": "own_2",
+        "toolUseId": "",
+        "toolName": "yellowcode.ask",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "ask",
+        "input": {
+          "matrix": {
+            "question": "How sure are you?",
+            "header": "Sure",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs are right"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "target": "How sure are you?",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "matrix": {
+            "header": "Sure",
+            "question": "How sure are you?",
+            "rows": [
+              "Tests pass",
+              "Docs are right"
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "denied",
+        "answers": {},
+        "notes": {},
+        "denial": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
+        "why": "chat",
+        "note": "",
+        "mcp": {
+          "rpcId": 3
+        }
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Let us talk it over.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.03380999999999999,
+        "durationMs": 51,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234396275
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "CHARLIE third one, through a helper",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "subagent",
+        "toolKind": "agent",
+        "title": "subagent",
+        "server": null,
+        "inputText": "{\"agent\":\"general\",\"description\":\"Ask for me\",\"prompt\":\"DELTA child asks\"}",
+        "input": {
+          "agent": "general",
+          "description": "Ask for me",
+          "prompt": "DELTA child asks"
+        },
+        "summary": "Ask for me",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "I will put it in my report.",
+        "children": [
+          "toolu_mock0004",
+          "text-8"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "general",
+          "task": "Ask for me",
+          "prompt": "DELTA child asks",
+          "type": "general",
+          "model": "claude-opus-5-5",
+          "tokens": 2760,
+          "state": "completed",
+          "toolUses": 1,
+          "durationMs": 57,
+          "report": "I will put it in my report.",
+          "error": null,
+          "activity": "",
+          "stoppedByUser": false
+        },
+        "taskId": "ses_2"
+      },
+      "toolu_mock0004": {
+        "kind": "tool",
+        "id": "toolu_mock0004",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "input": {
+          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final report, so the main agent can ask it.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "I will put it in my report.",
+        "streaming": false
+      },
+      "text-9": {
+        "kind": "text",
+        "id": "text-9",
+        "markdown": "The helper could not ask.",
+        "streaming": false
+      },
+      "turn-10": {
+        "kind": "turn-end",
+        "id": "turn-10",
+        "costUsd": 0.06740999999999998,
+        "durationMs": 147,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234396424
+      },
+      "user-11": {
+        "kind": "user",
+        "id": "user-11",
+        "text": "ECHO with one option only",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "toolu_mock0005": {
+        "kind": "tool",
+        "id": "toolu_mock0005",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Sure?\\\",\\\"header\\\":\\\"Sure\\\",\\\"options\\\":[{\\\"label\\\":\\\"Yes\\\"}]}]})\"}",
+        "input": {
+          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Sure?\",\"header\":\"Sure\",\"options\":[{\"label\":\"Yes\"}]}]})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Invalid arguments for tool \"yellowcode_ask\":\n- questions[0].options: Expected a value with a length of at least 2\n\nArguments provided:\n{\n  \"questions\": [\n    {\n      \"question\": \"Sure?\",\n      \"header\": \"Sure\",\n      \"options\": [\n        {\n          \"label\": \"Yes\"\n        }\n      ]\n    }\n  ]\n}\n\nUpdate the arguments and call the tool again.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-12": {
+        "kind": "text",
+        "id": "text-12",
+        "markdown": "Fixed.",
+        "streaming": false
+      },
+      "turn-13": {
+        "kind": "turn-end",
+        "id": "turn-13",
+        "costUsd": 0.08420999999999998,
+        "durationMs": 43,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234396474
+      },
+      "user-14": {
+        "kind": "user",
+        "id": "user-14",
+        "text": "FOXTROT asked then interrupted",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-5"
+      },
+      "toolu_mock0006": {
+        "kind": "tool",
+        "id": "toolu_mock0006",
+        "name": "execute",
+        "toolKind": "other",
+        "title": "execute",
+        "server": null,
+        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "input": {
+          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-own_3": {
+        "kind": "ask",
+        "id": "ask-own_3",
+        "requestId": "own_3",
+        "toolUseId": "",
+        "toolName": "yellowcode.ask",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
+        },
+        "target": "Color, Sizes",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "cancelled",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": "",
+        "mcp": {
+          "rpcId": 5
+        }
+      },
+      "turn-15": {
+        "kind": "turn-end",
+        "id": "turn-15",
+        "costUsd": 0.09260999999999998,
+        "durationMs": 27,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 1793234396503
+      },
+      "user-16": {
+        "kind": "user",
+        "id": "user-16",
+        "text": "HOTEL the very last one, after everything else",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-6"
+      },
+      "text-17": {
+        "kind": "text",
+        "id": "text-17",
+        "markdown": "Last one.",
+        "streaming": false
+      },
+      "turn-18": {
+        "kind": "turn-end",
+        "id": "turn-18",
+        "costUsd": 0.10100999999999999,
+        "durationMs": 27,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234399541
+      }
+    },
+    "tasks": {
+      "ses_2": {
+        "id": "ses_2",
+        "type": "local_agent",
+        "toolUseId": "toolu_mock0003",
+        "parentId": null,
+        "depth": 1,
+        "background": false,
+        "state": "completed",
+        "name": "general",
+        "description": "Ask for me",
+        "prompt": "DELTA child asks",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": "execute",
+        "toolUses": 1,
+        "durationMs": 57,
+        "tokens": 2760,
+        "summary": "I will put it in my report.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 13800,
+      "costUsd": 0.10100999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Asking our way",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

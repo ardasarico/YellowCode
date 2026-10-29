@@ -11,6 +11,7 @@ import { InputBlock, type InputBlockProps } from "./input-block.tsx"
 import { blinkFrame, CAT, CAT_PALETTE, swayFrame } from "./mascot.ts"
 import { PixelArt } from "./pixel-art.tsx"
 import { RecentList } from "./recent-list.tsx"
+import type { SessionList } from "./resume/rows.ts"
 import { useTicker } from "./ticker.ts"
 import { wordmark } from "./wordmark.ts"
 
@@ -194,7 +195,7 @@ export function Welcome(props: {
   workspace: Workspace
   notice: Span | null
   onNotice?: (() => void) | undefined
-  recent: { entries: SessionEntry[]; selected: number | null }
+  recent: { entries: SessionEntry[]; names: SessionList["names"]; selected: number | null }
   width: number
   height: number
 }) {
@@ -224,7 +225,12 @@ export function Welcome(props: {
         </box>
         <Show when={parts().recent}>
           <box height={1} />
-          <RecentList entries={props.recent.entries} selected={props.recent.selected} width={width()} />
+          <RecentList
+            entries={props.recent.entries}
+            names={props.recent.names}
+            selected={props.recent.selected}
+            width={width()}
+          />
         </Show>
       </box>
       <box height={1} flexShrink={0} />

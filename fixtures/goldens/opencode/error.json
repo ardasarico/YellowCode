@@ -1,0 +1,281 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234282492
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234282492
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "INDIA try this",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234282985
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234282990
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234282998
+    },
+    {
+      "type": "title",
+      "title": "Broken",
+      "at": 1793234283036
+    },
+    {
+      "type": "reply",
+      "at": 1793234283088
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234283088
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234283088
+    },
+    {
+      "type": "retry",
+      "attempt": 1,
+      "max": null,
+      "delayMs": 1926,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234283090
+    },
+    {
+      "type": "retry",
+      "attempt": 2,
+      "max": null,
+      "delayMs": 3465,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234285042
+    },
+    {
+      "type": "retry",
+      "attempt": 3,
+      "max": null,
+      "delayMs": 9109,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234288538
+    },
+    {
+      "type": "retry",
+      "attempt": 4,
+      "max": null,
+      "delayMs": 10988,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234297859
+    },
+    {
+      "type": "retry",
+      "attempt": 5,
+      "max": null,
+      "delayMs": 10380,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234308871
+    },
+    {
+      "type": "retry",
+      "attempt": 6,
+      "max": null,
+      "delayMs": 9590,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234319294
+    },
+    {
+      "type": "retry",
+      "attempt": 7,
+      "max": null,
+      "delayMs": 9489,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234328932
+    },
+    {
+      "type": "retry",
+      "attempt": 8,
+      "max": null,
+      "delayMs": 10537,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234338516
+    },
+    {
+      "type": "retry",
+      "attempt": 9,
+      "max": null,
+      "delayMs": 10613,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234349073
+    },
+    {
+      "type": "retry",
+      "attempt": 10,
+      "max": null,
+      "delayMs": 10958,
+      "status": 500,
+      "reason": "server_error",
+      "at": 1793234359729
+    },
+    {
+      "type": "turn.end",
+      "error": "The mock is broken",
+      "interrupted": false,
+      "local": false,
+      "durationMs": 87798,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": 0.00021,
+      "prompts": [],
+      "at": 1793234370788
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234370788
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "INDIA try this",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "system-2": {
+        "kind": "system",
+        "id": "system-2",
+        "text": "API retry 10",
+        "level": "warning",
+        "retry": {
+          "attempt": 10,
+          "max": null,
+          "delayMs": 10958,
+          "status": 500,
+          "reason": "server_error",
+          "at": 1800000000000
+        }
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.00021,
+        "durationMs": 87798,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": "The mock is broken",
+        "retries": 10,
+        "interrupted": false,
+        "endedAt": 1793234370788
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 0,
+      "costUsd": 0.00021,
+      "context": {
+        "used": 0,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Broken",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

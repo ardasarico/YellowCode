@@ -1,22 +1,28 @@
 import { Index, Show } from "solid-js"
 import type { SessionEntry } from "../agent/sessions.ts"
 import { theme } from "../theme/theme.ts"
-import { cut, formatAgo, NO_PROMPT } from "./format.ts"
+import { cut, NO_PROMPT } from "./format.ts"
 import { TILE_PADDING } from "./input-block.tsx"
+import { rowEnd, type SessionList } from "./resume/rows.ts"
 import { useTicker } from "./ticker.ts"
 
 const gutter = (selected: boolean) => (selected ? " ●" : "").padEnd(TILE_PADDING)
 
 // The recent sessions under the welcome tile, lined up with the text inside it. The selection marker sits in the
 // tile's padding, so selecting a row never moves its text.
-export function RecentList(props: { entries: SessionEntry[]; selected: number | null; width: number }) {
+export function RecentList(props: {
+  entries: SessionEntry[]
+  names: SessionList["names"]
+  selected: number | null
+  width: number
+}) {
   const inner = () => props.width - 2 * TILE_PADDING
   const minute = useTicker(() => true, 60_000)
   const rows = () => {
     minute()
-    const now = Date.now()
+    const end = rowEnd({ entries: props.entries, names: props.names }, Date.now())
     return props.entries.map((entry, index) => {
-      const ago = formatAgo(entry.modified, now)
+      const ago = end(entry)
       const room = inner() - Bun.stringWidth(ago)
       const title = cut(entry.title || NO_PROMPT, Math.max(0, room - 2))
       const gap = " ".repeat(Math.max(1, room - Bun.stringWidth(title)))

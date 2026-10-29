@@ -137,7 +137,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
       flexGrow={1}
       value={draft()}
       onInput={setDraft}
-      placeholder="a note for Claude"
+      placeholder={`a note for ${props.agent}`}
       placeholderColor={theme.muted}
       textColor={theme.accent}
       focusedTextColor={theme.accent}

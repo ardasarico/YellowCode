@@ -1,8 +1,10 @@
 import { existsSync } from "node:fs"
 import { join } from "node:path"
+import { createSignal } from "solid-js"
 import type {
   Agent,
   AgentKind,
+  ClientTool,
   ContextReport,
   Prompt,
   RestartOptions,
@@ -46,7 +48,8 @@ import type { Speed } from "../../source/replay.ts"
 import { isEffort, type Knobs, modelIdOf } from "../../source/controls.ts"
 import { accepts, connect, type Connection } from "../../source/live.ts"
 import { answerAsk } from "./answers.ts"
-import { CLAUDE, CLAUDE_CAPS } from "./caps.ts"
+import { CLAUDE, CLAUDE_CAPS, CLAUDE_NAME, CLAUDE_SHORT_NAME } from "./caps.ts"
+import { detect } from "./detect.ts"
 import { fileHistory } from "./file-history.ts"
 import { claudeFiles } from "./files.ts"
 import { heldElsewhere } from "./held.ts"
@@ -61,10 +64,9 @@ import { historyPage, promptParent } from "./transcript.ts"
 import { type ClaudeReplay, claudeReplay } from "./replay.ts"
 import { endSession, interruptFailed, restartSession, showEarly } from "./translate.ts"
 
-// What index.tsx still reaches beyond the neutral Agent; contract.md gives the stage each of these goes in.
-export type ClaudeAgent = Agent & {
-  // The store the connection feeds itself, until the store reads `events`.
-  readonly store: SessionStore
+// What index.tsx still reaches beyond the neutral Agent, as hooks an agent of another kind does not have; contract.md
+// gives the stage each of these goes in.
+export type ClaudeHooks = {
   // The claude of the moment, compared by identity: a restart, a rewind's restart or another session changes it.
   readonly run: object
   // True while an old claude of this agent ends before the next one starts.
@@ -83,9 +85,11 @@ export type ClaudeAgent = Agent & {
   goBack(options: RestartOptions): Promise<Back>
 }
 
+export type ClaudeAgent = Agent & ClaudeHooks
+
 // Claude in the registry. `start` and `replay` take the store the connection or the recording feeds until the store
-// reads `events`; detect comes with the agent picker.
-export type ClaudeKind = Pick<AgentKind, "id" | "name" | "caps" | "sessions" | "history"> &
+// reads `events`.
+export type ClaudeKind = Pick<AgentKind, "id" | "name" | "shortName" | "caps" | "detect" | "sessions" | "history"> &
   Required<Pick<AgentKind, "heldElsewhere" | "oneShot" | "fileHistory" | "settingChange" | "settingMessage">> & {
     start(options: StartOptions, store: SessionStore): Promise<ClaudeAgent>
     replay(recording: Recording, speed: Speed, store: SessionStore): ClaudeReplay
@@ -126,8 +130,10 @@ export function claudeKind(bridge: Bridge, folder: string | null = null): Claude
   }
   return {
     id: CLAUDE,
-    name: "Claude Code",
+    name: CLAUDE_NAME,
+    shortName: CLAUDE_SHORT_NAME,
     caps: CLAUDE_CAPS,
+    detect,
     async sessions(cwd) {
       const real = folder ? null : realOf(cwd)
       const listed = await listSessions(folder ?? join(CLAUDE_PROJECTS, projectKey(real ?? cwd)), real)
@@ -287,10 +293,12 @@ function carryOf(options: StartOptions, models: ModelRow[]): Knobs | undefined {
 }
 
 // Spawns claude for the store; nothing is read until `begin`. claude takes YellowCode's own instructions and the mods'
-// tools and servers by itself, so `instructions`, `clientTools` and `mcpServers` are not read yet.
+// manifest servers by itself, so `instructions` and `mcpServers` are not read yet.
 function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge): ClaudeAgent {
   const { cwd } = options
   const { provider } = bridge
+  // Every claude this agent starts serves them, as SDK MCP servers.
+  const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
   const carried = carryOf(options, provider.models())
   // What the knobs show: what was picked last, or what claude said it uses. A claude started again gets them.
   const knobs: Knobs = { model: null, effort: null, ultracode: false, ...carried }
@@ -304,6 +312,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     carry: carried,
     onKnobs,
     mode: options.mode === null ? undefined : permissionOf(options.mode),
+    clientTools,
   })
   const initialized = Promise.withResolvers<void>()
   current.controls.follow({ initialized: () => initialized.resolve(), onMessage: () => {} })
@@ -349,7 +358,17 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
       const { permissionMode } = store.state
       const kept = permissionMode !== null && isClaudeMode(permissionMode) ? permissionMode : undefined
       const mode = saved.mode === null ? kept : permissionOf(saved.mode)
-      current = connect({ cwd, session: store, spawn: next, stored: storedOf(saved), provider, carry, onKnobs, mode })
+      current = connect({
+        cwd,
+        session: store,
+        spawn: next,
+        stored: storedOf(saved),
+        provider,
+        carry,
+        onKnobs,
+        mode,
+        clientTools,
+      })
     } catch (error) {
       log.error("cannot start claude", error)
       endSession(store, { text: "Cannot start Claude Code", detail: [problemOf(error)] })
@@ -415,7 +434,6 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
         next: () => closed.promise.then((): IteratorResult<AgentEvent> => ({ done: true, value: undefined })),
       }),
     },
-    store,
     get run() {
       return current
     },
@@ -627,8 +645,11 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     context: () => current.requests.send(getContextUsageRequest).then(contextReport),
     usage: () => current.requests.send(getUsageRequest).then(usageReport),
     files: (query) => claudeFiles(current.requests, query),
-    // Mod tools and servers reach claude through the mod registry for now.
-    setClientTools: () => Promise.resolve(notYet("Client tools")),
+    setClientTools(tools) {
+      setClientTools(tools)
+      return Promise.resolve(ok)
+    },
+    // The mods' manifest servers reach claude through the mod host for now (owner question 17).
     setMcpServers: () => Promise.resolve(notYet("MCP servers")),
   }
 }

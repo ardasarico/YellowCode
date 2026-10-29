@@ -11,6 +11,7 @@ const MIN_CARD = 24
 export function GalleryPage(props: {
   question: QuestionPage
   width: number
+  agent: string
   focus: number
   chosen: number[]
   notes: string[]
@@ -79,7 +80,7 @@ export function GalleryPage(props: {
                     flexGrow={1}
                     value={props.draft}
                     onInput={props.onDraft}
-                    placeholder="a note for Claude"
+                    placeholder={`a note for ${props.agent}`}
                     placeholderColor={theme.muted}
                     textColor={theme.accent}
                     focusedTextColor={theme.accent}

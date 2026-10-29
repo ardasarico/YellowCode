@@ -1,0 +1,1526 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234381810
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234381810
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "VICTOR start a helper in the background",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234382287
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234382288
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234382292
+    },
+    {
+      "type": "title",
+      "title": "Background helpers",
+      "at": 1793234382315
+    },
+    {
+      "type": "reply",
+      "at": 1793234382604
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234382604
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234382604
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "subagent",
+      "kind": "agent",
+      "title": "subagent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234382605
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "agent": "general",
+        "description": "Read the readme",
+        "prompt": "WHISKEY read it",
+        "background": true
+      },
+      "summary": "Read the readme",
+      "detail": null,
+      "command": null,
+      "background": true,
+      "questions": null,
+      "agent": {
+        "name": "general",
+        "task": "Read the readme",
+        "prompt": "WHISKEY read it",
+        "type": "general",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793234382609
+    },
+    {
+      "type": "task.start",
+      "id": "ses_2",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "toolu_mock0001",
+      "parent": null,
+      "depth": null,
+      "background": true,
+      "resumed": false,
+      "description": "Read the readme",
+      "prompt": "WHISKEY read it",
+      "workflow": "",
+      "agentType": "general",
+      "at": 1793234382614
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "ses_2",
+      "files": [],
+      "at": 1793234382615
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234382630
+    },
+    {
+      "type": "reply",
+      "at": 1793234382648
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234382648
+    },
+    {
+      "type": "text.start",
+      "part": "msg_3:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234382649
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_3:text:0",
+      "text": "It runs in the background.",
+      "at": 1793234382654
+    },
+    {
+      "type": "text.end",
+      "part": "msg_3:text:0",
+      "text": "It runs in the background.",
+      "at": 1793234382654
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234382661
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 374,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234382662
+    },
+    {
+      "type": "subagent.model",
+      "call": "toolu_mock0001",
+      "model": "claude-opus-5-5",
+      "at": 1793234383161
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": "toolu_mock0001",
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234383162
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "README.md"
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234383164
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_2",
+      "activity": "README.md",
+      "lastTool": "read",
+      "toolUses": 1,
+      "durationMs": 550,
+      "tokens": 0,
+      "at": 1793234383164
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 3,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234383167
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": "toolu_mock0001",
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234383186
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "A demo.",
+      "at": 1793234383186
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "A demo.",
+      "at": 1793234383186
+    },
+    {
+      "type": "task.end",
+      "id": "ses_2",
+      "state": "completed",
+      "report": {
+        "summary": "A demo.",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 1,
+          "durationMs": 581,
+          "tokens": 2760
+        },
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0001",
+      "at": 1793234383195
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [
+        "ses_2"
+      ],
+      "at": 1793234383197
+    },
+    {
+      "type": "reply",
+      "at": 1793234383207
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234383207
+    },
+    {
+      "type": "text.start",
+      "part": "msg_7:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234383207
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_7:text:0",
+      "text": "The helper finished.",
+      "at": 1793234383213
+    },
+    {
+      "type": "text.end",
+      "part": "msg_7:text:0",
+      "text": "The helper finished.",
+      "at": 1793234383213
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234383220
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 24,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.04221,
+      "prompts": [],
+      "at": 1793234383221
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "XRAY takes a while",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234383223
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234383223
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234383224
+    },
+    {
+      "type": "reply",
+      "at": 1793234383233
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234383233
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "subagent",
+      "kind": "agent",
+      "title": "subagent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234383234
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "agent": "general",
+        "description": "Read slowly",
+        "prompt": "YANKEE read it slowly"
+      },
+      "summary": "Read slowly",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "general",
+        "task": "Read slowly",
+        "prompt": "YANKEE read it slowly",
+        "type": "general",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793234383235
+    },
+    {
+      "type": "task.start",
+      "id": "ses_3",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "toolu_mock0003",
+      "parent": null,
+      "depth": null,
+      "background": false,
+      "resumed": false,
+      "description": "Read slowly",
+      "prompt": "YANKEE read it slowly",
+      "workflow": "",
+      "agentType": "general",
+      "at": 1793234383237
+    },
+    {
+      "type": "subagent.model",
+      "call": "toolu_mock0003",
+      "model": "claude-opus-5-5",
+      "at": 1793234383248
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0004",
+      "parent": "toolu_mock0003",
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234383249
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "src/a.ts"
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234383250
+    },
+    {
+      "type": "task.progress",
+      "id": "ses_3",
+      "activity": "src/a.ts",
+      "lastTool": "read",
+      "toolUses": 1,
+      "durationMs": 13,
+      "tokens": 0,
+      "at": 1793234383250
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0004",
+      "status": "done",
+      "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 1,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234383251
+    },
+    {
+      "type": "task.update",
+      "id": "ses_3",
+      "error": null,
+      "background": true,
+      "at": 1793234383254
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "done",
+      "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "ses_3",
+      "files": [],
+      "at": 1793234383254
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234383269
+    },
+    {
+      "type": "reply",
+      "at": 1793234383287
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234383287
+    },
+    {
+      "type": "text.start",
+      "part": "msg_12:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234383287
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_12:text:0",
+      "text": "Moved on.",
+      "at": 1793234383288
+    },
+    {
+      "type": "text.end",
+      "part": "msg_12:text:0",
+      "text": "Moved on.",
+      "at": 1793234383288
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234383295
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 73,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.06741,
+      "prompts": [],
+      "at": 1793234383296
+    },
+    {
+      "type": "text.start",
+      "part": "msg_13:text:0",
+      "parent": "toolu_mock0003",
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234385770
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_13:text:0",
+      "text": "Says hello.",
+      "at": 1793234385772
+    },
+    {
+      "type": "text.end",
+      "part": "msg_13:text:0",
+      "text": "Says hello.",
+      "at": 1793234385772
+    },
+    {
+      "type": "task.end",
+      "id": "ses_3",
+      "state": "completed",
+      "report": {
+        "summary": "Says hello.",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 1,
+          "durationMs": 2552,
+          "tokens": 2760
+        },
+        "stoppedByUser": false
+      },
+      "call": "toolu_mock0003",
+      "at": 1793234385789
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [
+        "ses_3"
+      ],
+      "at": 1793234385791
+    },
+    {
+      "type": "reply",
+      "at": 1793234385808
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234385808
+    },
+    {
+      "type": "text.start",
+      "part": "msg_15:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234385809
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_15:text:0",
+      "text": "The slow helper finished.",
+      "at": 1793234385858
+    },
+    {
+      "type": "text.end",
+      "part": "msg_15:text:0",
+      "text": "The slow helper finished.",
+      "at": 1793234385858
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234385866
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 75,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.08420999999999998,
+      "prompts": [],
+      "at": 1793234385866
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234385866
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "VICTOR start a helper in the background",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234382292
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234382299
+          },
+          {
+            "type": "reply",
+            "at": 1793234382299
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "subagent",
+            "kind": "agent",
+            "title": "subagent",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "agent": "general",
+              "description": "Read the readme",
+              "prompt": "WHISKEY read it",
+              "background": true
+            },
+            "summary": "Read the readme",
+            "detail": null,
+            "command": null,
+            "background": true,
+            "questions": null,
+            "agent": {
+              "name": "general",
+              "task": "Read the readme",
+              "prompt": "WHISKEY read it",
+              "type": "general",
+              "model": ""
+            },
+            "message": null,
+            "todos": null,
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0002",
+            "parent": "toolu_mock0001",
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0002",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "README.md"
+            },
+            "summary": "<root>/project/README.md",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0002",
+            "status": "done",
+            "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 3,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234382299
+          },
+          {
+            "type": "text.start",
+            "part": "msg_5:text:0",
+            "parent": "toolu_mock0001",
+            "text": "A demo.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234382299
+          },
+          {
+            "type": "text.end",
+            "part": "msg_5:text:0",
+            "text": "A demo.",
+            "at": 1793234382299
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": true,
+            "task": "ses_2",
+            "files": [],
+            "at": 1793234382299
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234382299
+          },
+          {
+            "type": "reply",
+            "at": 1793234382635
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234382635
+          },
+          {
+            "type": "text.start",
+            "part": "msg_3:text:0",
+            "parent": null,
+            "text": "It runs in the background.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234382635
+          },
+          {
+            "type": "text.end",
+            "part": "msg_3:text:0",
+            "text": "It runs in the background.",
+            "at": 1793234382635
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234382635
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234383200
+          },
+          {
+            "type": "reply",
+            "at": 1793234383200
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234383200
+          },
+          {
+            "type": "text.start",
+            "part": "msg_7:text:0",
+            "parent": null,
+            "text": "The helper finished.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234383200
+          },
+          {
+            "type": "text.end",
+            "part": "msg_7:text:0",
+            "text": "The helper finished.",
+            "at": 1793234383200
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234383200
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "XRAY takes a while",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234383224
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234383226
+          },
+          {
+            "type": "reply",
+            "at": 1793234383226
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0003",
+            "parent": null,
+            "name": "subagent",
+            "kind": "agent",
+            "title": "subagent",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0003",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "agent": "general",
+              "description": "Read slowly",
+              "prompt": "YANKEE read it slowly"
+            },
+            "summary": "Read slowly",
+            "detail": null,
+            "command": null,
+            "background": true,
+            "questions": null,
+            "agent": {
+              "name": "general",
+              "task": "Read slowly",
+              "prompt": "YANKEE read it slowly",
+              "type": "general",
+              "model": ""
+            },
+            "message": null,
+            "todos": null,
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0004",
+            "parent": "toolu_mock0003",
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0004",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "path": "src/a.ts"
+            },
+            "summary": "<root>/project/src/a.ts",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0004",
+            "status": "done",
+            "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 1,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234383226
+          },
+          {
+            "type": "text.start",
+            "part": "msg_13:text:0",
+            "parent": "toolu_mock0003",
+            "text": "Says hello.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234383226
+          },
+          {
+            "type": "text.end",
+            "part": "msg_13:text:0",
+            "text": "Says hello.",
+            "at": 1793234383226
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0003",
+            "status": "done",
+            "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": true,
+            "task": "ses_3",
+            "files": [],
+            "at": 1793234383226
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234383226
+          },
+          {
+            "type": "reply",
+            "at": 1793234383273
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234383273
+          },
+          {
+            "type": "text.start",
+            "part": "msg_12:text:0",
+            "parent": null,
+            "text": "Moved on.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234383273
+          },
+          {
+            "type": "text.end",
+            "part": "msg_12:text:0",
+            "text": "Moved on.",
+            "at": 1793234383273
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234383273
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234385798
+          },
+          {
+            "type": "reply",
+            "at": 1793234385798
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234385798
+          },
+          {
+            "type": "text.start",
+            "part": "msg_15:text:0",
+            "parent": null,
+            "text": "The slow helper finished.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234385798
+          },
+          {
+            "type": "text.end",
+            "part": "msg_15:text:0",
+            "text": "The slow helper finished.",
+            "at": 1793234385798
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234385798
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "text-2",
+      "turn-3",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0003",
+      "text-8",
+      "turn-9",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "VICTOR start a helper in the background",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "subagent",
+        "toolKind": "agent",
+        "title": "subagent",
+        "server": null,
+        "inputText": "{\"agent\":\"general\",\"description\":\"Read the readme\",\"prompt\":\"WHISKEY read it\",\"background\":true}",
+        "input": {
+          "agent": "general",
+          "description": "Read the readme",
+          "prompt": "WHISKEY read it",
+          "background": true
+        },
+        "summary": "Read the readme",
+        "detail": null,
+        "background": true,
+        "status": "done",
+        "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+        "children": [
+          "toolu_mock0002",
+          "text-4"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "general",
+          "task": "Read the readme",
+          "prompt": "WHISKEY read it",
+          "type": "general",
+          "model": "claude-opus-5-5",
+          "tokens": 2760,
+          "state": "completed",
+          "toolUses": 1,
+          "durationMs": 581,
+          "report": "A demo.",
+          "error": null,
+          "activity": "README.md",
+          "stoppedByUser": false
+        },
+        "taskId": "ses_2"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "It runs in the background.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 374,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234382662
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"README.md\"}",
+        "input": {
+          "path": "README.md"
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 3,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-4": {
+        "kind": "text",
+        "id": "text-4",
+        "markdown": "A demo.",
+        "streaming": false
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "The helper finished.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.04221,
+        "durationMs": 24,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234383221
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "XRAY takes a while",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "subagent",
+        "toolKind": "agent",
+        "title": "subagent",
+        "server": null,
+        "inputText": "{\"agent\":\"general\",\"description\":\"Read slowly\",\"prompt\":\"YANKEE read it slowly\"}",
+        "input": {
+          "agent": "general",
+          "description": "Read slowly",
+          "prompt": "YANKEE read it slowly"
+        },
+        "summary": "Read slowly",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+        "children": [
+          "toolu_mock0004",
+          "text-10"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "general",
+          "task": "Read slowly",
+          "prompt": "YANKEE read it slowly",
+          "type": "general",
+          "model": "claude-opus-5-5",
+          "tokens": 2760,
+          "state": "completed",
+          "toolUses": 1,
+          "durationMs": 2552,
+          "report": "Says hello.",
+          "error": null,
+          "activity": "src/a.ts",
+          "stoppedByUser": false
+        },
+        "taskId": "ses_3"
+      },
+      "toolu_mock0004": {
+        "kind": "tool",
+        "id": "toolu_mock0004",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"src/a.ts\"}",
+        "input": {
+          "path": "src/a.ts"
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file src/a.ts, lines 1-1\n1: export const greeting = \"hello\"",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Moved on.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0.06741,
+        "durationMs": 73,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234383296
+      },
+      "text-10": {
+        "kind": "text",
+        "id": "text-10",
+        "markdown": "Says hello.",
+        "streaming": false
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "The slow helper finished.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0.08420999999999998,
+        "durationMs": 75,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234385866
+      }
+    },
+    "tasks": {
+      "ses_2": {
+        "id": "ses_2",
+        "type": "local_agent",
+        "toolUseId": "toolu_mock0001",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "completed",
+        "name": "general",
+        "description": "Read the readme",
+        "prompt": "WHISKEY read it",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "README.md",
+        "lastTool": "read",
+        "toolUses": 1,
+        "durationMs": 581,
+        "tokens": 2760,
+        "summary": "A demo.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      },
+      "ses_3": {
+        "id": "ses_3",
+        "type": "local_agent",
+        "toolUseId": "toolu_mock0003",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "completed",
+        "name": "general",
+        "description": "Read slowly",
+        "prompt": "YANKEE read it slowly",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "src/a.ts",
+        "lastTool": "read",
+        "toolUses": 1,
+        "durationMs": 2552,
+        "tokens": 2760,
+        "summary": "Says hello.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 8280,
+      "costUsd": 0.08420999999999998,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Background helpers",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

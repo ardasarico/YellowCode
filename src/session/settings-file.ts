@@ -36,6 +36,8 @@ export type StoredSettings = {
   editor: Editor
   notifications: NotificationSetting
   disabledMods: string[]
+  // Unset until the user picks one; a start then opens the first installed agent.
+  defaultAgent?: AgentKindId
   agents: Record<AgentKindId, AgentPrefs>
 }
 
@@ -47,15 +49,37 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   editor: "default",
   notifications: "all",
   disabledMods: [],
+  // Present, so the file keeps it once it is picked; an unset one is not written.
+  defaultAgent: undefined,
   agents: {},
 }
 
+// Claude's mode when none is saved for it.
 export const DEFAULT_MODE: ModeId = "auto"
 
-// The mode the user saved for the agent's new sessions.
-export function defaultModeIn(settings: StoredSettings, agent: AgentKindId): ModeId {
-  return settings.agents[agent]?.defaultMode ?? DEFAULT_MODE
+// The agent a start opens: the saved one when it runs here, else the first of `agents` that does. The last one left is
+// not asked, since nothing else could open; with nothing saved and one agent, nothing is asked.
+export async function pickAgent(
+  saved: AgentKindId | undefined,
+  agents: AgentKindId[],
+  runs: (agent: AgentKindId) => Promise<boolean>,
+): Promise<AgentKindId | undefined> {
+  const order =
+    saved !== undefined && agents.includes(saved) ? [saved, ...agents.filter((agent) => agent !== saved)] : agents
+  // One at a time: the first that runs wins, and the ones after it are never asked.
+  // oxlint-disable-next-line no-await-in-loop
+  for (const agent of order.slice(0, -1)) if (await runs(agent)) return agent
+  return order.at(-1)
 }
+
+// The mode the user saved for the agent's new sessions; null leaves it to the agent.
+export function defaultModeIn(settings: StoredSettings, agent: AgentKindId): ModeId | null {
+  return settings.agents[agent]?.defaultMode ?? null
+}
+
+// What the agent's new sessions start in: the saved mode, else Claude's own for Claude, else the agent's default (null).
+export const startModeIn = (settings: StoredSettings, agent: AgentKindId): ModeId | null =>
+  defaultModeIn(settings, agent) ?? (agent === CLAUDE_ENTRY ? DEFAULT_MODE : null)
 
 // Files written before agents had their own entries keep Claude's saved mode at the top; read as Claude's entry until
 // those files are gone. Until each agent says its own modes, only Claude's entry is checked against mode names.
@@ -74,6 +98,7 @@ const Permission = z.preprocess((mode) => (mode === "manual" ? "default" : mode)
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
 const DisabledMods = z.array(z.string())
+const DefaultAgent = z.string()
 const AgentEntry = z.object({ defaultMode: z.string().optional() })
 const ClaudeEntry = z.object({ defaultMode: Permission.optional() })
 
@@ -156,6 +181,7 @@ function readStored(stored: Record<string, unknown>) {
   read("editor", EditorSchema)
   read("notifications", Notifications)
   read("disabledMods", DisabledMods)
+  read("defaultAgent", DefaultAgent)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 

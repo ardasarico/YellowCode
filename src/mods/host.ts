@@ -2,10 +2,11 @@ import { readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
+import type { ClientTool } from "../agent/agent.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId } from "../agent/ids.ts"
 import { log } from "../log/log.ts"
-import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions } from "./api.ts"
+import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions, ModTool, ModToolResult } from "./api.ts"
 import { compatible, forAgent, type Manifest, readManifest } from "./manifest.ts"
 import {
   addCommand,
@@ -75,6 +76,8 @@ export type ModHost = {
   unloadAll(): void
   reload(id: string): Promise<void>
   fail(id: string, error: unknown): void
+  // Every running mod's tools, each mod's under the server mod-<id>.
+  clientTools(): ClientTool[]
   // The settings of a running mod.
   settings(id: string): SettingsHandle | null
   // A running mod's manifest servers by the name the agent gets, mod-<id>--<name>; none for an agent that takes no MCP
@@ -82,6 +85,36 @@ export type ModHost = {
   servers(id: string): Record<string, unknown>
   onFailure(listener: (failure: ModFailure) => void): () => void
 }
+
+function textOf(result: ModToolResult): { text: string; error: boolean } {
+  const { text, isError } = typeof result === "string" ? { text: result, isError: false } : result
+  return { text, error: isError === true }
+}
+
+// A throwing tool is an error the agent reads; it does not turn the mod off.
+function clientTool(tool: ModTool & { mod: string }): ClientTool {
+  const { mod, name, annotations } = tool
+  return {
+    server: `${MOD_SERVER_PREFIX}${mod}`,
+    name,
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    annotations: annotations
+      ? { readOnly: annotations.readOnlyHint, destructive: annotations.destructiveHint, title: annotations.title }
+      : null,
+    async run(input) {
+      try {
+        return textOf(await tool.run(input))
+      } catch (error) {
+        log.warn(`mod ${mod}: tool ${name} failed`, error)
+        return { text: error instanceof Error ? error.message : String(error), error: true }
+      }
+    },
+  }
+}
+
+// What the running mods added as tools, as the agent gets them.
+export const modClientTools = (): ClientTool[] => modTools().map(clientTool)
 
 type Running = { disposers: (() => void)[]; cleanup: Dispose | null; settings: SettingsHandle | null }
 
@@ -365,6 +398,7 @@ export function createModHost(options: {
       for (const id of running.keys()) unload(id)
     },
     settings: (id) => running.get(id)?.settings ?? null,
+    clientTools: modClientTools,
     servers(id) {
       const entry = entries[indexOf(id)]
       if (entry?.status !== "on" || agent?.caps.mcpServers === "none") return {}

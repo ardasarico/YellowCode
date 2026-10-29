@@ -5,10 +5,11 @@ export type Spawned = { code: number | null; stdout: string; stderr: string }
 // Null when the command did not end in time and was stopped.
 export async function spawnLimited(
   cmd: string[],
-  options: { timeoutMs: number; stdin?: string; cwd?: string },
+  options: { timeoutMs: number; stdin?: string; cwd?: string; env?: Record<string, string> },
 ): Promise<Spawned | null> {
   const proc = Bun.spawn(cmd, {
     cwd: options.cwd,
+    env: options.env,
     stdin: options.stdin === undefined ? "ignore" : Buffer.from(options.stdin),
     stdout: "pipe",
     stderr: "pipe",

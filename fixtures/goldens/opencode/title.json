@@ -1,0 +1,333 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793236087673
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793236087673
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "INDIA name this session",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793236088161
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793236088163
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793236088170
+    },
+    {
+      "type": "title",
+      "title": "Naming the session",
+      "at": 1793236088199
+    },
+    {
+      "type": "reply",
+      "at": 1793236090185
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793236090185
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793236090185
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793236090186
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Named.",
+      "at": 1793236090190
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Named.",
+      "at": 1793236090190
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793236090199
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 2037,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.00861,
+      "prompts": [],
+      "at": 1793236090200
+    },
+    {
+      "type": "title",
+      "title": "Renamed by hand",
+      "at": 1793236090203
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "INDIA once more",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793236090205
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793236090205
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793236090207
+    },
+    {
+      "type": "reply",
+      "at": 1793236090217
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793236090217
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793236090218
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "Still named.",
+      "at": 1793236090219
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "Still named.",
+      "at": 1793236090219
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793236090227
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 23,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793236090228
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793236090228
+    }
+  ],
+  "outputs": [
+    {
+      "sessions": [
+        {
+          "ref": {
+            "agent": "opencode",
+            "id": "ses_1"
+          },
+          "title": "Renamed by hand",
+          "firstPrompt": "INDIA name this session",
+          "cwd": "<root>/project",
+          "branch": null,
+          "model": null,
+          "modified": 1793236090227
+        }
+      ]
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "INDIA name this session",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Named.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.00861,
+        "durationMs": 2037,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793236090200
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "INDIA once more",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Still named.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 23,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793236090228
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0.017009999999999997,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Renamed by hand",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

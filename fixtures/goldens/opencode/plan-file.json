@@ -1,0 +1,692 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234410457
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234410457
+    },
+    {
+      "type": "mode",
+      "mode": "plan",
+      "at": 1793234410500
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "UNIFORM plan a --json flag for the report",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234410935
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234410936
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234410941
+    },
+    {
+      "type": "title",
+      "title": "Plan a JSON report",
+      "at": 1793234410965
+    },
+    {
+      "type": "reply",
+      "at": 1793234411253
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234411253
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234411253
+    },
+    {
+      "type": "text.start",
+      "part": "msg_3:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234411254
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_3:text:0",
+      "text": "Writing the plan.",
+      "at": 1793234411263
+    },
+    {
+      "type": "text.end",
+      "part": "msg_3:text:0",
+      "text": "Writing the plan.",
+      "at": 1793234411263
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "write",
+      "kind": "write",
+      "title": "write",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234411264
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "../home/.opencode/plan/report-json.md",
+        "content": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n"
+      },
+      "summary": "<root>/home/.opencode/plan/report-json.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234411270
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Created file successfully: <root>/home/.opencode/plan/report-json.md",
+      "images": [],
+      "patch": null,
+      "created": true,
+      "content": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n",
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/home/.opencode/plan/report-json.md",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "after": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n"
+        }
+      ],
+      "at": 1793234411273
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234411283
+    },
+    {
+      "type": "reply",
+      "at": 1793234411295
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234411295
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "edit",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234411296
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "path": "../home/.opencode/plan/report-json.md",
+        "oldString": "one test",
+        "newString": "two tests"
+      },
+      "summary": "<root>/home/.opencode/plan/report-json.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234411297
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "Edited <root>/home/.opencode/plan/report-json.md (1 replacement)",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 5,
+          "newStart": 1,
+          "newLines": 5,
+          "lines": [
+            " # Report as JSON",
+            " ",
+            " 1. Add a --json flag to report.ts",
+            " 2. Print the summary as JSON",
+            "-3. Add one test",
+            "+3. Add two tests"
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/<root>/home/.opencode/plan/report-json.md",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 5,
+              "newStart": 1,
+              "newLines": 5,
+              "lines": [
+                " # Report as JSON",
+                " ",
+                " 1. Add a --json flag to report.ts",
+                " 2. Print the summary as JSON",
+                "-3. Add one test",
+                "+3. Add two tests"
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793234411300
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234411307
+    },
+    {
+      "type": "reply",
+      "at": 1793234411318
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234411318
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234411318
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "The plan is ready.",
+      "at": 1793234411324
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "The plan is ready.",
+      "at": 1793234411324
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234411332
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 397,
+      "inputTokens": 3600,
+      "outputTokens": 540,
+      "tokens": 4140,
+      "sessionCostUsd": 0.025409999999999995,
+      "prompts": [],
+      "at": 1793234411333
+    },
+    {
+      "type": "plan",
+      "text": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add two tests\n",
+      "path": "<root>/home/.opencode/plan/report-json.md",
+      "next": "build",
+      "at": 1793234411333
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234411334
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "Implement the plan.",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234411336
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234411336
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234411338
+    },
+    {
+      "type": "reply",
+      "at": 1793234411348
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234411348
+    },
+    {
+      "type": "text.start",
+      "part": "msg_7:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234411348
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_7:text:0",
+      "text": "Implementing it now.",
+      "at": 1793234411352
+    },
+    {
+      "type": "text.end",
+      "part": "msg_7:text:0",
+      "text": "Implementing it now.",
+      "at": 1793234411352
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234411360
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 25,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.03380999999999999,
+      "prompts": [],
+      "at": 1793234411361
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234411361
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "toolu_mock0002",
+      "text-3",
+      "turn-4",
+      "ask-plan-5",
+      "user-6",
+      "text-7",
+      "turn-8"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "UNIFORM plan a --json flag for the report",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Writing the plan.",
+        "streaming": false
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "write",
+        "toolKind": "write",
+        "title": "write",
+        "server": null,
+        "inputText": "{\"path\":\"../home/.opencode/plan/report-json.md\",\"content\":\"# Report as JSON\\n\\n1. Add a --json flag to report.ts\\n2. Print the summary as JSON\\n3. Add one test\\n\"}",
+        "input": {
+          "path": "../home/.opencode/plan/report-json.md",
+          "content": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n"
+        },
+        "summary": "<root>/home/.opencode/plan/report-json.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Created file successfully: <root>/home/.opencode/plan/report-json.md",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "content": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n",
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/home/.opencode/plan/report-json.md",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "edit",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"path\":\"../home/.opencode/plan/report-json.md\",\"oldString\":\"one test\",\"newString\":\"two tests\"}",
+        "input": {
+          "path": "../home/.opencode/plan/report-json.md",
+          "oldString": "one test",
+          "newString": "two tests"
+        },
+        "summary": "<root>/home/.opencode/plan/report-json.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Edited <root>/home/.opencode/plan/report-json.md (1 replacement)",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 5,
+            "newStart": 1,
+            "newLines": 5,
+            "lines": [
+              " # Report as JSON",
+              " ",
+              " 1. Add a --json flag to report.ts",
+              " 2. Print the summary as JSON",
+              "-3. Add one test",
+              "+3. Add two tests"
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/<root>/home/.opencode/plan/report-json.md",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 5,
+                "newStart": 1,
+                "newLines": 5,
+                "lines": [
+                  " # Report as JSON",
+                  " ",
+                  " 1. Add a --json flag to report.ts",
+                  " 2. Print the summary as JSON",
+                  "-3. Add one test",
+                  "+3. Add two tests"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "The plan is ready.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.025409999999999995,
+        "durationMs": 397,
+        "inputTokens": 3600,
+        "outputTokens": 540,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234411333
+      },
+      "ask-plan-5": {
+        "kind": "ask",
+        "id": "ask-plan-5",
+        "requestId": "plan-5",
+        "toolUseId": "",
+        "toolName": "",
+        "toolKind": "plan",
+        "server": null,
+        "displayName": "",
+        "input": null,
+        "target": "<root>/home/.opencode/plan/report-json.md",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "yes",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "no",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": {
+          "text": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add two tests\n",
+          "path": "<root>/home/.opencode/plan/report-json.md"
+        },
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "pending",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": "",
+        "ownPlan": {
+          "next": "build"
+        }
+      },
+      "user-6": {
+        "kind": "user",
+        "id": "user-6",
+        "text": "Implement the plan.",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-7": {
+        "kind": "text",
+        "id": "text-7",
+        "markdown": "Implementing it now.",
+        "streaming": false
+      },
+      "turn-8": {
+        "kind": "turn-end",
+        "id": "turn-8",
+        "costUsd": 0.03380999999999999,
+        "durationMs": 25,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234411361
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0.03380999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Plan a JSON report",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

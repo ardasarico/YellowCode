@@ -53,9 +53,6 @@ function firstUserLine(session: Session): string {
   return ""
 }
 
-// MCP tool names carry the server name with every character outside [A-Za-z0-9_-] replaced by `_`.
-const toolPrefix = (server: string) => `mcp__${server.replace(/[^A-Za-z0-9_-]/g, "_")}__`
-
 function serverActivity(session: Session, servers: McpServerRow[]): ServerActivity {
   const items = Object.values(session.byId)
   const tools = items.flatMap((item) => (item.kind === "tool" ? [item] : []))
@@ -65,7 +62,7 @@ function serverActivity(session: Session, servers: McpServerRow[]): ServerActivi
   const used = new Set<string>()
   const running = new Set<string>()
   for (const server of servers) {
-    const own = tools.filter((tool) => tool.name.startsWith(toolPrefix(server.name)))
+    const own = tools.filter((tool) => tool.server === server.toolServer)
     if (own.length > 0) used.add(server.name)
     if (own.some((tool) => tool.status === "running" && !waiting.has(tool.id))) running.add(server.name)
   }

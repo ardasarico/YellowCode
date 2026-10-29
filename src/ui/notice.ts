@@ -14,11 +14,13 @@ export type ReplayInfo = {
 }
 
 type NoticeState = {
+  // The running agent's name.
+  agent: string
   usage: Usage
   replay: ReplayInfo | null
   readOnly: string | null
   status: SessionStatus
-  // Enter starts Claude Code again once it has exited.
+  // Enter starts the agent again once it has exited.
   restartable: boolean
   mcpFailure: string | null
   settingsProblem: string | null
@@ -39,6 +41,8 @@ type NoticeState = {
   backgroundable: boolean
   // Shift+Tab changes the permission mode only with Claude Code running.
   modes: boolean
+  // Says what Shift+Tab does in plan mode, in place of the plain hint.
+  planHint: string | null
   // F4's switch, under the agent's name for it.
   extraEffort: string | null
   // The agent reports usage limits.
@@ -57,7 +61,7 @@ const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.m
 export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
 export const modSpan = (notice: ModNotice): Span =>
   notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }
-export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
+export const startingNotice = (agent: string): Span => ({ text: `Starting ${agent}…`, fg: theme.muted })
 
 const SIDEBAR_HINT = "F3 sidebar"
 const WARN_AT = 0.85
@@ -94,11 +98,11 @@ function leftSpans(state: NoticeState): Span[] {
   if (state.quitArmed) return [quitHint()]
   if (state.rewindArmed) return [rewindHint()]
   if (state.note) return [{ text: state.note, fg: theme.muted }]
-  if (state.held) return [{ text: "Claude Code withdrew the request", fg: theme.muted }]
+  if (state.held) return [{ text: `${state.agent} withdrew the request`, fg: theme.muted }]
   const live = state.replay === null && state.readOnly === null
   if (live && state.status === "ended") {
     const restart = state.restartable ? " · Enter: restart" : ""
-    return [{ text: `✗ Claude Code exited · Ctrl+C: quit${restart}`, fg: theme.error }]
+    return [{ text: `✗ ${state.agent} exited · Ctrl+C: quit${restart}`, fg: theme.error }]
   }
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
@@ -110,7 +114,7 @@ function leftSpans(state: NoticeState): Span[] {
   if (live && state.compacting !== null)
     return [{ text: `Compacting conversation… ${state.compacting}s`, fg: theme.muted }]
   if (state.readOnly !== null) return [{ text: `${state.readOnly} · read-only transcript`, fg: theme.muted }]
-  if (live) return state.status === "starting" ? [startingNotice()] : []
+  if (live) return state.status === "starting" ? [startingNotice(state.agent)] : []
   const replay = state.replay
   if (replay === null) return []
   return [{ text: `▶ ${replay.file} · ${replay.speed} · ${STATUS_TEXT[replay.status()]}`, fg: theme.muted }]
@@ -120,7 +124,7 @@ export function noticeFor(state: NoticeState): Notice {
   const ended = state.replay === null && state.readOnly === null && state.status === "ended"
   // With the agent gone F4 has nothing to change.
   const fkeys = state.extraEffort && !ended ? `${SIDEBAR_HINT} · F4 ${state.extraEffort}` : SIDEBAR_HINT
-  const keys = !ended && state.modes ? `shift+tab mode · ${fkeys}` : fkeys
+  const keys = !ended && state.modes ? `${state.planHint ?? "shift+tab mode"} · ${fkeys}` : fkeys
   const hints = state.backgroundable
     ? "ctrl+b runs it in the background"
     : state.interruptible

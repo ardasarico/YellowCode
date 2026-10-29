@@ -2,7 +2,7 @@ import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AgentKindId, EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { EffortRow, ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
-import { DEFAULT_SETTINGS, defaultModeIn, saveSettings, type StoredSettings } from "./settings-file.ts"
+import { DEFAULT_SETTINGS, saveSettings, startModeIn, type StoredSettings } from "./settings-file.ts"
 
 // Replay has no model list from claude, so these stand in until the live process provides one.
 export const MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"]
@@ -26,8 +26,16 @@ export function modelRef(id: string): ModelRef {
   return choices.find((choice) => choice.id === id)?.ref ?? { provider: null, id }
 }
 
+// The id the knobs keep for a model of an agent with several providers, which can list one id under two of them.
+export const providerModelId = (provider: string, id: string): string => `${provider}/${id}`
+
 // The family rows (opus, sonnet, …) in claude's order, each under the id it stands for; every row when there are none.
+// Rows of an agent with several providers are each a choice of their own.
 export function modelChoices(models: ModelRow[]): ModelChoice[] {
+  if (models.some(({ ref }) => ref.provider !== null))
+    return models.flatMap(({ ref }) =>
+      ref.provider === null ? [] : [{ id: providerModelId(ref.provider, ref.id), ref }],
+    )
   const aliases = models.filter(({ ref }) => !ref.id.startsWith("claude-") && ref.id !== "default")
   const rows = aliases.length > 0 ? aliases : models
   const seen = new Set<string>()
@@ -41,7 +49,13 @@ export function modelChoices(models: ModelRow[]): ModelChoice[] {
 
 // The effort levels of the model the session uses; a model the agent did not list has the first row's.
 export function effortsOf(models: ModelRow[], model: string | null): EffortRow[] {
-  const row = models.find(({ ref, resolves }) => model !== null && (ref.id === model || resolves === model))
+  const row = models.find(
+    ({ ref, resolves }) =>
+      model !== null &&
+      (ref.provider === null
+        ? ref.id === model || resolves === model
+        : providerModelId(ref.provider, ref.id) === model),
+  )
   return (row ?? models[0])?.efforts ?? []
 }
 
@@ -78,15 +92,22 @@ export function resetSetting(key: keyof StoredSettings): void {
   setSetting(key, DEFAULT_SETTINGS[key])
 }
 
-export const defaultModeOf = (agent: AgentKindId): ModeId => defaultModeIn(settings, agent)
+export const defaultModeOf = (agent: AgentKindId): ModeId | null => startModeIn(settings, agent)
 
-// The saved mode the agent already has changes nothing, so the running session is not switched again. A path setter
-// would merge into the object the store started with, DEFAULT_SETTINGS' own, so the entries are replaced at the top.
-export function setDefaultMode(agent: AgentKindId, mode: ModeId): void {
+// The saved mode the agent already has changes nothing, so the running session is not switched again; null drops it.
+// A path setter would merge into the object the store started with, DEFAULT_SETTINGS' own, so the entries are
+// replaced at the top.
+export function setDefaultMode(agent: AgentKindId, mode: ModeId | null): void {
   if (defaultModeOf(agent) !== mode)
-    setSettings({ agents: { ...settings.agents, [agent]: { ...settings.agents[agent], defaultMode: mode } } })
+    setSettings({
+      agents: { ...settings.agents, [agent]: { ...settings.agents[agent], defaultMode: mode ?? undefined } },
+    })
   saveSettings(settings)
 }
+
+// Back to what nothing saved gives.
+export const resetDefaultMode = (agent: AgentKindId): void =>
+  setDefaultMode(agent, startModeIn(DEFAULT_SETTINGS, agent))
 
 // A pick says what changed, so only a change goes to the agent; null when nothing did.
 export function pickModel(id: string): string | null {

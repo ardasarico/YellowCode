@@ -1,5 +1,6 @@
 import { z } from "zod"
 import packageJson from "../../package.json"
+import type { ClientTool } from "../agent/agent.ts"
 import { ownAskProblem } from "../agents/claude/ask-input.ts"
 import { log } from "../log/log.ts"
 import { type McpMessage, OWN_ASK, OWN_ASK_SERVER, ownAskCall, type ProtocolMessage } from "../protocol/messages.ts"
@@ -32,8 +33,12 @@ export type AskServer = {
 // Our own ask's MCP server. claude can send its MCP initialize before it answers ours, so nothing here waits for the
 // session. A call the user may see gets no reply here: the session opens it, and the user's answer is the reply.
 // Only the main agent may ask; a subagent's call is turned down, known by its tool_use line's parent. `open` places a
-// main call the session held because its line came after it.
-export function createAskServer(send: (line: string) => void, open: (toolUseId: string) => void): AskServer {
+// main call the session held because its line came after it. The mods' servers are served from `clientTools`.
+export function createAskServer(
+  send: (line: string) => void,
+  open: (toolUseId: string) => void,
+  clientTools: () => readonly ClientTool[],
+): AskServer {
   // tool_use id of each own ask call → the Agent call it runs under, or null on the main thread.
   const parents = new Map<string, string | null>()
   // Calls whose tool_use line is still to come, with what to do if it names a subagent.
@@ -74,7 +79,7 @@ export function createAskServer(send: (line: string) => void, open: (toolUseId: 
       }
     },
     serve(requestId, request) {
-      if (isModServer(request.server_name)) return serveModTools(send, requestId, request)
+      if (isModServer(request.server_name)) return serveModTools(send, requestId, request, clientTools())
       if (request.server_name !== OWN_ASK_SERVER)
         return send(errorResponse(requestId, "YellowCode does not support mcp_message"))
       const { id, method, params } = request.message

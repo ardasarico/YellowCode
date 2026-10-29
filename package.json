@@ -30,6 +30,7 @@
     "check": "bun run typecheck && bun run lint && bun run format:check && bun run types:check && bun test"
   },
   "dependencies": {
+    "@opencode/client": "2.2.0",
     "@opentui/core": "0.6.8",
     "@opentui/solid": "0.6.8",
     "@resvg/resvg-js": "2.6.2",

@@ -24,13 +24,15 @@ export type Prompt = {
   shells: { command: string; output: string }[]
 }
 
-// A tool YellowCode serves to the agent, such as a mod's. `server` groups one mod's tools under one name.
+// A tool YellowCode serves to the agent, such as a mod's. `server` groups one mod's tools under one name. A hint
+// left out is left to the agent; `annotations` null gives none.
 export type ClientTool = {
   server: string
   name: string
   description: string
   inputSchema: Record<string, unknown>
-  annotations: { readOnly: boolean; destructive: boolean; title: string | null }
+  annotations: { readOnly?: boolean; destructive?: boolean; title?: string } | null
+  // Never rejects: a failure is an error result.
   run(input: Record<string, unknown>): Promise<{ text: string; error: boolean }>
 }
 
@@ -95,6 +97,8 @@ export type UsageReport = {
 export type AgentKind = {
   id: AgentKindId
   name: string
+  // What the chat calls it in short texts ("tell Claude instead"); `name` when not given.
+  shortName?: string
   // What its sessions can do; a saved session is shown with these.
   caps: Capabilities
   detect(): Promise<Detection>

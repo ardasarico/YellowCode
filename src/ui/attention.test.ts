@@ -75,9 +75,9 @@ test("each state pings only at the levels that allow it", () => {
   ]
   for (const [session, all, waiting] of cases) {
     const attention = attentionState(session)
-    expect(notification(attention, "all")).toBe(all)
-    expect(notification(attention, "waiting")).toBe(waiting)
-    expect(notification(attention, "off")).toBeNull()
+    expect(notification(attention, "all", "Claude")).toBe(all)
+    expect(notification(attention, "waiting", "Claude")).toBe(waiting)
+    expect(notification(attention, "off", "Claude")).toBeNull()
   }
 })
 

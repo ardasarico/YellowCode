@@ -1,7 +1,14 @@
 import type { AgentKindId } from "../../agent/ids.ts"
 import type { ModeRow } from "../../agent/lists.ts"
-import { defaultModeOf, resetSetting, setDefaultMode, setSetting, settings } from "../../session/settings.ts"
-import { DEFAULT_MODE, type StoredSettings } from "../../session/settings-file.ts"
+import {
+  defaultModeOf,
+  resetDefaultMode,
+  resetSetting,
+  setDefaultMode,
+  setSetting,
+  settings,
+} from "../../session/settings.ts"
+import type { StoredSettings } from "../../session/settings-file.ts"
 import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
@@ -9,7 +16,7 @@ import { editorChoices, editorName } from "../dialog/open-file.ts"
 type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
 
 // The settings picked from a list; disabledMods is changed in /mods.
-type ChoiceKey = { [K in keyof StoredSettings]: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]
+type ChoiceKey = { [K in keyof StoredSettings]-?: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]
 
 type Stored<K extends ChoiceKey> = {
   key: K
@@ -66,12 +73,31 @@ const defaultMode = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition =>
   section: "Session",
   label: "Permission mode",
   options: modes.map(({ id, label, description }) => ({ value: id, label, note: description || undefined })),
-  value: () => defaultModeOf(agent),
+  value: () => defaultModeOf(agent) ?? "",
   set(value) {
     if (modes.some((mode) => mode.id === value)) setDefaultMode(agent, value)
   },
-  reset: () => setDefaultMode(agent, DEFAULT_MODE),
+  reset: () => resetDefaultMode(agent),
 })
+
+// An agent YellowCode can open, by its name.
+export type AgentOption = { id: AgentKindId; name: string }
+
+// `agents` are the ones installed, the first of them what a start opens while none is saved.
+const defaultAgent = (agents: AgentOption[]): SettingDefinition => {
+  const value = () => settings.defaultAgent ?? agents[0]?.id ?? ""
+  return {
+    key: "defaultAgent",
+    section: "Session",
+    label: "Default agent",
+    options: agents.map(({ id, name }) => ({ value: id, label: name })),
+    value,
+    set(id) {
+      if (id !== settings.defaultAgent && agents.some((agent) => agent.id === id)) setSetting("defaultAgent", id)
+    },
+    reset: () => resetSetting("defaultAgent"),
+  }
+}
 
 const SIDEBAR = stored<"sidebar">({
   key: "sidebar",
@@ -118,11 +144,12 @@ const NOTIFICATIONS = stored({
 })
 
 // YellowCode's own settings, with what it keeps for the agent among them.
-export const settingsFor = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition[] => [
+export const settingsFor = (agent: AgentKindId, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
   THEME,
   SIDEBAR,
   THINKING,
   SESSION_TITLE,
+  defaultAgent(agents),
   defaultMode(agent, modes),
   EDITOR,
   NOTIFICATIONS,

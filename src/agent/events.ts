@@ -291,6 +291,7 @@ type Events =
       max: number | null
       delayMs: number | null
       status: number | null
+      // A category: overloaded, rate_limit, server_error or authentication_failed. Any other text reads as unknown.
       reason: string
     }
   | { type: "compaction"; running: boolean }

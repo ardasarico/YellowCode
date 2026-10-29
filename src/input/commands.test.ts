@@ -3,6 +3,7 @@ import { toCommandRows } from "../agents/claude/lists.ts"
 import {
   agentCommands,
   type Command,
+  commandOf,
   hintValues,
   matchCommands,
   OWN_COMMANDS,
@@ -103,4 +104,13 @@ test("Claude Code's own commands get a title only from the user's words after th
   expect(untitledCommand(list, "/rename my new session name")).toBe(true)
   expect(untitledCommand(list, "/fix-issue 123")).toBe(false)
   expect(untitledCommand(list, "plain words")).toBe(false)
+})
+
+test("a message runs a listed command only when its text starts with the command's name or alias", () => {
+  const listed = [{ ...command("hello", ["hi"]), builtin: false, setting: null, knob: null }]
+  expect(commandOf("/hello the team\nand more", listed)).toEqual({ name: "hello", args: "the team\nand more" })
+  expect(commandOf("/hi", listed)).toEqual({ name: "hello", args: "" })
+  expect(commandOf("/hellothere", listed)).toBeNull()
+  expect(commandOf("say /hello", listed)).toBeNull()
+  expect(commandOf("/hello")).toBeNull()
 })

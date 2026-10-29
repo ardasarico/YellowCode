@@ -1,0 +1,2515 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793234401068
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793234401068
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "HOTEL pick a color",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234401543
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234401544
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793234401549
+    },
+    {
+      "type": "title",
+      "title": "Asking their way",
+      "at": 1793234401572
+    },
+    {
+      "type": "reply",
+      "at": 1793234401861
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234401861
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793234401861
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "question",
+      "kind": "question",
+      "title": "question",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234401862
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          },
+          {
+            "question": "Which sizes?",
+            "header": "Sizes",
+            "multiple": true,
+            "options": [
+              {
+                "label": "S",
+                "description": "Size S"
+              },
+              {
+                "label": "M",
+                "description": "Size M"
+              },
+              {
+                "label": "L",
+                "description": "Size L"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "q0",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          },
+          {
+            "key": "q1",
+            "header": "Sizes",
+            "question": "Which sizes?",
+            "multi": true,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "S",
+                "description": "Size S",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "M",
+                "description": "Size M",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "L",
+                "description": "Size L",
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234401866
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "frm_1",
+        "kind": "question",
+        "call": "toolu_mock0001",
+        "tool": {
+          "name": "question",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            },
+            {
+              "key": "q1",
+              "title": "Sizes",
+              "description": "Which sizes?",
+              "type": "multiselect",
+              "options": [
+                {
+                  "value": "S",
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "value": "M",
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "value": "L",
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "options": []
+      },
+      "at": 1793234401868
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "User has answered your questions: \"Which color?\"=\"Blue\", \"Which sizes?\"=\"S, L\". You can now continue with the user's answers in mind.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": {
+        "status": "answered",
+        "answers": {
+          "q0": "Blue",
+          "q1": "S, L"
+        },
+        "notes": {}
+      },
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234401868
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234401868
+    },
+    {
+      "type": "reply",
+      "at": 1793234401868
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234401868
+    },
+    {
+      "type": "text.start",
+      "part": "msg_3:text:0",
+      "parent": null,
+      "text": "Blue in S and L.",
+      "local": false,
+      "quiet": false,
+      "at": 1793234401868
+    },
+    {
+      "type": "text.end",
+      "part": "msg_3:text:0",
+      "text": "Blue in S and L.",
+      "at": 1793234401868
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234401868
+    },
+    {
+      "type": "ask.close",
+      "id": "frm_1",
+      "outcome": {
+        "status": "answered",
+        "answers": {
+          "q0": "Blue",
+          "q1": "S, L"
+        },
+        "notes": {}
+      },
+      "at": 1793234401868
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 364,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.017009999999999997,
+      "prompts": [],
+      "at": 1793234401868
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "INDIA typed answer",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234402131
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234402132
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793234402133
+    },
+    {
+      "type": "reply",
+      "at": 1793234402144
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234402144
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0002",
+      "parent": null,
+      "name": "question",
+      "kind": "question",
+      "title": "question",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234402145
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "q0",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234402146
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "frm_2",
+        "kind": "question",
+        "call": "toolu_mock0002",
+        "tool": {
+          "name": "question",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "options": []
+      },
+      "at": 1793234402147
+    },
+    {
+      "type": "ask.close",
+      "id": "frm_2",
+      "outcome": {
+        "status": "answered",
+        "answers": {
+          "q0": "Teal"
+        },
+        "notes": {}
+      },
+      "at": 1793234402149
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0002",
+      "status": "done",
+      "result": "User has answered your questions: \"Which color?\"=\"Teal\". You can now continue with the user's answers in mind.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": {
+        "status": "answered",
+        "answers": {
+          "q0": "Teal"
+        },
+        "notes": {}
+      },
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234402149
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234402156
+    },
+    {
+      "type": "reply",
+      "at": 1793234402166
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234402166
+    },
+    {
+      "type": "text.start",
+      "part": "msg_5:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234402167
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_5:text:0",
+      "text": "Teal it is.",
+      "at": 1793234402168
+    },
+    {
+      "type": "text.end",
+      "part": "msg_5:text:0",
+      "text": "Teal it is.",
+      "at": 1793234402168
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234402175
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 44,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": 0.03380999999999999,
+      "prompts": [],
+      "at": 1793234402176
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "JULIET dismissed",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234402177
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234402177
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793234402179
+    },
+    {
+      "type": "reply",
+      "at": 1793234402189
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234402189
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0003",
+      "parent": null,
+      "name": "question",
+      "kind": "question",
+      "title": "question",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793234402190
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          },
+          {
+            "question": "Which sizes?",
+            "header": "Sizes",
+            "multiple": true,
+            "options": [
+              {
+                "label": "S",
+                "description": "Size S"
+              },
+              {
+                "label": "M",
+                "description": "Size M"
+              },
+              {
+                "label": "L",
+                "description": "Size L"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "q0",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": "Like the sea",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          },
+          {
+            "key": "q1",
+            "header": "Sizes",
+            "question": "Which sizes?",
+            "multi": true,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "S",
+                "description": "Size S",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "M",
+                "description": "Size M",
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "L",
+                "description": "Size L",
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234402190
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "",
+        "reason": "",
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "by": null,
+        "own": null,
+        "id": "frm_3",
+        "kind": "question",
+        "call": "toolu_mock0003",
+        "tool": {
+          "name": "question",
+          "kind": "question",
+          "mcp": null
+        },
+        "title": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            },
+            {
+              "key": "q1",
+              "title": "Sizes",
+              "description": "Which sizes?",
+              "type": "multiselect",
+              "options": [
+                {
+                  "value": "S",
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "value": "M",
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "value": "L",
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "options": []
+      },
+      "at": 1793234402191
+    },
+    {
+      "type": "ask.close",
+      "id": "frm_3",
+      "outcome": {
+        "status": "cancelled"
+      },
+      "at": 1793234402193
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0003",
+      "status": "stopped",
+      "result": "The user dismissed this question",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793234402193
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234402200
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": true,
+      "local": false,
+      "durationMs": 24,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.04220999999999999,
+      "prompts": [],
+      "at": 1793234402201
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234402201
+    },
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 0
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 0
+    },
+    {
+      "type": "title",
+      "title": "Asking their way",
+      "at": 0
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 0
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 0
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "KILO after the resume",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793234402724
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793234402724
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-4"
+      ],
+      "at": 1793234402727
+    },
+    {
+      "type": "reply",
+      "at": 1793234402738
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793234402738
+    },
+    {
+      "type": "text.start",
+      "part": "msg_8:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793234402739
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_8:text:0",
+      "text": "Back again.",
+      "at": 1793234402739
+    },
+    {
+      "type": "text.end",
+      "part": "msg_8:text:0",
+      "text": "Back again.",
+      "at": 1793234402739
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793234402747
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 24,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": 0.05060999999999999,
+      "prompts": [],
+      "at": 1793234402748
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793234402748
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "HOTEL pick a color",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234401549
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234401556
+          },
+          {
+            "type": "reply",
+            "at": 1793234401556
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234401556
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "question",
+            "kind": "question",
+            "title": "question",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234401556
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "questions": [
+                {
+                  "question": "Which color?",
+                  "header": "Color",
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea"
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass"
+                    }
+                  ]
+                },
+                {
+                  "question": "Which sizes?",
+                  "header": "Sizes",
+                  "multiple": true,
+                  "options": [
+                    {
+                      "label": "S",
+                      "description": "Size S"
+                    },
+                    {
+                      "label": "M",
+                      "description": "Size M"
+                    },
+                    {
+                      "label": "L",
+                      "description": "Size L"
+                    }
+                  ]
+                }
+              ]
+            },
+            "summary": "",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": {
+              "pages": [
+                {
+                  "key": "q0",
+                  "header": "Color",
+                  "question": "Which color?",
+                  "multi": false,
+                  "gallery": false,
+                  "custom": true,
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass",
+                      "preview": null,
+                      "image": null
+                    }
+                  ]
+                },
+                {
+                  "key": "q1",
+                  "header": "Sizes",
+                  "question": "Which sizes?",
+                  "multi": true,
+                  "gallery": false,
+                  "custom": true,
+                  "options": [
+                    {
+                      "label": "S",
+                      "description": "Size S",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "M",
+                      "description": "Size M",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "L",
+                      "description": "Size L",
+                      "preview": null,
+                      "image": null
+                    }
+                  ]
+                }
+              ]
+            },
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234401556
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "User has answered your questions: \"Which color?\"=\"Blue\", \"Which sizes?\"=\"S, L\". You can now continue with the user's answers in mind.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": {
+              "status": "answered",
+              "answers": {
+                "q0": "Blue",
+                "q1": "S, L"
+              },
+              "notes": {}
+            },
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234401556
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234401556
+          },
+          {
+            "type": "reply",
+            "at": 1793234401886
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234401886
+          },
+          {
+            "type": "text.start",
+            "part": "msg_3:text:0",
+            "parent": null,
+            "text": "Blue in S and L.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234401886
+          },
+          {
+            "type": "text.end",
+            "part": "msg_3:text:0",
+            "text": "Blue in S and L.",
+            "at": 1793234401886
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234401886
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-2",
+            "text": "INDIA typed answer",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234402133
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234402136
+          },
+          {
+            "type": "reply",
+            "at": 1793234402136
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234402136
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0002",
+            "parent": null,
+            "name": "question",
+            "kind": "question",
+            "title": "question",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234402136
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0002",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "questions": [
+                {
+                  "question": "Which color?",
+                  "header": "Color",
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea"
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass"
+                    }
+                  ]
+                }
+              ]
+            },
+            "summary": "",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": {
+              "pages": [
+                {
+                  "key": "q0",
+                  "header": "Color",
+                  "question": "Which color?",
+                  "multi": false,
+                  "gallery": false,
+                  "custom": true,
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass",
+                      "preview": null,
+                      "image": null
+                    }
+                  ]
+                }
+              ]
+            },
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234402136
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0002",
+            "status": "done",
+            "result": "User has answered your questions: \"Which color?\"=\"Teal\". You can now continue with the user's answers in mind.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": {
+              "status": "answered",
+              "answers": {
+                "q0": "Teal"
+              },
+              "notes": {}
+            },
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234402136
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234402136
+          },
+          {
+            "type": "reply",
+            "at": 1793234402159
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234402159
+          },
+          {
+            "type": "text.start",
+            "part": "msg_5:text:0",
+            "parent": null,
+            "text": "Teal it is.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234402159
+          },
+          {
+            "type": "text.end",
+            "part": "msg_5:text:0",
+            "text": "Teal it is.",
+            "at": 1793234402159
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234402159
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-3",
+            "text": "JULIET dismissed",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234402179
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234402181
+          },
+          {
+            "type": "reply",
+            "at": 1793234402181
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234402181
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0003",
+            "parent": null,
+            "name": "question",
+            "kind": "question",
+            "title": "question",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793234402181
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0003",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "input": {
+              "questions": [
+                {
+                  "question": "Which color?",
+                  "header": "Color",
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea"
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass"
+                    }
+                  ]
+                },
+                {
+                  "question": "Which sizes?",
+                  "header": "Sizes",
+                  "multiple": true,
+                  "options": [
+                    {
+                      "label": "S",
+                      "description": "Size S"
+                    },
+                    {
+                      "label": "M",
+                      "description": "Size M"
+                    },
+                    {
+                      "label": "L",
+                      "description": "Size L"
+                    }
+                  ]
+                }
+              ]
+            },
+            "summary": "",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": {
+              "pages": [
+                {
+                  "key": "q0",
+                  "header": "Color",
+                  "question": "Which color?",
+                  "multi": false,
+                  "gallery": false,
+                  "custom": true,
+                  "options": [
+                    {
+                      "label": "Blue",
+                      "description": "Like the sea",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "Green",
+                      "description": "Like grass",
+                      "preview": null,
+                      "image": null
+                    }
+                  ]
+                },
+                {
+                  "key": "q1",
+                  "header": "Sizes",
+                  "question": "Which sizes?",
+                  "multi": true,
+                  "gallery": false,
+                  "custom": true,
+                  "options": [
+                    {
+                      "label": "S",
+                      "description": "Size S",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "M",
+                      "description": "Size M",
+                      "preview": null,
+                      "image": null
+                    },
+                    {
+                      "label": "L",
+                      "description": "Size L",
+                      "preview": null,
+                      "image": null
+                    }
+                  ]
+                }
+              ]
+            },
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793234402181
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0003",
+            "status": "stopped",
+            "result": "The user dismissed this question",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793234402181
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234402181
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-4",
+            "text": "KILO after the resume",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793234402727
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793234402730
+          },
+          {
+            "type": "reply",
+            "at": 1793234402730
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793234402730
+          },
+          {
+            "type": "text.start",
+            "part": "msg_8:text:0",
+            "parent": null,
+            "text": "Back again.",
+            "local": false,
+            "quiet": false,
+            "at": 1793234402730
+          },
+          {
+            "type": "text.end",
+            "part": "msg_8:text:0",
+            "text": "Back again.",
+            "at": 1793234402730
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793234402730
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "toolu_mock0001",
+      "ask-frm_1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "toolu_mock0002",
+      "ask-frm_2",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "toolu_mock0003",
+      "ask-frm_3",
+      "turn-8",
+      "user-9",
+      "text-10",
+      "turn-11"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "HOTEL pick a color",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "question",
+        "toolKind": "question",
+        "title": "question",
+        "server": null,
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\",\"description\":\"Like the sea\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiple\":true,\"options\":[{\"label\":\"S\",\"description\":\"Size S\"},{\"label\":\"M\",\"description\":\"Size M\"},{\"label\":\"L\",\"description\":\"Size L\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiple": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "User has answered your questions: \"Which color?\"=\"Blue\", \"Which sizes?\"=\"S, L\". You can now continue with the user's answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "outcome": {
+          "status": "answered",
+          "answers": {
+            "q0": "Blue",
+            "q1": "S, L"
+          },
+          "notes": {}
+        },
+        "agent": null,
+        "taskId": null
+      },
+      "ask-frm_1": {
+        "kind": "ask",
+        "id": "ask-frm_1",
+        "requestId": "frm_1",
+        "toolUseId": "toolu_mock0001",
+        "toolName": "question",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            },
+            {
+              "key": "q1",
+              "title": "Sizes",
+              "description": "Which sizes?",
+              "type": "multiselect",
+              "options": [
+                {
+                  "value": "S",
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "value": "M",
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "value": "L",
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "q0": "Blue",
+          "q1": "S, L"
+        },
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Blue in S and L.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.017009999999999997,
+        "durationMs": 364,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234401868
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "INDIA typed answer",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "toolu_mock0002": {
+        "kind": "tool",
+        "id": "toolu_mock0002",
+        "name": "question",
+        "toolKind": "question",
+        "title": "question",
+        "server": null,
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\",\"description\":\"Like the sea\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "User has answered your questions: \"Which color?\"=\"Teal\". You can now continue with the user's answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "outcome": {
+          "status": "answered",
+          "answers": {
+            "q0": "Teal"
+          },
+          "notes": {}
+        },
+        "agent": null,
+        "taskId": null
+      },
+      "ask-frm_2": {
+        "kind": "ask",
+        "id": "ask-frm_2",
+        "requestId": "frm_2",
+        "toolUseId": "toolu_mock0002",
+        "toolName": "question",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "q0": "Teal"
+        },
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Teal it is.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.03380999999999999,
+        "durationMs": 44,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234402176
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "JULIET dismissed",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0003": {
+        "kind": "tool",
+        "id": "toolu_mock0003",
+        "name": "question",
+        "toolKind": "question",
+        "title": "question",
+        "server": null,
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\",\"description\":\"Like the sea\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiple\":true,\"options\":[{\"label\":\"S\",\"description\":\"Size S\"},{\"label\":\"M\",\"description\":\"Size M\"},{\"label\":\"L\",\"description\":\"Size L\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiple": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-frm_3": {
+        "kind": "ask",
+        "id": "ask-frm_3",
+        "requestId": "frm_3",
+        "toolUseId": "toolu_mock0003",
+        "toolName": "question",
+        "toolKind": "question",
+        "server": null,
+        "displayName": "Questions",
+        "input": {
+          "fields": [
+            {
+              "key": "q0",
+              "title": "Color",
+              "description": "Which color?",
+              "type": "string",
+              "options": [
+                {
+                  "value": "Blue",
+                  "label": "Blue",
+                  "description": "Like the sea"
+                },
+                {
+                  "value": "Green",
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ],
+              "custom": true
+            },
+            {
+              "key": "q1",
+              "title": "Sizes",
+              "description": "Which sizes?",
+              "type": "multiselect",
+              "options": [
+                {
+                  "value": "S",
+                  "label": "S",
+                  "description": "Size S"
+                },
+                {
+                  "value": "M",
+                  "label": "M",
+                  "description": "Size M"
+                },
+                {
+                  "value": "L",
+                  "label": "L",
+                  "description": "Size L"
+                }
+              ],
+              "custom": true
+            }
+          ]
+        },
+        "target": "Questions",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "q0",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": "Like the sea",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "q1",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": "Size S",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": "Size M",
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": "Size L",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "cancelled",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "turn-8": {
+        "kind": "turn-end",
+        "id": "turn-8",
+        "costUsd": 0.04220999999999999,
+        "durationMs": 24,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 1793234402201
+      },
+      "user-9": {
+        "kind": "user",
+        "id": "user-9",
+        "text": "KILO after the resume",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "text-10": {
+        "kind": "text",
+        "id": "text-10",
+        "markdown": "Back again.",
+        "streaming": false
+      },
+      "turn-11": {
+        "kind": "turn-end",
+        "id": "turn-11",
+        "costUsd": 0.05060999999999999,
+        "durationMs": 24,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793234402748
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 8280,
+      "costUsd": 0.05060999999999999,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "claudeTitle": "Asking their way",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

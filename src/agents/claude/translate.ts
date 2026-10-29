@@ -6,6 +6,7 @@ import type { SessionEnd } from "../../session/types.ts"
 import type { SessionStore } from "../../session/session.ts"
 import type { SourceEvent } from "../../source/source.ts"
 import { createAsks } from "./asks.ts"
+import { showServers } from "./mcp-rows.ts"
 import type { Draft } from "./draft.ts"
 import { createRelay } from "./relay.ts"
 import { createStream } from "./stream.ts"
@@ -146,7 +147,10 @@ function translatorOf(session: SessionStore): ClaudeTranslator {
 }
 
 export function feed(session: SessionStore, dir: Dir, parsed: ParseResult, at: number): void {
-  for (const event of translatorOf(session).translate(dir, parsed, at)) session.event(event)
+  for (const event of translatorOf(session).translate(dir, parsed, at)) {
+    session.event(event)
+    if (event.type === "info") showServers(session)
+  }
 }
 
 // Lines of an earlier session, read by a translator of their own that is then thrown away.

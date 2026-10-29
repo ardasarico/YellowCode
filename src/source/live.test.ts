@@ -47,6 +47,7 @@ test("a line that cannot be applied is logged and the next line is still handled
   const asks = createAskServer(
     () => {},
     () => {},
+    () => [],
   )
 
   await pump(source, session, { requests, controls, asks })

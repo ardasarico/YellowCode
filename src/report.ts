@@ -8,7 +8,7 @@ import { logFile } from "./log/log.ts"
 import type { AgentKindId } from "./agent/ids.ts"
 import type { ModeRow } from "./agent/lists.ts"
 import { modeLabel } from "./session/settings.ts"
-import { defaultModeIn, type StoredSettings } from "./session/settings-file.ts"
+import { startModeIn, type StoredSettings } from "./session/settings-file.ts"
 import { hostEnv } from "./source/claude-cli.ts"
 
 // A label and its value; a row without a value is left out of the report.
@@ -89,20 +89,27 @@ export function terminalFacts(capabilities: TerminalCapabilities | null): Row[] 
   return rows
 }
 
-// `modes` are the agent's, for the saved mode's label.
+// The running agent; `modes` give its saved mode's label.
+export type ReportAgent = { id: AgentKindId; name: string; modes: ModeRow[] }
+
+// `names` name the agents a saved entry may belong to; an unknown one goes under its id.
 export function settingsFacts(
   settings: StoredSettings,
-  agent: AgentKindId,
-  modes: ModeRow[],
+  running: ReportAgent,
+  names: { id: AgentKindId; name: string }[],
   problem: string | null,
 ): Row[] {
-  const mode = defaultModeIn(settings, agent)
+  const named = (id: string | undefined) => names.find((agent) => agent.id === id)?.name ?? id
+  const others = Object.keys(settings.agents).filter((id) => id !== running.id)
+  const mode = startModeIn(settings, running.id)
   return [
     ["Theme", settings.theme],
     ["Sidebar", settings.sidebar],
     ["Thinking", settings.thinking],
     ["Session title", settings.sessionTitle],
-    ["Permission mode", modeLabel(modes, mode)],
+    ["Default agent", named(settings.defaultAgent)],
+    ["Permission mode", mode === null ? null : modeLabel(running.modes, mode)],
+    ...others.map((id): Row => [`${named(id)} mode`, settings.agents[id]?.defaultMode]),
     ["Editor", settings.editor],
     ["Notifications", settings.notifications],
     ["Problem", problem],

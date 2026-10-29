@@ -49,7 +49,7 @@ function RetryRow(props: { retry: Retry }) {
     tick()
     const { reason, status, attempt, max } = props.retry
     const cause = `${REASONS[reason] ?? "unknown"}${status === null ? "" : ` (${status})`}`
-    return `! ${cause} · retrying in ${secondsLeft(props.retry)}s · attempt ${attempt}/${max}`
+    return `! ${cause} · retrying in ${secondsLeft(props.retry)}s · attempt ${attempt}${max === null ? "" : `/${max}`}`
   }
   return <text fg={theme.warning}>{text()}</text>
 }

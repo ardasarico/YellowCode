@@ -4,10 +4,12 @@ import type { Capabilities } from "../../agent/capabilities.ts"
 import type { AgentKindId } from "../../agent/ids.ts"
 import type { InputProvider } from "../../input/provider.ts"
 import { modeLabel, settings } from "../../session/settings.ts"
-import type { McpServer, SessionInfo } from "../../session/types.ts"
+import type { McpServerRow } from "../../agent/lists.ts"
+import type { SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
 import { McpTab } from "../mcp/mcp-tab.tsx"
 import { type AgentSettings, ConfigTab } from "./config-tab.tsx"
+import type { AgentOption } from "./options.ts"
 import { mods } from "../../mods/mods.ts"
 import { ModsTab } from "./mods-tab.tsx"
 import { PluginsTab } from "./plugins-tab.tsx"
@@ -21,11 +23,14 @@ export function SettingsDialog(props: {
   row?: string
   // The agent whose session this is.
   agent: AgentKindId
+  // The agents installed here, for the default agent.
+  agents: AgentOption[]
   // Live only.
   agentSettings?: AgentSettings
   info: SessionInfo | null
-  // Live, claude lists them before the first message, when there is no info yet.
-  servers: McpServer[] | null
+  // The session's MCP servers; null while the agent has named none. Live, claude lists them before the first
+  // message, when there is no info yet.
+  servers: McpServerRow[] | null
   // Live only.
   extensions?: Pick<Agent, "mcp" | "plugins">
   caps: Pick<Capabilities, "mcp" | "plugins" | "lists">
@@ -38,10 +43,7 @@ export function SettingsDialog(props: {
   onTab: (tab: SettingsTab) => void
   onClose: () => void
 }) {
-  const plugins = createMemo(() => {
-    const info = props.info
-    return info ? props.provider.plugins(info) : null
-  })
+  const plugins = createMemo(() => props.provider.plugins(props.info))
 
   const facts = (): StatusFacts => {
     const info = props.info
@@ -71,6 +73,7 @@ export function SettingsDialog(props: {
           api={api}
           agent={props.agent}
           modes={props.provider.modes()}
+          agents={props.agents}
           agentSettings={props.agentSettings}
           row={props.row}
         />
@@ -80,12 +83,7 @@ export function SettingsDialog(props: {
       id: "mcp",
       label: "MCP",
       render: (api) => (
-        <McpTab
-          api={api}
-          servers={props.provider.mcp(props.servers, props.info?.tools ?? [])}
-          actions={props.extensions?.mcp}
-          can={props.caps.mcp}
-        />
+        <McpTab api={api} servers={props.servers} actions={props.extensions?.mcp} can={props.caps.mcp} />
       ),
     },
     {
