@@ -404,7 +404,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Stopping",
+    "agentTitle": "Stopping",
     "conversation": 0,
     "compacting": false,
     "carried": [],

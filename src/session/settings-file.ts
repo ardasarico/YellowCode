@@ -19,7 +19,7 @@ import { themes } from "../theme/theme.ts"
 
 export type SidebarSetting = "auto" | "shown" | "hidden"
 export type ThinkingSetting = "summarized" | "hidden"
-export type TitleSource = "yellowcode" | "claude-code"
+export type TitleSource = "yellowcode" | "agent"
 export const EDITORS = ["default", "zed", "vscode", "cursor"] as const
 export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
@@ -91,7 +91,11 @@ const Stored = z.record(z.string(), z.unknown())
 const Theme = z.string().refine((id) => themes().some((theme) => theme.id === id))
 const Sidebar = z.enum(["auto", "shown", "hidden"])
 const Thinking = z.enum(["summarized", "hidden"])
-const SessionTitle = z.enum(["yellowcode", "claude-code"])
+// Earlier files saved the agent's own titles as "claude-code".
+const SessionTitle = z.preprocess(
+  (source) => (source === "claude-code" ? "agent" : source),
+  z.enum(["yellowcode", "agent"]),
+)
 // Claude's modes by its own ids; earlier files saved "default" under the name the user sees, "manual".
 const CLAUDE_MODE_IDS = ["auto", "default", "acceptEdits", "plan", "bypassPermissions", "dontAsk"] as const
 const Permission = z.preprocess((mode) => (mode === "manual" ? "default" : mode), z.enum(CLAUDE_MODE_IDS))

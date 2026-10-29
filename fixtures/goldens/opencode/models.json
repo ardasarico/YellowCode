@@ -2407,7 +2407,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Switching models",
+    "agentTitle": "Switching models",
     "conversation": 0,
     "compacting": false,
     "carried": [],

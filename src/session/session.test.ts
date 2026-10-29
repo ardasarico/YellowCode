@@ -525,7 +525,7 @@ test("only a turn in progress can be interrupted, and the session knows who star
 
   // A turn claude starts on its own, after a background task ended, is claude's (Ctrl+C does not interrupt it).
   receive({ type: "system", subtype: "status", status: "requesting" })
-  expect(session.state).toMatchObject({ status: "running", turn: "claude" })
+  expect(session.state).toMatchObject({ status: "running", turn: "agent" })
 })
 
 test("/clear starts the chat over but keeps a message sent after it, and local commands get no turn end", () => {

@@ -1767,7 +1767,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Tool tour",
+    "agentTitle": "Tool tour",
     "conversation": 0,
     "compacting": false,
     "carried": [],

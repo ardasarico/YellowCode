@@ -1356,7 +1356,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "An agent's own model",
+    "agentTitle": "An agent's own model",
     "conversation": 0,
     "compacting": false,
     "carried": [],

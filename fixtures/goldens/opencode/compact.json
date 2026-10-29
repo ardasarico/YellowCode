@@ -758,7 +758,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Compacting",
+    "agentTitle": "Compacting",
     "conversation": 0,
     "compacting": false,
     "carried": [],

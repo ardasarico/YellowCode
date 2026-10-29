@@ -628,7 +628,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Plan questions",
+    "agentTitle": "Plan questions",
     "conversation": 0,
     "compacting": false,
     "carried": [],

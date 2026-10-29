@@ -419,7 +419,7 @@ export function App(props: AppProps) {
   // The agent's own commands (/model, /clear, /context) name no work unless the user's words follow them; a skill
   // or a custom command carries them, so it is titled.
   const runsBuiltin = (text: string) => untitledCommand(props.provider.commands(), text)
-  const haikuTitle = useSessionTitle(
+  const ownTitle = useSessionTitle(
     () => props.session,
     (prompt, cwd) => props.oneShot?.(prompt, cwd) ?? Promise.resolve(null),
     () => props.oneShot !== undefined && settings.sessionTitle === "yellowcode",
@@ -454,7 +454,7 @@ export function App(props: AppProps) {
   )
   createEffect(
     on(
-      () => props.session.claudeTitle,
+      () => props.session.agentTitle,
       (text) => {
         if (Date.now() > adoptTitleUntil || !text) return
         adoptTitleUntil = 0
@@ -463,10 +463,10 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  createEffect(on(haikuTitle, (next) => next && !renamed() && toAgentTitle(next.title), { defer: true }))
+  createEffect(on(ownTitle, (next) => next && !renamed() && toAgentTitle(next.title), { defer: true }))
   // The agent's own title has no summary, so the sidebar shows the first message under it.
-  const claudeTitle = () => {
-    const text = props.session.claudeTitle
+  const agentTitle = () => {
+    const text = props.session.agentTitle
     return text === null ? null : { title: text, summary: "" }
   }
   // A resumed session shows the title it was listed under until the agent reports one, or a /clear starts over.
@@ -476,8 +476,8 @@ export function App(props: AppProps) {
   const sourceTitle = () =>
     props.readOnly ||
     (settings.sessionTitle === "yellowcode" && (props.caps.titles === "none" || props.oneShot !== undefined))
-      ? haikuTitle()
-      : (claudeTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
+      ? ownTitle()
+      : (agentTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
   const title = () => {
     const name = renamed()
     return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()

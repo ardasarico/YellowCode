@@ -539,7 +539,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     rename(title) {
       // claude reports the session id with the first init; a title that comes earlier waits for the next message's.
       const id = store.state.info?.id
-      if (!id || store.state.claudeTitle === title) return Promise.resolve(ok)
+      if (!id || store.state.agentTitle === title) return Promise.resolve(ok)
       return current.requests
         .send((requestId) => renameSession(requestId, title, id))
         .then(

@@ -229,7 +229,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     interrupting: false,
     turn: null,
     permissionMode: null,
-    claudeTitle: null,
+    agentTitle: null,
     conversation: 0,
     compacting: false,
     carried: [],
@@ -539,7 +539,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         setState("permissionMode", event.mode)
         return
       case "title":
-        setState("claudeTitle", event.title)
+        setState("agentTitle", event.title)
         return
       case "user.taken":
         for (const prompt of event.prompts) settleQueued(prompt)
@@ -869,7 +869,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const prompt of taken) settleQueued(prompt)
     if (state.turn === null) setState("interrupting", false)
     if (taken.length > 0) setState("turn", "user")
-    else if (state.turn === null) setState("turn", "claude")
+    else if (state.turn === null) setState("turn", "agent")
     if (state.status === "idle") setState("status", "running")
   }
 
@@ -1282,7 +1282,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         for (const [id, task] of Object.entries(session.tasks)) if (task.state !== "running") delete session.tasks[id]
         session.rewound = null
         session.compacting = false
-        session.claudeTitle = null
+        session.agentTitle = null
         session.usage.tokens = 0
         session.usage.costUsd = 0
         session.usage.context.used = 0

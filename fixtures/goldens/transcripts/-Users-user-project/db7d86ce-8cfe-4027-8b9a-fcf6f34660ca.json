@@ -65,7 +65,7 @@
         "interrupting": false,
         "turn": null,
         "permissionMode": null,
-        "claudeTitle": null,
+        "agentTitle": null,
         "conversation": 0,
         "compacting": false,
         "carried": []
@@ -138,7 +138,7 @@
         "interrupting": false,
         "turn": null,
         "permissionMode": null,
-        "claudeTitle": null,
+        "agentTitle": null,
         "conversation": 0,
         "compacting": false,
         "carried": []

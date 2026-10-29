@@ -659,7 +659,7 @@ export function createCapture(cwd: string): Capture {
       }
 
       // A turn the agent starts by itself goes on the last prompt as a segment of its own, from a snapshot taken now.
-      const claudeStarted = () => {
+      const agentStarted = () => {
         if (!last || open.has(last.uuid) || !promptsAt(state).has(last.uuid)) return
         const base = latest && !discarded.has(latest.point) ? latest : undefined
         if (base) kept.add(base.point)
@@ -678,7 +678,7 @@ export function createCapture(cwd: string): Capture {
           on(
             () => state.turn,
             (turn, previous) => {
-              if (turn === "claude" && previous === null) claudeStarted()
+              if (turn === "agent" && previous === null) agentStarted()
               else if (turn === null && previous) turnEnded()
             },
             { defer: true },

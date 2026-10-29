@@ -648,7 +648,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Two turns",
+    "agentTitle": "Two turns",
     "conversation": 0,
     "compacting": false,
     "carried": [],

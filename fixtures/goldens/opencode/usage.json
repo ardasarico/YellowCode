@@ -330,7 +330,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Counting tokens",
+    "agentTitle": "Counting tokens",
     "conversation": 0,
     "compacting": false,
     "carried": [],

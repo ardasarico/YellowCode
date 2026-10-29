@@ -1,7 +1,7 @@
 import { type Command, findCommand } from "./commands.ts"
 
-// `quoted`: written @"…", the only form claude reads a path with spaces in. `query` runs from after @ (or @") to the
-// cursor.
+// `quoted`: written @"…", the only form claude expands a path with spaces in; codex and opencode get the mention as plain
+// text and leave the file to the model. `query` runs from after @ (or @") to the cursor.
 export type AtToken = { start: number; end: number; query: string; quoted: boolean }
 
 function isSpace(char: string | undefined): boolean {
@@ -75,8 +75,8 @@ export function atToken(text: string, cursor: number): AtToken | null {
   return null
 }
 
-// A space typed after the "/" of an open @"folder/ ends the mention, so its quote closes there; claude reads only a
-// closed one. A path segment never starts with a space, so going on inside the folder is not affected.
+// A space typed after the "/" of an open @"folder/ ends the mention, so its quote closes there; claude expands only
+// a closed one. A path segment never starts with a space, so going on inside the folder is not affected.
 export function closeFolderQuote(text: string, cursor: number): { text: string; cursor: number } | null {
   for (const { start, end, quoted, closed } of mentions(text, cursor)) {
     if (!quoted || closed) continue

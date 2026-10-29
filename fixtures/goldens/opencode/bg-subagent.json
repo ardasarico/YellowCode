@@ -1512,7 +1512,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Background helpers",
+    "agentTitle": "Background helpers",
     "conversation": 0,
     "compacting": false,
     "carried": [],

@@ -643,7 +643,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Steering",
+    "agentTitle": "Steering",
     "conversation": 0,
     "compacting": false,
     "carried": [],

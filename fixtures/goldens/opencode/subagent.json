@@ -1519,7 +1519,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Helpers",
+    "agentTitle": "Helpers",
     "conversation": 0,
     "compacting": false,
     "carried": [],

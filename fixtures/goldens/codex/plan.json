@@ -369,7 +369,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "auto",
-    "claudeTitle": null,
+    "agentTitle": null,
     "conversation": 0,
     "compacting": false,
     "carried": [],

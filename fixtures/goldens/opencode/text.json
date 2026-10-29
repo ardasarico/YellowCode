@@ -316,7 +316,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Describing the pixel",
+    "agentTitle": "Describing the pixel",
     "conversation": 0,
     "compacting": false,
     "carried": [],

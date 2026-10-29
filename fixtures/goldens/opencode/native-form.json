@@ -2493,7 +2493,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Asking their way",
+    "agentTitle": "Asking their way",
     "conversation": 0,
     "compacting": false,
     "carried": [],

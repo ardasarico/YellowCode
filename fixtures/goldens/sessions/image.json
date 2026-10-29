@@ -1,17 +1,17 @@
 {
   "steps": [
-    "335f43f493b7",
-    "6efa1009d2c2",
-    "6efa1009d2c2",
-    "6efa1009d2c2",
-    "edd75c981e77",
-    "3f26d8638778",
-    "28900f62f9e9",
-    "28900f62f9e9",
-    "28900f62f9e9",
-    "28900f62f9e9",
-    "b3c79e9e4092",
-    "a5702c73de86"
+    "800dd73508cd",
+    "86ca36149cf8",
+    "86ca36149cf8",
+    "86ca36149cf8",
+    "e73d7964132f",
+    "9f35ce5f5f2b",
+    "3dd081a41a13",
+    "3dd081a41a13",
+    "3dd081a41a13",
+    "3dd081a41a13",
+    "908b6509b0c8",
+    "fe7fc64e0c36"
   ],
   "fileOriginals": [],
   "state": {
@@ -208,7 +208,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "default",
-    "claudeTitle": null,
+    "agentTitle": null,
     "conversation": 0,
     "compacting": false,
     "carried": []

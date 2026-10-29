@@ -1026,7 +1026,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Cutting back",
+    "agentTitle": "Cutting back",
     "conversation": 0,
     "compacting": false,
     "carried": [],

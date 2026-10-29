@@ -305,7 +305,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Renamed by hand",
+    "agentTitle": "Renamed by hand",
     "conversation": 0,
     "compacting": false,
     "carried": [],

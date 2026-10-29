@@ -253,7 +253,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Broken",
+    "agentTitle": "Broken",
     "conversation": 0,
     "compacting": false,
     "carried": [],

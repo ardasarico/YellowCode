@@ -116,7 +116,6 @@ const THINKING = stored<"thinking">({
   options: same(["summarized", "hidden"]),
 })
 
-// "claude-code" stands for the titles of the session's own agent.
 const sessionTitle = (agentName: string) =>
   stored({
     key: "sessionTitle",
@@ -124,7 +123,7 @@ const sessionTitle = (agentName: string) =>
     label: "Session title",
     options: [
       { value: "yellowcode", label: "YellowCode" },
-      { value: "claude-code", label: agentName },
+      { value: "agent", label: agentName },
     ],
   })
 

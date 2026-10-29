@@ -2304,7 +2304,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Asking first",
+    "agentTitle": "Asking first",
     "conversation": 0,
     "compacting": false,
     "carried": [],

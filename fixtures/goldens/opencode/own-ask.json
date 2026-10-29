@@ -2674,7 +2674,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Asking our way",
+    "agentTitle": "Asking our way",
     "conversation": 0,
     "compacting": false,
     "carried": [],

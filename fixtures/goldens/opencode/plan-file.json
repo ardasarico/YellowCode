@@ -666,7 +666,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Plan a JSON report",
+    "agentTitle": "Plan a JSON report",
     "conversation": 0,
     "compacting": false,
     "carried": [],

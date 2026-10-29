@@ -92,7 +92,7 @@ export type Agent = {
   error: string | null
   // What the running agent is doing now, from its latest task_progress.
   activity: string
-  // The user stopped it (x or an interrupt); the agent does not resume it.
+  // The user stopped it (x or an interrupt). claude will not resume it; codex and opencode may, which clears this.
   stoppedByUser: boolean
 }
 export type TaskState = "running" | "completed" | "failed" | "stopped"
@@ -288,7 +288,7 @@ export type Session = {
   // The turn the agent is working on, from its start to its result, and who started it: a user message, or the
   // agent itself (a background task's end). The status can stay "running" without one while messages wait to be
   // taken in.
-  turn: "user" | "claude" | null
+  turn: "user" | "agent" | null
   // The permission mode the agent says the session runs in (Claude's "default" is shown as manual).
   permissionMode: string | null
   // The modes an agent that lists its own said it has; absent until it does.
@@ -300,7 +300,7 @@ export type Session = {
   // The working plan an agent tells as steps outside any tool call; absent until it does.
   todos?: Todo[]
   // The title the agent keeps for the session: the last rename, YellowCode's own or a typed /rename.
-  claudeTitle: string | null
+  agentTitle: string | null
   // How many times the agent started the conversation over (/clear).
   conversation: number
   // The agent is summarizing the conversation (/compact, or on its own when the context is full).

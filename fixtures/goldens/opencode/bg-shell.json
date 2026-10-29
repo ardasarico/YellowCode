@@ -1069,7 +1069,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Background work",
+    "agentTitle": "Background work",
     "conversation": 0,
     "compacting": false,
     "carried": [],

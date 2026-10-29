@@ -39,6 +39,10 @@ test("a byte order mark is ignored and a mode saved as manual reads as claude's 
   expect(loaded.problem).toBeNull()
 })
 
+test("a session title saved as claude-code reads as the agent's own", () => {
+  expect(loadSettings(fileWith('{"sessionTitle":"claude-code"}')).settings.sessionTitle).toBe("agent")
+})
+
 test("the saved mode of a file from before agents had entries becomes Claude's, and saves under it", () => {
   const path = fileWith('{"permissionMode":"plan","theme":"dusk"}')
   const loaded = loadSettings(path)

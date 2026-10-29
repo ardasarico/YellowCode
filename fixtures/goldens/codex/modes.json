@@ -565,7 +565,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "read-only",
-    "claudeTitle": null,
+    "agentTitle": null,
     "conversation": 0,
     "compacting": false,
     "carried": [],

@@ -421,7 +421,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Lists",
+    "agentTitle": "Lists",
     "conversation": 0,
     "compacting": false,
     "carried": [],

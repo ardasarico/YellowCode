@@ -156,7 +156,7 @@ test("the first prompt gets opencode's title, a rename replaces it, and the list
     "Naming the session",
     "Renamed by hand",
   ])
-  expect(store.state.claudeTitle).toBe("Renamed by hand")
+  expect(store.state.agentTitle).toBe("Renamed by hand")
   expect(listed(outputs).map((entry) => entry.title)).toEqual(["Renamed by hand"])
   const golden = join(ROOT, "fixtures", "goldens", "opencode", "title.json")
   const got = `${JSON.stringify({ events: events.filter((event) => event.type !== "seen"), outputs, state: store.state }, null, 2)}\n`

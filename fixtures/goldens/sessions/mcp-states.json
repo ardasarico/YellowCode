@@ -1,9 +1,9 @@
 {
   "steps": [
-    "1c3613fb5201",
-    "5a9f5f604f5d",
-    "726398659c17",
-    "da00e07065ae"
+    "fbcf9afad0bd",
+    "b5c8a0aad5e0",
+    "928d2a3a6897",
+    "f38255cf7df7"
   ],
   "fileOriginals": [],
   "state": {
@@ -371,7 +371,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "default",
-    "claudeTitle": null,
+    "agentTitle": null,
     "conversation": 0,
     "compacting": false,
     "carried": []

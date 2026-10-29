@@ -829,7 +829,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Mod tools",
+    "agentTitle": "Mod tools",
     "conversation": 0,
     "compacting": false,
     "carried": [],

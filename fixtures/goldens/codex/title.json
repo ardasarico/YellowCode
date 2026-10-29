@@ -215,7 +215,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": null,
-    "claudeTitle": "Helper rename",
+    "agentTitle": "Helper rename",
     "conversation": 0,
     "compacting": false,
     "carried": [],

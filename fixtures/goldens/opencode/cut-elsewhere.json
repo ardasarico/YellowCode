@@ -707,7 +707,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Cut elsewhere",
+    "agentTitle": "Cut elsewhere",
     "conversation": 0,
     "compacting": false,
     "carried": [],

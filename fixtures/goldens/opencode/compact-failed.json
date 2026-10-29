@@ -391,7 +391,7 @@
     "interrupting": false,
     "turn": null,
     "permissionMode": "build",
-    "claudeTitle": "Failing to compact",
+    "agentTitle": "Failing to compact",
     "conversation": 0,
     "compacting": false,
     "carried": [],
