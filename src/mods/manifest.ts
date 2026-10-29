@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { basename, isAbsolute, join, normalize } from "node:path"
 import { z } from "zod"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { apiVersion } from "./version.ts"
 
 export const MANIFEST = "yellowcode-mod.json"

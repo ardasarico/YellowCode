@@ -24,18 +24,31 @@
             "kind": "tool",
             "id": "toolu_016aZ6MjQcwkGKub4fHPWNMD",
             "name": "Read",
+            "toolKind": "read",
+            "title": "Read",
+            "server": null,
             "inputText": "{\"file_path\":\"/Users/user/project/notes.txt\"}",
             "input": {
               "file_path": "/Users/user/project/notes.txt"
             },
             "summary": "/Users/user/project/notes.txt",
+            "detail": null,
+            "background": false,
             "status": "done",
             "result": "1\tpelican\n2\t",
             "children": [],
             "patch": null,
             "createdFile": false,
+            "content": null,
             "images": [],
             "unchanged": false,
+            "count": {
+              "n": 2,
+              "noun": "line"
+            },
+            "files": [],
+            "questions": null,
+            "outcome": null,
             "agent": null,
             "taskId": null
           },
@@ -100,18 +113,31 @@
             "kind": "tool",
             "id": "toolu_016aZ6MjQcwkGKub4fHPWNMD",
             "name": "Read",
+            "toolKind": "read",
+            "title": "Read",
+            "server": null,
             "inputText": "{\"file_path\":\"/Users/user/project/notes.txt\"}",
             "input": {
               "file_path": "/Users/user/project/notes.txt"
             },
             "summary": "/Users/user/project/notes.txt",
+            "detail": null,
+            "background": false,
             "status": "done",
             "result": "1\tpelican\n2\t",
             "children": [],
             "patch": null,
             "createdFile": false,
+            "content": null,
             "images": [],
             "unchanged": false,
+            "count": {
+              "n": 2,
+              "noun": "line"
+            },
+            "files": [],
+            "questions": null,
+            "outcome": null,
             "agent": null,
             "taskId": null
           },

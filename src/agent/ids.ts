@@ -14,5 +14,5 @@ export type EffortId = string
 // `provider` is null for an agent with one provider.
 export type ModelRef = { provider: string | null; id: string }
 
-// `note` says what changed, such as the file a switch wrote.
+// `note` says what changed, such as the file a switch wrote. An intent that returns an Outcome resolves and never rejects.
 export type Outcome = { ok: true; note: string | null } | { ok: false; problem: string }

@@ -1,13 +1,12 @@
 import { z } from "zod"
 import { log } from "../log/log.ts"
-import { rowsOf } from "../protocol/json.ts"
+import { rowsOf } from "../json.ts"
 import { isOwnAskServer, mcpServerRows, mcpServerStatus, type ProtocolMessage } from "../protocol/messages.ts"
 import { mcpReconnectRequest, mcpStatusRequest, mcpToggleRequest } from "../protocol/outgoing.ts"
 import type { SessionStore } from "../session/session.ts"
 import type { McpConfig, McpServer } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
-import type { McpActions } from "../ui/mcp/mcp-tab.tsx"
-import { shortName } from "../ui/mcp/servers.ts"
+import { shortName } from "../agents/claude/mcp-rows.ts"
 import { type Requests, RequestTimeout } from "./requests.ts"
 import { commandOf, programOf, safeText, safeUrl } from "./safe-text.ts"
 
@@ -17,7 +16,12 @@ export type McpControls = {
   initialized(reply: unknown): void
   onMessage(message: ProtocolMessage): void
   refresh(): void
-  actions: McpActions
+  // A rejection says what went wrong.
+  actions: {
+    reconnect(name: string): Promise<void>
+    setEnabled(name: string, enabled: boolean): Promise<void>
+    login(name: string): Promise<void>
+  }
   // Its claude is being replaced: no more asking.
   dispose(): void
 }

@@ -45,8 +45,8 @@ export function barCells(bar: WorkflowBar, size: number): { done: number; failed
 
 type WorkflowAgent = WorkflowProgress["agents"][number]
 
-export const isAgentCall = (tool: ToolCall) => tool.agent !== null || tool.name === "Agent"
-export const isWorkflowCall = (tool: ToolCall) => tool.name === "Workflow"
+export const isAgentCall = (tool: ToolCall) => tool.agent !== null || tool.toolKind === "agent"
+export const isWorkflowCall = (tool: ToolCall) => tool.toolKind === "workflow"
 
 function toolState(status: ToolCall["status"]): TaskState {
   if (status === "done") return "completed"

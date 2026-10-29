@@ -1,25 +1,24 @@
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, Show, untrack } from "solid-js"
-import { type ClaudeAccount, CLAUDE_SETTINGS, type ClaudeSetting } from "../../session/claude-settings.ts"
-import { resetSetting, settings } from "../../session/settings.ts"
+import type { AgentKindId, Outcome } from "../../agent/ids.ts"
+import type { ModeRow } from "../../agent/lists.ts"
+import type { SettingRow, SettingValue } from "../../agent/settings.ts"
+import { settings } from "../../session/settings.ts"
 import { reloadThemes, theme } from "../../theme/theme.ts"
 import { searchFooter, type TabApi } from "../dialog/tabbed-dialog.tsx"
 import { type DialogSection, dialogLines, filterSections, moveSelection, selectableIds } from "../dialog/list.ts"
 import { type FooterAction, ListView, PAD_X, printable } from "../dialog/list-view.tsx"
 import { SearchField } from "../dialog/search-field.tsx"
 import {
-  choose,
   currentOption,
   LONG,
   opensList,
   optionSections,
   preview,
-  SETTINGS,
   type SettingDefinition,
-  settingFor,
+  settingsFor,
   step,
 } from "./options.ts"
 
-const SECTIONS = [...new Set(SETTINGS.map((setting) => setting.section))]
 // The search row, its underline and the blank under it; a sub-list adds its breadcrumb and a blank.
 const SEARCH_ROWS = 3
 const CRUMB_ROWS = 2
@@ -35,97 +34,112 @@ const LIST_FOOTER: FooterAction[] = [
   { key: "esc", action: "back" },
 ]
 
-// Claude Code's own settings: what get_settings read, and the change that goes out as claude's own command.
-// `sent` holds the changes that went out while /settings is open, so a tab switch keeps showing them.
-export type ClaudeSettings = {
-  effective: Record<string, unknown> | null
-  account: ClaudeAccount
-  sent: ReadonlyMap<string, string>
+// The agent's own settings, null until they are read. `sent` holds the changes that went out while /settings is open,
+// so a tab switch keeps showing them.
+export type AgentSettings = {
+  name: string
+  rows: SettingRow[] | null
+  sent: ReadonlyMap<string, SettingValue>
   busy: () => boolean
-  // False when the message could not go out.
-  change: (id: string, value: string, command: string) => boolean
+  change: (id: string, value: SettingValue) => Promise<Outcome>
 }
 
-const CLAUDE_PREFIX = "claude:"
-// Each change goes to claude as a command, so ←→ sends only where the presses stop.
+const AGENT_PREFIX = "agent:"
+// Each change may go to the agent as a command, so ←→ sends only where the presses stop.
 const STEP_SEND_MS = 600
-const claudeFor = (id: string) =>
-  id.startsWith(CLAUDE_PREFIX)
-    ? CLAUDE_SETTINGS.find((setting) => setting.id === id.slice(CLAUDE_PREFIX.length))
-    : undefined
+const choicesOf = (row: SettingRow) => (row.control.type === "choice" ? row.control.options : [])
 
-const mainSections = (): DialogSection[] =>
-  SECTIONS.map((section) => ({
+const mainSections = (definitions: SettingDefinition[]): DialogSection[] =>
+  [...new Set(definitions.map((setting) => setting.section))].map((section) => ({
     title: section,
-    rows: SETTINGS.filter((setting) => setting.section === section).map((setting) => {
-      const option = currentOption(setting)
-      const value = opensList(setting) ? `${option?.label} →` : option?.label
-      return { id: setting.key, label: setting.label, value, note: option?.note }
-    }),
+    rows: definitions
+      .filter((setting) => setting.section === section)
+      .map((setting) => {
+        const option = currentOption(setting)
+        const value = opensList(setting) ? `${option?.label} →` : option?.label
+        return { id: setting.key, label: setting.label, value, note: option?.note }
+      }),
   }))
 
-export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: string }) {
+// `agent` is the agent whose YellowCode settings the tab shows, with its `modes`; `agentSettings` its own, on a live
+// session.
+export function ConfigTab(props: {
+  api: TabApi
+  agent: AgentKindId
+  modes: ModeRow[]
+  agentSettings?: AgentSettings
+  row?: string
+}) {
+  const definitions = createMemo(() => settingsFor(props.agent, props.modes))
+  const settingFor = (id: string) => definitions().find((setting) => setting.key === id)
   const [list, setList] = createSignal<SettingDefinition | null>(null)
-  const [claudeList, setClaudeList] = createSignal<ClaudeSetting | null>(null)
+  const [agentList, setAgentList] = createSignal<SettingRow | null>(null)
   const [query, setQuery] = createSignal("")
   const [chosen, setChosen] = createSignal<string | undefined>(untrack(() => props.row))
-  const [stepped, setStepped] = createSignal<{ setting: ClaudeSetting; value: string } | null>(null)
+  const [stepped, setStepped] = createSignal<{ row: SettingRow; value: SettingValue } | null>(null)
   let stepTimer: ReturnType<typeof setTimeout> | undefined
-  const claudeValue = (setting: ClaudeSetting) => {
-    const claude = props.claude
+  const agentFor = (id: string) =>
+    id.startsWith(AGENT_PREFIX)
+      ? props.agentSettings?.rows?.find((row) => row.id === id.slice(AGENT_PREFIX.length))
+      : undefined
+  const agentValue = (row: SettingRow) => {
     const pending = stepped()
-    if (pending?.setting === setting) return pending.value
-    return claude?.sent.get(setting.id) ?? (claude?.effective ? setting.read(claude.effective, claude.account) : null)
+    if (pending?.row.id === row.id) return pending.value
+    return props.agentSettings?.sent.get(row.id) ?? row.value
   }
-  const claudeLabel = (setting: ClaudeSetting) => {
-    const value = claudeValue(setting)
+  const agentLabel = (row: SettingRow) => {
+    const value = agentValue(row)
     if (value === null) return "…"
-    return setting.options.find((option) => option.value === value)?.label ?? value
+    return choicesOf(row).find((option) => option.value === value)?.label ?? String(value)
   }
-  const claudeSection = (): DialogSection[] =>
-    props.claude
-      ? [
-          {
-            title: "Claude Code",
-            rows: CLAUDE_SETTINGS.map((setting) => ({
-              id: `${CLAUDE_PREFIX}${setting.id}`,
-              label: setting.label,
-              value: setting.options.length > LONG ? `${claudeLabel(setting)} →` : claudeLabel(setting),
-            })),
-          },
-        ]
-      : []
-  const claudeOptions = (setting: ClaudeSetting): DialogSection[] => [
+  const agentSections = (): DialogSection[] => {
+    const rows = props.agentSettings?.rows ?? []
+    return [...new Set(rows.map((row) => row.section))].map((section) => ({
+      title: section || (props.agentSettings?.name ?? ""),
+      rows: rows
+        .filter((row) => row.section === section)
+        .map((row) => ({
+          id: `${AGENT_PREFIX}${row.id}`,
+          label: row.label,
+          value: choicesOf(row).length > LONG ? `${agentLabel(row)} →` : agentLabel(row),
+        })),
+    }))
+  }
+  const agentOptions = (row: SettingRow): DialogSection[] => [
     {
       title: "",
-      rows: setting.options.map((option) => ({
+      rows: choicesOf(row).map((option) => ({
         id: option.value,
         label: option.label,
-        value: option.value === claudeValue(setting) ? "current" : undefined,
+        value: option.value === agentValue(row) ? "current" : undefined,
       })),
     },
   ]
-  const changeClaude = (setting: ClaudeSetting, value: string) => {
-    const claude = props.claude
-    if (!claude || value === claudeValue(setting)) return
-    if (claude.busy()) return props.api.notify("Claude Code settings change once it is idle")
-    if (!claude.change(setting.id, value, setting.command(value))) props.api.notify("Claude Code did not take it")
+  const changeAgent = (row: SettingRow, value: SettingValue) => {
+    const agent = props.agentSettings
+    if (!agent || value === agentValue(row)) return
+    if (agent.busy()) return props.api.notify(`${agent.name} settings change once it is idle`)
+    void agent.change(row.id, value).then((done) => {
+      if (!done.ok) props.api.notify(done.problem)
+    })
   }
   const sendStep = () => {
     clearTimeout(stepTimer)
     const pending = stepped()
     if (!pending) return
     setStepped(null)
-    changeClaude(pending.setting, pending.value)
+    changeAgent(pending.row, pending.value)
   }
-  const stepClaude = (setting: ClaudeSetting, by: 1 | -1) => {
-    if (props.claude?.busy()) return props.api.notify("Claude Code settings change once it is idle")
-    if (stepped()?.setting !== setting) sendStep()
-    const count = setting.options.length
-    const index = setting.options.findIndex((option) => option.value === claudeValue(setting))
-    const next = setting.options[index === -1 ? (by === 1 ? 0 : count - 1) : (index + by + count) % count]
+  const stepAgent = (row: SettingRow, by: 1 | -1) => {
+    if (props.agentSettings?.busy())
+      return props.api.notify(`${props.agentSettings.name} settings change once it is idle`)
+    if (stepped()?.row.id !== row.id) sendStep()
+    const options = choicesOf(row)
+    const count = options.length
+    const index = options.findIndex((option) => option.value === agentValue(row))
+    const next = options[index === -1 ? (by === 1 ? 0 : count - 1) : (index + by + count) % count]
     if (!next) return
-    setStepped({ setting, value: next.value })
+    setStepped({ row, value: next.value })
     clearTimeout(stepTimer)
     stepTimer = setTimeout(sendStep, STEP_SEND_MS)
   }
@@ -133,16 +147,18 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
 
   const sections = () => {
     const open = list()
-    const openClaude = claudeList()
-    if (openClaude) return claudeOptions(openClaude)
-    return open ? optionSections(open, "") : [...mainSections(), ...claudeSection()]
+    const openAgent = agentList()
+    if (openAgent) return agentOptions(openAgent)
+    return open ? optionSections(open, "") : [...mainSections(definitions()), ...agentSections()]
   }
   const visible = createMemo(() => filterSections(sections(), query()))
   const ids = createMemo(() => selectableIds(visible()))
+  // An agent row asked for before the agent's rows are read stays chosen, and keys wait, until they come.
+  const waiting = () => props.agentSettings?.rows === null && chosen()?.startsWith(AGENT_PREFIX) === true
   // No chosen row means the search row has the focus.
   const selectedId = () => {
     const id = chosen()
-    if (id === undefined) return undefined
+    if (id === undefined || waiting()) return id
     return ids().includes(id) ? id : ids()[0]
   }
   const search = (text: string) => {
@@ -175,7 +191,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
       if (setting.key === "theme") reloadThemes()
       setQuery("")
       setList(setting)
-      setChosen(settings[setting.key])
+      setChosen(setting.value())
     })
   const back = (setting: SettingDefinition) =>
     batch(() => {
@@ -185,49 +201,55 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
       setChosen(setting.key)
     })
 
-  const backClaude = (setting: ClaudeSetting) =>
+  const backAgent = (row: SettingRow) =>
     batch(() => {
       setQuery("")
-      setClaudeList(null)
-      setChosen(`${CLAUDE_PREFIX}${setting.id}`)
+      setAgentList(null)
+      setChosen(`${AGENT_PREFIX}${row.id}`)
     })
 
   untrack(() => props.api).bind({
     footer: () => {
-      const listing = list() ?? claudeList()
+      const listing = list() ?? agentList()
       const id = selectedId()
       if (id === undefined) return searchFooter(listing ? "back" : "close")
       if (listing) return LIST_FOOTER
-      const claude = claudeFor(id)
-      if (claude) return [SELECT, CHANGE, ...(claude.options.length > LONG ? [OPEN] : []), CLOSE]
+      if (waiting()) return [CLOSE]
+      const agentRow = agentFor(id)
+      if (agentRow) {
+        const count = choicesOf(agentRow).length
+        return [SELECT, ...(count > 0 ? [CHANGE] : []), ...(count > LONG ? [OPEN] : []), CLOSE]
+      }
       const setting = settingFor(id)
       return [SELECT, CHANGE, ...(setting && opensList(setting) ? [OPEN] : []), RESET, CLOSE]
     },
     keys: (key) => {
+      if (waiting()) return key.name !== "escape"
       const id = selectedId()
       const open = list()
-      const openClaude = claudeList()
-      if (openClaude) {
+      const openAgent = agentList()
+      if (openAgent) {
         if (key.name === "up") setChosen(moveSelection(ids(), id, -1))
         else if (key.name === "down") setChosen(moveSelection(ids(), id, 1))
         else if (key.name === "return" && id) {
-          changeClaude(openClaude, id)
-          backClaude(openClaude)
-        } else if (key.name === "escape") backClaude(openClaude)
+          changeAgent(openAgent, id)
+          backAgent(openAgent)
+        } else if (key.name === "escape") backAgent(openAgent)
         return true
       }
-      const claude = id && !open ? claudeFor(id) : undefined
-      if (claude) {
-        if (key.name === "left" || key.name === "right") stepClaude(claude, key.name === "left" ? -1 : 1)
+      const agentRow = id && !open ? agentFor(id) : undefined
+      if (agentRow) {
+        if (key.name === "left" || key.name === "right") stepAgent(agentRow, key.name === "left" ? -1 : 1)
         else if (key.name === "return") {
-          if (claude.options.length > LONG)
+          if (choicesOf(agentRow).length > LONG)
             batch(() => {
               sendStep()
               setQuery("")
-              setClaudeList(claude)
-              setChosen(claudeValue(claude) ?? claude.options[0]?.value)
+              setAgentList(agentRow)
+              const value = agentValue(agentRow)
+              setChosen(value === null ? choicesOf(agentRow)[0]?.value : String(value))
             })
-          else stepClaude(claude, 1)
+          else stepAgent(agentRow, 1)
           return true
         }
       }
@@ -238,10 +260,10 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
       } else if (key.name === "down") setChosen(moveSelection(ids(), id, 1))
       else if ((key.name === "left" || key.name === "right") && setting) step(setting, key.name === "left" ? -1 : 1)
       else if (key.ctrl && key.name === "r") {
-        if (setting) resetSetting(setting.key)
+        if (setting) setting.reset()
       } else if (key.name === "return") {
         if (open && id) {
-          choose(open, id)
+          open.set(id)
           back(open)
         } else if (setting && opensList(setting)) openList(setting)
         else if (setting) step(setting, 1)
@@ -255,11 +277,11 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
     },
   })
 
-  const listRows = () => Math.max(0, props.api.rows() - SEARCH_ROWS - (list() || claudeList() ? CRUMB_ROWS : 0))
+  const listRows = () => Math.max(0, props.api.rows() - SEARCH_ROWS - (list() || agentList() ? CRUMB_ROWS : 0))
 
   return (
     <box flexDirection="column">
-      <Show when={list() ?? claudeList()}>
+      <Show when={list() ?? agentList()}>
         {(open) => (
           <>
             <box height={1} paddingLeft={PAD_X}>
@@ -284,7 +306,7 @@ export function ConfigTab(props: { api: TabApi; claude?: ClaudeSettings; row?: s
         sections={sections()}
         lines={lines()}
         selected={shownId()}
-        view={list()?.key ?? claudeList()?.id ?? "rows"}
+        view={list()?.key ?? agentList()?.id ?? "rows"}
         rows={listRows()}
         width={props.api.width()}
         inset

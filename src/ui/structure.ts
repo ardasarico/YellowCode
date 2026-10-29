@@ -1,6 +1,7 @@
+import type { ToolKind } from "../agent/tools.ts"
 import { hiddenSpan } from "../session/rewind.ts"
 import { shownTools } from "../session/shells.ts"
-import { TODO_TOOLS, todoChange } from "../session/todos.ts"
+import { todoChange } from "../session/todos.ts"
 import { isBackgroundShell } from "../session/tool-summary.ts"
 import type { Ask, Item, ItemId, Session, ToolCall } from "../session/types.ts"
 
@@ -19,7 +20,8 @@ type EndRow = Extract<Row, { kind: "end" }>
 
 function rowKind(item: Exclude<Item, { kind: "turn-end" | "ask" }>): Exclude<Row["kind"], "end" | "group"> {
   if (item.kind === "text") return "markdown"
-  if (item.kind === "tool") return item.agent || item.name === "Agent" || item.name === "Workflow" ? "agent" : "tool"
+  if (item.kind === "tool")
+    return item.agent || item.toolKind === "agent" || item.toolKind === "workflow" ? "agent" : "tool"
   return item.kind
 }
 
@@ -64,7 +66,7 @@ export function buildRows(session: Session): Row[] {
 
     if (item.kind === "ask") continue
     if ((item.kind === "text" || item.kind === "tool") && item.quiet && !(item.kind === "tool" && item.agent)) continue
-    if (item.kind === "tool" && TODO_TOOLS.has(item.name) && !todoChange(session, id)) continue
+    if (item.kind === "tool" && item.toolKind === "todo" && !todoChange(session, id)) continue
 
     if (item.kind === "turn-end") {
       if (lastEnd && !final(lastEnd.id) && !final(id)) {
@@ -91,10 +93,10 @@ export function buildRows(session: Session): Row[] {
   return fold(session, rows)
 }
 
-const FOLDED_TOOLS = new Set(["Bash", "Read", "Grep", "Glob"])
+const FOLDED_KINDS = new Set<ToolKind>(["shell", "read", "search"])
 
 function foldable(session: Session, asks: Map<string, Ask>, tool: ToolCall): boolean {
-  if (!FOLDED_TOOLS.has(tool.name) || (tool.status !== "done" && tool.status !== "error")) return false
+  if (!FOLDED_KINDS.has(tool.toolKind) || (tool.status !== "done" && tool.status !== "error")) return false
   if (tool.local || tool.images.length > 0) return false
   if (isBackgroundShell(tool, session.tasks[tool.taskId ?? ""] ?? null)) return false
   const ask = asks.get(tool.id)
@@ -121,7 +123,7 @@ function fold(session: Session, rows: Row[]): Row[] {
 
   const running = (row: Row) => {
     const item = session.byId[row.id]
-    return row.kind === "tool" && item?.kind === "tool" && FOLDED_TOOLS.has(item.name) && item.status === "running"
+    return row.kind === "tool" && item?.kind === "tool" && FOLDED_KINDS.has(item.toolKind) && item.status === "running"
   }
   let tail = rows.length
   while (tail > 0) {
@@ -169,11 +171,11 @@ export function groupLabel(session: Session, members: ItemId[]): { text: string;
     const item = session.byId[id]
     return item?.kind === "tool" ? [item] : []
   })
-  const counted = (...names: string[]) => tools.filter((tool) => names.includes(tool.name)).length
+  const counted = (kind: ToolKind) => tools.filter((tool) => tool.toolKind === kind).length
   const clauses: [number, string, string][] = [
-    [counted("Bash"), "ran", "shell command"],
-    [counted("Read"), "read", "file"],
-    [counted("Grep", "Glob"), "searched", "pattern"],
+    [counted("shell"), "ran", "shell command"],
+    [counted("read"), "read", "file"],
+    [counted("search"), "searched", "pattern"],
   ]
   const text = clauses.flatMap(([n, verb, noun]) => (n > 0 ? [`${verb} ${plural(n, noun)}`] : [])).join(", ")
   return {

@@ -1,4 +1,5 @@
-import type { Plugin } from "../../session/plugins.ts"
+import type { Agent } from "../../agent/agent.ts"
+import type { PluginRow } from "../../agent/lists.ts"
 import { theme } from "../../theme/theme.ts"
 import { createSignal } from "solid-js"
 import { blank, fact, header, names, title } from "../dialog/detail.ts"
@@ -8,10 +9,6 @@ import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
 import { SAVED_NOTICE } from "../format.ts"
 
-// The live connection runs this; without it each action shows the notice. It resolves with what changed where, and
-// a rejection says what went wrong.
-export type PluginActions = { setEnabled(plugin: Plugin, enabled: boolean): Promise<string> }
-
 const LIST_FOOTER: FooterAction[] = [
   { key: "↑↓", action: "select" },
   { key: "→", action: "details" },
@@ -19,7 +16,7 @@ const LIST_FOOTER: FooterAction[] = [
   { key: "esc", action: "close" },
 ]
 
-const CATEGORIES: [keyof Plugin["brings"], string][] = [
+const CATEGORIES: [keyof PluginRow["brings"], string][] = [
   ["skills", "Skills"],
   ["mcp", "MCP servers"],
   ["commands", "Commands"],
@@ -27,12 +24,11 @@ const CATEGORIES: [keyof Plugin["brings"], string][] = [
   ["hooks", "Hooks"],
 ]
 
-const scopeLabel = (plugin: Plugin) => (plugin.scope === "project" ? "Project" : "Global")
-const pluginId = (plugin: Plugin) => `${plugin.name}@${plugin.marketplace ?? ""}`
+const scopeLabel = (plugin: PluginRow) => (plugin.scope === "project" ? "Project" : "Global")
 
-function listRow(plugin: Plugin): DialogRow {
+function listRow(plugin: PluginRow): DialogRow {
   const row: DialogRow = {
-    id: pluginId(plugin),
+    id: plugin.id,
     label: plugin.name,
     tag: plugin.marketplace ?? undefined,
     search: `${plugin.name} ${plugin.marketplace ?? ""}`,
@@ -49,8 +45,8 @@ function listRow(plugin: Plugin): DialogRow {
 
 const MORE = "-more"
 
-function detailItems(plugin: Plugin, width: number, opened: Set<string>): DialogItem[] {
-  const brings = CATEGORIES.flatMap(([key, label]) => {
+function detailItems(plugin: PluginRow, width: number, opened: Set<string>, hooks: boolean): DialogItem[] {
+  const brings = CATEGORIES.filter(([key]) => hooks || key !== "hooks").flatMap(([key, label]) => {
     const list = plugin.brings[key]
     return list.length > 0 ? names(key, list, width, { label, open: opened.has(`${key}${MORE}`) }) : []
   })
@@ -64,12 +60,20 @@ function detailItems(plugin: Plugin, width: number, opened: Set<string>): Dialog
   ]
 }
 
-export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null; actions?: PluginActions }) {
+// Live only; without `actions` each action shows the notice. `toggles` and `hooks`: the agent turns plugins on and
+// off, and lists their hooks.
+export function PluginsTab(props: {
+  api: TabApi
+  plugins: PluginRow[] | null
+  actions?: Agent["plugins"]
+  toggles: boolean
+  hooks: boolean
+}) {
   const sections = (): DialogSection[] => {
     const plugins = props.plugins ?? []
     return plugins.length > 0 ? [{ title: "", rows: plugins.map(listRow) }] : []
   }
-  const pluginFor = (row: DialogRow) => props.plugins?.find((plugin) => pluginId(plugin) === row.id)
+  const pluginFor = (row: DialogRow) => props.plugins?.find((plugin) => plugin.id === row.id)
   // The lists opened past their first lines, for one plugin at a time.
   const [opened, setOpened] = createSignal<{ plugin: string; ids: Set<string> }>({ plugin: "", ids: new Set() })
   const openedFor = (row: DialogRow) => (opened().plugin === row.id ? opened().ids : new Set<string>())
@@ -85,10 +89,11 @@ export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null; actio
     if (!actions) return props.api.notify(SAVED_NOTICE)
     if (!plugin) return
     props.api.notify(`Turning ${plugin.on ? "off" : "on"} ${plugin.name}…`)
-    actions.setEnabled(plugin, !plugin.on).then(
-      (done) => props.api.notify(done),
-      (error: unknown) => props.api.notify(error instanceof Error ? error.message : String(error)),
-    )
+    void actions
+      .toggle(plugin.id, !plugin.on)
+      .then((done) =>
+        props.api.notify(done.ok ? (done.note ?? `${plugin.name} turned ${plugin.on ? "off" : "on"}`) : done.problem),
+      )
   }
 
   return (
@@ -102,19 +107,19 @@ export function PluginsTab(props: { api: TabApi; plugins: Plugin[] | null; actio
       }}
       detail={(row, width) => {
         const plugin = pluginFor(row)
-        return plugin ? detailItems(plugin, width, openedFor(row)) : []
+        return plugin ? detailItems(plugin, width, openedFor(row), props.hooks) : []
       }}
-      actions={(row) => [{ id: "toggle", label: pluginFor(row)?.on ? "Turn off" : "Turn on" }]}
+      actions={(row) => (props.toggles ? [{ id: "toggle", label: pluginFor(row)?.on ? "Turn off" : "Turn on" }] : [])}
       onAction={(row, action) => {
         if (action.id.endsWith(MORE)) toggle(row, action.id)
         else turn(row)
       }}
       onKey={(key, row) => {
-        if (key.name !== "space" || !row) return false
+        if (key.name !== "space" || !row || !props.toggles) return false
         turn(row)
         return true
       }}
-      footer={() => LIST_FOOTER}
+      footer={() => (props.toggles ? LIST_FOOTER : LIST_FOOTER.filter((entry) => entry.key !== "space"))}
     />
   )
 }

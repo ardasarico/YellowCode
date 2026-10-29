@@ -1,6 +1,5 @@
 import { createSignal, onMount } from "solid-js"
-import type { z } from "zod"
-import type { usageReply } from "../../protocol/messages.ts"
+import type { UsageReport } from "../../agent/agent.ts"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
@@ -8,8 +7,6 @@ import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { formatDuration, formatTokens, formatUntil, modelName } from "../format.ts"
 import { levelColor } from "../meters.tsx"
 import { resetTime } from "../sidebar.tsx"
-
-export type Usage = z.infer<typeof usageReply>
 
 const WIDTH = 72
 const BAR = 12
@@ -27,20 +24,29 @@ const message = (text: string): DialogSection[] => [
   { title: "", rows: [{ id: "message", spans: [{ text, fg: theme.panelMuted }] }] },
 ]
 
-function sectionsOf(usage: Usage, limits: Session["usage"]["limits"], now: number): DialogSection[] {
-  const { session } = usage
-  const models = Object.entries(session.model_usage).flatMap(([id, model]): DialogItem[] => [
+function sectionsOf(usage: UsageReport, limits: Session["usage"]["limits"], now: number): DialogSection[] {
+  const models = usage.models.flatMap((model): DialogItem[] => [
     line(
-      `model:${id}`,
-      modelName(id),
-      `in ${formatTokens(model.inputTokens)} · out ${formatTokens(model.outputTokens)}`,
+      `model:${model.model}`,
+      modelName(model.model),
+      `in ${formatTokens(model.input)} · out ${formatTokens(model.output)}`,
     ),
     line(
-      `cache:${id}`,
+      `cache:${model.model}`,
       "",
-      `cache read ${formatTokens(model.cacheReadInputTokens)} · write ${formatTokens(model.cacheCreationInputTokens)}`,
+      `cache read ${formatTokens(model.cacheRead)} · write ${formatTokens(model.cacheWrite)}`,
     ),
   ])
+  const { costUsd, wallMs, apiMs, linesAdded, linesRemoved } = usage
+  const session: DialogItem[] = [
+    ...(costUsd === null ? [] : [line("cost", "Cost", `$${costUsd.toFixed(2)}`)]),
+    ...(wallMs === null
+      ? []
+      : [line("time", "Time", `${formatDuration(wallMs)}${apiMs === null ? "" : ` · API ${formatDuration(apiMs)}`}`)]),
+    ...(linesAdded === null || linesRemoved === null
+      ? []
+      : [line("lines", "Lines", `+${linesAdded} −${linesRemoved}`)]),
+  ]
   const windows = [
     ["5 hours", limits.fiveHour],
     ["Week", limits.week],
@@ -67,32 +73,19 @@ function sectionsOf(usage: Usage, limits: Session["usage"]["limits"], now: numbe
     ]
   })
   return [
-    {
-      title: "This session",
-      rows: [
-        line("cost", "Cost", `$${session.total_cost_usd.toFixed(2)}`),
-        line(
-          "time",
-          "Time",
-          `${formatDuration(session.total_duration_ms)} · API ${formatDuration(session.total_api_duration_ms)}`,
-        ),
-        line("lines", "Lines", `+${session.total_lines_added} −${session.total_lines_removed}`),
-      ],
-    },
+    { title: "This session", rows: session },
     ...(models.length > 0 ? [{ title: "Models", rows: models }] : []),
-    ...(plan.length > 0 || usage.subscription_type
-      ? [{ title: usage.subscription_type ? `Plan · ${usage.subscription_type}` : "Plan", rows: plan }]
-      : []),
+    ...(plan.length > 0 || usage.plan ? [{ title: usage.plan ? `Plan · ${usage.plan}` : "Plan", rows: plan }] : []),
   ]
 }
 
-// The session's cost and tokens from claude, and the plan limits the sidebar shows in short.
+// The session's cost and tokens from the agent, and the plan limits the sidebar shows in short.
 export function UsageDialog(props: {
-  load: () => Promise<Usage>
+  load: () => Promise<UsageReport>
   limits: Session["usage"]["limits"]
   onClose: () => void
 }) {
-  const [usage, setUsage] = createSignal<Usage | null>(null)
+  const [usage, setUsage] = createSignal<UsageReport | null>(null)
   const [problem, setProblem] = createSignal<string | null>(null)
   onMount(() => {
     props.load().then(setUsage, (error: unknown) => setProblem(error instanceof Error ? error.message : String(error)))

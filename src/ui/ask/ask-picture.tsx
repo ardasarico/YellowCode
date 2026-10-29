@@ -9,14 +9,14 @@ import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "../
 // Below this many chat cells an ask leaves its pictures out.
 export const PICTURE_MIN_WIDTH = 70
 
-export function askImage(path: string | undefined): ChatImage | null {
+export function askImage(path: string | null | undefined): ChatImage | null {
   if (!path) return null
   const full = resolve(process.cwd(), path)
   return { name: basename(full), mediaType: "", data: null, path: full }
 }
 
 // The option's picture when it can be shown, so `z` and the image view skip the rest.
-export function shownPicture(path: string | undefined): ChatImage | null {
+export function shownPicture(path: string | null | undefined): ChatImage | null {
   const image = askImage(path)
   return image && loadImage(image)?.size ? image : null
 }

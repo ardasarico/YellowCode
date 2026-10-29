@@ -32,7 +32,7 @@ export type Hunk = { oldStart: number; oldLines: number; newStart: number; newLi
 // A file a call wrote, for rewind. `before` is the whole file before the call, null when the call made it, and
 // absent when the agent does not say. `after` is what the call left in it, when the agent says.
 export type FileChange = {
-  // Absolute.
+  // Normally absolute; Ask.writes must spell the same file the same way.
   path: string
   change: "create" | "update" | "delete" | "move"
   movedTo: string | null

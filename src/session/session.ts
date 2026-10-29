@@ -2,13 +2,12 @@ import { createStore, produce } from "solid-js/store"
 import type { Ask as AgentAsk, AskOutcome } from "../agent/ask.ts"
 import type { AgentEvent, BackgroundTask, SessionInfo as AgentInfo, TaskKind } from "../agent/events.ts"
 import type { AskId, PartId, PromptId, TaskId, ToolId } from "../agent/ids.ts"
-import type { SubagentCall, ToolKind } from "../agent/tools.ts"
+import type { SubagentCall } from "../agent/tools.ts"
 import { log } from "../log/log.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { messageSummary } from "./tool-summary.ts"
 import type {
   Agent,
-  Ask,
   Item,
   ItemId,
   Session,
@@ -29,8 +28,8 @@ type UserPrompt = Omit<Event<"user">, "type" | "at">
 export type SessionStore = {
   state: Session
   event(event: AgentEvent): void
-  // `fill` gives an earlier part of the conversation to a session of its own, which then goes before this one.
-  prepend(fill: (earlier: SessionStore) => void): void
+  // An earlier part of the conversation goes in a session of its own, which then goes before this one.
+  prepend(events: AgentEvent[]): void
   // A message shown at Enter, before it goes out; it waits until its `user` event comes.
   showEarly(prompt: UserPrompt): void
   // A message shown early never went out.
@@ -50,9 +49,9 @@ export type SessionStore = {
   // is not shown, and `onStart` is called as it starts so it can be interrupted: stopping a background agent makes the
   // agent start one.
   hideTurnsOf(taskIds: string[], onStart: () => void): void
-  // Called with what a main-thread Edit or Write found in its file (null: no file), for whoever needs to check it now;
-  // nothing keeps the text.
-  onFileOriginal(listener: (toolUseId: string, original: string | null) => void): void
+  // Called with what a call found in a file it wrote, when the agent reports it (null: no file), for whoever needs to
+  // check it now; nothing keeps the text.
+  onFileOriginal(listener: (toolUseId: string, path: string, original: string | null) => void): void
 }
 
 const FIVE_HOURS = 5 * 60
@@ -83,21 +82,31 @@ function toolStatus(state: TaskState): ToolCall["status"] {
   return state
 }
 
-function toolItem(id: ToolId, name: string): ToolCall {
+function toolItem(start: Event<"tool.start">): ToolCall {
   return {
     kind: "tool",
-    id,
-    name,
+    id: start.id,
+    name: start.name,
+    toolKind: start.kind,
+    title: start.title,
+    server: start.mcp?.server ?? null,
     inputText: "",
     input: undefined,
     summary: "",
+    detail: null,
+    background: false,
     status: "running",
     result: "",
     children: [],
     patch: null,
     createdFile: false,
+    content: null,
     images: [],
     unchanged: false,
+    count: null,
+    files: [],
+    questions: null,
+    outcome: null,
     agent: null,
     taskId: null,
   }
@@ -202,7 +211,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   })
   // Text and thinking parts by the agent's id; `main` is false for a subagent's.
   const parts = new Map<PartId, { id: ItemId; main: boolean }>()
-  const originalListeners: ((toolUseId: string, original: string | null) => void)[] = []
+  const originalListeners: ((toolUseId: string, path: string, original: string | null) => void)[] = []
   const invalid = new Map<string, { id: ItemId; count: number }>()
   let counter = 0
   let prepends = 0
@@ -235,7 +244,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   const lostParents = new Set<string>()
   // The call each tool call runs under; null for the main agent's.
   const toolParents = new Map<ToolId, ToolId | null>()
-  const toolKinds = new Map<ToolId, ToolKind>()
   // User messages by the prompt id they went out with.
   const prompts = new Map<PromptId, ItemId>()
   const idPrefix = options?.idPrefix ?? ""
@@ -314,10 +322,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   function startTool(event: Extract<AgentEvent, { type: "tool.start" }>): void {
     if (hiding && event.parent === null) return
     const parent = event.parent
-    const item: ToolCall = { ...toolItem(event.id, event.name), ...(event.quiet ? { quiet: true } : {}) }
+    const item: ToolCall = { ...toolItem(event), ...(event.quiet ? { quiet: true } : {}) }
     if (!add(item, parent)) return
     toolParents.set(item.id, parent)
-    toolKinds.set(item.id, event.kind)
   }
 
   function toolCalled(event: Extract<AgentEvent, { type: "tool.called" }>): void {
@@ -325,14 +332,18 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const summary = event.message ? messageSummary(event.message.to, event.message.text, state.tasks) : ""
     update(event.id, (item) => {
       if (item.kind !== "tool") return
+      if (event.kind !== null) item.toolKind = event.kind
       if (event.name !== null) item.name = event.name
+      if (event.title !== null) item.title = event.title
       item.input = event.input
       item.inputText = JSON.stringify(event.input)
       item.summary = summary || event.summary
+      item.detail = event.detail
+      item.background = event.background
+      item.questions = event.questions
       item.agent = event.agent ? agentRecord(event.agent) : null
     })
     const tool = state.byId[event.id]
-    if (tool && event.kind !== null) toolKinds.set(event.id, event.kind)
     const taskId = tool?.kind === "tool" ? tool.taskId : null
     const { agent, command } = event
     if (command) commands.set(event.id, command)
@@ -558,7 +569,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
 
   function openAsk(ask: AgentAsk): void {
     const agent = ask.by ? state.tasks[ask.by]?.name : undefined
-    const grant = ask.options.find((option) => option.grant !== undefined)?.grant
     add(
       {
         kind: "ask",
@@ -566,18 +576,25 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         requestId: ask.id,
         toolUseId: ask.call ?? "",
         toolName: ask.tool.name,
+        toolKind: ask.tool.kind,
+        server: ask.tool.mcp?.server ?? null,
         displayName: ask.title,
         input: ask.input,
+        target: ask.target,
+        writes: [...ask.writes],
         description: ask.detail,
         reason: ask.reason,
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the Session keeps Claude's type until S4
-        suggestion: (grant ?? null) as Ask["suggestion"], // SAFETY: only the Claude adapter sets a grant, its own type
+        options: structuredClone(ask.options),
+        questions: structuredClone(ask.questions),
+        plan: ask.plan ? { ...ask.plan } : null,
         defaultToNo: ask.defaultNo,
         safetyCheck: ask.safety,
         status: "pending",
         answers: {},
         notes: {},
         denial: "",
+        why: null,
+        note: "",
         ...(agent ? { agent } : {}),
         ...(ask.own ? { mcp: { rpcId: ask.own.handle } } : {}),
       },
@@ -593,6 +610,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       item.answers = outcome.status === "answered" ? outcome.answers : {}
       item.notes = outcome.status === "answered" ? outcome.notes : {}
       item.denial = outcome.status === "denied" ? outcome.said : ""
+      item.why = outcome.status === "denied" ? outcome.why : null
+      item.note = outcome.status === "denied" ? outcome.note : ""
     })
   }
 
@@ -600,7 +619,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     if (hiddenTool(event.id)) return
     for (const file of event.files) {
       const before = file.before
-      if (before !== undefined) for (const listener of originalListeners) listener(event.id, before)
+      if (before !== undefined) for (const listener of originalListeners) listener(event.id, file.path, before)
     }
     const tool = state.byId[event.id]
     // A call read back from a transcript saw no task start; its result still names the task.
@@ -632,7 +651,17 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       item.images = event.images
       if (event.patch) item.patch = event.patch
       if (event.created) item.createdFile = true
+      if (event.content !== null) item.content = event.content
       if (event.unchanged) item.unchanged = true
+      item.count = event.count
+      item.outcome = event.outcome
+      item.files = event.files.map(({ path, change, movedTo, patch, after }) => ({
+        path,
+        change,
+        movedTo,
+        patch,
+        after,
+      }))
       if (item.agent && !launched) {
         // An agent the user stopped ends with an error result, and it stays stopped.
         if (item.agent.state !== "stopped") item.agent.state = event.status === "error" ? "failed" : "completed"
@@ -1085,8 +1114,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     })
     const goesOn = (id: ItemId) => {
       const item = byId[id]
-      const kind = toolKinds.get(id)
-      if (item?.kind !== "tool" || (item.agent === null && kind !== "agent" && kind !== "workflow")) return false
+      if (item?.kind !== "tool") return false
+      if (item.agent === null && item.toolKind !== "agent" && item.toolKind !== "workflow") return false
       return item.taskId !== null && state.tasks[item.taskId]?.state === "running"
     }
     // A running agent goes with all its steps; under a finished call (a foreground agent that started a background
@@ -1106,7 +1135,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     }
     for (const id of carried) keep(id)
     for (const id of toolParents.keys()) if (!kept.has(id)) toolParents.delete(id)
-    for (const id of toolKinds.keys()) if (!kept.has(id)) toolKinds.delete(id)
     for (const id of commands.keys()) if (!kept.has(id)) commands.delete(id)
     for (const [id, task] of Object.entries(state.tasks)) if (task.state !== "running") taskKinds.delete(id)
     for (const id of thinkingSince.keys()) if (!kept.has(id)) thinkingSince.delete(id)
@@ -1183,9 +1211,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (event.type !== "starting" && event.type !== "ended") tick(event.at)
       onEvent(event)
     },
-    prepend(fill) {
+    prepend(events) {
       const earlier = createSession({ idPrefix: `p${++prepends}-` })
-      fill(earlier)
+      for (const event of events) earlier.event(event)
       earlier.stopRunning()
       setState("byId", earlier.state.byId)
       setState("items", (ids) => [...earlier.state.items, ...ids])
@@ -1197,16 +1225,26 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
           kind: "tool",
           id,
           name: "Bash",
+          toolKind: "shell",
+          title: "Bash",
+          server: null,
           inputText: "",
           input: { command },
           summary: command,
+          detail: null,
+          background: false,
           status: "running",
           result: "",
           children: [],
           patch: null,
           createdFile: false,
+          content: null,
           images: [],
           unchanged: false,
+          count: null,
+          files: [],
+          questions: null,
+          outcome: null,
           agent: null,
           taskId: null,
           local: { told },
@@ -1275,4 +1313,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (state.turn !== null) setState("interrupting", true)
     },
   }
+}
+
+// A session read back to be looked at, not continued: what it left running shows as stopped, and it ends there.
+export function loadHistory(session: SessionStore, events: AgentEvent[]): void {
+  for (const event of events) session.event(event)
+  session.stopRunning()
+  session.event({ type: "ended", problem: null, at: Date.now() })
 }

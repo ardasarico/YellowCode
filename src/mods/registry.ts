@@ -37,6 +37,10 @@ const [keys, setKeys] = createSignal<RegisteredKey[]>([])
 const [tools, setTools] = createSignal<Owned<ModTool>[]>([])
 export { commands as modCommands, keys as modKeys, tools as modTools }
 
+// MCP connection errors of mod servers, by server name, for /mods.
+const [serverErrors, setServerErrors] = createSignal<Record<string, string>>({})
+export { serverErrors as modServerErrors, setServerErrors as setModServerErrors }
+
 let failure: (mod: string, error: unknown) => void = (mod, error) => log.warn(`mod ${mod} failed`, error)
 export const onModError = (handler: typeof failure) => (failure = handler)
 export const reportModError = (mod: string, error: unknown) => failure(mod, error)

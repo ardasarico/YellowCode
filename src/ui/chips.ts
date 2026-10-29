@@ -1,7 +1,7 @@
 import { decodePasteBytes, type PasteEvent, stripAnsiSequences, type TextareaRenderable } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { type Accessor, createSignal } from "solid-js"
-import type { OutgoingImage } from "../protocol/outgoing.ts"
+import type { PromptImage } from "../agent/agent.ts"
 import {
   type Chip,
   chipLabel,
@@ -157,7 +157,7 @@ export function useChips(options: ChipsOptions) {
   const next = (kind: Chip["kind"]) =>
     Math.max(0, ...marks().flatMap(({ chip }) => (chip.kind === kind ? [chip.n] : []))) + 1
 
-  const insertImage = (image: OutgoingImage) => insert({ kind: "image", n: next("image"), image })
+  const insertImage = (image: PromptImage) => insert({ kind: "image", n: next("image"), image })
 
   const pasteText = (text: string) => {
     if (collapses(text)) insert({ kind: "text", n: next("text"), content: text })

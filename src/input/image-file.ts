@@ -3,14 +3,14 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { NativeImage } from "@opentui/core"
 import { log } from "../log/log.ts"
-import type { OutgoingImage } from "../protocol/outgoing.ts"
+import type { PromptImage } from "../agent/agent.ts"
 import { spawnLimited } from "../spawn.ts"
 import type { LoadImage } from "./draft.ts"
 
 const MAX_SIDE = 2000
 const MAX_BYTES = 3.75 * 1024 * 1024
 
-const EXTENSIONS: Record<OutgoingImage["mediaType"], string> = {
+const EXTENSIONS: Record<PromptImage["mediaType"], string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/gif": "gif",
@@ -21,7 +21,7 @@ function startsWith(bytes: Uint8Array, prefix: string, at = 0): boolean {
   return Buffer.from(prefix, "latin1").every((byte, index) => bytes[at + index] === byte)
 }
 
-function mediaTypeOf(bytes: Uint8Array): OutgoingImage["mediaType"] | null {
+function mediaTypeOf(bytes: Uint8Array): PromptImage["mediaType"] | null {
   if (startsWith(bytes, "\x89PNG\r\n\x1a\n")) return "image/png"
   if (startsWith(bytes, "\xff\xd8\xff")) return "image/jpeg"
   if (startsWith(bytes, "GIF8")) return "image/gif"
@@ -98,7 +98,7 @@ export async function shrunkCopy(
   }
 }
 
-async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"]): Promise<string | null> {
+async function shrink(dir: string, file: string, type: PromptImage["mediaType"]): Promise<string | null> {
   const size = await pixelSize(file)
   if (!size) return null
   const side = Math.max(size.width, size.height)
@@ -123,7 +123,7 @@ async function shrink(dir: string, file: string, type: OutgoingImage["mediaType"
 }
 
 // Throws ImageTooLarge when even the smallest step does not fit.
-export async function fitImage(bytes: Uint8Array): Promise<OutgoingImage | null> {
+export async function fitImage(bytes: Uint8Array): Promise<PromptImage | null> {
   const type = mediaTypeOf(bytes)
   if (type === null) return null
   const dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))

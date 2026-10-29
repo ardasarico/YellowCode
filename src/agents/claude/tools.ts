@@ -1,11 +1,14 @@
-import { basename } from "node:path"
+import { homedir } from "node:os"
+import { basename, join } from "node:path"
 import { z } from "zod"
 import type { TaskId, ToolId } from "../../agent/ids.ts"
 import type { FileChange, Image, SubagentCall, ToolKind } from "../../agent/tools.ts"
 import { OWN_ASK, type ProtocolMessage, type UserBlock } from "../../protocol/messages.ts"
-import { oneLine, summarizeToolInput, writtenContent } from "../../session/tool-summary.ts"
+import { oneLine } from "../../session/tool-summary.ts"
+import { questionsOf } from "./ask-input.ts"
 import { type Draft, imagesOf } from "./draft.ts"
 import { resultOutcome } from "./outcome.ts"
+import { summarizeToolInput, writtenContent } from "./summary.ts"
 import type { Relay } from "./relay.ts"
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
@@ -14,8 +17,6 @@ type ResultContent = Extract<UserBlock, { type: "tool_result" }>["content"]
 const KINDS = new Map<string, ToolKind>(
   Object.entries({
     Bash: "shell",
-    PowerShell: "shell",
-    Monitor: "shell",
     Read: "read",
     Glob: "search",
     Grep: "search",
@@ -41,18 +42,34 @@ const KINDS = new Map<string, ToolKind>(
   }),
 )
 
+// PowerShell and Monitor take a command like Bash, but their rows stay plain, so they are not kind shell.
+const COMMAND_TOOLS = new Set(["Bash", "PowerShell", "Monitor"])
+
 export function mcpOf(name: string): { server: string; tool: string } | null {
   if (!name.startsWith("mcp__")) return null
   const [server = "", ...rest] = name.slice("mcp__".length).split("__")
-  return server && rest.length > 0 ? { server, tool: rest.join("__") } : null
+  const tool = rest.join("__")
+  return server && tool ? { server, tool } : null
 }
 
 export const kindOf = (name: string): ToolKind => KINDS.get(name) ?? (mcpOf(name) ? "mcp" : "other")
+
+// Our own ask stands in for the stock one, so it reads like it and names no server.
+export const shownMcp = (name: string) => (name === OWN_ASK ? null : mcpOf(name))
+
+export const titleOf = (name: string) => (name === OWN_ASK ? "AskUserQuestion" : (mcpOf(name)?.tool ?? name))
 
 export const field = (input: unknown, key: string): unknown =>
   typeof input === "object" && input !== null ? Reflect.get(input, key) : undefined
 
 export const text = (value: unknown) => (typeof value === "string" ? value : null)
+
+// The file an Edit or Write names, with a leading ~ read as HOME.
+export function inputFile(input: unknown): string | null {
+  const file = text(field(input, "file_path")) ?? text(field(input, "notebook_path"))
+  if (file === "~") return homedir()
+  return file?.startsWith("~/") ? join(homedir(), file.slice(2)) : file
+}
 
 const agentFields = z.looseObject({
   name: z.string().optional(),
@@ -103,6 +120,14 @@ function resultImages(name: string | undefined, input: unknown, content: ResultC
   return imagesOf(content, path ? () => basename(path) : (index) => `Image ${index + 1}`, path)
 }
 
+// Read numbers each line it gives back; Glob gives one path a line.
+function countOf(name: string | undefined, result: string): Extract<Draft, { type: "tool.end" }>["count"] {
+  const lines = result.split("\n").filter((line) => line.trim() !== "")
+  if (name === "Read") return { n: lines.filter((line) => /^\s*\d+\t/.test(line)).length, noun: "line" }
+  if (name === "Glob") return { n: lines.length, noun: "file" }
+  return null
+}
+
 type Call = { name: string; kind: ToolKind; parent: ToolId | null; input: unknown }
 
 // Tool calls from stream events, assistant lines and tool results. Calls are kept by id for the whole conversation,
@@ -114,7 +139,7 @@ export function createTools(relay: Relay) {
     const kind = kindOf(name)
     calls.set(id, { name, kind, parent, input: undefined })
     const quiet = parent === null && relay.tool(id, name)
-    return [{ type: "tool.start", id, parent, name, kind, mcp: mcpOf(name), quiet }]
+    return [{ type: "tool.start", id, parent, name, kind, title: titleOf(name), mcp: shownMcp(name), quiet }]
   }
 
   // An assistant line's tool_use block: the call's whole input. A call that did not stream starts here.
@@ -124,18 +149,19 @@ export function createTools(relay: Relay) {
     if (call) call.input = block.input
     const input = block.input
     const kind = call?.kind ?? "other"
-    const shell = kind === "shell"
+    const commanded = COMMAND_TOOLS.has(block.name)
     out.push({
       type: "tool.called",
       id: block.id,
       kind: null,
       name: null,
+      title: null,
       input,
       summary: summarizeToolInput(input),
-      detail: shell ? text(field(input, "description")) : null,
-      command: shell ? text(field(input, "command")) : null,
+      detail: commanded ? text(field(input, "description")) : null,
+      command: commanded ? text(field(input, "command")) : null,
       background: field(input, "run_in_background") === true,
-      questions: null,
+      questions: kind === "question" ? questionsOf(block.name, input) : null,
       agent: subagentOf(kind, input),
       message: messageOf(kind, input),
       todos: null,
@@ -169,12 +195,12 @@ export function createTools(relay: Relay) {
       // What an Edit or Write found in its file is only told on the main thread.
       const before = main ? fileResult?.originalFile : undefined
       const writes = call?.kind === "edit" || call?.kind === "write"
-      const path =
-        text(field(call?.input, "file_path")) ?? text(field(call?.input, "notebook_path")) ?? fileResult?.filePath
+      const path = inputFile(call?.input) ?? fileResult?.filePath
       if (path && ((writes && status === "done") || before !== undefined))
         files.push({
           path,
-          change: before === null || created ? "create" : "update",
+          // Not from `before`: claude leaves originalFile null on many edits of a file that was there.
+          change: created ? "create" : "update",
           movedTo: null,
           patch,
           ...(before === undefined ? {} : { before }),
@@ -191,7 +217,7 @@ export function createTools(relay: Relay) {
         content: written,
         unchanged: fileResult?.type === "file_unchanged",
         exitCode: null,
-        count: null,
+        count: status === "done" ? countOf(call?.name, result) : null,
         outcome: call?.kind === "question" ? resultOutcome(call.input, status, result) : null,
         background: fileResult?.isAsync === true,
         task: call?.kind === "agent" ? (fileResult?.agentId ?? null) : null,

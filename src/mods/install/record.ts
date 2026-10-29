@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { z } from "zod"
-import { parseJson } from "../../protocol/json.ts"
+import { parseJson } from "../../json.ts"
 
 // Outside the mod's own folder, so the mod's tree hash stays clean. The host skips dot folders.
 const RECORDS = ".installed"

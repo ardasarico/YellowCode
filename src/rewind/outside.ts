@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join } from "node:path"
 import { log } from "../log/log.ts"
 import { gitEnv, runGit, writeBeside } from "./common.ts"
 
-// Files outside the snapshots' root: what a main-thread Edit/Write said the file held before goes into the store as a
+// Files outside the snapshots' root: what the file held before a main-thread call changed it goes into the store as a
 // blob of its own, and only the file's hash is taken afterwards.
 
 async function git(store: string, args: string[], input?: Uint8Array): Promise<string | null> {

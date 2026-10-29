@@ -1,4 +1,5 @@
-import { type PermissionMode, protocolMode, type StoredSettings } from "../session/settings-file.ts"
+import type { ModeId } from "../agent/ids.ts"
+import type { StoredSettings } from "../session/settings-file.ts"
 import { OWN_ASK } from "../protocol/messages.ts"
 import { APPEND_SYSTEM_PROMPT } from "./append-prompt.ts"
 
@@ -23,11 +24,11 @@ export function thinkingArg(thinking: StoredSettings["thinking"]): string {
 export type Spawn = { resume?: string; at?: string; fork?: boolean; sessionId?: string }
 
 // The permission mode claude starts in, and whether it may switch to bypassPermissions.
-export type Launch = { mode: PermissionMode; bypass: boolean }
+export type Launch = { mode: ModeId; bypass: boolean }
 
 // The saved mode, or the mode a restarted session was in. bypassPermissions can be switched to only in a session
 // started with the allow flag, so the flag goes along when that mode is saved or the session was in it.
-export function launchOf(stored: Pick<StoredSettings, "permissionMode">, mode?: PermissionMode): Launch {
+export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Launch {
   const launched = mode ?? stored.permissionMode
   return {
     mode: launched,
@@ -51,7 +52,7 @@ export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Lau
     ...(spawn.fork ? ["--fork-session"] : []),
     ...(spawn.sessionId ? ["--session-id", spawn.sessionId] : []),
     "--permission-mode",
-    protocolMode(launch.mode),
+    launch.mode,
     ...bypass,
     "--append-system-prompt",
     APPEND_SYSTEM_PROMPT,

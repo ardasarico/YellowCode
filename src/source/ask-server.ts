@@ -1,5 +1,6 @@
 import { z } from "zod"
 import packageJson from "../../package.json"
+import { ownAskProblem } from "../agents/claude/ask-input.ts"
 import { log } from "../log/log.ts"
 import { type McpMessage, OWN_ASK, OWN_ASK_SERVER, ownAskCall, type ProtocolMessage } from "../protocol/messages.ts"
 import {
@@ -11,7 +12,6 @@ import {
   NOT_SHOWN,
   SUBAGENT_ASK,
 } from "../protocol/outgoing.ts"
-import { ownAskProblem } from "../session/ask.ts"
 import { isModServer, serveModTools } from "./mod-tools.ts"
 import { OWN_ASK_TOOL } from "./own-ask-tool.ts"
 

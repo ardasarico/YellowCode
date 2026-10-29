@@ -1,18 +1,14 @@
 import { mkdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { z } from "zod"
-import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
-import { hostEnv, KILL_AFTER_MS } from "../source/claude-cli.ts"
+import type { AgentKind } from "../agent/agent.ts"
 
 export type SessionTitle = { title: string; summary: string }
+export type OneShot = NonNullable<AgentKind["oneShot"]>
 
 const RECENT_MESSAGES = 12
 // Haiku is asked for a few words; a runaway line would also become the session's name in claude's transcript.
 const TITLE_MAX = 60
-const TITLE_TIMEOUT_MS = 30_000
-const Result = z.looseObject({ result: z.string() })
 
 function instructions(recent: readonly string[]): string {
   // Haiku once answered a request among the messages as if it were meant for it, so they are framed as data.
@@ -53,51 +49,12 @@ function capped(text: string): string {
     .trimEnd()}…`
 }
 
-const running = new Set<Bun.Subprocess>()
-let stopped = false
-
-export function stopTitles(): void {
-  stopped = true
-  for (const proc of running) proc.kill()
-}
-
-// Asks Haiku through the claude binary, with no tools, customizations or saved session.
-export async function titleSession(messages: readonly string[]): Promise<SessionTitle | null> {
+export async function titleSession(messages: readonly string[], ask: OneShot): Promise<SessionTitle | null> {
   const recent = messages.filter((text) => text.trim() !== "").slice(-RECENT_MESSAGES)
-  if (stopped || recent.length === 0) return null
-  const proc = Bun.spawn(
-    ["claude", "-p", "--model=haiku", "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
-    { cwd: neutralDir(), env: hostEnv(), stdin: new Blob([instructions(recent)]), stdout: "pipe", stderr: "pipe" },
-  )
-  running.add(proc)
-  void proc.exited.then(() => running.delete(proc))
-  let late = false
-  let kill: ReturnType<typeof setTimeout> | undefined
-  const timer = setTimeout(() => {
-    late = true
-    proc.kill()
-    kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
-  }, TITLE_TIMEOUT_MS)
-  const [output, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
-  clearTimeout(timer)
-  clearTimeout(kill)
-  if (late || code !== 0) {
-    log.warn("session title failed", { code, late, stderrChars: stderr.length })
-    log.debug("session title stderr", stderr)
-    return null
-  }
-  const json = parseJson(output)
-  const result = json.ok ? Result.safeParse(json.value) : null
-  if (!result?.success) {
-    log.warn("session title: unexpected output", { chars: output.length })
-    log.debug("session title output", output.slice(0, 500))
-    return null
-  }
-  const title = /TITLE:\s*(.+)/i.exec(result.data.result)?.[1]?.trim()
-  const summary = /SUMMARY:\s*(.+)/i.exec(result.data.result)?.[1]?.trim()
+  if (recent.length === 0) return null
+  const answer = await ask(instructions(recent), neutralDir())
+  if (answer === null) return null
+  const title = /TITLE:\s*(.+)/i.exec(answer)?.[1]?.trim()
+  const summary = /SUMMARY:\s*(.+)/i.exec(answer)?.[1]?.trim()
   return title && summary ? { title: capped(title), summary } : null
 }

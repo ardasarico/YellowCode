@@ -1,4 +1,6 @@
-import type { PermissionUpdate } from "../protocol/messages.ts"
+import type { Ask as AgentAsk, AskOption, AskOutcome, Denial, Questions } from "../agent/ask.ts"
+import type { AgentEvent } from "../agent/events.ts"
+import type { FileChange, ToolKind } from "../agent/tools.ts"
 import type { Rewound } from "./rewind.ts"
 
 export type ItemId = string
@@ -30,20 +32,40 @@ export type AssistantText = {
 }
 // `durationMs` is null when the block did not stream, as in a resumed session.
 export type Thinking = { kind: "thinking"; id: ItemId; text: string; streaming: boolean; durationMs: number | null }
+// `name` is the agent's own, kept for mods and the export; rows show `title` and the UI goes by `toolKind`.
 export type ToolCall = {
   kind: "tool"
   id: ItemId
   name: string
+  toolKind: ToolKind
+  // The name the row shows, and the MCP server of an MCP tool.
+  title: string
+  server: string | null
   inputText: string
   input: unknown
   summary: string
+  // What the call says it does, shown while it runs.
+  detail: string | null
+  // It was asked to run in the background.
+  background: boolean
   status: "running" | "done" | "error" | "stopped"
   result: string
   children: ItemId[]
   patch: Hunk[] | null
   createdFile: boolean
+  // The text of a file the call made.
+  content: string | null
   images: ChatImage[]
   unchanged: boolean
+  // What a read or a search came back with.
+  count: Extract<AgentEvent, { type: "tool.end" }>["count"]
+  // Files a finished call wrote; what they held before goes to the rewind's listener, not into the store.
+  files: Omit<FileChange, "before">[]
+  // A question call's pages, so the row can show their headers.
+  questions: Questions | null
+  // How a question call ended, read from its result; null for other calls, a failed call, and one stopped without a
+  // result.
+  outcome: AskOutcome | null
   agent: Agent | null
   taskId: string | null
   quiet?: boolean
@@ -128,17 +150,29 @@ export type Ask = {
   requestId: string
   toolUseId: string
   toolName: string
+  toolKind: ToolKind
+  server: string | null
   displayName: string
   input: unknown
+  // The band's main line: a command, a path, a URL.
+  target: string
+  // Absolute paths the call will write.
+  writes: string[]
   description: string
   reason: string
-  suggestion: PermissionUpdate | null
+  // In the agent's order; a question with pages or a matrix has none.
+  options: AskOption[]
+  questions: Questions | null
+  plan: AgentAsk["plan"]
   defaultToNo: boolean
   safetyCheck: boolean
   status: "pending" | "allowed" | "denied" | "answered" | "cancelled"
   answers: Record<string, string>
   notes: Record<string, string>
+  // A no: the text it reached the agent with, why (always set once denied), and the user's note.
   denial: string
+  why: Denial | null
+  note: string
   // The subagent that asked; absent for the main thread.
   agent?: string
   // Set for a call to our own ask tool, which is answered with an MCP result under this JSON-RPC id.

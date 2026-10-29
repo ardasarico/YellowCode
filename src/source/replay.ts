@@ -1,14 +1,15 @@
 /* oxlint-disable no-await-in-loop */
 import { createSignal, type Accessor } from "solid-js"
+import { ownAskProblem } from "../agents/claude/ask-input.ts"
 import { OWN_ASK, ownAskCall } from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
-import { ownAskProblem } from "../session/ask.ts"
 import type { Recording, RecordingEntry } from "./recording.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
 export type Speed = number | "instant"
 export type ReplayStatus = "playing" | "waiting" | "finished"
-export type ReplaySource = Source & { status: Accessor<ReplayStatus> }
+// `waiting` is true while the recording waits for the user's message or answer.
+export type ReplaySource = Source & { status: Accessor<ReplayStatus>; waiting: () => boolean }
 
 export function parseSpeed(value: string): Speed | null {
   if (value === "instant") return "instant"
@@ -99,6 +100,7 @@ export function createReplaySource(recording: Recording, speed: Speed): ReplaySo
   return {
     events: play(),
     status,
+    waiting: () => release !== null,
     send(line) {
       if (!release) return false
       release(line)

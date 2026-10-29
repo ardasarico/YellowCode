@@ -1,14 +1,13 @@
 import { infoStringToFiletype, RGBA } from "@opentui/core"
 import { extname } from "node:path"
 import { createComponent, createMemo, createSignal, ErrorBoundary, Index, Show } from "solid-js"
+import type { AskOutcome } from "../agent/ask.ts"
 import type { ModToolCall } from "../mods/api.ts"
 import { reportModError, rowPartsFor } from "../mods/registry.ts"
-import { askUserQuestionInput, INTERRUPTED_CALL, OWN_ASK } from "../protocol/messages.ts"
-import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
-import { answersInResult, askKeys, severe } from "../session/ask.ts"
+import { severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { isBackgroundShell, writtenContent } from "../session/tool-summary.ts"
+import { isBackgroundShell } from "../session/tool-summary.ts"
 import { shellColor, useDuration } from "./agents/agent-line.tsx"
 import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
@@ -37,8 +36,7 @@ export function resultSummary(tool: ToolCall): string {
     return [`exit ${exit[1]}`, lines[1]].filter(Boolean).join(" · ")
   }
   if (tool.createdFile) {
-    const content = writtenContent(tool.input)
-    return content === null ? "created" : `created · ${count(addedRows(content).length, "line")}`
+    return tool.content === null ? "created" : `created · ${count(addedRows(tool.content).length, "line")}`
   }
   if (tool.patch) {
     const changed = tool.patch.flatMap((hunk) => hunk.lines)
@@ -47,8 +45,7 @@ export function resultSummary(tool: ToolCall): string {
     return `+${added} −${removed}`
   }
   if (tool.unchanged) return "unchanged"
-  if (tool.name === "Read") return count(lines.filter((line) => /^\s*\d+\t/.test(line)).length, "line")
-  if (tool.name === "Glob") return count(lines.length, "file")
+  if (tool.count) return count(tool.count.n, tool.count.noun)
   if (lines.length === 0) return "no output"
   return lines.length === 1 ? (lines[0] ?? "") : count(lines.length, "line")
 }
@@ -60,9 +57,9 @@ export function toolLines(
   shell: Pick<Task, "state" | "background"> | null,
   elapsedMs: number,
 ): string[] {
-  const question = tool.name === "AskUserQuestion" || tool.name === OWN_ASK
+  const question = tool.toolKind === "question"
   if (ask?.status === "pending") return [question ? "waiting for your answer" : "waiting for your approval"]
-  if (ask?.status === "denied") return [deniedLine(ask)]
+  if (ask?.status === "denied") return [deniedLine({ why: ask.why ?? "declined", note: ask.note })]
   if (ask?.status === "cancelled") return ["cancelled"]
   if (isBackgroundShell(tool, shell)) {
     if (!shell) return ["in background"]
@@ -79,40 +76,34 @@ export function toolLines(
 }
 
 function backToChat(ask: Ask): boolean {
-  return ask.status === "denied" && ask.denial === QUESTION_TO_CHAT
+  return ask.status === "denied" && ask.why === "chat"
 }
 
-function knownDenial(denial: string): string | null {
-  if (denial.startsWith(NOT_SHOWN)) return `rejected · ${denial.slice(NOT_SHOWN.length).replace(/\.$/, "")}`
-  if (denial === QUESTION_TO_CHAT) return "back to chat"
-  if (denial === SUBAGENT_ASK) return "sent back to the main agent"
-  if (denial === TOOL_DECLINED) return "denied"
-  return null
-}
+type Denied = Extract<AskOutcome, { status: "denied" }>
 
-export function deniedLine(ask: Pick<Ask, "denial">): string {
-  const known = knownDenial(ask.denial)
-  if (known) return known
-  const said = ask.denial.startsWith(DECLINED_WITH_NOTE) ? ask.denial.slice(DECLINED_WITH_NOTE.length) : ask.denial
-  const note = said.trim().replaceAll("\n", " ")
+export function deniedLine(denied: Pick<Denied, "why" | "note">): string {
+  if (denied.why === "unshown") return `rejected · ${denied.note}`
+  if (denied.why === "chat") return "back to chat"
+  if (denied.why === "subagent") return "sent back to the main agent"
+  const note = denied.note.trim().replaceAll("\n", " ")
   return note ? `denied · ${note}` : "denied"
 }
 
-// A question read back from a transcript has no ask, only its error result, which reads as a live one would.
+// A question read back from a transcript has no ask, only the call's outcome, which reads as a live one would.
 function settledQuestion(tool: ToolCall): string | null {
-  if ((tool.name !== "AskUserQuestion" && tool.name !== OWN_ASK) || tool.status !== "error") return null
-  if (tool.result.startsWith(INTERRUPTED_CALL)) return "cancelled"
-  if (tool.result.startsWith(DECLINED_WITH_NOTE)) return deniedLine({ denial: tool.result })
-  return knownDenial(tool.result)
+  if (tool.toolKind !== "question" || tool.status !== "error") return null
+  if (tool.outcome?.status === "cancelled") return "cancelled"
+  return tool.outcome?.status === "denied" ? deniedLine(tool.outcome) : null
 }
 
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
-  const { answers, notes } = ask?.status === "answered" ? ask : answersInResult(tool.result, askKeys(tool.input))
-  const questions = askUserQuestionInput.safeParse(tool.input).data?.questions ?? []
-  return Object.entries(answers).map(([question, answer]) => {
-    const header = questions.find((entry) => entry.question === question)?.header ?? question
+  const told = tool.outcome?.status === "answered" ? tool.outcome : { answers: {}, notes: {} }
+  const { answers, notes }: Pick<Ask, "answers" | "notes"> = ask?.status === "answered" ? ask : told
+  const pages = tool.questions && "pages" in tool.questions ? tool.questions.pages : []
+  return Object.entries(answers).map(([key, answer]) => {
+    const header = pages.find((page) => page.key === key)?.header ?? key
     const shown = answer.replaceAll("\n", " ")
-    const note = notes[question]?.replaceAll("\n", " ")
+    const note = notes[key]?.replaceAll("\n", " ")
     return note ? `${header}: ${shown} · ${note}` : `${header}: ${shown}`
   })
 }
@@ -194,13 +185,11 @@ export function ToolCallRow(props: {
   }
   // A mod may draw the row's name, summary and result lines.
   const modRow = createMemo(() => (props.item.local ? null : rowPartsFor(info)))
-  // Our own ask stands in for the stock one, so it reads like it.
   const label = () => {
     const title = modRow()?.parts.title
     if (title !== undefined) return { server: "", tool: title }
-    if (props.item.name === OWN_ASK) return { server: "", tool: "AskUserQuestion" }
-    const mcp = mcpTool(props.item.name)
-    return mcp ? { server: `${mcp.server}/`, tool: mcp.tool } : { server: "", tool: props.item.name }
+    const server = props.item.server
+    return { server: server === null ? "" : `${server}/`, tool: props.item.title }
   }
   const targetText = () =>
     modRow()?.parts.text ??
@@ -218,11 +207,10 @@ export function ToolCallRow(props: {
     const room = width() - Bun.stringWidth(label().server + label().tool) - 4 - after()
     return value.includes(" ") ? cut(value, room) : cutPath(value, room)
   }
-  // While a command runs, Claude's description of it says what it is waiting for.
+  // While a command runs, the agent's description of it says what it is waiting for.
   const description = () => {
-    const input = props.item.input
-    if (!running() || props.item.name !== "Bash" || typeof input !== "object" || input === null) return ""
-    const text = "description" in input && typeof input.description === "string" ? input.description : ""
+    if (!running() || props.item.toolKind !== "shell") return ""
+    const text = props.item.detail ?? ""
     const room = width() - Bun.stringWidth(label().server + label().tool + target()) - 6
     return text ? cut(text, room) : ""
   }
@@ -233,7 +221,7 @@ export function ToolCallRow(props: {
   // A long command output shows its last lines, which usually hold the outcome.
   const tail = () => {
     const tool = props.item
-    if (tool.name !== "Bash" || tool.status !== "done" || denied() || background() || waiting()) return null
+    if (tool.toolKind !== "shell" || tool.status !== "done" || denied() || background() || waiting()) return null
     const shown = tool.result.trimEnd().split("\n")
     return shown.length > TAIL_LINES + 1 ? { hidden: shown.length - TAIL_LINES, last: shown.slice(-TAIL_LINES) } : null
   }
@@ -251,7 +239,7 @@ export function ToolCallRow(props: {
   // A new file reads as code from its first line; a long one folds after a few.
   const created = () => {
     const tool = props.item
-    const content = tool.status === "done" && !denied() && tool.createdFile ? writtenContent(tool.input) : null
+    const content = tool.status === "done" && !denied() && tool.createdFile ? tool.content : null
     if (content === null) return null
     const all = content.replace(/\n$/, "").split("\n")
     const hidden = all.length > LONG_CODE && !props.expanded ? all.length - FOLDED_CODE : 0

@@ -1,8 +1,8 @@
 import { expect, spyOn, test } from "bun:test"
-import { liveProvider } from "../input/provider.ts"
+import { liveProvider } from "../agents/claude/provider.ts"
 import { log } from "../log/log.ts"
 import { createSession } from "../session/session.ts"
-import { DEFAULT_SETTINGS } from "../session/settings-file.ts"
+import { DEFAULT_MODE } from "../session/settings-file.ts"
 import { createAskServer } from "./ask-server.ts"
 import { createControls } from "./controls.ts"
 import { pump } from "./live.ts"
@@ -40,9 +40,9 @@ test("a line that cannot be applied is logged and the next line is still handled
   }
   const controls = createControls({
     requests,
-    provider: liveProvider(requests),
+    provider: liveProvider(() => Promise.resolve([])),
     session,
-    launch: { mode: DEFAULT_SETTINGS.permissionMode, bypass: false },
+    launch: { mode: DEFAULT_MODE, bypass: false },
   })
   const asks = createAskServer(
     () => {},

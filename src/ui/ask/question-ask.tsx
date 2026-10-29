@@ -2,13 +2,13 @@ import { type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { answerQuestions, denyTool, QUESTION_TO_CHAT } from "../../protocol/outgoing.ts"
+import type { Answers, QuestionPage } from "../../agent/ask.ts"
 import { theme } from "../../theme/theme.ts"
 import { covered } from "../images.ts"
 import { AskPicture, askImage, PICTURE_MIN_WIDTH, shownPicture } from "./ask-picture.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
 import { GalleryPage } from "./gallery-page.tsx"
-import { LETTERS, type Question, type QuestionInput } from "./question.ts"
+import { LETTERS } from "./question.ts"
 import { fitKeyHints, pageWindow } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
@@ -62,12 +62,14 @@ export type QuestionState = {
 const chosenOf = (state: QuestionState, index: number) => (state.chosen[index] ?? []).toSorted((a, b) => a - b)
 
 // A radio's marked option wins over the typed answer; a multi-select takes both.
-function answerFor(question: Question, state: QuestionState, index: number): string {
+function partsFor(question: QuestionPage, state: QuestionState, index: number): string[] {
   const own = state.own[index]?.trim() ?? ""
   const labels = chosenOf(state, index).map((option) => question.options[option]?.label ?? "")
-  if (!question.multiSelect) return labels[0] ?? own
-  return [...labels, own].filter((part) => part !== "").join(", ")
+  return (question.multi ? [...labels, own] : [labels[0] ?? own]).filter((part) => part !== "")
 }
+
+const answerFor = (question: QuestionPage, state: QuestionState, index: number) =>
+  partsFor(question, state, index).join(", ")
 
 // Only the notes of chosen options are sent.
 function notesFor(state: QuestionState, index: number): string {
@@ -77,31 +79,28 @@ function notesFor(state: QuestionState, index: number): string {
     .join("; ")
 }
 
-export function answersFrom(
-  input: QuestionInput,
-  state: QuestionState,
-): { answers: Record<string, string>; notes: Record<string, string> } {
-  const answers: Record<string, string> = {}
+export function answersFrom(questions: QuestionPage[], state: QuestionState): Answers {
+  const values: Record<string, string[]> = {}
   const notes: Record<string, string> = {}
-  input.questions.forEach((question, index) => {
-    answers[question.question] = answerFor(question, state, index)
+  questions.forEach((question, index) => {
+    values[question.key] = partsFor(question, state, index)
     const note = notesFor(state, index)
-    if (note) notes[question.question] = note
+    if (note) notes[question.key] = note
   })
-  return { answers, notes }
+  return { values, fields: {}, notes, note: state.extra.trim() }
 }
 
-const hasPictures = (question: Question) => !question.gallery && question.options.some((option) => option.image)
+const hasPictures = (question: QuestionPage) => !question.gallery && question.options.some((option) => option.image)
 
 // As tall as the option list beside it, so the ask does not grow for the picture.
-function pictureRows(question: Question): number {
+function pictureRows(question: QuestionPage): number {
   const rows = question.options.reduce((sum, option) => sum + 2 + (option.description ? 1 : 0), -1)
   return Math.max(8, rows)
 }
 
 // A radio shows the cursor before the letter and a ✓ after the label; a multi-select keeps its box.
-function marker(question: Question, index: number, on: boolean, focused: boolean): string {
-  const lead = question.multiSelect ? (on ? "■" : "□") : focused ? "❯" : " "
+function marker(question: QuestionPage, index: number, on: boolean, focused: boolean): string {
+  const lead = question.multi ? (on ? "■" : "□") : focused ? "❯" : " "
   return `${lead} ${LETTERS[index] ?? ""}. `
 }
 
@@ -113,7 +112,7 @@ function Rule(props: { width: number; color: typeof theme.frame }) {
   )
 }
 
-function PageBar(props: { questions: Question[]; page: number; answered: boolean[]; width: number }) {
+function PageBar(props: { questions: QuestionPage[]; page: number; answered: boolean[]; width: number }) {
   const bar = () =>
     pageWindow(
       props.questions.map((question) => question.header),
@@ -154,8 +153,8 @@ function PageBar(props: { questions: Question[]; page: number; answered: boolean
   )
 }
 
-export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
-  const questions = () => props.input.questions
+export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
+  const questions = () => props.pages
   const paged = () => questions().length > 1
   const [state, setState] = createStore<QuestionState>(
     untrack(() => ({
@@ -206,12 +205,11 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
   const submit = () => {
     const missing = questions().findIndex((current, index) => answerFor(current, state, index) === "")
     if (missing >= 0) return setState("page", missing)
-    const { answers, notes } = answersFrom(props.input, state)
-    props.onAnswer(answerQuestions(props.ask.requestId, props.input, answers, notes, state.extra.trim()))
+    props.onAnswer({ type: "answers", answers: answersFrom(props.pages, state) })
   }
   const next = () => (paged() ? setState("page", state.page + 1) : submit())
   const choose = (option: number) => {
-    if (!question()?.multiSelect) return setState("chosen", state.page, [option])
+    if (!question()?.multi) return setState("chosen", state.page, [option])
     setState("chosen", state.page, (chosen) =>
       chosen.includes(option) ? chosen.filter((other) => other !== option) : [...chosen, option],
     )
@@ -226,8 +224,8 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
     if (onOwnRow()) {
       const typed = (state.own[state.page]?.trim() ?? "") !== ""
       if (!typed && nothingMarked) return
-      if (typed && !current.multiSelect) setState("chosen", state.page, [])
-    } else if (!current.multiSelect || nothingMarked) choose(focus())
+      if (typed && !current.multi) setState("chosen", state.page, [])
+    } else if (!current.multi || nothingMarked) choose(focus())
     next()
   }
 
@@ -236,12 +234,12 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
     if (!current || option >= current.options.length) return
     setState("focus", state.page, option)
     choose(option)
-    if (!current.multiSelect) next()
+    if (!current.multi) next()
   }
 
   const typeOwn = (text: string) => {
     setState("own", state.page, text)
-    if (text.trim() !== "" && !question()?.multiSelect) setState("chosen", state.page, [])
+    if (text.trim() !== "" && !question()?.multi) setState("chosen", state.page, [])
   }
 
   const openNote = () => {
@@ -273,7 +271,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
     const current = question()
     const last = current ? current.options.length : 1
     const onText = onOwnRow() || onExtraRow()
-    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_TO_CHAT))
+    if (key.name === "escape") props.onAnswer({ type: "declined", chat: true })
     else if (gallery() && !paged() && !onText && (key.name === "left" || key.name === "right")) {
       const step = key.name === "left" ? -1 : 1
       setState("focus", state.page, (card) => Math.min(last - 1, Math.max(0, card + step)))
@@ -402,7 +400,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
                                 wrapMode="word"
                               >
                                 {option().label}
-                                <span style={{ fg: theme.accent }}>{on() && !current().multiSelect ? " ✓" : ""}</span>
+                                <span style={{ fg: theme.accent }}>{on() && !current().multi ? " ✓" : ""}</span>
                               </text>
                             </box>
                             <Show when={option().description}>
@@ -480,7 +478,7 @@ export function QuestionAsk(props: AskViewProps & { input: QuestionInput }) {
               : onExtraRow()
                 ? fitKeyHints(EXTRA_HINTS, SHORT_TEXT_HINTS, props.width)
                 : question()
-                  ? questionHints(paged(), props.width, question()?.multiSelect ?? false, canEnlarge(), gallery())
+                  ? questionHints(paged(), props.width, question()?.multi ?? false, canEnlarge(), gallery())
                   : fitKeyHints(SUBMIT_HINTS, SHORT_SUBMIT_HINTS, props.width)}
         </text>
       </box>

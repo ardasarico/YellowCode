@@ -1,3 +1,8 @@
+import type { Agent, AgentKind, Prompt } from "../agent/agent.ts"
+import type { AskReply } from "../agent/ask.ts"
+import type { Capabilities } from "../agent/capabilities.ts"
+import type { EffortId, ModeId, Outcome } from "../agent/ids.ts"
+import type { SettingRow, SettingValue } from "../agent/settings.ts"
 import { ModDialogView } from "./mod-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
 import { Toast } from "./toast.tsx"
@@ -11,24 +16,15 @@ import {
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { BLOCKED_COMMANDS, findModCommand, untitledCommand } from "../input/commands.ts"
+import { findModCommand, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
-import { agentMessage } from "../session/agent-message.ts"
 import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import { contextUsage, effectiveSettings, reloadSkillsReply, usageReply } from "../protocol/messages.ts"
-import {
-  getContextUsageRequest,
-  getSettingsRequest,
-  getUsageRequest,
-  type OutgoingImage,
-  reloadSkillsRequest,
-} from "../protocol/outgoing.ts"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
-import type { SessionEntry } from "../resume/session-list.ts"
+import type { SessionEntry } from "../agent/sessions.ts"
 import { currentInfo, currentServers } from "../session/lists.ts"
 import {
   type RewindExtras,
@@ -40,37 +36,31 @@ import {
 } from "../session/rewind.ts"
 import {
   controlProblem,
+  defaultModeOf,
+  effortsOf,
   modelFor,
   modelIds,
-  modelValue,
+  modelRef,
+  modeLabel,
   nextMode,
   pickEffort,
   pickModel,
-  setSessionMode,
+  setControlProblem,
   settings,
   stepEffort,
   stepModel,
   toggleUltracode,
 } from "../session/settings.ts"
-import { EFFORT_LEVELS } from "../theme/brand.ts"
 import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
-import { pluginEntries } from "../session/plugins.ts"
-import {
-  failedSaves,
-  modeLabel,
-  PERMISSION_MODES,
-  type PermissionMode,
-  SAVE_PROBLEM,
-} from "../session/settings-file.ts"
+import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { fileRewindFact, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
 import { conversationMarkdown, exportFileName, freeExportName } from "../session/export.ts"
 import { skillUses } from "../session/skills.ts"
-import { TODO_TOOLS } from "../session/todos.ts"
 import { foregroundTasks, runningShellCount, shellNodeId, shellTasks } from "../session/shells.ts"
-import type { SessionTitle } from "../session/titler.ts"
+import type { OneShot, SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo, UserMessage } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
 import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
@@ -88,7 +78,6 @@ import { openFile, openUrl } from "./dialog/open-file.ts"
 import { modelName, SAVED_NOTICE, windowTitle } from "./format.ts"
 import { hasImage, itemImages, labelId, labelTarget } from "./image-label.tsx"
 import { messageFolds } from "./markdown/folds.ts"
-import type { McpActions } from "./mcp/mcp-tab.tsx"
 import { imagesBefore, isImagePath, messageRefs, messageTargets, refId, refTarget } from "./markdown/refs.ts"
 import {
   EDGE_GAP,
@@ -125,13 +114,13 @@ import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog } from "./resume/resume-dialog.tsx"
 import { RewindDialog } from "./rewind/rewind-dialog.tsx"
-import type { PluginActions } from "./settings/plugins-tab.tsx"
+import type { AgentSettings } from "./settings/config-tab.tsx"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { relative } from "./tool-call.tsx"
 import { ExportDialog } from "./export/export-dialog.tsx"
 import { TodoDialog } from "./todos/todo-dialog.tsx"
-import { type SkillActions, SkillsDialog } from "./skills/skills-dialog.tsx"
+import { SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
 import { buildRows } from "./structure.ts"
 import { hasThinkingText } from "./thinking.tsx"
@@ -146,33 +135,19 @@ const PREVIEW_MS = 1000
 const NOTE_MS = 4000
 const TOAST_MS = 1500
 const REPORT_COPIED = "Copied the report · ctrl+o view"
-// Bare, these open their row in /settings; with a value they go to Claude Code as typed.
-const CLAUDE_ROWS: Record<string, string> = {
-  "/config": "claude:outputStyle",
-  "/output-style": "claude:outputStyle",
-  "/autocompact": "claude:autoCompactWindow",
-}
 const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(", ")} (${names.length})` : null)
 
-// `before` is what the last /reload-skills reported; claude's other lists hold a different set, so only a reload before
-// this one says which are new.
-async function reloadSkills(
-  request: (build: (requestId: string) => string) => Promise<unknown>,
-  before: ReadonlySet<string> | null,
-): Promise<{ notice: string; names: Set<string> }> {
-  const reply = await request(reloadSkillsRequest)
-  const names = (reloadSkillsReply.safeParse(reply).data?.skills ?? [])
-    .map((skill) => skill.name)
-    .filter((name) => !BLOCKED_COMMANDS.includes(name))
-  const fresh = before ? names.filter((name) => !before.has(name)).length : 0
-  return { notice: `Skills reloaded · ${names.length}${fresh > 0 ? `, ${fresh} new` : ""}`, names: new Set(names) }
-}
 // A bare /rename takes up the title Claude Code sets this soon after.
 const ADOPT_TITLE_MS = 10_000
 const BACKGROUND_HINT_MS = 3000
+const NO_LIMITS: Session["usage"]["limits"] = { fiveHour: null, week: null, models: {} }
 
 export type AppProps = {
   session: Session
+  // The agent whose session this is.
+  agent: Pick<AgentKind, "id" | "name" | "settingChange" | "settingMessage">
+  // What the agent can do; the UI leaves out the rest.
+  caps: Capabilities
   model: () => string | null
   // Stands in for session.info until the real init arrives.
   firstInfo?: SessionInfo | null
@@ -181,38 +156,37 @@ export type AppProps = {
   readOnly?: SessionTitle & { modified: number }
   // A resumed session's listed title, kept until a new message titles it again.
   title?: SessionTitle
-  titles: boolean
+  // YellowCode's titler asks it; without it nothing is titled.
+  oneShot?: OneShot
   settingsProblem: string | null
   // The archived copy of a broken settings file, opened by a click on the notice.
   settingsBackup?: string | null
   provider: InputProvider
-  // Live only; without them the MCP tab's actions show a notice.
-  mcpActions?: McpActions
-  skillActions?: SkillActions
-  pluginActions?: PluginActions
+  // Live only; without them the dialogs' actions show a notice.
+  extensions?: Pick<Agent, "mcp" | "skills" | "plugins">
   sessions: { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
   earlier?: boolean
   onEarlier?: () => void
   // False when the message could not go out; the prompt keeps it.
   // `giveBack` is called when an accepted message could not go out after all.
-  onSubmit: (text: string, images: OutgoingImage[], giveBack: () => void) => boolean
+  onSubmit: (message: Message, giveBack: () => void) => boolean
   // Enter once Claude Code has exited starts it again and sends what was typed, if anything. Live only.
-  onRestart?: (text: string, images: OutgoingImage[], giveBack: () => void) => boolean
-  onAnswer: (ask: Ask, response: string) => void
+  onRestart?: (message: Message, giveBack: () => void) => boolean
+  onAnswer: (ask: Ask, reply: AskReply) => void
   onQuit: () => void
   // Without it nothing can be interrupted (a replay or a saved conversation).
   onInterrupt?: () => void
   // Runs a `!` command, and stops the one running.
   onShell?: (command: string) => void
   onShellStop?: () => void
-  // Without it nothing can be sent to the background (a replay or a saved conversation).
-  onBackground?: () => void
+  // Without them a stop shows that the conversation is saved (a replay or a saved conversation).
+  tasks?: Agent["tasks"]
+  // The running agent's model, effort, mode and thinking; none in a replay or a saved conversation.
+  knobs?: KnobActions
   // Each new title YellowCode's titler made, so Claude Code can keep it for the session.
   onTitle?: (title: string) => void
-  // A control request to the running claude; none in a replay or a saved conversation.
-  request?: (build: (requestId: string) => string) => Promise<unknown>
-  // Without it no task can be stopped from the agent view (a replay or a saved conversation).
-  onStopTask?: (taskId: string) => Promise<void>
+  // The running agent's /context, /usage and settings; none in a replay or a saved conversation.
+  info?: Pick<Agent, "context" | "usage" | "settings">
   // Without it the session cannot rewind (a read-only transcript). A live rewind puts the files back first and
   // resolves false when the session was not rewound after all, or with the ⚠ that came up since the dialog showed
   // it. `seen` are the ⚠ paths the dialog showed.
@@ -230,6 +204,11 @@ export type AppProps = {
 }
 
 type RewindAnswer = boolean | RewindRecheck
+
+export type KnobActions = Pick<Agent, "setMode" | "setModel" | "setEffort" | "setExtraEffort" | "setThinking">
+
+// What the user sends; `to` is a running subagent the message is for.
+export type Message = Pick<Prompt, "text" | "images" | "to">
 
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
@@ -267,24 +246,47 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "settings" ? open.row : undefined
   }
-  // Claude Code's settings as get_settings reads them, each time /settings opens.
-  const [claudeEffective, setClaudeEffective] = createSignal<Record<string, unknown> | null>(null)
-  const [claudeSent, setClaudeSent] = createSignal(new Map<string, string>())
+  // The agent's own settings, read again each time /settings opens.
+  const [agentRows, setAgentRows] = createSignal<SettingRow[] | null>(null)
+  const [agentSent, setAgentSent] = createSignal(new Map<string, SettingValue>())
   createEffect(
     on(
       () => settingsTab() !== null,
       (open) => {
-        const request = props.request
-        if (!open || !request) return
-        setClaudeEffective(null)
-        setClaudeSent(new Map())
-        request(getSettingsRequest).then(
-          (reply) => setClaudeEffective(effectiveSettings.safeParse(reply).data?.effective ?? {}),
-          (error: unknown) => log.warn("claude settings for /settings failed", String(error)),
-        )
+        const info = props.info
+        if (!open || !info) return
+        setAgentRows(null)
+        setAgentSent(new Map())
+        info.settings
+          .rows()
+          .then(setAgentRows, (error: unknown) => log.warn("settings for /settings failed", String(error)))
       },
     ),
   )
+  const agentSettings = (): AgentSettings | undefined => {
+    const info = props.info
+    if (!info) return undefined
+    return {
+      name: props.agent.name,
+      rows: agentRows(),
+      sent: agentSent(),
+      busy: () => props.session.status === "running",
+      change: (id, value) =>
+        writeSetting(info, id, value).then((done) => {
+          if (done.ok) setAgentSent((previous) => new Map(previous).set(id, value))
+          return done
+        }),
+    }
+  }
+  // An agent that takes its settings as messages gets them the way the user's own messages go out.
+  const writeSetting = (info: NonNullable<AppProps["info"]>, id: string, value: SettingValue): Promise<Outcome> => {
+    const { name, settingMessage } = props.agent
+    if (!settingMessage) return info.settings.write(id, value)
+    const text = settingMessage(id, value)
+    if (text === null) return Promise.resolve({ ok: false, problem: `${name} has no setting ${id}` })
+    const sent = props.onSubmit({ text, images: [], to: null }, () => {})
+    return Promise.resolve(sent ? { ok: true, note: null } : { ok: false, problem: `${name} did not take it` })
+  }
   const rewindDialog = () => {
     const open = dialog()
     return open?.name === "rewind" && props.rewind ? open : null
@@ -295,7 +297,7 @@ export function App(props: AppProps) {
   const [shellMode, setShellMode] = createSignal(false)
   const isTodoRow = (id: string) => {
     const item = props.session.byId[id]
-    return item?.kind === "tool" && TODO_TOOLS.has(item.name)
+    return item?.kind === "tool" && item.toolKind === "todo"
   }
   const shellRunning = () =>
     props.session.items.some((id) => {
@@ -327,15 +329,14 @@ export function App(props: AppProps) {
   // The welcome screen is for a new session only: a /clear starts over in the chat, under a header.
   const welcome = createMemo(() => props.session.items.length === 0 && props.session.conversation === 0)
   const [listed, setListed] = createSignal<SessionEntry[]>([])
-  // The session claude writes is not one to go back to; after a /clear its id comes with the init after the clear.
+  // The session the agent is running is not one to go back to; after a /clear its id comes with the next info.
+  const notShown = (entry: SessionEntry) =>
+    entry.ref.agent !== props.agent.id || entry.ref.id !== props.session.info?.id
   const unlisted = {
-    list: () => props.sessions.list().then((entries) => entries.filter((entry) => entry.id !== props.session.info?.id)),
+    list: () => props.sessions.list().then((entries) => entries.filter(notShown)),
     open: (entry: SessionEntry) => props.sessions.open(entry),
   }
-  const recents = () =>
-    listed()
-      .filter((entry) => entry.id !== props.session.info?.id)
-      .slice(0, RECENT_ROWS)
+  const recents = () => listed().filter(notShown).slice(0, RECENT_ROWS)
   // The welcome screen goes when the first item arrives, and the prompt bar takes over what its input held. A mod
   // wrapping the prompt rebuilds it, and it comes back the same way. Read as a member, so each new input gets the latest.
   const heldDraft: { current: Draft | undefined } = { current: undefined }
@@ -365,21 +366,23 @@ export function App(props: AppProps) {
   const runsBuiltin = (text: string) => untitledCommand(props.provider.commands(), text)
   const haikuTitle = useSessionTitle(
     () => props.session,
-    () => props.titles && settings.sessionTitle === "yellowcode",
+    (prompt, cwd) => props.oneShot?.(prompt, cwd) ?? Promise.resolve(null),
+    () => props.oneShot !== undefined && settings.sessionTitle === "yellowcode",
     untrack(() => props.readOnly ?? props.title),
     runsBuiltin,
   )
   // A name given with /rename (or the one Claude Code makes for a bare /rename) wins over both sources until a /clear.
   const [renamed, setRenamed] = createSignal<string | null>(null)
+  const toAgentTitle = (title: string) => {
+    if (props.caps.rename) props.onTitle?.(title)
+  }
   let adoptTitleUntil = 0
-  let reloadedSkills: Set<string> | null = null
   createEffect(
     on(
       () => props.session.conversation,
       () => {
         setRenamed(null)
         adoptTitleUntil = 0
-        reloadedSkills = null
       },
       { defer: true },
     ),
@@ -389,7 +392,7 @@ export function App(props: AppProps) {
     on(
       () => [renamed(), props.session.info?.id] as const,
       ([name, id]) => {
-        if (name && id) props.onTitle?.(name)
+        if (name && id) toAgentTitle(name)
       },
     ),
   )
@@ -404,7 +407,7 @@ export function App(props: AppProps) {
       { defer: true },
     ),
   )
-  createEffect(on(haikuTitle, (next) => next && !renamed() && props.onTitle?.(next.title), { defer: true }))
+  createEffect(on(haikuTitle, (next) => next && !renamed() && toAgentTitle(next.title), { defer: true }))
   // Claude Code's own title has no summary, so the sidebar shows the first message under it.
   const claudeTitle = () => {
     const text = props.session.claudeTitle
@@ -552,8 +555,8 @@ export function App(props: AppProps) {
   const failedServers = new Set<string>()
 
   createEffect(() => {
-    for (const server of props.session.info?.mcpServers ?? []) {
-      if (server.status !== "failed") {
+    for (const server of props.provider.mcp(props.session.info?.mcpServers ?? null, []) ?? []) {
+      if (server.state !== "failed") {
         failedServers.delete(server.name)
         continue
       }
@@ -629,7 +632,7 @@ export function App(props: AppProps) {
         settings.sidebar,
         settings.thinking,
         settings.sessionTitle,
-        settings.permissionMode,
+        defaultModeOf(props.agent.id),
         settings.editor,
         settings.notifications,
       ],
@@ -766,9 +769,36 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "choice" ? open.kind : null
   }
+  // A pick goes to the agent only when it changed what the knobs show.
+  const toModel = (id: string | null) => {
+    if (id !== null) void props.knobs?.setModel(modelRef(id))
+  }
+  // The levels of the model the session uses.
+  const efforts = () => effortsOf(props.provider.models(), settings.model ?? props.model())
+  const toEffort = (level: EffortId | null) => {
+    if (level !== null && props.caps.effort) void props.knobs?.setEffort(level)
+  }
+  // The Config tab saves these; the running session takes them too.
+  createEffect(
+    on(
+      () => settings.thinking,
+      (thinking) => {
+        if (props.caps.thinking) void props.knobs?.setThinking(thinking !== "hidden")
+      },
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => defaultModeOf(props.agent.id),
+      (mode) => void props.knobs?.setMode(mode),
+      { defer: true },
+    ),
+  )
   // /model and /effort with a value YellowCode knows pick it here; any other value goes on to Claude Code.
   const typedKnob = (name: string, value: string): boolean => {
-    if (!props.onInterrupt || (name !== "model" && name !== "effort")) return false
+    if (!props.knobs || (name !== "model" && name !== "effort")) return false
+    if (name === "effort" && !props.caps.effort) return false
     // A model without effort levels: Claude Code's own /effort says so.
     if (name === "effort" && settings.effort === null) return false
     if (!value) {
@@ -777,11 +807,11 @@ export function App(props: AppProps) {
     }
     if (name === "model") {
       const id = modelFor(value)
-      if (id) pickModel(id)
+      if (id) toModel(pickModel(id))
       return id !== null
     }
-    const level = EFFORT_LEVELS.find((known) => known === value.toLowerCase())
-    if (level) pickEffort(level)
+    const level = efforts().find((known) => known.id === value.toLowerCase())
+    if (level) toEffort(pickEffort(level.id))
     return level !== undefined
   }
 
@@ -857,8 +887,10 @@ export function App(props: AppProps) {
     setPanelPick(first)
     setFocus("panel")
   }
+  const takesMessages = () => props.caps.features.includes("agentMessages")
   // Starts a message to an agent, or says why it cannot be. Both the panel and the agent view come here.
   const startMessage = (id: string): string | null => {
+    if (!takesMessages()) return null
     const tool = props.session.byId[id]
     const node = topNodes(props.session).find((entry) => entry.id === id)
     if (!node || node.kind !== "agent" || tool?.kind !== "tool") return null
@@ -902,7 +934,7 @@ export function App(props: AppProps) {
     props.onInterrupt !== undefined && props.session.turn !== null && !props.session.interrupting
   // The hint waits until a foreground command or agent has run a few seconds. Claude Code reports a command as a task
   // only about that long after it starts, so a shell shows the hint as soon as it is a task.
-  const foreground = () => (props.onBackground ? foregroundTasks(props.session) : [])
+  const foreground = () => (props.caps.backgroundNow ? foregroundTasks(props.session) : [])
   const backgroundTick = useTicker(() => foreground().length > 0, 500)
   const backgroundable = () => {
     backgroundTick()
@@ -974,23 +1006,16 @@ export function App(props: AppProps) {
   const copyReport = async () => {
     const info = currentInfo(props.session, props.firstInfo ?? null)
     const servers = currentServers(props.session, props.firstInfo ?? null) ?? []
-    const plugins = info
-      ? pluginEntries(
-          info,
-          props.provider.settingsSources(),
-          props.provider.skillRows() ?? [],
-          props.provider.pluginHooks(),
-        )
-      : []
+    const plugins = info ? props.provider.plugins(info) : []
     const mode = props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null
     const text = reportMarkdown({
       environment: [...hostFacts(info?.cliVersion ?? null), ...terminalFacts(renderer.capabilities)],
-      settings: settingsFacts(settings, settingsProblem()),
+      settings: settingsFacts(settings, props.agent.id, props.provider.modes(), settingsProblem()),
       session: [
         ["Model", modelName(settings.model ?? props.model() ?? "")],
         ["Effort", settings.effort],
-        ["Permission mode", mode === null ? null : modeLabel(mode)],
-        ["Skills", String(props.provider.skills().length)],
+        ["Permission mode", mode === null ? null : modeLabel(props.provider.modes(), mode)],
+        ["Skills", String(props.provider.skills()?.length ?? 0)],
         ["Tools", info ? String(info.tools.length) : null],
         ["File rewind", fileRewindFact(props.rewind?.offReason?.())],
       ],
@@ -1169,7 +1194,9 @@ export function App(props: AppProps) {
     if (key.ctrl && key.name === "b" && foreground().length > 0) {
       key.preventDefault()
       key.stopPropagation()
-      props.onBackground?.()
+      void props.tasks?.background().then((done) => {
+        if (!done.ok) setControlProblem({ text: done.problem })
+      })
       return
     }
     if (dialog()) return
@@ -1282,16 +1309,24 @@ export function App(props: AppProps) {
     }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
-      stepEffort(key.name === "up" ? 1 : -1)
+      if (props.caps.effort)
+        toEffort(
+          stepEffort(
+            efforts().map((level) => level.id),
+            key.name === "up" ? 1 : -1,
+          ),
+        )
       return
     }
     if (key.shift && (key.name === "left" || key.name === "right")) {
       key.preventDefault()
-      stepModel(key.name === "right" ? 1 : -1, props.model())
+      toModel(stepModel(key.name === "right" ? 1 : -1, props.model()))
       return
     }
     if (key.name === "f4") {
-      toggleUltracode()
+      if (!props.caps.extraEffort) return
+      const ultracode = toggleUltracode()
+      void props.knobs?.setExtraEffort(ultracode)
       return
     }
     if (key.name === "end" && !welcome() && !scrollState().atBottom) {
@@ -1301,7 +1336,8 @@ export function App(props: AppProps) {
     }
     if (key.name === "tab" && key.shift) {
       key.preventDefault()
-      if (props.onInterrupt && !ended()) chooseMode(nextMode(props.session.permissionMode))
+      const next = nextMode(props.provider.modes(), props.session.permissionMode)
+      if (props.knobs && !ended() && next !== null) chooseMode(next)
       return
     }
     if (key.name === "tab") {
@@ -1339,17 +1375,18 @@ export function App(props: AppProps) {
     on(
       () => props.session.permissionMode,
       (mode) => {
-        const target = mode ? planBack.seen(mode) : null
-        if (target && props.onInterrupt) setSessionMode(target)
+        const target = mode ? planBack.seen(mode, props.provider.modes()) : null
+        if (target) void props.knobs?.setMode(target)
       },
     ),
   )
-  const chooseMode = (mode: PermissionMode) => {
+  const chooseMode = (mode: ModeId) => {
     planBack.cancel()
-    setSessionMode(mode)
+    void props.knobs?.setMode(mode)
   }
   const planMode = () => {
-    if (props.onInterrupt) chooseMode("plan")
+    const plan = props.provider.modes().find((mode) => mode.kind === "plan")
+    if (props.knobs && plan) chooseMode(plan.id)
   }
 
   const submit = ({ text, images, draft }: Submission): boolean => {
@@ -1382,12 +1419,12 @@ export function App(props: AppProps) {
       return true
     }
     const [, commandName = "", commandArgs = ""] = /^\/(\S+)\s*([\s\S]*)$/.exec(command) ?? []
-    if (BLOCKED_COMMANDS.includes(commandName)) {
+    if (props.provider.blocked(commandName)) {
       waitNotice("Not available in YellowCode")
       return false
     }
     if (typedKnob(commandName, commandArgs.trim())) return true
-    if (commandName === "rename" && props.onTitle) {
+    if (commandName === "rename" && props.onTitle && props.caps.rename) {
       const name = commandArgs.trim()
       if (name) {
         setRenamed(name)
@@ -1396,23 +1433,23 @@ export function App(props: AppProps) {
       // Claude Code makes the name; its title change brings it here.
       adoptTitleUntil = Date.now() + ADOPT_TITLE_MS
     }
-    if (command === "/reload-skills" && props.request) {
-      reloadSkills(props.request, reloadedSkills).then(
-        ({ notice, names }) => {
-          reloadedSkills = names
-          waitNotice(notice)
-        },
-        (error: unknown) =>
-          waitNotice(`Could not reload the skills: ${error instanceof Error ? error.message : String(error)}`),
-      )
+    if (command === "/reload-skills" && props.extensions && props.caps.skills.reload) {
+      void props.extensions.skills
+        .reload()
+        .then((done) =>
+          waitNotice(done.ok ? (done.note ?? "Skills reloaded") : `Could not reload the skills: ${done.problem}`),
+        )
       return true
     }
-    const claudeRow = CLAUDE_ROWS[command]
-    if (claudeRow && props.request) {
-      setDialog({ name: "settings", tab: "config", row: claudeRow })
+    // Bare, a command with a setting opens its row in /settings; with a value it goes to the agent as typed.
+    const setting = command === `/${commandName}` ? props.provider.setting(commandName) : null
+    if (setting && props.info) {
+      setDialog({ name: "settings", tab: "config", row: `agent:${setting}` })
       return true
     }
-    if ((command === "/context" || command === "/usage") && props.request) {
+    const report =
+      command === "/context" ? props.caps.context !== "none" : command === "/usage" && props.caps.usageReport
+    if (report && props.info) {
       setDialog({ name: command === "/context" ? "context" : "usage" })
       return true
     }
@@ -1450,18 +1487,23 @@ export function App(props: AppProps) {
         return false
       }
       const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
-      // The mode changes before the message goes out, so the message runs in it; a refused send puts it back.
-      const modeBefore = PERMISSION_MODES.find((mode) => mode === props.session.permissionMode)
+      // The mode changes before the message goes out, so the message runs in it; a refused send puts it back,
+      // except a default-kind mode, which stays in plan.
+      const modeBefore = props.provider
+        .modes()
+        .find((mode) => mode.id === props.session.permissionMode && mode.kind !== "default")?.id
       if (planned !== null) planMode()
       const index = userItems().length
       // A message that cannot go out comes back to the prompt, unless something else was typed there meanwhile.
       const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
-      const out = to ? agentMessage(to.id, to.name, changed) : (planned ?? changed)
+      const out: Message = to
+        ? { text: changed, images, to: { task: to.id, name: to.name } }
+        : { text: planned ?? changed, images, to: null }
       const kept = to ? { ...draft, to } : draft
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
         : giveBack
-      const accepted = ended() ? (props.onRestart?.(out, images, back) ?? false) : props.onSubmit(out, images, back)
+      const accepted = ended() ? (props.onRestart?.(out, back) ?? false) : props.onSubmit(out, back)
       if (!accepted) {
         if (planned !== null && modeBefore) chooseMode(modeBefore)
         return false
@@ -1529,6 +1571,7 @@ export function App(props: AppProps) {
           <AskSurface
             ask={ask}
             width={promptInnerWidth(chatWidth())}
+            caps={props.caps}
             onAnswer={props.onAnswer}
             onPlanApproved={() => planBack.approve()}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
@@ -1590,6 +1633,8 @@ export function App(props: AppProps) {
       interruptible: interruptible(),
       backgroundable: backgroundable(),
       modes: props.onInterrupt !== undefined,
+      extraEffort: props.caps.extraEffort,
+      limits: props.caps.limits,
       now: Date.now(),
     })
   }
@@ -1682,8 +1727,9 @@ export function App(props: AppProps) {
               selected={id()}
               onSelect={setAgentView}
               onClose={() => setAgentView(null)}
-              onStop={props.onStopTask}
-              onMessage={startMessage}
+              tasks={props.tasks}
+              canStop={props.caps.stopTask}
+              onMessage={takesMessages() ? startMessage : undefined}
               width={dimensions().width}
               height={dimensions().height}
             />
@@ -1716,6 +1762,7 @@ export function App(props: AppProps) {
               workspace={props.workspace}
               model={settings.model ?? props.model()}
               commands={props.provider.commands()}
+              settingChange={props.agent.settingChange}
               width={chatWidth()}
               selected={focus() === "chat" ? selected() : null}
               expanded={expanded}
@@ -1758,7 +1805,7 @@ export function App(props: AppProps) {
                   onOpen={openFromPanel}
                   canMessage={(() => {
                     const node = panel().find((entry) => entry.id === panelSelected())
-                    return node !== undefined && messageable(props.session, node)
+                    return takesMessages() && node !== undefined && messageable(props.session, node)
                   })()}
                 />
               </box>
@@ -1774,6 +1821,8 @@ export function App(props: AppProps) {
               workspace={props.workspace}
               modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
+              servers={props.provider.mcp(currentServers(props.session, null), props.session.info?.tools ?? [])}
+              caps={props.caps}
               width={shownWidth()}
               overlay={sidebar() === "overlay"}
               resizing={resizing()}
@@ -1788,32 +1837,16 @@ export function App(props: AppProps) {
             tab={tab()}
             info={currentInfo(props.session, props.firstInfo ?? null)}
             servers={currentServers(props.session, props.firstInfo ?? null)}
-            mcpActions={props.mcpActions}
-            pluginActions={props.pluginActions}
+            extensions={props.extensions}
+            caps={props.caps}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
             title={title()?.title ?? null}
             model={settings.model ?? props.model()}
             version={props.workspace.version}
-            skills={props.provider.skills().length}
-            skillRows={props.provider.skillRows()}
-            pluginHooks={props.provider.pluginHooks()}
-            sources={props.provider.settingsSources()}
+            provider={props.provider}
             row={settingsRow()}
-            claude={
-              props.request
-                ? {
-                    effective: claudeEffective(),
-                    account: { model: settings.model ?? props.model(), plan: props.provider.plan() },
-                    sent: claudeSent(),
-                    busy: () => props.session.status === "running",
-                    change: (id, value, command) => {
-                      if (!props.onSubmit(command, [], () => {})) return false
-                      setClaudeSent((previous) => new Map(previous).set(id, value))
-                      return true
-                    },
-                  }
-                : undefined
-            }
+            agent={props.agent.id}
+            agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}
             onClose={() => setDialog(null)}
           />
@@ -1837,9 +1870,10 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "skills"}>
         <SkillsDialog
-          skills={props.provider.skills()}
-          uses={skillUses(props.session, props.provider.skills())}
-          actions={props.skillActions}
+          skills={props.provider.skills() ?? []}
+          uses={skillUses(props.session, props.provider.skills() ?? [])}
+          actions={props.extensions?.skills}
+          toggles={props.caps.skills.toggle}
           onUse={(command) => {
             setDialog(null)
             setFill((previous) => ({ draft: { text: `/${command} `, chips: [] }, seq: (previous?.seq ?? 0) + 1 }))
@@ -1857,31 +1891,14 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
-      <Show when={dialog()?.name === "context" && props.request}>
-        {(request) => (
-          <ContextDialog
-            load={() =>
-              request()(getContextUsageRequest).then((reply) => {
-                const usage = contextUsage.safeParse(reply)
-                if (!usage.success) throw new Error("unexpected reply")
-                return usage.data
-              })
-            }
-            onClose={() => setDialog(null)}
-          />
-        )}
+      <Show when={dialog()?.name === "context" && props.info}>
+        {(info) => <ContextDialog load={() => info().context()} onClose={() => setDialog(null)} />}
       </Show>
-      <Show when={dialog()?.name === "usage" && props.request}>
-        {(request) => (
+      <Show when={dialog()?.name === "usage" && props.info}>
+        {(info) => (
           <UsageDialog
-            load={() =>
-              request()(getUsageRequest).then((reply) => {
-                const usage = usageReply.safeParse(reply)
-                if (!usage.success) throw new Error("unexpected reply")
-                return usage.data
-              })
-            }
-            limits={props.session.usage.limits}
+            load={() => info().usage()}
+            limits={props.caps.limits ? props.session.usage.limits : NO_LIMITS}
             onClose={() => setDialog(null)}
           />
         )}
@@ -1892,26 +1909,23 @@ export function App(props: AppProps) {
           choices={modelIds().map((id) => ({
             id,
             label: modelName(id),
-            note: props.provider.models().find((model) => model.value === modelValue(id))?.note,
+            note: props.provider.models().find((model) => model.ref.id === modelRef(id).id)?.note,
           }))}
           current={settings.model ?? props.model()}
-          onChoose={pickModel}
+          onChoose={(id) => toModel(pickModel(id))}
           onClose={() => setDialog(null)}
         />
       </Show>
       <Show when={choiceKind() === "effort"}>
         <ChoiceDialog
           title="Effort"
-          choices={[
-            ...EFFORT_LEVELS.map((level) => ({ id: level, label: level })),
-            { id: "auto", label: "auto", note: "Claude Code picks the level" },
-          ]}
+          choices={[...efforts(), { id: "auto", label: "auto", note: "Claude Code picks the level" }]}
           current={settings.effort}
           onChoose={(id) => {
-            const level = EFFORT_LEVELS.find((known) => known === id)
+            const level = efforts().find((known) => known.id === id)
             // auto is Claude Code's own, so its /effort sets it.
-            if (level) pickEffort(level)
-            else props.onSubmit("/effort auto", [], () => {})
+            if (level) toEffort(pickEffort(level.id))
+            else props.onSubmit({ text: "/effort auto", images: [], to: null }, () => {})
           }}
           onClose={() => setDialog(null)}
         />

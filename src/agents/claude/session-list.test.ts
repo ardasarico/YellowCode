@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { cpSync, mkdtempSync, utimesSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../../json.ts"
 import { listSessions, readHeadTail, sessionEntry } from "./session-list.ts"
 
 const CWD = "/Users/user/project"
@@ -79,7 +79,9 @@ test("a session that starts with only an image is listed by its image label", ()
 
 test("listSessions keeps this project's main sessions, newest first", async () => {
   const copy = join(mkdtempSync(join(tmpdir(), "yellowcode-sessions-")), "-Users-user-project")
-  cpSync(join(import.meta.dir, "..", "..", "fixtures", "transcripts", "-Users-user-project"), copy, { recursive: true })
+  cpSync(join(import.meta.dir, "..", "..", "..", "fixtures", "transcripts", "-Users-user-project"), copy, {
+    recursive: true,
+  })
   const order = [
     "bookkeeping",
     "sidechain",

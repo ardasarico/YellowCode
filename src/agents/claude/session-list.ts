@@ -1,9 +1,9 @@
 import { readdir, stat } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { z } from "zod"
-import { parseJson } from "../protocol/json.ts"
-import { agentMessageLabel } from "../session/agent-message.ts"
-import { projectKey } from "./project-key.ts"
+import { parseJson } from "../../json.ts"
+import { agentMessageLabel } from "../../session/agent-message.ts"
+import { projectKey } from "../../project-key.ts"
 
 const WHOLE_LIMIT = 128 * 1024
 const PART_SIZE = 64 * 1024
@@ -14,7 +14,8 @@ export const CHAIN_TYPES = new Set(["user", "assistant", "attachment", "system"]
 
 export type HeadTail = { head: string[]; tail: string[] }
 
-export type SessionEntry = {
+// One transcript in a projects folder, as the list reads it.
+export type TranscriptEntry = {
   id: string
   path: string
   cwd: string
@@ -107,9 +108,6 @@ function oneLine(text: string | null): string {
     : ""
 }
 
-// Shown in place of a title when a session has no words to name it by.
-export const NO_PROMPT = "(no prompt)"
-
 function displayTitle(fields: TitleFields): string {
   const { customTitle, aiTitle, summary, firstPrompt, lastPrompt } = fields
   for (const text of [customTitle, aiTitle, summary, firstPrompt, lastPrompt]) {
@@ -119,7 +117,7 @@ function displayTitle(fields: TitleFields): string {
   return ""
 }
 
-export function sessionEntry(path: string, lines: HeadTail, modified: number): SessionEntry | null {
+export function sessionEntry(path: string, lines: HeadTail, modified: number): TranscriptEntry | null {
   const head = parseLines(lines.head)
   let cwd: string | null = null
   let firstChain: Line | null = null
@@ -161,7 +159,7 @@ export function sessionEntry(path: string, lines: HeadTail, modified: number): S
 }
 
 // A head that gives no entry is read again, four times longer, until it does or holds the whole file.
-async function readEntry(path: string, size: number, modified: number): Promise<SessionEntry | null> {
+async function readEntry(path: string, size: number, modified: number): Promise<TranscriptEntry | null> {
   try {
     for (let headSize = PART_SIZE; ; headSize *= 4) {
       // oxlint-disable-next-line no-await-in-loop
@@ -173,7 +171,7 @@ async function readEntry(path: string, size: number, modified: number): Promise<
   }
 }
 
-export async function listSessions(folder: string, cwd: string | null): Promise<SessionEntry[]> {
+export async function listSessions(folder: string, cwd: string | null): Promise<TranscriptEntry[]> {
   let names: string[]
   try {
     const dirents = await readdir(folder, { withFileTypes: true })
@@ -199,7 +197,7 @@ export async function listSessions(folder: string, cwd: string | null): Promise<
   const entries = await Promise.all(newest.map((file) => readEntry(file.path, file.size, file.modified)))
   const key = basename(folder)
   return entries.filter(
-    (entry): entry is SessionEntry =>
+    (entry): entry is TranscriptEntry =>
       entry !== null && (cwd === null ? projectKey(entry.cwd) === key : entry.cwd === cwd),
   )
 }

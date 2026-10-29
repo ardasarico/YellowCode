@@ -1,5 +1,7 @@
 import { createMemo, createSignal } from "solid-js"
-import type { McpConfig, McpServer } from "../../session/types.ts"
+import type { Agent } from "../../agent/agent.ts"
+import type { Capabilities } from "../../agent/capabilities.ts"
+import type { McpConfig, McpServerRow, McpState } from "../../agent/lists.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, names, title } from "../dialog/detail.ts"
 import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
@@ -8,14 +10,7 @@ import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
 import { SAVED_NOTICE } from "../format.ts"
 import type { Span } from "../notice.ts"
-import { MCP_GROUPS, type McpEntry, type McpState, mcpEntries } from "./servers.ts"
-
-// The live connection runs these; without them each action shows a notice. A rejection says what went wrong.
-export type McpActions = {
-  reconnect(name: string): Promise<void>
-  setEnabled(name: string, enabled: boolean): Promise<void>
-  login(name: string): Promise<void>
-}
+import { MCP_GROUPS, type McpEntry, mcpEntries } from "./servers.ts"
 
 const MORE_TOOLS = "tools-more"
 
@@ -33,18 +28,19 @@ const toolCount = (count: number) => (count === 1 ? "1 tool" : `${count} tools`)
 const reconnects = (state: McpState) => state !== "needs-login" && state !== "off"
 
 function listRow(entry: McpEntry): DialogRow {
-  const { mark, word, color } = look(entry.state)
+  const { state, name, label } = entry.row
+  const { mark, word, color } = look(state)
   const row: DialogRow = {
-    id: entry.server.name,
-    label: entry.label,
+    id: name,
+    label,
     tag: entry.tag,
-    search: `${entry.label} ${entry.tag}`,
+    search: `${label} ${entry.tag}`,
     marker: mark ? { text: mark, fg: color } : undefined,
-    labelColor: entry.state === "off" ? theme.panelFaint : undefined,
+    labelColor: state === "off" ? theme.panelFaint : undefined,
     valueColor: color,
   }
-  if (entry.state === "connected") return { ...row, value: toolCount(entry.tools.length), valueColor: theme.panelFaint }
-  if (entry.state === "needs-login") return { ...row, selectedValue: word }
+  if (state === "connected") return { ...row, value: toolCount(entry.tools.length), valueColor: theme.panelFaint }
+  if (state === "needs-login") return { ...row, selectedValue: word }
   return { ...row, value: word }
 }
 
@@ -67,7 +63,7 @@ function shownConfig(config: McpConfig): [string, string] {
 }
 
 function detailItems(entry: McpEntry, width: number, open: boolean): DialogItem[] {
-  const config = entry.server.config ? shownConfig(entry.server.config) : null
+  const config = entry.row.config ? shownConfig(entry.row.config) : null
   const tools =
     entry.tools.length > 0
       ? [
@@ -77,14 +73,16 @@ function detailItems(entry: McpEntry, width: number, open: boolean): DialogItem[
         ]
       : []
   return [
-    header(entry.label, stateSpan(entry.state)),
+    header(entry.row.label, stateSpan(entry.row.state)),
     blank("gap-head"),
     ...(entry.where ? fact("scope", "Scope", entry.where, width) : []),
-    ...(entry.server.error ? fact("error", "Error", entry.server.error, width, theme.error) : []),
+    ...(entry.row.error ? fact("error", "Error", entry.row.error, width, theme.error) : []),
     ...(config ? fact("config", config[0], config[1], width) : []),
     ...tools,
   ]
 }
+
+type McpCaps = Capabilities["mcp"]
 
 function stateActions(state: McpState): DialogRow[] {
   const off = { id: "off", label: "Turn off" }
@@ -95,30 +93,44 @@ function stateActions(state: McpState): DialogRow[] {
   return [{ id: "reconnect", label: "Reconnect" }, off]
 }
 
-function listFooter(entry: McpEntry | undefined): FooterAction[] {
-  const footer: FooterAction[] = [
-    { key: "↑↓", action: "select" },
-    { key: "→", action: "actions" },
-  ]
-  if (entry) footer.push({ key: "space", action: "on/off" })
-  if (entry && reconnects(entry.state)) footer.push({ key: "ctrl+r", action: "reconnect" })
+const ACTION_CAP: Partial<Record<string, keyof McpCaps>> = {
+  login: "login",
+  on: "toggle",
+  off: "toggle",
+  restart: "reconnect",
+  reconnect: "reconnect",
+}
+
+const offeredActions = (state: McpState, can: McpCaps) =>
+  stateActions(state).filter((action) => {
+    const cap = ACTION_CAP[action.id]
+    return cap !== undefined && can[cap]
+  })
+
+function listFooter(entry: McpEntry | undefined, can: McpCaps): FooterAction[] {
+  const footer: FooterAction[] = [{ key: "↑↓", action: "select" }]
+  if (offeredActions(entry?.row.state ?? "off", can).length > 0) footer.push({ key: "→", action: "actions" })
+  if (entry && can.toggle) footer.push({ key: "space", action: "on/off" })
+  if (entry && can.reconnect && reconnects(entry.row.state)) footer.push({ key: "ctrl+r", action: "reconnect" })
   return [...footer, { key: "esc", action: "close" }]
 }
 
 export function McpTab(props: {
   api: TabApi
-  servers: McpServer[] | null
-  // The session's tools, for servers without a tool list of their own.
-  tools: string[]
-  actions?: McpActions
+  // Null before the agent has listed them.
+  servers: McpServerRow[] | null
+  // Live only; without them each action shows a notice.
+  actions?: Agent["mcp"]
+  // The actions the agent has; the others are not offered.
+  can: McpCaps
 }) {
-  const entries = createMemo(() => mcpEntries(props.servers, props.tools))
+  const entries = createMemo(() => mcpEntries(props.servers))
   const [opened, setOpened] = createSignal<string | null>(null)
-  const entryFor = (row: DialogRow | undefined) => entries().find((entry) => entry.server.name === row?.id)
+  const entryFor = (row: DialogRow | undefined) => entries().find((entry) => entry.row.name === row?.id)
 
   const run = (entry: McpEntry, id: string) => {
     const actions = props.actions
-    const name = entry.server.name
+    const { name } = entry.row
     if (!actions) return props.api.notify(SAVED_NOTICE)
     const done =
       id === "reconnect" || id === "restart"
@@ -126,9 +138,11 @@ export function McpTab(props: {
         : id === "login"
           ? actions.login(name)
           : id === "on" || id === "off"
-            ? actions.setEnabled(name, id === "on")
+            ? actions.toggle(name, id === "on")
             : null
-    done?.catch((error: unknown) => props.api.notify(error instanceof Error ? error.message : String(error)))
+    void done?.then((outcome) => {
+      if (!outcome.ok) props.api.notify(outcome.problem)
+    })
   }
 
   return (
@@ -142,24 +156,25 @@ export function McpTab(props: {
       }}
       detail={(row, width) => {
         const entry = entryFor(row)
-        return entry ? detailItems(entry, width, opened() === entry.server.name) : []
+        return entry ? detailItems(entry, width, opened() === entry.row.name) : []
       }}
-      actions={(row) => stateActions(entryFor(row)?.state ?? "off")}
+      actions={(row) => offeredActions(entryFor(row)?.row.state ?? "off", props.can)}
       onAction={(row, action) => {
         const entry = entryFor(row)
         if (!entry) return
-        if (action.id === MORE_TOOLS) setOpened((name) => (name === entry.server.name ? null : entry.server.name))
+        if (action.id === MORE_TOOLS) setOpened((name) => (name === entry.row.name ? null : entry.row.name))
         else run(entry, action.id)
       }}
       onKey={(key, row) => {
         const entry = entryFor(row)
         if (!entry) return false
-        if (key.name === "space") run(entry, entry.state === "off" ? "on" : "off")
-        else if (key.ctrl && key.name === "r" && reconnects(entry.state)) run(entry, "reconnect")
+        const { state } = entry.row
+        if (key.name === "space" && props.can.toggle) run(entry, state === "off" ? "on" : "off")
+        else if (key.ctrl && key.name === "r" && props.can.reconnect && reconnects(state)) run(entry, "reconnect")
         else return false
         return true
       }}
-      footer={(row) => listFooter(entryFor(row))}
+      footer={(row) => listFooter(entryFor(row), props.can)}
     />
   )
 }

@@ -1,11 +1,12 @@
 import { type Accessor, createEffect, createMemo, createSignal, on, untrack } from "solid-js"
-import { type SessionTitle, titleSession } from "../session/titler.ts"
+import { type OneShot, type SessionTitle, titleSession } from "../session/titler.ts"
 import type { Session } from "../session/types.ts"
 
 // Refreshes the title after every user message; one request at a time, then once more if messages arrived meanwhile.
 // A message isCommand rules out (/model sonnet, /clear) names no work, so it neither asks nor counts.
 export function useSessionTitle(
   session: () => Session,
+  ask: OneShot,
   enabled: () => boolean,
   initial?: SessionTitle,
   isCommand: (text: string) => boolean = () => false,
@@ -33,7 +34,7 @@ export function useSessionTitle(
     again = false
     const asked = untrack(conversation)
     // A request that throws must not leave `running` set, or no later message would ever refresh the title.
-    const next = await titleSession(messages()).catch(() => null)
+    const next = await titleSession(messages(), ask).catch(() => null)
     // A title for the conversation before a /clear would name the new one.
     if (next && asked === untrack(conversation)) setTitle(next)
     running = false

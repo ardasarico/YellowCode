@@ -2,8 +2,7 @@ import { TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import type { AskMatrix } from "../../protocol/messages.ts"
-import { allowAnswers, denyTool, QUESTION_TO_CHAT } from "../../protocol/outgoing.ts"
+import type { Answers, Matrix } from "../../agent/ask.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut } from "../format.ts"
 import { covered } from "../images.ts"
@@ -26,15 +25,16 @@ const NOTE_GAP = 2
 // when ↑↓ change the row.
 type MatrixState = { row: number; cursor: number; answers: number[]; notes: string[] }
 
-function matrixAnswers(matrix: AskMatrix, state: Pick<MatrixState, "answers" | "notes">) {
-  const answers: Record<string, string> = {}
+function matrixAnswers(matrix: Matrix, state: Pick<MatrixState, "answers" | "notes">): Answers {
+  const values: Record<string, string[]> = {}
   const notes: Record<string, string> = {}
   matrix.rows.forEach((row, index) => {
-    answers[row.label] = matrix.scale[state.answers[index] ?? -1] ?? ""
+    const step = matrix.scale[state.answers[index] ?? -1]
+    values[row] = step === undefined ? [] : [step]
     const note = state.notes[index]?.trim()
-    if (note) notes[row.label] = note
+    if (note) notes[row] = note
   })
-  return { answers, notes }
+  return { values, fields: {}, notes, note: "" }
 }
 
 function Rule(props: { width: number }) {
@@ -62,7 +62,7 @@ function Step(props: { text: string; on: boolean; here: boolean; focused: boolea
 }
 
 // Rows answered on one shared scale, eight to a page or six stacked; ↓ past a page's last row opens the next one.
-export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
+export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
   const rows = () => props.matrix.rows
   const scale = () => props.matrix.scale
   const [state, setState] = createStore<MatrixState>(
@@ -75,13 +75,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   )
   const [noting, setNoting] = createSignal(false)
   const [draft, setDraft] = createSignal("")
-  const columns = createMemo(() =>
-    matrixColumns(
-      rows().map((row) => row.label),
-      scale(),
-      props.width,
-    ),
-  )
+  const columns = createMemo(() => matrixColumns(rows(), scale(), props.width))
   const labelWidth = () => columns().label + LABEL_EXTRA
   const stacked = () => columns().limits.some((limit) => limit < Infinity)
   const pageSize = () => (stacked() ? STACKED_PAGE : MATRIX_PAGE)
@@ -89,9 +83,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
   const shown = () => rows().slice(first(), first() + pageSize())
   const indicator = () =>
     rows().length > pageSize() ? `${first() + 1}–${first() + shown().length} of ${rows().length}` : ""
-  const labelRows = createMemo(() =>
-    rows().map((row) => wrapRows(row.label, stacked() ? props.width - 2 : columns().label)),
-  )
+  const labelRows = createMemo(() => rows().map((row) => wrapRows(row, stacked() ? props.width - 2 : columns().label)))
   const stepRows = createMemo(() => stackSteps(scale(), props.width - STEPS_INDENT + 1))
   // Every page takes the height of the tallest, so the ask does not jump.
   const pageHeight = (from: number) => {
@@ -132,8 +124,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
       const row = (state.row + step) % count
       if ((state.answers[row] ?? -1) < 0) return setState("row", row)
     }
-    const { answers, notes } = matrixAnswers(props.matrix, state)
-    props.onAnswer(allowAnswers(props.ask.requestId, { matrix: props.matrix }, answers, notes))
+    props.onAnswer({ type: "answers", answers: matrixAnswers(props.matrix, state) })
   }
   const openNote = () => {
     setDraft(state.notes[state.row] ?? "")
@@ -169,7 +160,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: AskMatrix }) {
       }
     }
     const last = rows().length - 1
-    if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, QUESTION_TO_CHAT))
+    if (key.name === "escape") props.onAnswer({ type: "declined", chat: true })
     else if (key.name === "up") setState("row", Math.max(0, state.row - 1))
     else if (key.name === "down") setState("row", Math.min(last, state.row + 1))
     else if (key.name === "left" || key.name === "right") {

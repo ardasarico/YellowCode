@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test"
-import { liveProvider } from "../input/provider.ts"
+import { liveProvider } from "../agents/claude/provider.ts"
 import { createSession } from "../session/session.ts"
-import { controlProblem, initSettings, setKnobs, settings, stepModel } from "../session/settings.ts"
-import { DEFAULT_SETTINGS, type PermissionMode } from "../session/settings-file.ts"
+import { controlProblem, setKnobs, settings, stepModel } from "../session/settings.ts"
+import { DEFAULT_MODE } from "../session/settings-file.ts"
 import { createControls, SEND_DELAY_MS } from "./controls.ts"
 import type { Requests } from "./requests.ts"
 
-const LAUNCH = { mode: DEFAULT_SETTINGS.permissionMode, bypass: false }
+const LAUNCH = { mode: DEFAULT_MODE, bypass: false }
 
 type Sent = { subtype: string; line: string; resolve: (response: unknown) => void; reject: (error: Error) => void }
 
@@ -36,20 +36,28 @@ const later = () => Bun.sleep(SEND_DELAY_MS + 50)
 function start() {
   setKnobs({ model: null, effort: null, ultracode: false })
   const { requests, sent } = fakeRequests()
-  createControls({ requests, provider: liveProvider(requests), session: createSession(), launch: LAUNCH }).initialized({
-    commands: [],
-    models,
+  const controls = createControls({
+    requests,
+    provider: liveProvider(() => Promise.resolve([])),
+    session: createSession(),
+    launch: LAUNCH,
   })
+  controls.initialized({ commands: [], models })
   const last = (subtype: string) => sent.findLast((request) => request.subtype === subtype)
   last("get_settings")?.resolve(applied("claude-opus-5-5"))
-  return { sent, last }
+  // Shift+→, as the App does it.
+  const step = () => {
+    const id = stepModel(1, null)
+    if (id) controls.setModel(id)
+  }
+  return { sent, last, controls, step }
 }
 
 test("a model change goes out once, and the refresh after it sends nothing more", async () => {
-  const { sent, last } = start()
+  const { sent, last, step } = start()
   await later()
   expect(settings.model).toBe("claude-opus-5-5")
-  stepModel(1, null)
+  step()
   await later()
   expect(sent.filter((request) => request.subtype === "set_model")).toHaveLength(1)
   last("set_model")?.resolve(undefined)
@@ -66,9 +74,9 @@ test("a model change goes out once, and the refresh after it sends nothing more"
 })
 
 test("a refused model change shows claude's model again and says why", async () => {
-  const { last } = start()
+  const { last, step } = start()
   await later()
-  stepModel(1, null)
+  step()
   await later()
   last("set_model")?.reject(new Error("Model 'sonnet' not found"))
   await Bun.sleep(1)
@@ -78,11 +86,9 @@ test("a refused model change shows claude's model again and says why", async () 
   expect(settings.model).toBe("claude-opus-5-5")
 })
 
-// initSettings, unlike the Config tab, saves nothing to disk.
-const pick = (permissionMode: PermissionMode) => initSettings({ ...DEFAULT_SETTINGS, permissionMode })
-
 test("only the permission mode stepping stops on goes out, and bypassPermissions without the flag waits for a restart", async () => {
-  const { sent } = start()
+  const { sent, controls } = start()
+  const pick = (mode: string) => controls.setMode(mode)
   const modes = () =>
     sent
       .filter((request) => request.subtype === "set_permission_mode")
@@ -93,12 +99,11 @@ test("only the permission mode stepping stops on goes out, and bypassPermissions
   await later()
   expect(modes()).toEqual(["dontAsk"])
   expect(controlProblem()?.text).not.toBe("bypassPermissions applies from the next start")
-  pick("manual")
+  pick("default")
   pick("bypassPermissions")
   await later()
   expect(modes()).toEqual(["dontAsk"])
   expect(controlProblem()?.text).toBe("bypassPermissions applies from the next start")
-  pick(DEFAULT_SETTINGS.permissionMode)
 })
 
 test("the controls of a claude that was replaced send nothing more, and its late replies change nothing", async () => {
@@ -106,7 +111,7 @@ test("the controls of a claude that was replaced send nothing more, and its late
   const { requests, sent } = fakeRequests()
   const controls = createControls({
     requests,
-    provider: liveProvider(requests),
+    provider: liveProvider(() => Promise.resolve([])),
     session: createSession(),
     launch: LAUNCH,
   })
@@ -115,7 +120,7 @@ test("the controls of a claude that was replaced send nothing more, and its late
   sent.find((request) => request.subtype === "get_settings")?.resolve(applied("claude-sonnet-5-5"))
   await Bun.sleep(1)
   expect(settings.model).toBeNull()
-  setKnobs({ model: "claude-opus-5-5" })
+  controls.setModel("claude-opus-5-5")
   await later()
   expect(sent.map((request) => request.subtype)).toEqual(["get_settings", "file_suggestions"])
 })

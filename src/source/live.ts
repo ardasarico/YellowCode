@@ -1,11 +1,12 @@
 import { endSession, feed, openHeldAsk } from "../agents/claude/translate.ts"
-import type { LiveProvider } from "../input/provider.ts"
+import type { LiveProvider } from "../agents/claude/provider.ts"
 import { log } from "../log/log.ts"
 import { commandRows, modelRows, OWN_ASK } from "../protocol/messages.ts"
 import { allowTool, initializeRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import type { SessionStore } from "../session/session.ts"
-import type { PermissionMode, StoredSettings } from "../session/settings-file.ts"
+import type { ModeId } from "../agent/ids.ts"
+import type { StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
 import { type AskServer, createAskServer } from "./ask-server.ts"
 import { claudeArgs, launchOf, type Spawn } from "./claude-args.ts"
@@ -39,6 +40,12 @@ export type Connection = {
   // Stops claude and leaves the session as it is (another session opens, the app quits); resolves once the claude
   // process has ended, or after CLOSE_WAIT_MS.
   close(): Promise<void>
+}
+
+// False once claude has exited or its pipe closed.
+export function accepts(live: Connection): boolean {
+  const exit = live.source.exitNow()
+  return exit.code === null && exit.signal === null && !exit.closed
 }
 
 const invalidCounts = new Map<string, number>()
@@ -125,21 +132,23 @@ export function connect(options: {
   cwd: string
   session: SessionStore
   spawn: Spawn
-  stored: Pick<StoredSettings, "thinking" | "permissionMode">
+  stored: { thinking: StoredSettings["thinking"]; permissionMode: ModeId }
   provider: LiveProvider
   // The knobs of a conversation claude runs again, sent before anything else.
   carry?: Knobs
+  // What claude says it uses, as it says it.
+  onKnobs?: (knobs: Partial<Knobs>) => void
   // The mode a restarted session goes on in; the saved one otherwise.
-  mode?: PermissionMode
+  mode?: ModeId
 }): Connection {
-  const { cwd, session, spawn, stored, provider, carry } = options
+  const { cwd, session, spawn, stored, provider, carry, onKnobs } = options
   const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
   const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn)])
   const requests = createRequests((line) => source.send(line))
-  const controls = createControls({ requests, provider, session, launch })
+  const controls = createControls({ requests, provider, session, launch, onKnobs })
   const mcp = createMcpControls({ requests, session })
   controls.follow(mcp)
   const extensions = createExtensions({ requests, provider, session, cwd })

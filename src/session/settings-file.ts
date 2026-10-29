@@ -11,28 +11,11 @@ import {
 import { dirname } from "node:path"
 import { createSignal } from "solid-js"
 import { z } from "zod"
+import type { AgentKindId, ModeId } from "../agent/ids.ts"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { themes } from "../theme/theme.ts"
-
-export const PERMISSION_MODES = ["auto", "manual", "acceptEdits", "plan", "bypassPermissions", "dontAsk"] as const
-export type PermissionMode = (typeof PERMISSION_MODES)[number]
-
-// YellowCode says "manual" for what Claude Code calls "default".
-export function protocolMode(mode: PermissionMode): string {
-  return mode === "manual" ? "default" : mode
-}
-
-// The saved form of a mode claude reports, if it is one YellowCode can start claude in.
-export function savedMode(mode: string | null): PermissionMode | null {
-  const saved = mode === "default" ? "manual" : mode
-  return PERMISSION_MODES.find((known) => known === saved) ?? null
-}
-
-export function modeLabel(mode: string): string {
-  return mode === "default" ? "manual" : mode
-}
 
 export type SidebarSetting = "auto" | "shown" | "hidden"
 export type ThinkingSetting = "summarized" | "hidden"
@@ -42,15 +25,18 @@ export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
 export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
+// What YellowCode keeps for one agent, under the agent's id.
+export type AgentPrefs = { defaultMode?: ModeId }
+
 export type StoredSettings = {
   theme: string
   sidebar: SidebarSetting
   thinking: ThinkingSetting
   sessionTitle: TitleSource
-  permissionMode: PermissionMode
   editor: Editor
   notifications: NotificationSetting
   disabledMods: string[]
+  agents: Record<AgentKindId, AgentPrefs>
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -58,11 +44,23 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   sidebar: "auto",
   thinking: "summarized",
   sessionTitle: "yellowcode",
-  permissionMode: "auto",
   editor: "default",
   notifications: "all",
   disabledMods: [],
+  agents: {},
 }
+
+export const DEFAULT_MODE: ModeId = "auto"
+
+// The mode the user saved for the agent's new sessions.
+export function defaultModeIn(settings: StoredSettings, agent: AgentKindId): ModeId {
+  return settings.agents[agent]?.defaultMode ?? DEFAULT_MODE
+}
+
+// Files written before agents had their own entries keep Claude's saved mode at the top; read as Claude's entry until
+// those files are gone. Until each agent says its own modes, only Claude's entry is checked against mode names.
+const LEGACY_MODE = "permissionMode"
+const CLAUDE_ENTRY = "claude"
 
 const Stored = z.record(z.string(), z.unknown())
 
@@ -70,11 +68,14 @@ const Theme = z.string().refine((id) => themes().some((theme) => theme.id === id
 const Sidebar = z.enum(["auto", "shown", "hidden"])
 const Thinking = z.enum(["summarized", "hidden"])
 const SessionTitle = z.enum(["yellowcode", "claude-code"])
-// "default" is the protocol's name for the mode the CLI calls "manual".
-const Permission = z.preprocess((mode) => (mode === "default" ? "manual" : mode), z.enum(PERMISSION_MODES))
+// Claude's modes by its own ids; earlier files saved "default" under the name the user sees, "manual".
+const CLAUDE_MODE_IDS = ["auto", "default", "acceptEdits", "plan", "bypassPermissions", "dontAsk"] as const
+const Permission = z.preprocess((mode) => (mode === "manual" ? "default" : mode), z.enum(CLAUDE_MODE_IDS))
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
 const DisabledMods = z.array(z.string())
+const AgentEntry = z.object({ defaultMode: z.string().optional() })
+const ClaudeEntry = z.object({ defaultMode: Permission.optional() })
 
 export type LoadedSettings = {
   settings: StoredSettings
@@ -103,11 +104,38 @@ function parseJsonc(text: string): unknown {
 
 function salvage(text: string): Record<string, unknown> {
   const stored: Record<string, unknown> = {}
-  for (const key of Object.keys(DEFAULT_SETTINGS)) {
+  for (const key of [...Object.keys(DEFAULT_SETTINGS), LEGACY_MODE]) {
     const match = new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*)"`).exec(text)
     if (match) stored[key] = match[1]
   }
+  // An agent's entry as saveSettings writes it.
+  const agents: Record<string, unknown> = {}
+  for (const [, agent = "", mode] of text.matchAll(/"([^"\\]+)"\s*:\s*\{\s*"defaultMode"\s*:\s*"([^"\\]*)"/g))
+    agents[agent] = { defaultMode: mode }
+  if (Object.keys(agents).length > 0) stored["agents"] = agents
   return stored
+}
+
+// Each agent's entry stands alone, so a bad one leaves the others.
+function readAgents(stored: Record<string, unknown>, invalid: string[]): StoredSettings["agents"] | undefined {
+  let agents: StoredSettings["agents"] | undefined
+  if ("agents" in stored) {
+    const entries = Stored.safeParse(stored["agents"])
+    if (entries.success) {
+      agents = {}
+      for (const [agent, entry] of Object.entries(entries.data)) {
+        const parsed = (agent === CLAUDE_ENTRY ? ClaudeEntry : AgentEntry).safeParse(entry)
+        if (parsed.success) agents[agent] = parsed.data
+        else invalid.push(`agents.${agent}`)
+      }
+    } else invalid.push("agents")
+  }
+  const claude = agents?.[CLAUDE_ENTRY]
+  if (!(LEGACY_MODE in stored) || claude?.defaultMode !== undefined) return agents
+  const mode = Permission.safeParse(stored[LEGACY_MODE])
+  if (mode.success) return { ...agents, [CLAUDE_ENTRY]: { ...claude, defaultMode: mode.data } }
+  invalid.push(LEGACY_MODE)
+  return agents
 }
 
 function readStored(stored: Record<string, unknown>) {
@@ -123,7 +151,8 @@ function readStored(stored: Record<string, unknown>) {
   read("sidebar", Sidebar)
   read("thinking", Thinking)
   read("sessionTitle", SessionTitle)
-  read("permissionMode", Permission)
+  const agents = readAgents(stored, invalid)
+  if (agents) found.agents = agents
   read("editor", EditorSchema)
   read("notifications", Notifications)
   read("disabledMods", DisabledMods)

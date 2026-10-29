@@ -39,6 +39,10 @@ type NoticeState = {
   backgroundable: boolean
   // Shift+Tab changes the permission mode only with Claude Code running.
   modes: boolean
+  // F4's switch, under the agent's name for it.
+  extraEffort: string | null
+  // The agent reports usage limits.
+  limits: boolean
   now: number
 }
 
@@ -55,9 +59,7 @@ export const modSpan = (notice: ModNotice): Span =>
   notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }
 export const startingNotice = (): Span => ({ text: "Starting Claude Code…", fg: theme.muted })
 
-const HINTS = "F3 sidebar · F4 ultracode"
-// With Claude Code gone F4 has nothing to change.
-const ENDED_HINTS = "F3 sidebar"
+const SIDEBAR_HINT = "F3 sidebar"
 const WARN_AT = 0.85
 
 const LIMIT_NAMES: Record<string, string> = {
@@ -101,7 +103,7 @@ function leftSpans(state: NoticeState): Span[] {
   if (state.mcpFailure) return [{ text: `✗ ${state.mcpFailure} failed to connect`, fg: theme.error }]
   if (state.settingsProblem) return [problemNotice(state.settingsProblem)]
   if (state.mod) return [modSpan(state.mod)]
-  const warning = warningText(state.usage, state.now)
+  const warning = state.limits ? warningText(state.usage, state.now) : null
   if (warning) return [warning]
   if (state.asking) return []
   if (live && state.goingBack) return [{ text: "Going back in the conversation…", fg: theme.muted }]
@@ -116,7 +118,9 @@ function leftSpans(state: NoticeState): Span[] {
 
 export function noticeFor(state: NoticeState): Notice {
   const ended = state.replay === null && state.readOnly === null && state.status === "ended"
-  const keys = ended ? ENDED_HINTS : state.modes ? `shift+tab mode · ${HINTS}` : HINTS
+  // With the agent gone F4 has nothing to change.
+  const fkeys = state.extraEffort && !ended ? `${SIDEBAR_HINT} · F4 ${state.extraEffort}` : SIDEBAR_HINT
+  const keys = !ended && state.modes ? `shift+tab mode · ${fkeys}` : fkeys
   const hints = state.backgroundable
     ? "ctrl+b runs it in the background"
     : state.interruptible

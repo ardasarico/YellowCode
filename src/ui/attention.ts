@@ -1,10 +1,9 @@
 import { CliRenderEvents, type CliRenderer } from "@opentui/core"
 import { createEffect, createMemo, createSignal, on, onCleanup, type Accessor } from "solid-js"
 import { log } from "../log/log.ts"
-import { OWN_ASK } from "../protocol/messages.ts"
 import type { NotificationSetting } from "../session/settings-file.ts"
 import type { Session } from "../session/types.ts"
-import { pendingAsk } from "./ask/ask-surface.tsx"
+import { asksQuestions, pendingAsk } from "./ask/ask-surface.tsx"
 
 export type Attention =
   | { state: "idle" | "working"; id: null }
@@ -15,8 +14,7 @@ export type Attention =
 export function attentionState(session: Session): Attention {
   const ask = pendingAsk(session)
   if (ask) {
-    const question = ask.toolName === "AskUserQuestion" || ask.toolName === OWN_ASK
-    return { state: "blocked", id: ask.id, kind: question ? "question" : "permission", tool: ask.displayName }
+    return { state: "blocked", id: ask.id, kind: asksQuestions(ask) ? "question" : "permission", tool: ask.displayName }
   }
   if (session.status === "running") return { state: "working", id: null }
   for (let index = session.items.length - 1; index >= 0; index--) {

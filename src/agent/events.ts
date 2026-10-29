@@ -16,7 +16,8 @@ export type SessionInfo = {
   commands: string[]
   subagents: string[]
   plugins: LoadedPlugin[]
-  // Where the agent's sign-in comes from, by name only ("none", an env variable's name).
+  // Where the agent's sign-in comes from, by name only (an env variable's name); "none" when it is no key, as with a
+  // subscription.
   authSource: string
 }
 
@@ -168,16 +169,20 @@ type Events =
       // The agent's own name, kept for display and mods.
       name: string
       kind: ToolKind
+      // The name the row shows; an MCP tool's own part, `mcp` naming its server.
+      title: string
       mcp: { server: string; tool: string } | null
       quiet: boolean
     }
   | { type: "tool.input.delta"; id: ToolId; text: string }
-  // The call's whole input is known. Sent again, it updates the call; `kind` and `name` change it when not null.
+  // The call's whole input is known. Sent again, it updates the call; `kind`, `name` and `title` change it when not null.
+  // The MCP server stays the one `tool.start` named.
   | {
       type: "tool.called"
       id: ToolId
       kind: ToolKind | null
       name: string | null
+      title: string | null
       input: unknown
       // One line for the row: a path, a command, a query.
       summary: string

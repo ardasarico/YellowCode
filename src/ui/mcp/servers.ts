@@ -1,15 +1,12 @@
-import type { McpServer } from "../../session/types.ts"
+import type { McpPlace, McpServerRow, McpState } from "../../agent/lists.ts"
 
-export type McpState = "failed" | "needs-login" | "connecting" | "connected" | "off" | "unknown"
 export type McpGroup = "project" | "user" | "other"
 
 export type McpEntry = {
-  server: McpServer
-  label: string
+  row: McpServerRow
   tag: string
   group: McpGroup
   where: string
-  state: McpState
   tools: string[]
 }
 
@@ -19,16 +16,6 @@ export const MCP_GROUPS: [McpGroup, string][] = [
   ["other", "Other"],
 ]
 
-// MCP tool names carry the server name with every character outside [A-Za-z0-9_-] replaced by `_`.
-export const toolPrefix = (server: string) => `mcp__${server.replace(/[^A-Za-z0-9_-]/g, "_")}__`
-
-const STATES: Record<string, McpState> = {
-  failed: "failed",
-  "needs-auth": "needs-login",
-  pending: "connecting",
-  connected: "connected",
-  disabled: "off",
-}
 const RANK: Record<McpState, number> = {
   failed: 0,
   "needs-login": 1,
@@ -38,39 +25,24 @@ const RANK: Record<McpState, number> = {
   off: 3,
 }
 
-// Claude Code lists the dynamic scope as its built-in servers.
-const TAGS: Record<string, string> = { claudeai: "claude.ai", dynamic: "built-in", enterprise: "managed" }
+type Placement = Pick<McpEntry, "group" | "tag" | "where">
 
-function placement(origin: string | null): Pick<McpEntry, "group" | "tag" | "where"> {
-  if (origin === "project") return { group: "project", tag: "shared", where: "This project · shared" }
-  if (origin === "local") return { group: "project", tag: "", where: "This project · only you" }
-  if (origin === "user") return { group: "user", tag: "", where: "All projects" }
-  const tag = (origin && TAGS[origin]) ?? origin ?? ""
+const PLACEMENTS: Partial<Record<McpPlace, Placement>> = {
+  "project-shared": { group: "project", tag: "shared", where: "This project · shared" },
+  "project-private": { group: "project", tag: "", where: "This project · only you" },
+  everywhere: { group: "user", tag: "", where: "All projects" },
+}
+
+const TAGS: Partial<Record<McpPlace, string>> = { builtin: "built-in", managed: "managed" }
+
+function placement(row: McpServerRow): Placement {
+  const fixed = PLACEMENTS[row.place]
+  if (fixed) return fixed
+  const tag = TAGS[row.place] ?? row.origin ?? ""
   return { group: "other", tag, where: tag }
 }
 
-// "plugin:figma:figma" is figma, "claude.ai Gmail" is Gmail; the tag says where they come from.
-export function shortName(name: string): string {
-  return /^plugin:[^:]+:(.+)$/.exec(name)?.[1] ?? name.replace(/^claude\.ai /, "")
-}
+const entryOf = (row: McpServerRow): McpEntry => ({ row, tools: row.tools ?? [], ...placement(row) })
 
-// `tools` is the session's tool list, for a server whose own list claude has not reported.
-export function mcpEntries(servers: McpServer[] | null, tools: string[]): McpEntry[] {
-  return (servers ?? [])
-    .map((server) => {
-      const prefix = toolPrefix(server.name)
-      const own =
-        server.tools ?? tools.filter((tool) => tool.startsWith(prefix)).map((tool) => tool.slice(prefix.length))
-      const { group, tag, where } = placement(server.source ?? server.scope)
-      return {
-        server,
-        label: shortName(server.name),
-        tag,
-        group,
-        where,
-        state: STATES[server.status] ?? "unknown",
-        tools: own,
-      }
-    })
-    .toSorted((a, b) => RANK[a.state] - RANK[b.state])
-}
+export const mcpEntries = (rows: McpServerRow[] | null): McpEntry[] =>
+  (rows ?? []).map(entryOf).toSorted((a, b) => RANK[a.row.state] - RANK[b.row.state])

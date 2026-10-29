@@ -1,28 +1,27 @@
 import { createSignal, onCleanup } from "solid-js"
-import { matchSkills, SKILL_GROUPS, type Skill } from "../../session/skills.ts"
+import type { Agent } from "../../agent/agent.ts"
+import type { SkillRow } from "../../agent/lists.ts"
+import { matchSkills, SKILL_GROUPS } from "../../session/skills.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog, type FooterAction } from "../dialog/dialog.tsx"
 import type { DialogRow, DialogSection } from "../dialog/list.ts"
 import { SAVED_NOTICE } from "../format.ts"
-
-// The live connection runs this; without it Space only shows the notice. A rejection says what went wrong.
-export type SkillActions = { setEnabled(skill: Skill, enabled: boolean): Promise<void> }
 
 const WIDTH = 96
 const MIN_HEIGHT = 14
 const NOTICE_MS = 4000
 
 // Space types into the search once it has text.
-const footer = (query: string, locked: boolean): FooterAction[] => [
+const footer = (query: string, toggles: boolean): FooterAction[] => [
   { key: "↑↓", action: "select" },
   { key: "enter", action: "use", needsRow: true },
-  ...(query || locked ? [] : [{ key: "space", action: "on/off", needsRow: true }]),
+  ...(query || !toggles ? [] : [{ key: "space", action: "on/off", needsRow: true }]),
   { key: "esc", action: "close" },
 ]
 
-function skillRow(skill: Skill, uses: number): DialogRow {
+function skillRow(skill: SkillRow, uses: number): DialogRow {
   const row: DialogRow = {
-    id: skill.name,
+    id: skill.id,
     label: skill.label,
     tag: skill.plugin ?? undefined,
     detail: skill.description,
@@ -38,17 +37,20 @@ function skillRow(skill: Skill, uses: number): DialogRow {
 }
 
 // Without a search, the skills used this session come first in their group, the most used first.
-const skillSections = (skills: Skill[], uses: Map<string, number>, usedFirst: boolean): DialogSection[] =>
+const skillSections = (skills: SkillRow[], uses: Map<string, number>, usedFirst: boolean): DialogSection[] =>
   SKILL_GROUPS.map(([group, title]) => {
     const inGroup = skills.filter((skill) => skill.group === group)
-    const ordered = usedFirst ? inGroup.toSorted((a, b) => (uses.get(b.name) ?? 0) - (uses.get(a.name) ?? 0)) : inGroup
-    return { title, rows: ordered.map((skill) => skillRow(skill, uses.get(skill.name) ?? 0)) }
+    const ordered = usedFirst ? inGroup.toSorted((a, b) => (uses.get(b.id) ?? 0) - (uses.get(a.id) ?? 0)) : inGroup
+    return { title, rows: ordered.map((skill) => skillRow(skill, uses.get(skill.id) ?? 0)) }
   }).filter((section) => section.rows.length > 0)
 
 export function SkillsDialog(props: {
-  skills: Skill[]
+  skills: SkillRow[]
   uses: Map<string, number>
-  actions?: SkillActions
+  // Live only; without it Space only shows the notice.
+  actions?: Agent["skills"]
+  // The agent turns skills on and off.
+  toggles: boolean
   onUse: (command: string) => void
   onClose: () => void
 }) {
@@ -65,7 +67,7 @@ export function SkillsDialog(props: {
     setNotice(text)
     timer = setTimeout(() => setNotice(undefined), NOTICE_MS)
   }
-  const skillOf = (row: DialogRow | undefined) => props.skills.find((skill) => skill.name === row?.id)
+  const skillOf = (row: DialogRow | undefined) => props.skills.find((skill) => skill.id === row?.id)
 
   return (
     <Dialog
@@ -74,17 +76,17 @@ export function SkillsDialog(props: {
       sections={skillSections(props.skills, props.uses, true)}
       filter={(_, query) => skillSections(matchSkills(props.skills, query), props.uses, query === "")}
       searchPlaceholder="Search skills"
-      footer={(row, query) => footer(query, skillOf(row)?.locked === true)}
+      footer={(row, query) => footer(query, props.toggles && skillOf(row)?.locked !== true)}
       footerStyle="keys"
       notice={notice()}
       view="list"
       minHeight={MIN_HEIGHT}
       onEnter={(row) => {
         const skill = skillOf(row)
-        if (skill) props.onUse(skill.command)
+        if (skill && skill.command !== null) props.onUse(skill.command)
       }}
       onKey={(key, row, query) => {
-        if (key.name !== "space" || query) return false
+        if (key.name !== "space" || query || !props.toggles) return false
         const skill = skillOf(row)
         if (!skill) return true
         if (skill.locked) {
@@ -92,9 +94,9 @@ export function SkillsDialog(props: {
           return true
         }
         if (props.actions)
-          props.actions
-            .setEnabled(skill, !skill.enabled)
-            .catch((error: unknown) => showNotice(error instanceof Error ? error.message : String(error)))
+          void props.actions.toggle(skill.id, !skill.enabled).then((outcome) => {
+            if (!outcome.ok) showNotice(outcome.problem)
+          })
         else showNotice(SAVED_NOTICE)
         return true
       }}

@@ -1,6 +1,7 @@
 import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createEffect, createMemo, createSignal, Index, Match, onCleanup, Show, Switch } from "solid-js"
+import type { Agent } from "../../agent/agent.ts"
 import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut, SAVED_NOTICE } from "../format.ts"
@@ -217,8 +218,12 @@ export function AgentView(props: {
   selected: string
   onSelect: (id: string) => void
   onClose: () => void
-  onStop?: (taskId: string) => Promise<void>
-  // Starts a message to the agent and closes the view; returns why it cannot, if so.
+  // Without it nothing can be stopped.
+  tasks?: Pick<Agent["tasks"], "stop">
+  // False when the agent cannot stop a task at all; x is not offered then.
+  canStop: boolean
+  // Starts a message to the agent and closes the view; returns why it cannot, if so. None when the agent takes no
+  // messages.
   onMessage?: (id: string) => string | null
   width: number
   height: number
@@ -262,9 +267,9 @@ export function AgentView(props: {
   }
   // The row changes when claude reports the task stopped, so only a failed request shows anything.
   const stop = (target: TreeNode, taskId: string) => {
-    if (!props.onStop) return showNotice(SAVED_NOTICE)
-    props.onStop(taskId).catch((error: unknown) => {
-      showNotice(`Cannot stop ${target.name}: ${error instanceof Error ? error.message : String(error)}`)
+    if (!props.tasks) return showNotice(SAVED_NOTICE)
+    void props.tasks.stop(taskId).then((outcome) => {
+      if (!outcome.ok) showNotice(`Cannot stop ${target.name}: ${outcome.problem}`)
     })
   }
 
@@ -300,7 +305,7 @@ export function AgentView(props: {
       const current = node()
       const why = current?.kind === "agent" ? props.onMessage?.(current.id) : null
       if (why) showNotice(why)
-    } else if (key.name === "x") {
+    } else if (key.name === "x" && props.canStop) {
       const current = node()
       const taskId = current && stoppable(current) ? taskIdOf(props.session, current) : null
       if (current && taskId) {
@@ -346,11 +351,11 @@ export function AgentView(props: {
           width={pageWidth()}
           stop={(() => {
             const current = node()
-            return current !== undefined && stoppable(current)
+            return props.canStop && current !== undefined && stoppable(current)
           })()}
           message={(() => {
             const current = node()
-            return current !== undefined && messageable(props.session, current)
+            return props.onMessage !== undefined && current !== undefined && messageable(props.session, current)
           })()}
         />
       </box>

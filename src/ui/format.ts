@@ -1,5 +1,7 @@
 // What an action Claude Code would run says when no claude is running (a replay or a saved conversation).
 export const SAVED_NOTICE = "Not available in a saved conversation"
+// Shown in place of a title when a session has no words to name it by.
+export const NO_PROMPT = "(no prompt)"
 
 export function formatClock(ms: number): string {
   const date = new Date(ms)
@@ -133,9 +135,4 @@ export function mcpTool(name: string): { server: string; tool: string } | null {
   const [prefix, server, ...rest] = name.split("__")
   const tool = rest.join("__")
   return prefix === "mcp" && server && tool ? { server, tool } : null
-}
-
-export function toolLabel(name: string): string {
-  const mcp = mcpTool(name)
-  return mcp ? `${mcp.server}/${mcp.tool}` : name
 }

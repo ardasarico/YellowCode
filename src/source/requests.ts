@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { errorResponse } from "../protocol/outgoing.ts"
 
 export class RequestError extends Error {}

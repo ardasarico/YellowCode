@@ -5,6 +5,7 @@ import { type Accessor, createEffect, createSignal, Index, type JSX, onCleanup, 
 import { readClipboard } from "../input/clipboard.ts"
 import type { Draft } from "../input/draft.ts"
 import { loadImage } from "../input/image-file.ts"
+import type { ModeRow } from "../agent/lists.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
@@ -254,10 +255,11 @@ export type StatusLineProps = {
   asking: boolean
   unfoldable: boolean
   permissionMode?: string | null
+  modes: ModeRow[]
 }
 
 function InfoLineBase(props: StatusLineProps) {
-  const mode = () => modeWord(props.permissionMode ?? null)
+  const mode = () => modeWord(props.permissionMode ?? null, props.modes)
   const modeWidth = () => (mode() ? Bun.stringWidth(mode()?.text ?? "") + 2 : 0)
   const label = () =>
     props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - modeWidth() - contextWidth(props.context)) : ""
@@ -434,6 +436,7 @@ function PromptBarBase(props: PromptBarProps) {
         agents={props.agents ?? false}
         shells={props.shells}
         permissionMode={props.permissionMode}
+        modes={props.provider.modes()}
         asking={props.ask !== undefined}
         unfoldable={unfoldable()}
       />

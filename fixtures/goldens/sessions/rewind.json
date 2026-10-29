@@ -3,60 +3,60 @@
     "26d45d307520",
     "771ff67ba08c",
     "919e98d93ef7",
-    "97eb9a87d840",
-    "e95db7f2a19c",
-    "8e246673bb83",
-    "fd225d7e1e57",
-    "9d945be8df52",
-    "e8806ae55df9",
-    "f1631403b072",
-    "44d4a783fd79",
-    "bf77017c413e",
-    "cba77f38433a",
-    "c3be9c247949",
-    "b5dc2cab4420",
-    "8a9a91b910f4",
-    "d78bcc4bfd7c",
-    "6bc0bfc99b49",
-    "0b145702cca6",
-    "aa0917b1d1f1",
-    "b1da4f1bc242",
-    "0c5ea2745be0",
-    "7eb985892f13",
-    "0e6fd2350257",
-    "fe5cad4820d4",
-    "698b8a53fe4b",
-    "f61424a93685",
-    "fbd2ca47c463",
-    "0fffc671efc6",
-    "69b4293064b6",
-    "574ea16a1faf",
-    "973e2bc84e0e",
-    "60a419e33213",
-    "4b6c0b58be21",
-    "84129f823348",
-    "042f2f0b900c",
-    "582741832232",
-    "7301496679e2",
-    "3142712fc320",
-    "fa0d2e59cd1c",
-    "369098dcdbb4",
-    "d61d00bbca70",
-    "419c1f37efb0",
-    "d889613b65cd",
-    "a0954387e210",
-    "6eb68992dd6a",
-    "9ff0837c10b1",
-    "73b78e46a792",
-    "280a5d3e42c6",
-    "3ffad7b6073d",
-    "a339d5b3c92f",
-    "55f24fc7ba25",
-    "01e5821fd508",
-    "78a2b182a152",
-    "9398f49bc9fb",
-    "91ec01e0c710",
-    "4e889cb102e9"
+    "2f509b509e98",
+    "9833dabe7c1f",
+    "3494d4dde794",
+    "305a84cf3ba4",
+    "714bc7b113f9",
+    "ce19a0a9e354",
+    "291236561022",
+    "27b175b77f72",
+    "0591211bca7a",
+    "83c30e970d70",
+    "05d0951e81ec",
+    "82eb48ddcb08",
+    "bc7320d16422",
+    "3e83c0a75c86",
+    "ae7d88f9d7e7",
+    "7f649d6f6e7e",
+    "54118495427a",
+    "bdf0e4125e1c",
+    "c3c913e600c1",
+    "9e46cfc198f8",
+    "b45d2111753a",
+    "b07620c10abf",
+    "60528d141510",
+    "9aa706e1ebb5",
+    "59fb6c9d0ec0",
+    "2d912a37d62f",
+    "7c7216186714",
+    "2a4c62585317",
+    "9330889f9145",
+    "9a6f2ab23a39",
+    "b2220a684027",
+    "803480f05e1c",
+    "e93956c9c4c8",
+    "157b1612be54",
+    "ebe28cf5f93c",
+    "c8047c6cbc78",
+    "bbdcd17c71b8",
+    "c4b0c00bcc3f",
+    "59190e5a2e09",
+    "63727b031c21",
+    "0eb138fcb328",
+    "b239f87cc4dc",
+    "46267abf38c6",
+    "12bc3890fd8d",
+    "04a78192e70e",
+    "2dd08fc3ef7d",
+    "067f93a8784b",
+    "dc4534821df5",
+    "9bbbad5e4b06",
+    "b3efe3c8a402",
+    "965827942244",
+    "4c0d6b7beabb",
+    "a1d700651cac",
+    "0170892340af"
   ],
   "fileOriginals": [
     {
@@ -307,19 +307,37 @@
         "kind": "tool",
         "id": "toolu_rw000003",
         "name": "Write",
+        "toolKind": "write",
+        "title": "Write",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/ui/settings-dialog.tsx\",\"content\":\"// line 1\\n// line 2\\n// line 3\\n// line 4\\n// line 5\\n// line 6\\n// line 7\\n// line 8\\n// line 9\\n// line 10\\n// line 11\\n// line 12\\n// line 13\\n// line 14\\n// line 15\\n// line 16\\n// line 17\\n// line 18\\n// line 19\\n// line 20\\n// line 21\\n// line 22\\n// line 23\\n// line 24\\n// line 25\\n// line 26\\n// line 27\\n// line 28\\n// line 29\\n// line 30\\n// line 31\\n// line 32\\n// line 33\\n// line 34\\n// line 35\\n// line 36\\n// line 37\\n// line 38\\n// line 39\\n// line 40\"}",
         "input": {
           "file_path": "/Users/user/project/src/ui/settings-dialog.tsx",
           "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40"
         },
         "summary": "/Users/user/project/src/ui/settings-dialog.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "File created successfully at: /Users/user/project/src/ui/settings-dialog.tsx",
         "children": [],
         "patch": [],
         "createdFile": true,
+        "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40",
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/ui/settings-dialog.tsx",
+            "change": "create",
+            "movedTo": null,
+            "patch": [],
+            "after": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -327,6 +345,9 @@
         "kind": "tool",
         "id": "toolu_rw000007",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/ui/app.tsx\",\"old_string\":\"  return <Chat />\\n\",\"new_string\":\"  const [open, setOpen] = createSignal(false)\\n  return (\\n    <Chat onSettings={() => setOpen(true)} />\\n  )\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/ui/app.tsx",
@@ -334,6 +355,8 @@
           "new_string": "  const [open, setOpen] = createSignal(false)\n  return (\n    <Chat onSettings={() => setOpen(true)} />\n  )\n"
         },
         "summary": "/Users/user/project/src/ui/app.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/ui/app.tsx has been updated successfully.",
         "children": [],
@@ -353,8 +376,35 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/ui/app.tsx",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 4,
+                "lines": [
+                  "-  return <Chat />",
+                  "+  const [open, setOpen] = createSignal(false)",
+                  "+  return (",
+                  "+    <Chat onSettings={() => setOpen(true)} />",
+                  "+  )"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -394,6 +444,9 @@
         "kind": "tool",
         "id": "toolu_rw000015",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/ui/app.tsx\",\"old_string\":\"  onDragEnd={stop}\\n\",\"new_string\":\"  onDragEnd={() => {\\n    stop()\\n    saveWidth(width())\\n  }}\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/ui/app.tsx",
@@ -401,6 +454,8 @@
           "new_string": "  onDragEnd={() => {\n    stop()\n    saveWidth(width())\n  }}\n"
         },
         "summary": "/Users/user/project/src/ui/app.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/ui/app.tsx has been updated successfully.",
         "children": [],
@@ -420,8 +475,35 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/ui/app.tsx",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 4,
+                "lines": [
+                  "-  onDragEnd={stop}",
+                  "+  onDragEnd={() => {",
+                  "+    stop()",
+                  "+    saveWidth(width())",
+                  "+  }}"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -429,6 +511,9 @@
         "kind": "tool",
         "id": "toolu_rw000019",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/session/settings-file.ts\",\"old_string\":\"\",\"new_string\":\"export function saveWidth(width: number) {\\n  write({ sidebarWidth: width })\\n}\\n\\nexport const loadWidth = () => read().sidebarWidth ?? 40\\n\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/session/settings-file.ts",
@@ -436,6 +521,8 @@
           "new_string": "export function saveWidth(width: number) {\n  write({ sidebarWidth: width })\n}\n\nexport const loadWidth = () => read().sidebarWidth ?? 40\n\n"
         },
         "summary": "/Users/user/project/src/session/settings-file.ts",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/session/settings-file.ts has been updated successfully.",
         "children": [],
@@ -454,8 +541,34 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/session/settings-file.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 0,
+                "newStart": 1,
+                "newLines": 4,
+                "lines": [
+                  "+export function saveWidth(width: number) {",
+                  "+  write({ sidebarWidth: width })",
+                  "+}",
+                  "+export const loadWidth = () => read().sidebarWidth ?? 40"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -495,19 +608,29 @@
         "kind": "tool",
         "id": "toolu_rw000027",
         "name": "Bash",
+        "toolKind": "shell",
+        "title": "Bash",
+        "server": null,
         "inputText": "{\"command\":\"git mv config.json settings.json\",\"description\":\"git mv config.json settings.json\"}",
         "input": {
           "command": "git mv config.json settings.json",
           "description": "git mv config.json settings.json"
         },
         "summary": "git mv config.json settings.json",
+        "detail": "git mv config.json settings.json",
+        "background": false,
         "status": "done",
         "result": "",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -515,6 +638,9 @@
         "kind": "tool",
         "id": "toolu_rw000031",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/session/settings-file.ts\",\"old_string\":\"const FILE = \\\"config.json\\\"\\n\",\"new_string\":\"const FILE = \\\"settings.json\\\"\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/session/settings-file.ts",
@@ -522,6 +648,8 @@
           "new_string": "const FILE = \"settings.json\"\n"
         },
         "summary": "/Users/user/project/src/session/settings-file.ts",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/session/settings-file.ts has been updated successfully.",
         "children": [],
@@ -538,8 +666,32 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/session/settings-file.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-const FILE = \"config.json\"",
+                  "+const FILE = \"settings.json\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -547,6 +699,9 @@
         "kind": "tool",
         "id": "toolu_rw000035",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/index.tsx\",\"old_string\":\"const config = load(\\\"config.json\\\")\\n\",\"new_string\":\"const config = load(\\\"settings.json\\\")\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/index.tsx",
@@ -554,6 +709,8 @@
           "new_string": "const config = load(\"settings.json\")\n"
         },
         "summary": "/Users/user/project/src/index.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/index.tsx has been updated successfully.",
         "children": [],
@@ -570,8 +727,32 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/index.tsx",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-const config = load(\"config.json\")",
+                  "+const config = load(\"settings.json\")"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -579,6 +760,9 @@
         "kind": "tool",
         "id": "toolu_rw000039",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/README.md\",\"old_string\":\"Settings live in `config.json`.\\nEdit `config.json` by hand if needed.\\n\",\"new_string\":\"Settings live in `settings.json`.\\nEdit `settings.json` by hand if needed.\\n\"}",
         "input": {
           "file_path": "/Users/user/project/README.md",
@@ -586,6 +770,8 @@
           "new_string": "Settings live in `settings.json`.\nEdit `settings.json` by hand if needed.\n"
         },
         "summary": "/Users/user/project/README.md",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/README.md has been updated successfully.",
         "children": [],
@@ -604,8 +790,34 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/README.md",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 2,
+                "newStart": 1,
+                "newLines": 2,
+                "lines": [
+                  "-Settings live in `config.json`.",
+                  "-Edit `config.json` by hand if needed.",
+                  "+Settings live in `settings.json`.",
+                  "+Edit `settings.json` by hand if needed."
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -645,19 +857,29 @@
         "kind": "tool",
         "id": "toolu_rw000047",
         "name": "Bash",
+        "toolKind": "shell",
+        "title": "Bash",
+        "server": null,
         "inputText": "{\"command\":\"bun test\",\"description\":\"bun test\"}",
         "input": {
           "command": "bun test",
           "description": "bun test"
         },
         "summary": "bun test",
+        "detail": "bun test",
+        "background": false,
         "status": "done",
         "result": "2 fail, 41 pass\n  settings-file.test.ts: expected config.json",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -665,6 +887,9 @@
         "kind": "tool",
         "id": "toolu_rw000051",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/session/settings-file.test.ts\",\"old_string\":\"expect(path).toBe(\\\"config.json\\\")\\nexpect(read()).toEqual({})\\n\",\"new_string\":\"expect(path).toBe(\\\"settings.json\\\")\\nexpect(read()).toEqual({ sidebarWidth: 40 })\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/session/settings-file.test.ts",
@@ -672,6 +897,8 @@
           "new_string": "expect(path).toBe(\"settings.json\")\nexpect(read()).toEqual({ sidebarWidth: 40 })\n"
         },
         "summary": "/Users/user/project/src/session/settings-file.test.ts",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/session/settings-file.test.ts has been updated successfully.",
         "children": [],
@@ -690,8 +917,34 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/session/settings-file.test.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 2,
+                "newStart": 1,
+                "newLines": 2,
+                "lines": [
+                  "-expect(path).toBe(\"config.json\")",
+                  "-expect(read()).toEqual({})",
+                  "+expect(path).toBe(\"settings.json\")",
+                  "+expect(read()).toEqual({ sidebarWidth: 40 })"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -699,19 +952,29 @@
         "kind": "tool",
         "id": "toolu_rw000055",
         "name": "Bash",
+        "toolKind": "shell",
+        "title": "Bash",
+        "server": null,
         "inputText": "{\"command\":\"bun test\",\"description\":\"bun test\"}",
         "input": {
           "command": "bun test",
           "description": "bun test"
         },
         "summary": "bun test",
+        "detail": "bun test",
+        "background": false,
         "status": "done",
         "result": "43 pass",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -751,19 +1014,37 @@
         "kind": "tool",
         "id": "toolu_rw000063",
         "name": "Write",
+        "toolKind": "write",
+        "title": "Write",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/ui/theme-picker.tsx\",\"content\":\"// line 1\\n// line 2\\n// line 3\\n// line 4\\n// line 5\\n// line 6\\n// line 7\\n// line 8\\n// line 9\\n// line 10\\n// line 11\\n// line 12\\n// line 13\\n// line 14\\n// line 15\\n// line 16\\n// line 17\\n// line 18\\n// line 19\\n// line 20\\n// line 21\\n// line 22\\n// line 23\\n// line 24\\n// line 25\\n// line 26\\n// line 27\\n// line 28\\n// line 29\\n// line 30\\n// line 31\\n// line 32\\n// line 33\\n// line 34\\n// line 35\\n// line 36\\n// line 37\\n// line 38\\n// line 39\\n// line 40\\n// line 41\\n// line 42\\n// line 43\\n// line 44\\n// line 45\\n// line 46\\n// line 47\\n// line 48\\n// line 49\\n// line 50\\n// line 51\\n// line 52\\n// line 53\\n// line 54\\n// line 55\\n// line 56\\n// line 57\\n// line 58\"}",
         "input": {
           "file_path": "/Users/user/project/src/ui/theme-picker.tsx",
           "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40\n// line 41\n// line 42\n// line 43\n// line 44\n// line 45\n// line 46\n// line 47\n// line 48\n// line 49\n// line 50\n// line 51\n// line 52\n// line 53\n// line 54\n// line 55\n// line 56\n// line 57\n// line 58"
         },
         "summary": "/Users/user/project/src/ui/theme-picker.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "File created successfully at: /Users/user/project/src/ui/theme-picker.tsx",
         "children": [],
         "patch": [],
         "createdFile": true,
+        "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40\n// line 41\n// line 42\n// line 43\n// line 44\n// line 45\n// line 46\n// line 47\n// line 48\n// line 49\n// line 50\n// line 51\n// line 52\n// line 53\n// line 54\n// line 55\n// line 56\n// line 57\n// line 58",
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/ui/theme-picker.tsx",
+            "change": "create",
+            "movedTo": null,
+            "patch": [],
+            "after": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40\n// line 41\n// line 42\n// line 43\n// line 44\n// line 45\n// line 46\n// line 47\n// line 48\n// line 49\n// line 50\n// line 51\n// line 52\n// line 53\n// line 54\n// line 55\n// line 56\n// line 57\n// line 58"
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -771,6 +1052,9 @@
         "kind": "tool",
         "id": "toolu_rw000067",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/ui/app.tsx\",\"old_string\":\"  if (command === \\\"/settings\\\") open()\\n  else send(text)\\n\",\"new_string\":\"  if (command === \\\"/settings\\\") open()\\n  else if (command === \\\"/theme\\\") openTheme()\\n  else if (command === \\\"/themes\\\") openTheme()\\n  else send(text)\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/ui/app.tsx",
@@ -778,6 +1062,8 @@
           "new_string": "  if (command === \"/settings\") open()\n  else if (command === \"/theme\") openTheme()\n  else if (command === \"/themes\") openTheme()\n  else send(text)\n"
         },
         "summary": "/Users/user/project/src/ui/app.tsx",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/ui/app.tsx has been updated successfully.",
         "children": [],
@@ -798,8 +1084,36 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/ui/app.tsx",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 2,
+                "newStart": 1,
+                "newLines": 4,
+                "lines": [
+                  "-  if (command === \"/settings\") open()",
+                  "-  else send(text)",
+                  "+  if (command === \"/settings\") open()",
+                  "+  else if (command === \"/theme\") openTheme()",
+                  "+  else if (command === \"/themes\") openTheme()",
+                  "+  else send(text)"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -807,6 +1121,9 @@
         "kind": "tool",
         "id": "toolu_rw000071",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/input/commands.ts\",\"old_string\":\"\",\"new_string\":\"  { name: \\\"theme\\\", description: \\\"Choose the theme\\\" },\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/input/commands.ts",
@@ -814,6 +1131,8 @@
           "new_string": "  { name: \"theme\", description: \"Choose the theme\" },\n"
         },
         "summary": "/Users/user/project/src/input/commands.ts",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/input/commands.ts has been updated successfully.",
         "children": [],
@@ -829,8 +1148,31 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/input/commands.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 0,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "+  { name: \"theme\", description: \"Choose the theme\" },"
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -870,19 +1212,29 @@
         "kind": "tool",
         "id": "toolu_rw000079",
         "name": "Bash",
+        "toolKind": "shell",
+        "title": "Bash",
+        "server": null,
         "inputText": "{\"command\":\"git mv config.json settings.json\",\"description\":\"git mv config.json settings.json\"}",
         "input": {
           "command": "git mv config.json settings.json",
           "description": "git mv config.json settings.json"
         },
         "summary": "git mv config.json settings.json",
+        "detail": "git mv config.json settings.json",
+        "background": false,
         "status": "done",
         "result": "",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -890,6 +1242,9 @@
         "kind": "tool",
         "id": "toolu_rw000083",
         "name": "Edit",
+        "toolKind": "edit",
+        "title": "Edit",
+        "server": null,
         "inputText": "{\"file_path\":\"/Users/user/project/src/session/settings-file.ts\",\"old_string\":\"const FILE = \\\"config.json\\\"\\n\",\"new_string\":\"const FILE = existsSync(\\\"settings.json\\\") ? \\\"settings.json\\\" : \\\"config.json\\\"\\n\"}",
         "input": {
           "file_path": "/Users/user/project/src/session/settings-file.ts",
@@ -897,6 +1252,8 @@
           "new_string": "const FILE = existsSync(\"settings.json\") ? \"settings.json\" : \"config.json\"\n"
         },
         "summary": "/Users/user/project/src/session/settings-file.ts",
+        "detail": null,
+        "background": false,
         "status": "done",
         "result": "The file /Users/user/project/src/session/settings-file.ts has been updated successfully.",
         "children": [],
@@ -913,8 +1270,32 @@
           }
         ],
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "/Users/user/project/src/session/settings-file.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-const FILE = \"config.json\"",
+                  "+const FILE = existsSync(\"settings.json\") ? \"settings.json\" : \"config.json\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },

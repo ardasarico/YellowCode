@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, isAbsolute, join } from "node:path"
 import { z } from "zod"
-import { parseJson } from "../../protocol/json.ts"
+import { parseJson } from "../../json.ts"
 import { MOD_ID } from "../manifest.ts"
 
 const LIST_URL = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/mods.json"

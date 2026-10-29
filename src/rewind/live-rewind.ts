@@ -1,17 +1,18 @@
 import { randomUUID } from "node:crypto"
 import { constants, readFileSync } from "node:fs"
 import { type FileHandle, lstat, open as openFile } from "node:fs/promises"
-import { dirname, join } from "node:path"
+import { join } from "node:path"
 import { createEffect, createRoot, on } from "solid-js"
 import { z } from "zod"
+import type { PromptId } from "../agent/ids.ts"
+import type { FileBackup } from "../agent/sessions.ts"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
-import { CLAUDE_PROJECTS } from "../resume/project-key.ts"
+import { parseJson } from "../json.ts"
 import type { SessionStore } from "../session/session.ts"
 import { isShell } from "../session/shells.ts"
 import type { ItemId, Session, ToolCall, UserMessage } from "../session/types.ts"
 import type { Write } from "./restore.ts"
-import { blobId, inRoot, inputFile, WRITE_TOOLS, within, writeManifest } from "./common.ts"
+import { blobId, inRoot, within, writeManifest } from "./common.ts"
 import { importBackups } from "./import.ts"
 import { fileHash, keepBytes } from "./outside.ts"
 import { type Change, openSnapshots, type Snapshots, type Taken } from "./snapshots.ts"
@@ -26,10 +27,10 @@ const WARM_UP = "warm-up"
 
 export type Point = Taken & { id: string }
 
-// One stretch of claude's work for a prompt: from `before` to `after`. A "turn" is the prompt's own turn or one claude
-// started by itself after it; an "agent" segment holds the Edit/Write calls a background agent the prompt started made
-// while no turn ran, and its changes only the paths those calls touched. An "imported" segment comes from claude's own
-// backups of a session made elsewhere (import.ts): `before` holds only the files its Edit/Write calls changed, and
+// One stretch of the agent's work for a prompt: from `before` to `after`. A "turn" is the prompt's own turn or one the
+// agent started by itself after it; an "agent" segment holds the file writes of a background agent the prompt started
+// made while no turn ran, and its changes only the paths those calls touched. An "imported" segment comes from the
+// agent's own backups of a session made elsewhere (import.ts): `before` holds only the files its calls wrote, and
 // there is no `after`.
 export type Segment = {
   kind: "turn" | "agent" | "imported"
@@ -41,16 +42,16 @@ export type Segment = {
   after: Point | null
   changes: Change[]
   writes: Write[]
-  // A turn claude started by itself is snapshotted only once it runs, so a call of its may land first. The paths its
-  // Edit/Write calls changed before `before` was taken have their changes measured from `base.before`, the snapshot
+  // A turn the agent started by itself is snapshotted only once it runs, so a call of its may land first. The paths its
+  // calls wrote before `before` was taken have their changes measured from `base.before`, the snapshot
   // from before the turn began, and go back to that.
   base: { before: Point; beforeAt: number; paths: string[] } | null
-  // Files outside the root that main-thread Edit/Write calls changed, by absolute path: the blob of what the file held
+  // Files outside the root that main-thread calls wrote, by absolute path: the blob of what the file held
   // before the first call (null: the call made it) and the hash of what the segment left there (null: gone).
   outside: Outside[]
-  // Files outside the root the segment changed that cannot be put back: a subagent's call, or no original from claude.
+  // Files outside the root the segment changed that cannot be put back: a subagent's call, or no original read.
   outsideKept: string[]
-  // Imported only: the blob each path held after claude's last Edit/Write call of the prompt, where that is known.
+  // Imported only: the blob each path held after the prompt's last call that wrote it, where that is known.
   left?: Record<string, string>
 }
 
@@ -90,11 +91,11 @@ export type Capture = {
   snapshot(): Promise<Point | null>
   // The snapshot is not needed any more; its ref goes unless a manifest names it.
   release(point: Promise<Point | null>): void
-  // A session made elsewhere opens: claude's own backups of its prompts that have no manifest are imported once.
-  adopt(transcript: string, sessionId: string): void
-  // Called as claude's request to run a tool is allowed: an Edit or Write outside the root gets the file's bytes read,
-  // and the answer waits until they are. Only bytes read this way let a file outside the root be put back.
-  asked(toolUseId: string, toolName: string, input: unknown): Promise<void>
+  // A session made elsewhere opens: the agent's own backups of its prompts that have no manifest are imported once.
+  adopt(sessionId: string, backups: (wanted: (prompt: PromptId) => boolean) => Promise<FileBackup[]>): void
+  // Called as the agent's request to run a tool is allowed: each file outside the root the call will write gets its
+  // bytes read, and the answer waits until they are. Only bytes read this way let a file outside the root be put back.
+  asked(call: string, writes: readonly string[]): Promise<void>
 }
 
 // The turn being recorded. `own` marks a before taken for it alone, which goes when the segment does. `base` is the
@@ -123,24 +124,28 @@ type Before = { bytes: Uint8Array | null }
 
 type Take = { point: Promise<Point | null>; at: number; base?: Take }
 
+const beforeKey = (call: string, file: string) => `${call}\0${file}`
+
 // `main` marks a call of the main thread, whose result says what the file held before.
 type FileWrite = { id: ItemId; file: string; kind: Write["kind"]; main: boolean }
 
-function writeOf(tool: ToolCall, main: boolean): FileWrite | null {
-  if (!WRITE_TOOLS.has(tool.name) || tool.status !== "done") return null
-  const file = inputFile(tool.input)
-  if (file === undefined) return null
-  return { id: tool.id, file, kind: tool.name === "Write" && tool.createdFile ? "create" : "update", main }
+function writesOf(tool: ToolCall, main: boolean): FileWrite[] {
+  if (tool.status !== "done") return []
+  return tool.files.map((file) => ({
+    id: tool.id,
+    file: file.path,
+    kind: file.change === "create" ? "create" : "update",
+    main,
+  }))
 }
 
-// Write and Edit calls from the item after `start` on, subagents' included.
+// Calls that wrote files, from the item after `start` on, subagents' included.
 function writesFrom(session: Session, start: number): FileWrite[] {
   const found: FileWrite[] = []
   const visit = (id: ItemId, main: boolean) => {
     const item = session.byId[id]
     if (item?.kind !== "tool") return
-    const write = writeOf(item, main)
-    if (write) found.push(write)
+    found.push(...writesOf(item, main))
     for (const child of item.children) visit(child, false)
   }
   for (const id of session.items.slice(start)) visit(id, true)
@@ -149,15 +154,14 @@ function writesFrom(session: Session, start: number): FileWrite[] {
 
 export type AgentWrite = { id: ItemId; uuid: string; write: FileWrite }
 
-// Edit/Write calls made inside agents, each with the prompt whose part of the chat the agent's call sits in.
+// Calls that wrote files inside agents, each with the prompt whose part of the chat the agent's call sits in.
 export function agentWrites(session: Session): AgentWrite[] {
   const found: AgentWrite[] = []
   let uuid: string | undefined
   const visit = (id: ItemId, inAgent: boolean) => {
     const item = session.byId[id]
     if (item?.kind !== "tool") return
-    const write = inAgent ? writeOf(item, false) : null
-    if (write && uuid) found.push({ id, uuid, write })
+    if (inAgent && uuid) for (const write of writesOf(item, false)) found.push({ id, uuid, write })
     for (const child of item.children) visit(child, inAgent || item.agent !== null)
   }
   for (const id of session.items) {
@@ -292,10 +296,12 @@ export function createCapture(cwd: string): Capture {
   )
   // Prompts whose turn has not ended, from Enter on.
   const open = new Map<string, Prompt>()
-  // What files outside the root held when claude asked to change them, by tool call; null when it could not be read.
-  const befores = new Map<ItemId, Before | null>()
-  // The blob ids of what main-thread Edit/Write calls found in their files, sha1 and sha256: null when there was none.
-  const originals = new Map<ItemId, { sha1: string; sha256: string } | null>()
+  // What files outside the root held when the agent asked to change them, by tool call and file; null when it could
+  // not be read.
+  const befores = new Map<string, Before | null>()
+  // The blob ids of what main-thread calls found in the files they wrote, by tool call and file, sha1 and sha256: null
+  // when there was none.
+  const originals = new Map<string, { sha1: string; sha256: string } | null>()
   let root: string | null = null
   void opened.then((snapshots) => {
     root = snapshots?.root ?? null
@@ -366,8 +372,8 @@ export function createCapture(cwd: string): Capture {
       (write) => write.file,
     )
     for (const [file, group] of calls) {
-      const found = group.map((call) => befores.get(call.id))
-      for (const call of group) befores.delete(call.id)
+      const found = group.map((call) => befores.get(beforeKey(call.id, file)))
+      for (const call of group) befores.delete(beforeKey(call.id, file))
       if (group.some((call) => !call.main)) {
         outsideKept.push(file)
         continue
@@ -415,13 +421,13 @@ export function createCapture(cwd: string): Capture {
       const candidates = (await snapshots.changes(earlier.tree, before.tree)).flatMap((change) =>
         touched.has(change.path) ? [change.path] : [],
       )
-      // Only where claude's own first call found the file as the base holds it; a change of the user's in the gap
+      // Only where the agent's own first call found the file as the base holds it; a change of the user's in the gap
       // stays out of the turn.
       const held = await snapshots.entries(earlier.tree, candidates)
       const moved = new Set(
         candidates.filter((path) => {
           const first = writes.find((write) => inRoot(snapshots.root, write.file) === path)
-          const found = first?.main ? originals.get(first.id) : undefined
+          const found = first?.main ? originals.get(beforeKey(first.id, first.file)) : undefined
           const entry = held.get(path)
           if (found === undefined) return false
           if (found === null) return entry === undefined
@@ -521,15 +527,18 @@ export function createCapture(cwd: string): Capture {
       if (prompt) abandon(prompt)
     },
 
-    async asked(toolUseId, toolName, input) {
-      const file = inputFile(input)
-      if (!WRITE_TOOLS.has(toolName) || file === undefined) return
-      // The answer does not wait for the store to open; a file found inside the root afterwards is let go.
-      if (root !== null && inRoot(root, file) !== null) return
-      befores.set(toolUseId, await readBefore(file))
-      void opened.then((snapshots) => {
-        if (!snapshots || inRoot(snapshots.root, file) !== null) befores.delete(toolUseId)
-      })
+    async asked(call, writes) {
+      await Promise.all(
+        writes.map(async (file) => {
+          // The answer does not wait for the store to open; a file found inside the root afterwards is let go.
+          if (root !== null && inRoot(root, file) !== null) return
+          const key = beforeKey(call, file)
+          befores.set(key, await readBefore(file))
+          void opened.then((snapshots) => {
+            if (!snapshots || inRoot(snapshots.root, file) !== null) befores.delete(key)
+          })
+        }),
+      )
     },
 
     async stop() {
@@ -548,11 +557,10 @@ export function createCapture(cwd: string): Capture {
       await Promise.all([writing, importing])
     },
 
-    adopt(transcript, sessionId) {
+    adopt(sessionId, backups) {
       importing = importing.then(async () => {
         const snapshots = await opened
-        const folder = join(dirname(CLAUDE_PROJECTS), "file-history", sessionId)
-        if (snapshots) await importBackups(snapshots, transcript, sessionId, folder)
+        if (snapshots) await importBackups(snapshots, sessionId, backups)
       })
     },
 
@@ -562,9 +570,12 @@ export function createCapture(cwd: string): Capture {
 
     follow(session) {
       const state = session.state
-      session.onFileOriginal((toolUseId, original) => {
+      session.onFileOriginal((toolUseId, path, original) => {
         const bytes = original === null ? null : Buffer.from(original)
-        originals.set(toolUseId, bytes && { sha1: blobId(bytes, ""), sha256: blobId(bytes, "0".repeat(64)) })
+        originals.set(
+          beforeKey(toolUseId, path),
+          bytes && { sha1: blobId(bytes, ""), sha256: blobId(bytes, "0".repeat(64)) },
+        )
       })
       // Prompts whose first turn ended, and the latest of them, which a turn claude starts by itself goes on.
       const closed = new Map<string, Prompt>()

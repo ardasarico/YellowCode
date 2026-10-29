@@ -2,9 +2,7 @@ import { lstatSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path"
 import { z } from "zod"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
-import { getSettingsRequest } from "../protocol/outgoing.ts"
-import type { Requests } from "../source/requests.ts"
+import { parseJson } from "../json.ts"
 import { alive, gitEnv, runGit } from "./common.ts"
 import { type Manifest, readManifest } from "./live-rewind.ts"
 import type { Snapshots } from "./snapshots.ts"
@@ -15,31 +13,26 @@ const WARM_UP_REF = "refs/yc/warm-up"
 // Objects written before their ref exists (a take, keepBytes, another process just starting) outlive the prune.
 const PRUNE_EXPIRE = "1.hour.ago"
 
-const settingsReply = z.looseObject({
-  effective: z.looseObject({ cleanupPeriodDays: z.unknown().optional() }).optional(),
-})
-
 // What rewind-files writes for a pending /redo.
 const rewindRecord = z.looseObject({ pid: z.number(), refs: z.array(z.string()), blobs: z.array(z.string()) })
 
 export type Pruned = { manifests: number; refs: number; gc: "done" | "failed" | "skipped" }
 
-// Prunes the store once claude says how long it keeps sessions. Never throws, so the start never waits on it.
-export async function pruneAtStart(snapshots: Promise<Snapshots | null>, requests: Requests): Promise<void> {
+// Prunes the store once the agent says how long it keeps sessions (null: it does not say). Never throws, so the start
+// never waits on it.
+export async function pruneAtStart(
+  snapshots: Promise<Snapshots | null>,
+  sessionDays: () => Promise<number | null>,
+): Promise<void> {
   try {
     const store = await snapshots
     if (!store) return
-    // Without the reply the user's own period is unknown, and a guess could remove snapshots they keep.
-    const days = cleanupDays(await requests.send(getSettingsRequest))
+    // Waits for the agent's own period, as a guess could remove snapshots the user keeps; none said gets the default.
+    const days = (await sessionDays()) ?? DEFAULT_CLEANUP_DAYS
     await pruneStore(store, days)
   } catch (error) {
     log.warn("snapshots not pruned", String(error))
   }
-}
-
-function cleanupDays(reply: unknown): number {
-  const days = settingsReply.safeParse(reply).data?.effective?.cleanupPeriodDays
-  return typeof days === "number" && days > 0 ? days : DEFAULT_CLEANUP_DAYS
 }
 
 // Null when the store was pruned less than a day ago.

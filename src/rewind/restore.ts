@@ -105,7 +105,7 @@ export async function planRestore(input: RestoreInput): Promise<RestorePlan> {
   const missing = await snapshots.missing(inside.flatMap((path) => regular(targets.get(path)) ?? []))
   const unknown = [...("files" in target ? [] : target.unknown), ...safety.unknown, ...after.unknown]
   const created = new Set(input.created)
-  // Write reports a create only when the file is absent, so a path whose first write is one held nothing of the user's.
+  // A create is reported only when the file was absent, so a path whose first write is one held nothing of the user's.
   const first = new Map<string, Write["kind"]>()
   for (const write of input.writes) if (!first.has(write.path)) first.set(write.path, write.kind)
   const updated = new Set([...first].flatMap(([path, kind]) => (kind === "update" ? [path] : [])))

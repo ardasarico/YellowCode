@@ -13,7 +13,8 @@ export const SHARED_SETTINGS = ["compaction.auto", "compaction.threshold", "web-
 export type SettingRow = {
   id: string
   label: string
-  // Rows with the same section sit under one heading inside the agent's group.
+  // Rows with the same section sit under one heading inside the agent's group; "" puts the row right under the
+  // agent's own heading.
   section: string
   note: string | null
   control: SettingControl
@@ -26,3 +27,6 @@ export type SettingRow = {
   // The layer whose value wins over a write, such as the project file.
   overriddenBy: string | null
 }
+
+// A message that only changes one of the agent's settings, shown in the chat as the row's label and the value's.
+export type SettingChange = { label: string; value: string }

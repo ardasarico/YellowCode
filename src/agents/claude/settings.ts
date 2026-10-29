@@ -1,13 +1,15 @@
+import type { SettingChange, SettingRow, SettingValue } from "../../agent/settings.ts"
+
 // Claude Code's own settings that change how it works in YellowCode too. Only claude's /config, /output-style and
 // /autocompact change them (update_settings refuses these keys), and get_settings reads them back under other names.
 // get_settings leaves out a value never set; it then reads as the default claude uses for it.
 
-export type ClaudeOption = { value: string; label: string }
+type ClaudeOption = { value: string; label: string }
 
 // `plan` is the initialize reply's subscriptionType, such as "Claude Pro".
-export type ClaudeAccount = { model: string | null; plan: string | null }
+type ClaudeAccount = { model: string | null; plan: string | null }
 
-export type ClaudeSetting = {
+type ClaudeSetting = {
   id: string
   label: string
   options: ClaudeOption[]
@@ -38,7 +40,7 @@ const toggle = (id: string, label: string, configKey: string, storedKey: string)
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === "object" && value !== null ? Object.fromEntries(Object.entries(value)) : {}
 
-export const CLAUDE_SETTINGS: ClaudeSetting[] = [
+const CLAUDE_SETTINGS: ClaudeSetting[] = [
   {
     id: "outputStyle",
     label: "Output style",
@@ -109,8 +111,31 @@ export const CLAUDE_SETTINGS: ClaudeSetting[] = [
   },
 ]
 
+// Claude Code's rows for /settings, from what get_settings read; null when it could not be read, which leaves every
+// value unknown but the rows still writable.
+export function settingRows(effective: Record<string, unknown> | null, account: ClaudeAccount): SettingRow[] {
+  return CLAUDE_SETTINGS.map((setting) => ({
+    id: setting.id,
+    label: setting.label,
+    section: "",
+    note: null,
+    control: { type: "choice", options: setting.options },
+    value: effective === null ? null : setting.read(effective, account),
+    writable: true,
+    applies: "now",
+    origin: null,
+    overriddenBy: null,
+  }))
+}
+
+// The command claude takes for a change, or null for a row it does not have.
+export function settingMessage(id: string, value: SettingValue): string | null {
+  const setting = CLAUDE_SETTINGS.find((entry) => entry.id === id)
+  return setting && value !== null ? setting.command(String(value)) : null
+}
+
 // The setting a /config, /output-style or /autocompact message changes and the value's label, for its chat row.
-export function claudeChange(text: string): { label: string; value: string } | null {
+export function settingChange(text: string): SettingChange | null {
   for (const setting of CLAUDE_SETTINGS)
     for (const option of setting.options)
       if (setting.command(option.value) === text) return { label: setting.label, value: option.label }

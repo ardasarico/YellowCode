@@ -1,7 +1,7 @@
 import { z } from "zod"
-import type { LiveProvider } from "../input/provider.ts"
+import type { LiveProvider } from "../agents/claude/provider.ts"
 import { log } from "../log/log.ts"
-import { parseJson, rowsOf } from "../protocol/json.ts"
+import { parseJson, rowsOf } from "../json.ts"
 import {
   hooksListing,
   pluginHook,
@@ -18,13 +18,11 @@ import {
   getSkillsDialogRequest,
   reloadPluginsRequest,
 } from "../protocol/outgoing.ts"
-import { type Plugin, pluginScope, pluginSettingId } from "../session/plugins.ts"
+import { pluginScope } from "../agents/claude/plugins.ts"
 import type { SessionStore } from "../session/session.ts"
 import { printable } from "../ui/format.ts"
-import type { PluginActions } from "../ui/settings/plugins-tab.tsx"
-import type { SkillActions } from "../ui/skills/skills-dialog.tsx"
 import { type CliResult, runClaude } from "./claude-cli.ts"
-import { commandsOf } from "./controls.ts"
+import { commandsOf } from "../agents/claude/lists.ts"
 import { mcpServers } from "./mcp.ts"
 import { type Requests, RequestTimeout } from "./requests.ts"
 
@@ -34,8 +32,11 @@ export type Extensions = {
   initialized(reply: unknown): void
   onMessage(message: ProtocolMessage): void
   refresh(): void
-  skills: SkillActions
-  plugins: PluginActions
+  reload(): Promise<number>
+  // A rejection says what went wrong.
+  skills: { setEnabled(skill: { name: string; label: string }, enabled: boolean): Promise<void> }
+  // `id` is name@marketplace; it resolves with what changed where.
+  plugins: { setEnabled(id: string, enabled: boolean): Promise<string> }
   // Its claude is being replaced: no more asking, and skills it left waiting show their state again.
   dispose(): void
 }
@@ -209,13 +210,9 @@ export function createExtensions(options: {
   }
 
   // What claude's CLI did, when the reload that would show it did not come.
-  const assume = (plugin: Plugin, enabled: boolean) => {
-    const others = (session.state.plugins ?? session.state.info?.plugins ?? []).filter(
-      (entry) => entry.name !== plugin.name,
-    )
-    session.setLists({
-      plugins: enabled ? [...others, { name: plugin.name, path: "", source: pluginSettingId(plugin) }] : others,
-    })
+  const assume = (id: string, name: string, enabled: boolean) => {
+    const others = (session.state.plugins ?? session.state.info?.plugins ?? []).filter((entry) => entry.name !== name)
+    session.setLists({ plugins: enabled ? [...others, { name, path: "", source: id }] : others })
   }
 
   return {
@@ -231,6 +228,7 @@ export function createExtensions(options: {
       }
     },
     refresh,
+    reload,
     dispose() {
       disposed = true
       clearTimeout(timer)
@@ -275,17 +273,18 @@ export function createExtensions(options: {
       },
     },
     plugins: {
-      async setEnabled(plugin, enabled) {
+      async setEnabled(id, enabled) {
         if (session.state.status === "ended") throw new Error(ENDED)
-        const id = pluginSettingId(plugin)
+        const at = id.lastIndexOf("@")
+        const name = at === -1 ? id : id.slice(0, at)
         const running = switching.get(id)
-        if (running !== undefined) throw new Error(`${plugin.name} is still turning ${running ? "on" : "off"}`)
+        if (running !== undefined) throw new Error(`${name} is still turning ${running ? "on" : "off"}`)
         switching.set(id, enabled)
         try {
           // The scope decides which settings file claude writes, so it comes from the sources as they are now.
           readSources(await requests.send(getSettingsRequest).catch(() => null))
-          const scope = pluginScope(plugin, provider.settingsSources())
-          if (scope === null) throw new Error(`${plugin.name} cannot be turned on or off here`)
+          const scope = pluginScope(id, provider.settingsSources())
+          if (scope === null) throw new Error(`${name} cannot be turned on or off here`)
           log.info(`plugin ${enabled ? "on" : "off"}`, { id, scope })
           const result = await runClaude(["plugin", enabled ? "enable" : "disable", id, "--json", "--scope", scope], {
             cwd,
@@ -298,11 +297,11 @@ export function createExtensions(options: {
             throw new Error(cliFailure(result, reply?.message))
           }
           const added = await reload().catch((error: unknown) => {
-            assume(plugin, enabled)
+            assume(id, name, enabled)
             refresh()
             throw error
           })
-          const shown = `Turned ${enabled ? "on" : "off"} ${plugin.name} · ${SCOPE_FILES[scope]}`
+          const shown = `Turned ${enabled ? "on" : "off"} ${name} · ${SCOPE_FILES[scope]}`
           if (added <= 0) return shown
           return `${shown} · ${added === 1 ? "1 new plugin error" : `${added} new plugin errors`}`
         } catch (error) {

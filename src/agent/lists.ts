@@ -32,7 +32,8 @@ export type ModelGroup = {
   models: ModelRow[]
 }
 
-// What YellowCode styles a mode as: plan gets the plan band, bypass the warning colors.
+// What YellowCode styles a mode as. The prompt shows no mode word for auto, its own words for edits and plan, and the
+// mode's label in the warning colors for every other kind, so an agent's normal mode should be auto.
 export type ModeKind = "default" | "edits" | "plan" | "auto" | "bypass" | "readonly" | "other"
 
 export type ModeRow = {
@@ -71,7 +72,8 @@ export type McpConfig = { command: string; package: string | null } | { url: str
 // Where a server is set up. `account`: it comes with the user's account (feature accountConnectors).
 export type McpPlace = "project-shared" | "project-private" | "everywhere" | "account" | "builtin" | "managed" | "other"
 
-// `status` and `origin` are the agent's own words, kept for display; the UI branches on `state` and `place`.
+// `status` and `origin` are the agent's own words for its state and where it comes from, as the dialog shows them; the
+// UI branches on `state` and `place`.
 export type McpServerRow = {
   name: string
   // The short name the dialog shows.

@@ -13,7 +13,7 @@ import {
   SAMPLE_SERVER,
 } from "../../tools/record/scrub.ts"
 import { parseRecording } from "../source/recording.ts"
-import { parseJson } from "./json.ts"
+import { parseJson } from "../json.ts"
 import { parse } from "./parse.ts"
 
 const dir = join(import.meta.dir, "..", "..", "fixtures", "sessions")

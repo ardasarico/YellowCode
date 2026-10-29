@@ -1,5 +1,6 @@
 import type { Renderable, ScrollBoxRenderable } from "@opentui/core"
 import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
+import type { SettingChange } from "../agent/settings.ts"
 import type { Command } from "../input/commands.ts"
 import { shellNodeId } from "../session/shells.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
@@ -15,7 +16,6 @@ import { ShellEndRow } from "./shell-end-row.tsx"
 import { buildRows, REWOUND_ROW, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
-import { TODO_TOOLS } from "../session/todos.ts"
 import { TodoRow } from "./todos/todo-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { ToolGroupRow } from "./tool-group.tsx"
@@ -30,6 +30,7 @@ const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((
 type ChatProps = {
   session: Session
   commands: Command[]
+  settingChange?: (text: string) => SettingChange | null
   width: number
   selected: string | null
   expanded: Record<string, boolean>
@@ -108,6 +109,7 @@ function RowView(props: RowProps) {
             <UserMessageRow
               item={user()}
               commands={props.commands}
+              settingChange={props.settingChange}
               selected={props.selected === user().id}
               expanded={props.expanded[user().id] === true}
               selection={props.selected}
@@ -117,7 +119,7 @@ function RowView(props: RowProps) {
             />
           )}
         </Match>
-        <Match when={props.row.kind === "tool" && TODO_TOOLS.has(item("tool")?.name ?? "") && item("tool")}>
+        <Match when={props.row.kind === "tool" && item("tool")?.toolKind === "todo" && item("tool")}>
           {(tool) => <TodoRow session={props.session} item={tool()} selected={props.selected === tool().id} />}
         </Match>
         <Match when={(props.row.kind === "tool" || props.row.kind === "brief") && item("tool")}>

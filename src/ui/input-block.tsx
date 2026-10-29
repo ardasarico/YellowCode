@@ -4,7 +4,7 @@ import { readClipboard } from "../input/clipboard.ts"
 import { loadImage } from "../input/image-file.ts"
 import type { Draft } from "../input/draft.ts"
 import type { InputProvider } from "../input/provider.ts"
-import { modeLabel } from "../session/settings-file.ts"
+import type { ModeRow } from "../agent/lists.ts"
 import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
@@ -51,11 +51,13 @@ export type InputBlockProps = {
   permissionMode?: string | null
 }
 
-export function modeWord(mode: string | null): { text: string; color: RGBA } | null {
-  if (mode === null || mode === "auto") return null
-  if (mode === "acceptEdits") return { text: "⏵⏵ accept edits", color: theme.shell }
-  if (mode === "plan") return { text: "⏸ plan", color: theme.accent }
-  return { text: modeLabel(mode), color: theme.warning }
+// `modes` are the agent's, which say what kind of mode it is.
+export function modeWord(mode: string | null, modes: ModeRow[]): { text: string; color: RGBA } | null {
+  const row = modes.find((known) => known.id === mode)
+  if (mode === null || row?.kind === "auto") return null
+  if (row?.kind === "edits") return { text: "⏵⏵ accept edits", color: theme.shell }
+  if (row?.kind === "plan") return { text: "⏸ plan", color: theme.accent }
+  return { text: row?.label ?? mode, color: theme.warning }
 }
 
 export const TILE_PADDING = 3
@@ -171,7 +173,7 @@ export function InputBlock(props: InputBlockProps) {
           <box height={1} />
           <box flexDirection="row" justifyContent="space-between">
             <box flexDirection="row">
-              <Show when={modeWord(props.permissionMode ?? null)}>
+              <Show when={modeWord(props.permissionMode ?? null, props.provider.modes())}>
                 {(word) => (
                   <text fg={word().color} wrapMode="none">
                     {`${word().text}  `}

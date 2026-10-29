@@ -1,7 +1,7 @@
 import { Index, Show } from "solid-js"
-import { NO_PROMPT, type SessionEntry } from "../resume/session-list.ts"
+import type { SessionEntry } from "../agent/sessions.ts"
 import { theme } from "../theme/theme.ts"
-import { cut, formatAgo } from "./format.ts"
+import { cut, formatAgo, NO_PROMPT } from "./format.ts"
 import { TILE_PADDING } from "./input-block.tsx"
 import { useTicker } from "./ticker.ts"
 

@@ -10,7 +10,7 @@ import { parseArgs } from "node:util"
 import { readManifest } from "../src/mods/manifest.ts"
 import { installAt } from "../src/mods/install/install.ts"
 import { type ListedMod, parseList } from "../src/mods/install/list.ts"
-import { parseJson } from "../src/protocol/json.ts"
+import { parseJson } from "../src/json.ts"
 
 const { values } = parseArgs({ options: { all: { type: "boolean", default: false } } })
 

@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { mcpRows } from "../../agents/claude/mcp-rows.ts"
 import { feed } from "../../agents/claude/translate.ts"
 import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
@@ -14,11 +15,11 @@ test("servers group by where they come from, problems first, with short names an
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
     feed(session, entry.dir, parse(entry.line), entry.t)
   const info = session.state.info
-  const rows = mcpEntries(info?.mcpServers ?? null, info?.tools ?? []).map((entry) => [
+  const rows = mcpEntries(mcpRows(info?.mcpServers ?? null, info?.tools ?? [])).map((entry) => [
     entry.group,
-    entry.label,
+    entry.row.label,
     entry.tag,
-    entry.state,
+    entry.row.state,
     entry.tools.length,
   ])
   expect(rows.filter((row) => row[0] === "project")).toEqual([
@@ -45,5 +46,5 @@ test("servers group by where they come from, problems first, with short names an
     serverInfo: null,
     tools: null,
   }
-  expect(mcpEntries([odd], [])[0]?.state).toBe("unknown")
+  expect(mcpEntries(mcpRows([odd], []))[0]?.row.state).toBe("unknown")
 })

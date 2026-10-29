@@ -1,7 +1,7 @@
 import { existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { configPath } from "../../config-path.ts"
-import { parseJson } from "../../protocol/json.ts"
+import { parseJson } from "../../json.ts"
 import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
 import { editedLocally, listedEntry, modFolders, revokedListing } from "./checks.ts"
 import { installAt, type InstallResult } from "./install.ts"

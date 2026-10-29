@@ -4,7 +4,7 @@ export const noRawJsonParse: Rule = {
   meta: {
     type: "problem",
     messages: {
-      raw: "Use parseJson from src/protocol/json.ts and validate the value with a schema.",
+      raw: "Use parseJson from src/json.ts and validate the value with a schema.",
     },
   },
   create(context) {

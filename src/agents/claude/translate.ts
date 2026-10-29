@@ -149,12 +149,10 @@ export function feed(session: SessionStore, dir: Dir, parsed: ParseResult, at: n
   for (const event of translatorOf(session).translate(dir, parsed, at)) session.event(event)
 }
 
-export function feedLines(session: SessionStore, events: SourceEvent[]): void {
-  for (const event of events) feed(session, event.dir, parse(event.line), event.at)
-}
-
-export function prependLines(session: SessionStore, events: SourceEvent[]): void {
-  session.prepend((earlier) => feedLines(earlier, events))
+// Lines of an earlier session, read by a translator of their own that is then thrown away.
+export function translateLines(lines: SourceEvent[]): AgentEvent[] {
+  const translator = createTranslator()
+  return lines.flatMap((line) => translator.translate(line.dir, parse(line.line), line.at))
 }
 
 // The ask server placed a call of our own ask that waited for its tool_use line.
@@ -183,11 +181,6 @@ export function interruptFailed(session: SessionStore): void {
 export function restartSession(session: SessionStore): void {
   translatorOf(session).restart()
   session.event({ type: "starting", at: Date.now() })
-}
-
-export function stopRunning(session: SessionStore): void {
-  translatorOf(session).stopRunning()
-  session.stopRunning()
 }
 
 // With a problem, claude went away on its own: running work stops and the chat ends with an error row.

@@ -3,7 +3,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { SIDEBAR_MIN_WIDTH } from "./layout.ts"
 
 const DEFAULT_SIDEBAR_WIDTH = 40

@@ -1,14 +1,29 @@
 import { expect, setSystemTime, test } from "bun:test"
 import { testRender } from "@opentui/solid"
-import { OWN_ASK, ownAskResult } from "../../protocol/messages.ts"
-import { allowAnswers, ownAskReply } from "../../protocol/outgoing.ts"
-import { parse } from "../../protocol/parse.ts"
-import { answersInResult, askKeys, ownAskProblem } from "../../session/ask.ts"
+import type { AskOption, AskReply, QuestionPage } from "../../agent/ask.ts"
 import type { Ask } from "../../session/types.ts"
 import { AskSurface } from "./ask-surface.tsx"
-import { alwaysChoice } from "./permission-band.tsx"
+import { choiceOf } from "./permission-band.tsx"
 import { answersFrom } from "./question-ask.tsx"
 import { noteKey } from "./typing.ts"
+
+const CAPS = { askNote: true }
+
+const option = { label: null, subject: null, note: false, endsTurn: false, mode: null }
+const YES: AskOption = { ...option, id: "yes", effect: "allow", lasts: "once" }
+const NO: AskOption = { ...option, id: "no", effect: "deny", lasts: "once", note: true }
+
+const choice = (label: string, image: string | null = null) => ({ label, description: null, preview: null, image })
+const page = (question: string, header: string, options: string[], more: Partial<QuestionPage> = {}): QuestionPage => ({
+  key: question,
+  header,
+  question,
+  multi: false,
+  gallery: false,
+  custom: true,
+  options: options.map((label) => choice(label)),
+  ...more,
+})
 
 const ask: Ask = {
   kind: "ask",
@@ -16,35 +31,46 @@ const ask: Ask = {
   requestId: "request-1",
   toolUseId: "tool-1",
   toolName: "Bash",
+  toolKind: "shell",
+  server: null,
   displayName: "Bash",
   input: { command: "rm -rf old-build" },
+  target: "rm -rf old-build",
+  writes: [],
   description: "",
   reason: "",
-  suggestion: null,
+  options: [YES, NO],
+  questions: null,
+  plan: null,
   defaultToNo: false,
   safetyCheck: false,
   status: "pending",
   answers: {},
   notes: {},
   denial: "",
+  why: null,
+  note: "",
 }
 
 test("an ask sends only its first response", async () => {
-  const sent: string[] = []
-  const setup = await testRender(() => <AskSurface ask={ask} width={80} onAnswer={(_, line) => sent.push(line)} />, {
-    width: 80,
-    height: 20,
-  })
+  const sent: AskReply[] = []
+  const setup = await testRender(
+    () => <AskSurface caps={CAPS} ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
+    {
+      width: 80,
+      height: 20,
+    },
+  )
   setup.mockInput.pressKey("1")
   setup.mockInput.pressEnter()
   setup.mockInput.pressEscape()
   expect(sent).toHaveLength(1)
-  expect(sent[0]).toContain('"behavior":"allow"')
+  expect(sent[0]).toEqual({ type: "option", option: "yes", note: null })
   setup.renderer.destroy()
 
   const pressOne = async (severe: Partial<Ask>) => {
     const risky = await testRender(
-      () => <AskSurface ask={{ ...ask, ...severe }} width={80} onAnswer={(_, line) => sent.push(line)} />,
+      () => <AskSurface caps={CAPS} ask={{ ...ask, ...severe }} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
       { width: 80, height: 20 },
     )
     risky.mockInput.pressKey("1")
@@ -55,14 +81,36 @@ test("an ask sends only its first response", async () => {
   expect(sent).toHaveLength(1)
 })
 
+test("a severe ask starts on the no that lasts once, wherever it sits", async () => {
+  const sent: AskReply[] = []
+  const always: AskOption = { ...NO, id: "never", lasts: "everywhere", note: false }
+  const setup = await testRender(
+    () => (
+      <AskSurface
+        caps={CAPS}
+        ask={{ ...ask, defaultToNo: true, options: [YES, NO, always] }}
+        width={80}
+        onAnswer={(_, reply) => sent.push(reply)}
+      />
+    ),
+    { width: 80, height: 20 },
+  )
+  setup.mockInput.pressEnter()
+  expect(sent).toEqual([{ type: "option", option: "no", note: null }])
+  setup.renderer.destroy()
+})
+
 test("the first key still typed into the prompt as an ask appears does not answer it", async () => {
-  const sent: string[] = []
+  const sent: AskReply[] = []
   setSystemTime(new Date(10_000))
   noteKey()
-  const setup = await testRender(() => <AskSurface ask={ask} width={80} onAnswer={(_, line) => sent.push(line)} />, {
-    width: 80,
-    height: 20,
-  })
+  const setup = await testRender(
+    () => <AskSurface caps={CAPS} ask={ask} width={80} onAnswer={(_, reply) => sent.push(reply)} />,
+    {
+      width: 80,
+      height: 20,
+    },
+  )
   // The app notes every key before any other handler sees it.
   const press = (at: number) => {
     setSystemTime(new Date(at))
@@ -77,86 +125,23 @@ test("the first key still typed into the prompt as an ask appears does not answe
   setup.renderer.destroy()
 })
 
-const numbered = (count: number) => Array.from({ length: count }, (_, i) => ({ label: `Option ${i + 1}` }))
-const problem = (input: unknown, toolName = OWN_ASK) => ownAskProblem({ toolName, input })
-
-test("our own ask goes back to Claude with what to fix; stock asks are left alone", () => {
-  const five = { questions: [{ question: "Which?", header: "Pick", options: numbered(5) }] }
-  expect(problem(five)).toBe("at most 4 options per question")
-  expect(problem(five, "AskUserQuestion")).toBeNull()
-  const twice = { questions: [0, 1].map(() => ({ question: "Same?", header: "Pick", options: numbered(2) })) }
-  expect(problem(twice)).toBe("questions must be unique")
-  const rows = [{ label: "A" }, { label: "A" }]
-  const matrix = { matrix: { question: "Keep?", header: "File", rows, scale: ["Yes", "No"] } }
-  expect(problem(matrix)).toBe("row labels must be unique")
-  const fine = { questions: [{ question: "Which?", header: "Pick", options: numbered(4) }] }
-  expect(problem(fine)).toBeNull()
-  expect(problem({})).toBe("give exactly one of questions or matrix")
-  expect(problem({ ...fine, ...matrix })).toBe("give exactly one of questions or matrix")
-  expect(problem({ questions: [{ question: "Which?", options: numbered(2) }] })).toStartWith("questions.0.header:")
-})
-
-const sendOwn = (input: object, answers: Record<string, string>, notes: Record<string, string>) => {
-  const line = parse(ownAskReply({ requestId: "r", input }, 7, allowAnswers("r", input, answers, notes)))
-  const reply = line.kind === "message" && line.message.type === "control_response" ? line.message.response : null
-  const text = ownAskResult.parse(reply?.response).mcp_response.result.content[0]?.text ?? ""
-  expect(answersInResult(text, askKeys(input))).toEqual({ answers, notes })
-  return text
+const words = (more: Partial<AskOption>) => {
+  const shown = choiceOf({ ...YES, ...more })
+  return `${shown.before}${shown.subject}${shown.after}`
 }
 
-test("an own ask's answer reaches Claude in stock's words and reads back the same", () => {
-  const questions = [
-    { question: "Where?", header: "Storage", options: numbered(2) },
-    { question: "Which?", header: "Format", options: numbered(2) },
-  ]
-  expect(sendOwn({ questions }, { "Which?": "TOML", "Where?": "Here" }, { "Where?": 'small. And fast, "ok"' })).toBe(
-    'Your questions have been answered: "Where?"="Here" notes: small. And fast, "ok", "Which?"="TOML". You can ' +
-      "now continue with these answers in mind.",
-  )
-  const matrix = { question: "Keep?", header: "File", rows: [{ label: "A" }, { label: "B" }], scale: ["Yes", "No"] }
-  expect(sendOwn({ matrix }, { A: "Yes", B: "No" }, { B: "later" })).toBe(
-    'Your questions have been answered: "Keep?": "A"="Yes", "B"="No" notes: later. You can now continue with ' +
-      "these answers in mind.",
-  )
-})
-
-test("quotes in a question, a row or an answer keep every answer under its own key", () => {
-  const questions = [
-    { question: 'Use "strict" mode?', header: "Mode", options: numbered(2) },
-    { question: "Which?", header: "Format", options: numbered(2) },
-  ]
-  sendOwn({ questions }, { 'Use "strict" mode?': 'Yes, "always"', "Which?": 'a", "b' }, { "Which?": 'it said "no"' })
-  const matrix = { question: "Keep?", header: "File", rows: [{ label: 'The "A" file' }, { label: "B" }], scale: ["x"] }
-  sendOwn({ matrix }, { 'The "A" file': 'Yes, "b"="c"', B: '"No"' }, {})
-})
-
-test("the always-allow label reads as words and never comes out empty", () => {
-  const edits = alwaysChoice({ type: "setMode", mode: "acceptEdits" }, "Write")
-  expect(`${edits.before}${edits.subject}${edits.after}`).toBe("Yes, and allow edits for this session")
-  expect(alwaysChoice({ type: "setMode", mode: "bypassPermissions" }, "Write").subject).toBe("bypass permissions")
-  expect(alwaysChoice({ type: "addRules", rules: [{ toolName: "Bash", ruleContent: "" }] }, "Bash").subject).toBe(
-    "Bash",
-  )
-  expect(alwaysChoice({ type: "addDirectories", directories: [] }, "Read").subject).toBe("Read")
-  const read = alwaysChoice(
-    { type: "addRules", rules: [{ toolName: "Read", ruleContent: "//tmp/x/**" }], destination: "userSettings" },
-    "Read",
-  )
-  expect(`${read.before}${read.subject}${read.after}`).toBe("Yes, and always allow /tmp/x/** in every project")
-  expect(
-    alwaysChoice({ type: "addRules", rules: [{ toolName: "Bash", ruleContent: "cat <<EOF\nhi\nEOF" }] }, "Bash")
-      .subject,
-  ).toBe("cat <<EOF…")
+test("an option without a label reads as words, with what a lasting one covers and for how long", () => {
+  expect(words({})).toBe("Yes")
+  expect(words({ effect: "deny" })).toBe("No")
+  expect(words({ lasts: "session", subject: "edits" })).toBe("Yes, and allow edits for this session")
+  expect(words({ lasts: "everywhere", subject: "/tmp/x/**" })).toBe("Yes, and always allow /tmp/x/** in every project")
+  expect(words({ lasts: "project", subject: "cat <<EOF\nhi\nEOF" })).toBe("Yes, and always allow cat <<EOF… here")
+  expect(words({ lasts: "session", label: "Allow for this chat" })).toBe("Allow for this chat")
 })
 
 test("question answers keep option order, take the typed answer and send only notes of chosen options", () => {
-  const options = [{ label: "JSON" }, { label: "TOML" }, { label: "YAML" }]
-  const input = {
-    questions: [
-      { question: "Where?", header: "Storage", options },
-      { question: "Which?", header: "Formats", options, multiSelect: true },
-    ],
-  }
+  const options = ["JSON", "TOML", "YAML"]
+  const pages = [page("Where?", "Storage", options), page("Which?", "Formats", options, { multi: true })]
   const state = {
     page: 2,
     focus: [3, 0],
@@ -168,27 +153,24 @@ test("question answers keep option order, take the typed answer and send only no
     ],
     extra: "",
   }
-  expect(answersFrom(input, state)).toEqual({
-    answers: { "Where?": "a shared file", "Which?": "JSON, YAML, INI" },
+  expect(answersFrom(pages, state)).toEqual({
+    values: { "Where?": ["a shared file"], "Which?": ["JSON", "YAML", "INI"] },
+    fields: {},
     notes: { "Which?": "keep it small; strict" },
+    note: "",
   })
 })
 
 test("arrows on the own-answer row edit the text instead of switching question", async () => {
-  const options = [{ label: "JSON" }]
-  const input = {
-    questions: [
-      { question: "Where?", header: "Storage", options },
-      { question: "Which?", header: "Formats", options },
-    ],
-  }
-  const sent: string[] = []
+  const questions = { pages: [page("Where?", "Storage", ["JSON"]), page("Which?", "Formats", ["JSON"])] }
+  const sent: AskReply[] = []
   const setup = await testRender(
     () => (
       <AskSurface
-        ask={{ ...ask, toolName: "AskUserQuestion", input }}
+        caps={CAPS}
+        ask={{ ...ask, toolName: "AskUserQuestion", toolKind: "question", options: [], questions }}
         width={80}
-        onAnswer={(_, line) => sent.push(line)}
+        onAnswer={(_, reply) => sent.push(reply)}
       />
     ),
     { width: 80, height: 30 },
@@ -206,19 +188,15 @@ test("arrows on the own-answer row edit the text instead of switching question",
 })
 
 test("Enter in a matrix picks the step and goes to the next open row, then sends", async () => {
-  const matrix = {
-    question: "Keep?",
-    header: "File",
-    rows: [{ label: "A" }, { label: "B" }, { label: "C" }],
-    scale: ["Yes", "No", "Unsure"],
-  }
-  const sent: string[] = []
+  const matrix = { question: "Keep?", header: "File", rows: ["A", "B", "C"], scale: ["Yes", "No", "Unsure"] }
+  const sent: AskReply[] = []
   const setup = await testRender(
     () => (
       <AskSurface
-        ask={{ ...ask, toolName: OWN_ASK, input: { matrix } }}
+        caps={CAPS}
+        ask={{ ...ask, toolName: "ask", toolKind: "question", options: [], questions: { matrix } }}
         width={80}
-        onAnswer={(_, line) => sent.push(line)}
+        onAnswer={(_, reply) => sent.push(reply)}
       />
     ),
     { width: 80, height: 30 },
@@ -231,20 +209,24 @@ test("Enter in a matrix picks the step and goes to the next open row, then sends
   setup.mockInput.pressEnter()
   setup.mockInput.pressKey("3")
   setup.mockInput.pressEnter()
-  expect(sent[0]).toContain('"answers":{"A":"No","B":"No","C":"Unsure"},"annotations":{"C":{"notes":"later"}}')
+  expect(sent[0]).toEqual({
+    type: "answers",
+    answers: { values: { A: ["No"], B: ["No"], C: ["Unsure"] }, fields: {}, notes: { C: "later" }, note: "" },
+  })
   setup.renderer.destroy()
 })
 
 test("a gallery picks a design with ←→ and keeps its note", async () => {
-  const options = ["Dusk", "Petal", "Ember"].map((label) => ({ label, image: `missing/${label}.png` }))
-  const questions = [{ question: "Which theme?", header: "Theme", gallery: true, options }]
-  const sent: string[] = []
+  const options = ["Dusk", "Petal", "Ember"].map((label) => choice(label, `missing/${label}.png`))
+  const questions = { pages: [{ ...page("Which theme?", "Theme", []), gallery: true, options }] }
+  const sent: AskReply[] = []
   const setup = await testRender(
     () => (
       <AskSurface
-        ask={{ ...ask, toolName: OWN_ASK, input: { questions } }}
+        caps={CAPS}
+        ask={{ ...ask, toolName: "ask", toolKind: "question", options: [], questions }}
         width={100}
-        onAnswer={(_, line) => sent.push(line)}
+        onAnswer={(_, reply) => sent.push(reply)}
       />
     ),
     { width: 100, height: 40 },
@@ -254,6 +236,9 @@ test("a gallery picks a design with ←→ and keeps its note", async () => {
   await setup.mockInput.typeText("warm")
   setup.mockInput.pressEnter()
   setup.mockInput.pressEnter()
-  expect(sent[0]).toContain('"answers":{"Which theme?":"Petal"},"annotations":{"Which theme?":{"notes":"warm"}}')
+  expect(sent[0]).toEqual({
+    type: "answers",
+    answers: { values: { "Which theme?": ["Petal"] }, fields: {}, notes: { "Which theme?": "warm" }, note: "" },
+  })
   setup.renderer.destroy()
 })

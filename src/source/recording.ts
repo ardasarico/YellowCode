@@ -1,12 +1,12 @@
 import { z } from "zod"
+import type { CommandRow, ModelRow } from "../agent/lists.ts"
+import { toCommandRows, toModelRows } from "../agents/claude/lists.ts"
 import { initInfo } from "../agents/claude/system.ts"
-import { shownCommands } from "../input/commands.ts"
-import { parseJson, rowsOf } from "../protocol/json.ts"
+import { parseJson, rowsOf } from "../json.ts"
 import {
   initializeModels,
   hooksListing,
   initializeResponse,
-  type ModelInfo,
   pluginHook,
   type PluginHook,
   type SettingsSource,
@@ -75,7 +75,7 @@ export function recordedInfo(recording: Recording): SessionInfo | null {
   return null
 }
 
-export function recordedCommands(recording: Recording): SlashCommand[] {
+export function recordedCommands(recording: Recording): CommandRow[] {
   let rich: SlashCommand[] | null = null
   let init: { names: string[]; terminalOnly: string[] } | null = null
 
@@ -94,16 +94,17 @@ export function recordedCommands(recording: Recording): SlashCommand[] {
   }
 
   const commands = rich ?? (init?.names ?? []).map((name) => ({ name, description: "", argumentHint: "" }))
-  return shownCommands(commands, init?.terminalOnly ?? [])
+  const terminalOnly = new Set(init?.terminalOnly ?? [])
+  return toCommandRows(commands).filter(({ name }) => !terminalOnly.has(name))
 }
 
-export function recordedModels(recording: Recording): ModelInfo[] {
+export function recordedModels(recording: Recording): ModelRow[] {
   for (const entry of recording.entries) {
     if (entry.dir !== "in") continue
     const parsed = parse(entry.line)
     if (parsed.kind !== "message" || parsed.message.type !== "control_response") continue
     const response = initializeModels.safeParse(parsed.message.response.response)
-    if (response.success) return response.data.models
+    if (response.success) return toModelRows(response.data.models)
   }
   return []
 }

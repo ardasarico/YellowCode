@@ -1,28 +1,31 @@
 import type { RGBA } from "@opentui/core"
 import { createSignal, onMount } from "solid-js"
-import type { z } from "zod"
-import type { contextUsage } from "../../protocol/messages.ts"
+import type { ContextReport } from "../../agent/agent.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { formatTokens, modelName } from "../format.ts"
-import { toolPrefix } from "../mcp/servers.ts"
-
-export type ContextUsage = z.infer<typeof contextUsage>
 
 const WIDTH = 72
 const BAR = WIDTH - 8
-// Categories that open to their entries.
-const OPENS = new Set(["memory_files", "mcp_tools"])
-
 const message = (text: string): DialogSection[] => [
   { title: "", rows: [{ id: "message", spans: [{ text, fg: theme.panelMuted }] }] },
 ]
 
 const percent = (tokens: number, max: number) => `${max > 0 ? Math.round((tokens / max) * 100) : 0}%`
 
-function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSection[] {
+type Category = ContextReport["categories"][number]
+
+// The files or tools a category holds; a category opens only when it has some.
+const entriesOf = (usage: ContextReport, category: Category) =>
+  category.holds === "files"
+    ? usage.files.map((file) => [tildePath(file.path), file.tokens] as const)
+    : category.holds === "tools"
+      ? usage.tools.map((tool) => [`${tool.server} · ${tool.name}`, tool.tokens] as const)
+      : []
+
+function sectionsOf(usage: ContextReport, open: ReadonlySet<string>): DialogSection[] {
   const used = usage.categories.filter((category) => category.kind === "used")
   const colorOf = new Map<string, RGBA>(
     used.map((category, index) => [category.name, theme.agents[index % theme.agents.length] ?? theme.accent]),
@@ -30,7 +33,7 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
   // Each used category takes a cell at least, and the bar stops at its width however small the rest is.
   let left = BAR
   const bar = used.map((category) => {
-    const share = usage.maxTokens > 0 ? Math.round((category.tokens / usage.maxTokens) * BAR) : 0
+    const share = usage.window > 0 ? Math.round((category.tokens / usage.window) * BAR) : 0
     const cells = Math.min(left, Math.max(1, share))
     left -= cells
     return { text: "█".repeat(cells), fg: colorOf.get(category.name) ?? theme.accent }
@@ -41,7 +44,7 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
       id: "total",
       spans: [
         {
-          text: `${modelName(usage.model)} · ${formatTokens(usage.totalTokens)} / ${formatTokens(usage.maxTokens)} (${Math.round(usage.percentage)}%)`,
+          text: `${modelName(usage.model)} · ${formatTokens(usage.used)} / ${formatTokens(usage.window)} (${percent(usage.used, usage.window)})`,
           fg: theme.text,
         },
       ],
@@ -50,22 +53,14 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
     { id: "gap", spans: [] },
   ]
   for (const category of usage.categories) {
-    const id = category.id ?? category.name
-    const entries =
-      id === "memory_files"
-        ? usage.memoryFiles.map((file) => [tildePath(file.path), file.tokens] as const)
-        : id === "mcp_tools"
-          ? usage.mcpTools.map(
-              (tool) =>
-                [`${tool.serverName} · ${tool.name.replace(toolPrefix(tool.serverName), "")}`, tool.tokens] as const,
-            )
-          : []
-    const opens = OPENS.has(id) && entries.length > 0
+    const { id } = category
+    const entries = entriesOf(usage, category)
+    const opens = entries.length > 0
     const color = colorOf.get(category.name)
     rows.push({
       id,
       label: category.name,
-      value: `${formatTokens(category.tokens).padStart(6)}  ${percent(category.tokens, usage.maxTokens).padStart(4)}${opens ? (open.has(id) ? "  ▾" : "  ›") : "   "}`,
+      value: `${formatTokens(category.tokens).padStart(6)}  ${percent(category.tokens, usage.window).padStart(4)}${opens ? (open.has(id) ? "  ▾" : "  ›") : "   "}`,
       marker: { text: color ? "■" : "□", fg: color ?? theme.panelFaint },
       labelColor: color ? undefined : theme.panelMuted,
     })
@@ -80,9 +75,9 @@ function sectionsOf(usage: ContextUsage, open: ReadonlySet<string>): DialogSecti
   return [{ title: "", rows }]
 }
 
-// What fills the context window, from claude's own count.
-export function ContextDialog(props: { load: () => Promise<ContextUsage>; onClose: () => void }) {
-  const [usage, setUsage] = createSignal<ContextUsage | null>(null)
+// What fills the context window, from the agent's own count.
+export function ContextDialog(props: { load: () => Promise<ContextReport>; onClose: () => void }) {
+  const [usage, setUsage] = createSignal<ContextReport | null>(null)
   const [problem, setProblem] = createSignal<string | null>(null)
   const [open, setOpen] = createSignal(new Set<string>())
   onMount(() => {
@@ -107,7 +102,9 @@ export function ContextDialog(props: { load: () => Promise<ContextUsage>; onClos
       search={false}
       view="context"
       onEnter={(row) => {
-        if (!OPENS.has(row.id)) return
+        const shown = usage()
+        const category = shown?.categories.find((entry) => entry.id === row.id)
+        if (!shown || !category || entriesOf(shown, category).length === 0) return
         setOpen((previous) => {
           const next = new Set(previous)
           if (!next.delete(row.id)) next.add(row.id)

@@ -1,58 +1,53 @@
 import { createMemo, createSignal, Match, Switch } from "solid-js"
-import { type AskMatrix, askUserQuestionInput, OWN_ASK, ownAskMatrix, ownAskPages } from "../../protocol/messages.ts"
-import { ownAskProblem } from "../../session/ask.ts"
+import type { AskReply, Matrix, QuestionPage } from "../../agent/ask.ts"
+import type { Capabilities } from "../../agent/capabilities.ts"
 import type { Ask, ChatImage, Session } from "../../session/types.ts"
 import { MatrixAsk } from "./matrix-ask.tsx"
 import { PlanBand } from "./plan-band.tsx"
 import { PermissionBand } from "./permission-band.tsx"
 import { QuestionAsk } from "./question-ask.tsx"
-import type { QuestionInput } from "./question.ts"
 
 // A view reads keys with its own useKeyboard. While it is open, App passes on every key except Ctrl+C and F3.
-// `onAnswer` takes the outgoing control_response line; the surface passes on only the first one per ask.
-// `answered` turns true once a response is out; the view then ignores keys.
+// The surface passes on only the first reply per ask; `answered` turns true once it is out, and the view then ignores
+// keys.
 export type AskViewProps = {
   ask: Ask
   width: number
   answered: boolean
-  onAnswer: (response: string) => void
+  onAnswer: (reply: AskReply) => void
   onOpenImages?: (images: ChatImage[], index: number) => void
   onOpenScript?: (name: string, script: string) => void
   onPlanApproved?: () => void
 }
 
 export type AskSurfaceProps = Omit<AskViewProps, "onAnswer" | "answered"> & {
-  onAnswer: (ask: Ask, response: string) => void
+  caps: Pick<Capabilities, "askNote">
+  onAnswer: (ask: Ask, reply: AskReply) => void
 }
 
-// A broken own ask is never shown: it goes straight back to Claude.
 export function pendingAsk(session: Session): Ask | null {
   for (const id of session.items) {
     const item = session.byId[id]
-    if (item?.kind === "ask" && item.status === "pending" && ownAskProblem(item) === null) return item
+    if (item?.kind === "ask" && item.status === "pending") return item
   }
   return null
 }
 
-// A question whose input does not parse is shown as a plain permission, so it can still be answered.
+export const asksQuestions = (ask: Pick<Ask, "toolKind">) => ask.toolKind === "question"
+
+// An ask with no pages or matrix is shown as a plain permission with its options.
 export function AskSurface(props: AskSurfaceProps) {
   const [answered, setAnswered] = createSignal(false)
-  const answer = (response: string) => {
+  const answer = (reply: AskReply) => {
     if (answered()) return
     setAnswered(true)
-    props.onAnswer(props.ask, response)
+    props.onAnswer(props.ask, reply)
   }
-  const view = createMemo((): { matrix?: AskMatrix; questions?: QuestionInput } | null => {
-    const { toolName, input } = props.ask
-    if (toolName === "AskUserQuestion") {
-      const stock = askUserQuestionInput.safeParse(input).data
-      return stock ? { questions: stock } : null
-    }
-    if (toolName !== OWN_ASK) return null
-    const pages = ownAskPages.safeParse(input).data
-    if (pages) return { questions: pages }
-    const matrix = ownAskMatrix.safeParse(input).data?.matrix
-    return matrix ? { matrix } : null
+  const view = createMemo((): { pages?: QuestionPage[]; matrix?: Matrix } | null => {
+    const questions = props.ask.questions
+    if (questions && "pages" in questions) return { pages: questions.pages }
+    if (questions && "matrix" in questions) return { matrix: questions.matrix }
+    return null
   })
   return (
     <Switch
@@ -63,10 +58,11 @@ export function AskSurface(props: AskSurfaceProps) {
           answered={answered()}
           onAnswer={answer}
           onOpenScript={props.onOpenScript}
+          note={props.caps.askNote}
         />
       }
     >
-      <Match when={props.ask.toolName === "ExitPlanMode"}>
+      <Match when={props.ask.toolKind === "plan"}>
         <PlanBand
           ask={props.ask}
           width={props.width}
@@ -80,11 +76,11 @@ export function AskSurface(props: AskSurfaceProps) {
           <MatrixAsk ask={props.ask} matrix={matrix()} width={props.width} answered={answered()} onAnswer={answer} />
         )}
       </Match>
-      <Match when={view()?.questions}>
-        {(input) => (
+      <Match when={view()?.pages}>
+        {(pages) => (
           <QuestionAsk
             ask={props.ask}
-            input={input()}
+            pages={pages()}
             width={props.width}
             answered={answered()}
             onAnswer={answer}

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { z } from "zod"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { addTool } from "../mods/registry.ts"
 import { serveModTools } from "./mod-tools.ts"
 

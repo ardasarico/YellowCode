@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import type { ReadClipboard } from "./draft.ts"
 import { spawnLimited } from "../spawn.ts"
 import { fitImage } from "./image-file.ts"

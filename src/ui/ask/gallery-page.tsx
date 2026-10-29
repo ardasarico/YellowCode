@@ -1,14 +1,15 @@
 import { Index, Show } from "solid-js"
+import type { QuestionPage } from "../../agent/ask.ts"
 import { theme } from "../../theme/theme.ts"
 import { AskPicture, askImage } from "./ask-picture.tsx"
-import { LETTERS, type Question } from "./question.ts"
+import { LETTERS } from "./question.ts"
 
 const GAP = 2
 const MIN_CARD = 24
 
 // 2–4 designs side by side, in one row while each card gets MIN_CARD cells, else two per row.
 export function GalleryPage(props: {
-  question: Question
+  question: QuestionPage
   width: number
   focus: number
   chosen: number[]
@@ -44,9 +45,9 @@ export function GalleryPage(props: {
               }}
             >
               <text wrapMode="none" fg={focused() ? theme.accent : on() ? theme.text : theme.muted}>
-                <span>{`${props.question.multiSelect ? (on() ? "■ " : "□ ") : ""}${LETTERS[index] ?? ""}. `}</span>
+                <span>{`${props.question.multi ? (on() ? "■ " : "□ ") : ""}${LETTERS[index] ?? ""}. `}</span>
                 <span style={{ bold: focused(), fg: focused() ? theme.accent : theme.text }}>{option().label}</span>
-                <span style={{ fg: theme.accent }}>{on() && !props.question.multiSelect ? " ✓" : ""}</span>
+                <span style={{ fg: theme.accent }}>{on() && !props.question.multi ? " ✓" : ""}</span>
               </text>
               <box border borderStyle="rounded" borderColor={focused() ? theme.accent : theme.frame}>
                 <AskPicture

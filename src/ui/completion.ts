@@ -14,7 +14,7 @@ import {
 import { historyStep } from "../input/history.ts"
 import type { InputProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
-import type { OutgoingImage } from "../protocol/outgoing.ts"
+import type { PromptImage } from "../agent/agent.ts"
 import {
   argumentToken,
   atToken,
@@ -31,7 +31,7 @@ import { measureIn, useChips } from "./chips.ts"
 import { cut } from "./format.ts"
 import { type Suggestion, suggestionRows } from "./suggestion-list.tsx"
 
-export type Submission = { text: string; images: OutgoingImage[]; draft: Draft }
+export type Submission = { text: string; images: PromptImage[]; draft: Draft }
 
 type Completion =
   | { kind: "command"; entries: Suggestion[] }

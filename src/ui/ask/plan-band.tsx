@@ -1,8 +1,6 @@
 import { type InputRenderable, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show } from "solid-js"
-import { z } from "zod"
-import { allowTool, DECLINED_WITH_NOTE, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
 import { theme } from "../../theme/theme.ts"
 import { covered } from "../images.ts"
 import { Markdown } from "../markdown/markdown.tsx"
@@ -19,29 +17,31 @@ const SHORT_HINTS = "↑↓ · enter · esc"
 const NOTE_HINTS = "enter send · esc back"
 // Past this many lines the plan is taller than the band leaves room for.
 const LONG_PLAN = 12
-const planInput = z.looseObject({ plan: z.string().optional(), planFilePath: z.string().optional() })
-
-// Claude finished a plan in plan mode and asks to start on it.
+// The agent finished a plan in plan mode and asks to start on it.
 export function PlanBand(props: AskViewProps) {
-  const fields = () => planInput.safeParse(props.ask.input).data
-  // Claude Code sends the plan only once it is in its plan file.
+  // The agent may send only the plan file's path.
   const plan = () => {
-    const sent = fields()?.plan?.trim()
+    const sent = props.ask.plan?.text.trim()
     if (sent) return sent
-    const path = fields()?.planFilePath
+    const path = props.ask.plan?.path
     return path ? `_The plan is in ${path}._` : "_Claude sent no plan text._"
   }
   const [cursor, setCursor] = createSignal(0)
   const [noting, setNoting] = createSignal(false)
   let field: InputRenderable | undefined
+  // "Yes, start" is the agent's first yes, "Keep planning" its first no.
+  const optionId = (effect: "allow" | "deny") => props.ask.options.find((option) => option.effect === effect)?.id
+  const send = (effect: "allow" | "deny", note: string | null) => {
+    const option = optionId(effect)
+    if (option) props.onAnswer({ type: "option", option, note })
+  }
   const respond = (index: number) => {
-    const { requestId, input } = props.ask
     if (index === 0) props.onPlanApproved?.()
-    props.onAnswer(index === 0 ? allowTool(requestId, input) : denyTool(requestId, TOOL_DECLINED))
+    send(index === 0 ? "allow" : "deny", null)
   }
   const sendNote = (note: string) => {
     const text = note.trim()
-    if (text) props.onAnswer(denyTool(props.ask.requestId, DECLINED_WITH_NOTE + text))
+    if (text) send("deny", text)
   }
   const typing = typingGuard()
   useKeyboard((key) => {

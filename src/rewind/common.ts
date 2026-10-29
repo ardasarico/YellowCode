@@ -2,30 +2,9 @@ import { randomBytes } from "node:crypto"
 import { closeSync, fchmodSync, mkdirSync, openSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, dirname, isAbsolute, join, relative, sep } from "node:path"
-import { z } from "zod"
 import type { Manifest } from "./live-rewind.ts"
 
 // Pieces the rewind's capture, preview, restore and dialog share.
-
-export const WRITE_TOOLS = new Set(["Edit", "MultiEdit", "Write", "NotebookEdit"])
-
-export const fileInput = z.looseObject({
-  file_path: z.string().optional(),
-  notebook_path: z.string().optional(),
-  content: z.string().optional(),
-})
-
-// The file an Edit/Write-like call names, with a leading ~ read as HOME.
-export function inputFile(input: unknown): string | undefined {
-  const parsed = fileInput.safeParse(input).data
-  const file = parsed?.file_path ?? parsed?.notebook_path
-  return file === undefined ? undefined : expandHome(file)
-}
-
-function expandHome(file: string): string {
-  if (file === "~") return homedir()
-  return file.startsWith("~/") ? join(homedir(), file.slice(2)) : file
-}
 
 export function tildePath(path: string): string {
   const home = homedir()
@@ -45,7 +24,7 @@ export function blobId(bytes: Uint8Array, like: string): string {
 }
 
 // The real path of a file that may not exist yet: its deepest existing folder (or itself) resolved, the rest as given.
-function realPath(file: string): string | null {
+export function realPath(file: string): string | null {
   let existing = file
   const rest: string[] = []
   while (true) {

@@ -1,46 +1,46 @@
 import { createMemo } from "solid-js"
-import type { PluginHook, SettingsSource, SkillRow } from "../../protocol/messages.ts"
-import { pluginEntries } from "../../session/plugins.ts"
-import { settings } from "../../session/settings.ts"
-import { modeLabel } from "../../session/settings-file.ts"
+import type { Agent } from "../../agent/agent.ts"
+import type { Capabilities } from "../../agent/capabilities.ts"
+import type { AgentKindId } from "../../agent/ids.ts"
+import type { InputProvider } from "../../input/provider.ts"
+import { modeLabel, settings } from "../../session/settings.ts"
 import type { McpServer, SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
-import { type McpActions, McpTab } from "../mcp/mcp-tab.tsx"
-import { type ClaudeSettings, ConfigTab } from "./config-tab.tsx"
+import { McpTab } from "../mcp/mcp-tab.tsx"
+import { type AgentSettings, ConfigTab } from "./config-tab.tsx"
 import { mods } from "../../mods/mods.ts"
 import { ModsTab } from "./mods-tab.tsx"
-import { type PluginActions, PluginsTab } from "./plugins-tab.tsx"
+import { PluginsTab } from "./plugins-tab.tsx"
 import { type StatusFacts, StatusTab } from "./status-tab.tsx"
 
 export type SettingsTab = "status" | "config" | "mcp" | "plugins" | "mods"
-
-const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
 
 export function SettingsDialog(props: {
   tab: SettingsTab
   // The row the Config tab opens on, as /config, /output-style and /autocompact ask.
   row?: string
-  claude?: ClaudeSettings
+  // The agent whose session this is.
+  agent: AgentKindId
+  // Live only.
+  agentSettings?: AgentSettings
   info: SessionInfo | null
   // Live, claude lists them before the first message, when there is no info yet.
   servers: McpServer[] | null
-  mcpActions?: McpActions
-  pluginActions?: PluginActions
+  // Live only.
+  extensions?: Pick<Agent, "mcp" | "plugins">
+  caps: Pick<Capabilities, "mcp" | "plugins" | "lists">
   // As claude reports it ("default", "acceptEdits", …).
   permissionMode: string | null
   title: string | null
   model: string | null
   version: string
-  skills: number
-  skillRows: SkillRow[] | null
-  pluginHooks: PluginHook[]
-  sources: SettingsSource[]
+  provider: InputProvider
   onTab: (tab: SettingsTab) => void
   onClose: () => void
 }) {
   const plugins = createMemo(() => {
     const info = props.info
-    return info ? pluginEntries(info, props.sources, props.skillRows ?? [], props.pluginHooks) : null
+    return info ? props.provider.plugins(info) : null
   })
 
   const facts = (): StatusFacts => {
@@ -52,29 +52,54 @@ export function SettingsDialog(props: {
       sessionId: info?.id ?? null,
       model: props.model,
       effort: settings.effort,
-      permissionMode: props.permissionMode === null ? null : modeLabel(props.permissionMode),
+      permissionMode: props.permissionMode === null ? null : modeLabel(props.provider.modes(), props.permissionMode),
       mcpServers: props.servers?.length ?? null,
       plugins: plugins()?.length ?? null,
-      skills: props.skillRows ? props.skills : (info?.skills.length ?? null),
+      skills: props.provider.skills()?.length ?? info?.skills.length ?? null,
       tools: info ? info.tools.length : null,
-      sources: SOURCE_NAMES.filter((name) => props.sources.some(({ source }) => source === `${name}Settings`)),
+      sources: props.provider.settingSources(),
     }
   }
 
   const tabs: Tab<SettingsTab>[] = [
     { id: "status", label: "Status", render: (api) => <StatusTab api={api} facts={facts()} /> },
-    { id: "config", label: "Config", render: (api) => <ConfigTab api={api} claude={props.claude} row={props.row} /> },
+    {
+      id: "config",
+      label: "Config",
+      render: (api) => (
+        <ConfigTab
+          api={api}
+          agent={props.agent}
+          modes={props.provider.modes()}
+          agentSettings={props.agentSettings}
+          row={props.row}
+        />
+      ),
+    },
     {
       id: "mcp",
       label: "MCP",
       render: (api) => (
-        <McpTab api={api} servers={props.servers} tools={props.info?.tools ?? []} actions={props.mcpActions} />
+        <McpTab
+          api={api}
+          servers={props.provider.mcp(props.servers, props.info?.tools ?? [])}
+          actions={props.extensions?.mcp}
+          can={props.caps.mcp}
+        />
       ),
     },
     {
       id: "plugins",
       label: "Plugins",
-      render: (api) => <PluginsTab api={api} plugins={plugins()} actions={props.pluginActions} />,
+      render: (api) => (
+        <PluginsTab
+          api={api}
+          plugins={plugins()}
+          actions={props.extensions?.plugins}
+          toggles={props.caps.plugins.toggle}
+          hooks={props.caps.lists.includes("hooks")}
+        />
+      ),
     },
     { id: "mods", label: "Mods", render: (api) => <ModsTab api={api} host={mods} /> },
   ]

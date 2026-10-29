@@ -1,8 +1,8 @@
 import { log } from "../log/log.ts"
 import { modCommands } from "../mods/registry.ts"
-import type { SlashCommand } from "../protocol/messages.ts"
+import type { CommandRow as ListedCommand, ModelRow } from "../agent/lists.ts"
 
-// `builtin` is Claude Code's own command (/model, /clear, and a few bundled skills), not a skill or a custom command.
+// `builtin` is the agent's own command (/model, /clear, and a few bundled skills), not a skill or a custom command.
 // `mod` names the mod that added it.
 export type Command = {
   name: string
@@ -34,35 +34,17 @@ export const OWN_COMMANDS: Command[] = [
   { name: "export", description: "Copy the conversation or save it as Markdown", argumentHint: "[file]", aliases: [] },
 ]
 
-// Claude Code's commands YellowCode does not offer: broken over stream-json, internal, or covered by its own views.
-export const BLOCKED_COMMANDS = [
-  "debug",
-  "doctor",
-  "heapdump",
-  "fast",
-  "agents",
-  "workflow-launch-exec",
-  "auto-mode-setup",
-  "recap",
-  "list-agents",
-]
-
-// The / list leaves out help, internal commands (__x), blocked ones and those that work only in claude's own
-// terminal UI.
-export function shownCommands(commands: SlashCommand[], terminalOnly: readonly string[]): SlashCommand[] {
-  const dropped = new Set([...terminalOnly, ...BLOCKED_COMMANDS])
-  return commands.filter(({ name }) => !dropped.has(name) && name !== "help" && !name.startsWith("__"))
-}
-
-export function claudeCommands(commands: SlashCommand[], terminalOnly: readonly string[]): Command[] {
+// The agent's commands without the ones that work only in its own terminal UI, each name once, then YellowCode's.
+export function agentCommands(commands: ListedCommand[], terminalOnly: readonly string[]): Command[] {
+  const hidden = new Set(terminalOnly)
   const seen = new Set<string>()
-  const unique = shownCommands(commands, terminalOnly).filter(({ name }) => !seen.has(name) && seen.add(name))
+  const unique = commands.filter(({ name }) => !hidden.has(name) && !seen.has(name) && seen.add(name))
   return withOwnCommands(
     unique.map(({ name, description, argumentHint, aliases, builtin }) => ({
       name,
       description,
       argumentHint,
-      aliases: aliases ?? [],
+      aliases,
       builtin,
     })),
   )
@@ -214,8 +196,8 @@ export function untitledCommand(commands: Command[], text: string): boolean {
   return command.name === "rename" || args.split(/\s+/).filter(Boolean).length < TITLED_WORDS
 }
 
-export function argumentValues(command: Command, models: ArgumentValue[]): ArgumentValue[] {
-  if (command.name === "model" && models.length > 0) return models
+export function argumentValues(command: Command, models: ModelRow[]): ArgumentValue[] {
+  if (command.name === "model" && models.length > 0) return models.map(({ ref, note }) => ({ value: ref.id, note }))
   return hintValues(command.argumentHint).map((value) => ({ value, note: "" }))
 }
 

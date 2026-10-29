@@ -1,7 +1,6 @@
 import { shownText } from "./agent-message.ts"
 import { relative } from "node:path"
 import { z } from "zod"
-import { fileInput, inputFile, WRITE_TOOLS } from "../rewind/common.ts"
 import type { Hunk, Item, ItemId, Session, Task, ToolCall } from "./types.ts"
 
 export type FileChange = {
@@ -26,7 +25,7 @@ export type RewindPoint = {
   untracked: boolean
   // Why files are not tracked at all, when that is known.
   untrackedWhy: string | null
-  // Only claude's own backups cover the prompt, so only its Edit and Write calls can be undone.
+  // Only the agent's own backups cover the prompt, so only its file-writing calls can be undone.
   imported: boolean
   // Running background tasks the prompt started.
   tasks: string[]
@@ -48,7 +47,7 @@ export type RewindRecheck = { conflicts: string[]; paths: string[] }
 
 // What only the snapshots know, by prompt index: live from the manifests, in a replay from the recording's sidecar.
 export type RewindExtras = {
-  // `edit`: an Edit/Write call the chat does not show, not Bash.
+  // `edit`: a file-writing call the chat does not show, not Bash.
   bash: { prompt: number; path: string; plus: number; minus: number; edit?: boolean }[]
   conflicts: string[]
   untracked: number[]
@@ -76,19 +75,19 @@ export function patchCounts(patch: Hunk[]): { plus: number; minus: number } {
   return { plus, minus }
 }
 
-function toolChange(tool: ToolCall, cwd: string): FileChange | null {
-  if (!WRITE_TOOLS.has(tool.name) || tool.status !== "done" || tool.unchanged) return null
-  const input = fileInput.safeParse(tool.input)
-  const file = inputFile(tool.input)
-  if (!file) return null
-  let { plus, minus } = patchCounts(tool.patch ?? [])
-  // A new file written whole has no patch, only its content.
-  if (tool.createdFile && plus === 0) {
-    const content = (input.success ? (input.data.content ?? "") : "").replace(/\n$/, "")
-    plus = content === "" ? 0 : content.split("\n").length
-  }
-  const path = cwd && file.startsWith(`${cwd}/`) ? relative(cwd, file) : file
-  return { path, plus, minus, created: tool.createdFile, bash: false, conflict: false }
+function toolChanges(tool: ToolCall, cwd: string): FileChange[] {
+  if (tool.status !== "done" || tool.unchanged) return []
+  return tool.files.map((file) => {
+    let { plus, minus } = patchCounts(file.patch ?? [])
+    const created = file.change === "create"
+    // A new file written whole has no patch, only its content.
+    if (created && plus === 0) {
+      const content = (file.after ?? "").replace(/\n$/, "")
+      plus = content === "" ? 0 : content.split("\n").length
+    }
+    const path = cwd && file.path.startsWith(`${cwd}/`) ? relative(cwd, file.path) : file.path
+    return { path, plus, minus, created, bash: false, conflict: false }
+  })
 }
 
 export function mergeChanges(changes: FileChange[]): FileChange[] {
@@ -113,8 +112,7 @@ export function rewindPoints(session: Session, extras: RewindExtras | null): Rew
   const points: { userId: ItemId; text: string; changes: FileChange[]; hidden: boolean }[] = []
   const collect = (item: Item | undefined, into: FileChange[]) => {
     if (item?.kind !== "tool") return
-    const change = toolChange(item, cwd)
-    if (change) into.push(change)
+    into.push(...toolChanges(item, cwd))
     for (const child of item.children) collect(session.byId[child], into)
   }
   const tasks: string[][] = []

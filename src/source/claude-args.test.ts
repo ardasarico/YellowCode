@@ -1,13 +1,13 @@
 import { expect, test } from "bun:test"
-import { PERMISSION_MODES } from "../session/settings-file.ts"
+import { CLAUDE_MODES } from "../agents/claude/lists.ts"
 import { claudeArgs, launchOf, type Spawn, thinkingArg } from "./claude-args.ts"
 
 const modeOf = (args: string[]) => args[args.indexOf("--permission-mode") + 1]
 
 test("the saved mode goes out as --permission-mode, and only bypassPermissions brings the allow flag", () => {
-  for (const permissionMode of PERMISSION_MODES) {
+  for (const { id: permissionMode } of CLAUDE_MODES) {
     const args = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode }))
-    expect(modeOf(args)).toBe(permissionMode === "manual" ? "default" : permissionMode)
+    expect(modeOf(args)).toBe(permissionMode)
     expect(args.includes("--allow-dangerously-skip-permissions")).toBe(permissionMode === "bypassPermissions")
   }
 })

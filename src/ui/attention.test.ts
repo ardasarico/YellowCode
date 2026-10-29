@@ -1,11 +1,15 @@
 import { expect, test } from "bun:test"
+import type { AskOption } from "../agent/ask.ts"
 import { endSession, feed } from "../agents/claude/translate.ts"
-import { OWN_ASK } from "../protocol/messages.ts"
 import { userMessage } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
 import type { Ask, Item, Session, TurnEnd } from "../session/types.ts"
 import { attentionState, notification } from "./attention.ts"
+
+const option = { label: null, subject: null, note: false, endsTurn: false, mode: null }
+const YES: AskOption = { ...option, id: "yes", effect: "allow", lasts: "once" }
+const NO: AskOption = { ...option, id: "no", effect: "deny", lasts: "once", note: true }
 
 const ask: Ask = {
   kind: "ask",
@@ -13,17 +17,25 @@ const ask: Ask = {
   requestId: "request-1",
   toolUseId: "tool-1",
   toolName: "Bash",
+  toolKind: "shell",
+  server: null,
   displayName: "Bash",
   input: {},
+  target: "",
+  writes: [],
   description: "",
   reason: "",
-  suggestion: null,
+  options: [YES, NO],
+  questions: null,
+  plan: null,
   defaultToNo: false,
   safetyCheck: false,
   status: "pending",
   answers: {},
   notes: {},
   denial: "",
+  why: null,
+  note: "",
 }
 
 const turnEnd: TurnEnd = {
@@ -39,7 +51,9 @@ const turnEnd: TurnEnd = {
   endedAt: 0,
 }
 
-const ownInput = { questions: [{ question: "Which?", header: "Pick", options: [{ label: "A" }, { label: "B" }] }] }
+const choice = (label: string) => ({ label, description: null, preview: null, image: null })
+const page = { key: "Which?", header: "Pick", question: "Which?", multi: false, gallery: false, custom: true }
+const questions = { pages: [{ ...page, options: [choice("A"), choice("B")] }] }
 
 function sessionWith(items: Item[], status: Session["status"] = "idle"): Session {
   const base = createSession().state
@@ -50,7 +64,7 @@ test("each state pings only at the levels that allow it", () => {
   const cases: [Session, string | null, string | null][] = [
     [sessionWith([ask], "running"), "Permission needed: Bash", "Permission needed: Bash"],
     [
-      sessionWith([{ ...ask, toolName: OWN_ASK, input: ownInput }], "running"),
+      sessionWith([{ ...ask, toolName: "ask", toolKind: "question", options: [], questions }], "running"),
       "Claude has a question",
       "Claude has a question",
     ],

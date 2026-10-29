@@ -2,7 +2,8 @@ import { afterAll, expect, test } from "bun:test"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { importBackups, readHistory } from "./import.ts"
+import { claudeBackups } from "../agents/claude/file-history.ts"
+import { importBackups } from "./import.ts"
 import { promptManifests, readManifest } from "./live-rewind.ts"
 import { restoreInput } from "./preview.ts"
 import { applyRestore, planRestore } from "./restore.ts"
@@ -45,31 +46,6 @@ const localize = (text: string, dir: string) =>
     .replaceAll("be044052e7b147c6", hashOf(`${dir}/new.txt`))
     .replaceAll("/project", dir)
 
-test("the transcript maps each prompt to the backups of the files its Edit/Write calls changed", () => {
-  const history = readHistory(localize(fixture, "/p"))
-  expect(history?.map((prompt) => prompt.uuid)).toEqual(prompts)
-  expect(history?.map((prompt) => Object.fromEntries(prompt.writes))).toEqual([
-    { "/p/new.txt": "create" },
-    { "/p/README.md": "update" },
-    { "/p/new.txt": "update" },
-    {},
-  ])
-  expect(history?.[0]?.backups.get("/p/new.txt")).toBeNull()
-  expect(history?.[1]?.backups.get("/p/README.md")).toBe(`${hashOf("/p/README.md")}@v1`)
-  expect(history?.[2]?.backups.get("/p/new.txt")).toBe(`${hashOf("/p/new.txt")}@v2`)
-  expect(history?.[1]?.left.get("/p/README.md")).toContain("line fourteen edited\n")
-  expect(history?.[2]?.left.get("/p/new.txt")).toBe("new v2 overwritten\n")
-  expect(readHistory('{"type":"file-history-snapshot","snapshot":{}}')).toBeNull()
-})
-
-test("a backup belongs to the folder claude recorded, not the cwd a Bash cd left", () => {
-  const moved = localize(fixture, "/p").replaceAll('"cwd":"/p"', '"cwd":"/p/sub"')
-  expect(readHistory(moved)?.[1]?.backups.get("/p/README.md")).toBe(`${hashOf("/p/README.md")}@v1`)
-  // A name whose hash does not match the path is dropped.
-  const wrong = localize(fixture, "/p").replaceAll('"realParentDir":"/p"', '"realParentDir":"/p/sub"')
-  expect([...(readHistory(wrong)?.[1]?.backups.keys() ?? [])]).toEqual([])
-})
-
 test("imported prompts rewind their Edit/Write files and leave Bash changes alone", async () => {
   const dir = join(temp, "project")
   mkdirSync(dir)
@@ -84,12 +60,11 @@ test("imported prompts rewind their Edit/Write files and leave Bash changes alon
   writeFileSync(join(backups, `${hashOf(`${dir}/README.md`)}@v1`), "original\n")
   writeFileSync(join(backups, `${hashOf(`${dir}/README.md`)}@v2`), "edited\n")
   writeFileSync(join(backups, `${hashOf(`${dir}/new.txt`)}@v2`), "new v1\n")
-  const transcript = join(temp, "session.jsonl")
-  writeFileSync(transcript, localize(fixture, dir))
+  const transcript = localize(fixture, dir)
 
   const snapshots = await openSnapshots(dir)
   if (!snapshots) throw new Error("snapshots off")
-  await importBackups(snapshots, transcript, "session", backups)
+  await importBackups(snapshots, "session", (wanted) => Promise.resolve(claudeBackups(transcript, backups, wanted)))
   const manifests = prompts.map((uuid) => readManifest(snapshots.store, uuid))
   expect(manifests.map((manifest) => manifest?.segments[0]?.kind)).toEqual([
     "imported",

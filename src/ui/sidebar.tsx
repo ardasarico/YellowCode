@@ -1,10 +1,11 @@
 import { type MouseEvent, RGBA, TextAttributes } from "@opentui/core"
+import type { Capabilities } from "../agent/capabilities.ts"
+import type { McpServerRow } from "../agent/lists.ts"
 import { createComponent, createMemo, createSignal, ErrorBoundary, For, Index, Show, untrack } from "solid-js"
 import type { ModSidebarZone } from "../mods/api.ts"
 import { DEFAULT_SECTION_ORDER, modSections, type RegisteredSection, reportModError } from "../mods/registry.ts"
-import { currentServers } from "../session/lists.ts"
 import type { SessionTitle } from "../session/titler.ts"
-import type { Session, SessionInfo, Window } from "../session/types.ts"
+import type { Session, Window } from "../session/types.ts"
 import { shownText } from "../session/agent-message.ts"
 import { type Todo, todoList } from "../session/todos.ts"
 import { todoMark } from "./todos/todo-row.tsx"
@@ -12,7 +13,6 @@ import { theme } from "../theme/theme.ts"
 import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, plain, wrapLines } from "./format.ts"
 import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
-import { shortName, toolPrefix } from "./mcp/servers.ts"
 import { useTicker } from "./ticker.ts"
 import type { Workspace } from "./welcome.tsx"
 
@@ -28,13 +28,15 @@ export type SidebarProps = {
   // A transcript opened read-only shows its age, like the session list, instead of the running time.
   modified?: number
   model: string | null
+  // The session's MCP servers; null before the agent lists them.
+  servers: McpServerRow[] | null
+  caps: Pick<Capabilities, "limits" | "cost">
   width: number
   overlay: boolean
   resizing: boolean
   onResizeStart: () => void
 }
 
-type Server = SessionInfo["mcpServers"][number]
 type ServerStatus = { mark: string; color: RGBA; name: RGBA; word: string; problem: boolean; running: boolean }
 type ServerActivity = { used: Set<string>; running: Set<string> }
 
@@ -51,7 +53,10 @@ function firstUserLine(session: Session): string {
   return ""
 }
 
-function serverActivity(session: Session): ServerActivity {
+// MCP tool names carry the server name with every character outside [A-Za-z0-9_-] replaced by `_`.
+const toolPrefix = (server: string) => `mcp__${server.replace(/[^A-Za-z0-9_-]/g, "_")}__`
+
+function serverActivity(session: Session, servers: McpServerRow[]): ServerActivity {
   const items = Object.values(session.byId)
   const tools = items.flatMap((item) => (item.kind === "tool" ? [item] : []))
   const waiting = new Set(
@@ -59,7 +64,7 @@ function serverActivity(session: Session): ServerActivity {
   )
   const used = new Set<string>()
   const running = new Set<string>()
-  for (const server of currentServers(session, null) ?? []) {
+  for (const server of servers) {
     const own = tools.filter((tool) => tool.name.startsWith(toolPrefix(server.name)))
     if (own.length > 0) used.add(server.name)
     if (own.some((tool) => tool.status === "running" && !waiting.has(tool.id))) running.add(server.name)
@@ -67,21 +72,21 @@ function serverActivity(session: Session): ServerActivity {
   return { used, running }
 }
 
-function serverStatus(server: Server, activity: ServerActivity): ServerStatus {
+function serverStatus(server: McpServerRow, activity: ServerActivity): ServerStatus {
   const base = { name: theme.text, word: "", problem: false, running: false }
-  if (server.status === "failed") return { ...base, mark: "✕", color: theme.error, word: "failed", problem: true }
-  if (server.status === "needs-auth")
+  if (server.state === "failed") return { ...base, mark: "✕", color: theme.error, word: "failed", problem: true }
+  if (server.state === "needs-login")
     return { ...base, mark: "!", color: theme.warning, word: "needs login", problem: true }
-  if (server.status === "disabled") return { ...base, mark: "–", color: theme.faint, name: theme.faint, word: "off" }
-  if (server.status === "pending") return { ...base, mark: "◌", color: theme.accent }
+  if (server.state === "off") return { ...base, mark: "–", color: theme.faint, name: theme.faint, word: "off" }
+  if (server.state === "connecting") return { ...base, mark: "◌", color: theme.accent }
   if (activity.running.has(server.name)) return { ...base, mark: "●", color: theme.accent, running: true }
   if (activity.used.has(server.name)) return { ...base, mark: "●", color: theme.muted }
   return { ...base, mark: "○", color: theme.faint, name: theme.faint }
 }
 
 // Problems lead and disabled servers trail.
-const serverRank = (row: { server: Server; status: ServerStatus }) =>
-  row.status.problem ? 0 : row.server.status === "disabled" ? 2 : 1
+const serverRank = (row: { server: McpServerRow; status: ServerStatus }) =>
+  row.status.problem ? 0 : row.server.state === "off" ? 2 : 1
 
 export function resetTime(resetsAt: number, now: number): string {
   const clock = formatClock(resetsAt)
@@ -167,10 +172,10 @@ function Heading(props: { left: string; right: string; onMouseDown?: (event: Mou
   )
 }
 
-function ServerRow(props: { server: Server; status: ServerStatus; width: number }) {
-  const name = () => cut(shortName(props.server.name), props.width - 2)
+function ServerRow(props: { server: McpServerRow; status: ServerStatus; width: number }) {
+  const name = () => cut(props.server.label, props.width - 2)
   const room = () => props.width - 4 - Bun.stringWidth(name())
-  const error = () => (props.server.status === "failed" ? props.server.error?.replace(/\s+/g, " ").trim() : "")
+  const error = () => (props.server.state === "failed" ? props.server.error?.replace(/\s+/g, " ").trim() : "")
   return (
     <box flexDirection="column">
       <text wrapMode="none">
@@ -191,18 +196,18 @@ function ServerRow(props: { server: Server; status: ServerStatus; width: number 
   )
 }
 
-function Mcp(props: { session: Session; width: number }) {
+function Mcp(props: { session: Session; servers: McpServerRow[]; width: number }) {
   const [open, setOpen] = createSignal(false)
-  const all = () => currentServers(props.session, null) ?? []
-  const servers = () => all().filter((server) => server.status !== "disabled")
-  const activity = createMemo(() => serverActivity(props.session))
+  const all = () => props.servers
+  const servers = () => all().filter((server) => server.state !== "off")
+  const activity = createMemo(() => serverActivity(props.session, all()))
   // A closed section still lists problems and running servers.
   const rows = createMemo(() =>
     all()
       .map((server) => ({ server, status: serverStatus(server, activity()) }))
       .toSorted((a, b) => serverRank(a) - serverRank(b)),
   )
-  const ok = () => servers().filter((server) => server.status === "connected").length
+  const ok = () => servers().filter((server) => server.state === "connected").length
   const listed = () => (open() ? rows() : rows().filter((row) => row.status.problem || row.status.running))
   return (
     <box flexDirection="column" marginTop={SECTION_GAP} flexShrink={0}>
@@ -250,10 +255,17 @@ function Tasks(props: { todos: Todo[]; width: number }) {
   )
 }
 
-function Usage(props: { session: Session; model: string | null; width: number; now: number }) {
+function Usage(props: {
+  session: Session
+  model: string | null
+  caps: Pick<Capabilities, "limits" | "cost">
+  width: number
+  now: number
+}) {
   const windows = () => {
     const limits = props.session.usage.limits
     const rows: { label: string; window: Window }[] = []
+    if (!props.caps.limits) return rows
     if (limits.fiveHour) rows.push({ label: "5 hours", window: limits.fiveHour })
     if (limits.week) rows.push({ label: "week", window: limits.week })
     const family = /^claude-(opus|sonnet)/.exec(props.model ?? "")?.[1]
@@ -263,7 +275,7 @@ function Usage(props: { session: Session; model: string | null; width: number; n
   }
   const spent = () => {
     const source = props.session.info?.apiKeySource
-    if (windows().length > 0 || !source || source === "none" || source === "oauth") return null
+    if (!props.caps.cost || windows().length > 0 || !source || source === "none") return null
     return `$${props.session.usage.costUsd.toFixed(2)} spent`
   }
   return (
@@ -429,14 +441,14 @@ export function Sidebar(props: SidebarProps) {
                   <Tasks todos={todoList(props.session)} width={inner()} />
                 </Show>
               ) : (
-                <Show when={(currentServers(props.session, null) ?? []).some((server) => server.status !== "disabled")}>
-                  <Mcp session={props.session} width={inner()} />
+                <Show when={(props.servers ?? []).some((server) => server.state !== "off")}>
+                  <Mcp session={props.session} servers={props.servers ?? []} width={inner()} />
                 </Show>
               )
             }
           </For>
         </box>
-        <Usage session={props.session} model={props.model} width={inner()} now={now()} />
+        <Usage session={props.session} model={props.model} caps={props.caps} width={inner()} now={now()} />
         <For each={zoneSections("bottom")}>
           {(section) => <ModSection section={section} width={inner()} above={SECTION_GAP} below={0} />}
         </For>

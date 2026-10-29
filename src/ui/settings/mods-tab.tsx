@@ -7,8 +7,7 @@ import { apiMatches, revokedListing } from "../../mods/install/checks.ts"
 import { INCOMPATIBLE } from "../../mods/install/install.ts"
 import type { ListedMod } from "../../mods/install/list.ts"
 import { installedNow, installListed, modList, refreshModList, updatedTo } from "../../mods/mods.ts"
-import { counts, modKeys, modPanes } from "../../mods/registry.ts"
-import { serverErrors } from "../../source/mod-tools.ts"
+import { counts, modKeys, modPanes, modServerErrors } from "../../mods/registry.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
 import { configPath } from "../../config-path.ts"
 import { tildePath } from "../../rewind/common.ts"
@@ -197,7 +196,7 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
     ...fact("source", "Source", tildePath(entry.folder), width),
     ...fact("adds", "Adds", adds.length > 0 ? adds.join(" · ") : "nothing", width),
     ...fact("load", "Load time", entry.loadMs === null ? "—" : `${entry.loadMs} ms`, width),
-    ...Object.entries(serverErrors())
+    ...Object.entries(modServerErrors())
       .filter(([server]) => server === `mod-${entry.id}` || server.startsWith(`mod-${entry.id}--`))
       .flatMap(([server, error]) => fact(`mcp-${server}`, "MCP", `${server}: ${error}`, width, theme.error)),
     ...(modPanes().some((pane) => pane.mod === entry.id && crowded().has(pane.key))

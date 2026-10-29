@@ -1,19 +1,19 @@
 import { homedir } from "node:os"
-import type { OutgoingImage } from "../protocol/outgoing.ts"
+import type { PromptImage } from "../agent/agent.ts"
 import type { ChatImage } from "../session/types.ts"
 
-export type Chip = { kind: "text"; n: number; content: string } | { kind: "image"; n: number; image: OutgoingImage }
+export type Chip = { kind: "text"; n: number; content: string } | { kind: "image"; n: number; image: PromptImage }
 export type PlacedChip = { start: number; end: number; chip: Chip }
 // `to` is the agent a draft was written to.
 export type Draft = { text: string; chips: PlacedChip[]; to?: { id: string; name: string } }
 
 type ClipboardContent =
-  | { kind: "image"; image: OutgoingImage }
+  | { kind: "image"; image: PromptImage }
   | { kind: "path"; path: string }
   | { kind: "text"; text: string }
   | null
 export type ReadClipboard = () => Promise<ClipboardContent>
-export type LoadImage = (path: string) => Promise<OutgoingImage | null>
+export type LoadImage = (path: string) => Promise<PromptImage | null>
 
 const COLLAPSE_LENGTH = 800
 const COLLAPSE_NEWLINES = 3
@@ -48,8 +48,8 @@ export function imagePath(paste: string): string | null {
   return path.startsWith("/") && /\.(png|jpe?g|gif|webp)$/i.test(path) ? path : null
 }
 
-export function expandDraft(draft: Draft): { text: string; images: OutgoingImage[] } {
-  const images: OutgoingImage[] = []
+export function expandDraft(draft: Draft): { text: string; images: PromptImage[] } {
+  const images: PromptImage[] = []
   let text = ""
   let at = 0
   for (const { start, end, chip } of draft.chips.toSorted((a, b) => a.start - b.start)) {
@@ -65,9 +65,9 @@ export function expandDraft(draft: Draft): { text: string; images: OutgoingImage
   return { text: text + draft.text.slice(at), images }
 }
 
-const MEDIA_TYPES: OutgoingImage["mediaType"][] = ["image/png", "image/jpeg", "image/gif", "image/webp"]
+const MEDIA_TYPES: PromptImage["mediaType"][] = ["image/png", "image/jpeg", "image/gif", "image/webp"]
 
-function mediaType(type: string): OutgoingImage["mediaType"] {
+function mediaType(type: string): PromptImage["mediaType"] {
   return MEDIA_TYPES.find((known) => known === type) ?? "image/png"
 }
 

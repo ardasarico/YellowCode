@@ -1,7 +1,8 @@
 // The hand-written inputs of golden.test.ts: lines and calls no recording holds.
 import { endSession, interruptFailed, openHeldAsk, restartSession, showEarly } from "../agents/claude/translate.ts"
 import packageJson from "../../package.json"
-import { liveProvider } from "../input/provider.ts"
+import { CLAUDE_MODES } from "../agents/claude/lists.ts"
+import { liveProvider } from "../agents/claude/provider.ts"
 import { OWN_ASK, type McpMessage } from "../protocol/messages.ts"
 import * as outgoing from "../protocol/outgoing.ts"
 import { createAskServer } from "../source/ask-server.ts"
@@ -11,16 +12,16 @@ import { OWN_ASK_INIT } from "../source/own-ask-tool.ts"
 import type { Requests } from "../source/requests.ts"
 import { agentMessage } from "./agent-message.ts"
 import { createSession, type SessionStore } from "./session.ts"
-import { DEFAULT_SETTINGS, PERMISSION_MODES, type StoredSettings } from "./settings-file.ts"
+import { DEFAULT_SETTINGS, type StoredSettings } from "./settings-file.ts"
 import {
   controlProblem,
   initSettings,
+  modelRef,
   pickEffort,
   pickModel,
   setControlProblem,
   setKnobs,
   setModelChoices,
-  setSessionMode,
   settings,
   toggleUltracode,
 } from "./settings.ts"
@@ -180,7 +181,7 @@ export const outgoingCases: Record<string, string> = {
   "renameSession sessionId": outgoing.renameSession("req-32", "Build notes", "session-1"),
   getSettingsRequest: outgoing.getSettingsRequest("req-33"),
   ...Object.fromEntries(
-    ["default", ...PERMISSION_MODES].map((mode) => [
+    ["default", "auto", "manual", "acceptEdits", "plan", "bypassPermissions", "dontAsk"].map((mode) => [
       `setPermissionModeRequest ${mode}`,
       outgoing.setPermissionModeRequest(`mode-${mode}`, mode),
     ]),
@@ -207,13 +208,13 @@ export const outgoingCases: Record<string, string> = {
 const summarized = { thinking: "summarized" } as const
 const argsCases: Record<string, [Pick<Parameters<typeof claudeArgs>[0], "thinking">, Launch, Spawn?]> = {
   ...Object.fromEntries(
-    PERMISSION_MODES.map((permissionMode) => [`mode ${permissionMode}`, [summarized, launchOf({ permissionMode })]]),
+    CLAUDE_MODES.map(({ id, label }) => [`mode ${label}`, [summarized, launchOf({ permissionMode: id })]]),
   ),
   "restart plan, saved auto": [summarized, launchOf({ permissionMode: "auto" }, "plan")],
   "restart plan, saved bypassPermissions": [summarized, launchOf({ permissionMode: "bypassPermissions" }, "plan")],
   "restart bypassPermissions, saved auto": [summarized, launchOf({ permissionMode: "auto" }, "bypassPermissions")],
   "bypassPermissions without the allow flag": [summarized, { mode: "bypassPermissions", bypass: false }],
-  "manual with the allow flag": [summarized, { mode: "manual", bypass: true }],
+  "manual with the allow flag": [summarized, { mode: "default", bypass: true }],
   "thinking hidden": [{ thinking: "hidden" }, launchOf({ permissionMode: "auto" })],
   "fresh with session id": [summarized, launchOf({ permissionMode: "auto" }), { sessionId: "session-new" }],
   resume: [summarized, launchOf({ permissionMode: "auto" }), { resume: "session-old" }],
@@ -307,9 +308,9 @@ export function controlLines(): Record<string, { lines: string[]; problem: strin
   setControlProblem(null)
   const controls = createControls({
     requests,
-    provider: liveProvider(requests),
+    provider: liveProvider(() => Promise.resolve([])),
     session: createSession(),
-    launch: { mode: "manual", bypass: false },
+    launch: { mode: "default", bypass: false },
   })
   const step = (name: string, run: () => void) => {
     lines = []
@@ -330,18 +331,38 @@ export function controlLines(): Record<string, { lines: string[]; problem: strin
         current_permission_mode: "default",
       }),
     )
-    step("model with an alias", () => pickModel("claude-sonnet-5-5"))
-    step("model without an alias", () => pickModel("claude-fable-5-1"))
-    step("effort", () => pickEffort("max"))
-    step("ultracode on", () => toggleUltracode())
-    step("effort with ultracode on", () => pickEffort("low"))
-    step("ultracode off", () => toggleUltracode())
-    step("session mode manual", () => setSessionMode("manual"))
-    step("session mode plan", () => setSessionMode("plan"))
-    step("saved mode acceptEdits", () => save({ permissionMode: "acceptEdits" }))
-    step("saved mode bypassPermissions without the allow flag", () => save({ permissionMode: "bypassPermissions" }))
-    step("thinking hidden", () => save({ thinking: "hidden" }))
-    step("thinking summarized", () => save({ thinking: "summarized" }))
+    const model = (id: string) => {
+      pickModel(id)
+      controls.setModel(modelRef(id).id)
+    }
+    const effort = (level: "max" | "low") => {
+      pickEffort(level)
+      controls.setEffort(level, settings.ultracode)
+    }
+    step("model with an alias", () => model("claude-sonnet-5-5"))
+    step("model without an alias", () => model("claude-fable-5-1"))
+    step("effort", () => effort("max"))
+    step("ultracode on", () => controls.setUltracode(toggleUltracode()))
+    step("effort with ultracode on", () => effort("low"))
+    step("ultracode off", () => controls.setUltracode(toggleUltracode()))
+    step("session mode manual", () => controls.setMode("default"))
+    step("session mode plan", () => controls.setMode("plan"))
+    step("saved mode acceptEdits", () => {
+      save({ agents: { claude: { defaultMode: "acceptEdits" } } })
+      controls.setMode("acceptEdits")
+    })
+    step("saved mode bypassPermissions without the allow flag", () => {
+      save({ agents: { claude: { defaultMode: "bypassPermissions" } } })
+      controls.setMode("bypassPermissions")
+    })
+    step("thinking hidden", () => {
+      save({ thinking: "hidden" })
+      controls.setThinking(false)
+    })
+    step("thinking summarized", () => {
+      save({ thinking: "summarized" })
+      controls.setThinking(true)
+    })
     step("carry all", () => controls.carry({ model: "claude-opus-5-5", effort: "high", ultracode: true }))
     step("carry ultracode only", () => controls.carry({ model: null, effort: null, ultracode: true }))
     step("carry nothing", () => controls.carry({ model: null, effort: null, ultracode: false }))
@@ -349,7 +370,7 @@ export function controlLines(): Record<string, { lines: string[]; problem: strin
     controls.dispose()
     setModelChoices([])
     setControlProblem(null)
-    const { model, effort, ultracode, sessionMode: _, ...stored } = before
+    const { model, effort, ultracode, ...stored } = before
     initSettings(stored)
     setKnobs({ model, effort, ultracode })
   }

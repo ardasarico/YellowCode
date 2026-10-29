@@ -31,16 +31,26 @@ const tool = (id: string, name: string, input: unknown, extra: Partial<ToolCall>
   kind: "tool",
   id,
   name,
+  toolKind: "other",
+  title: name,
+  server: null,
   inputText: "",
   input,
   summary: "",
+  detail: null,
+  background: false,
   status: "done",
   result: "",
   children: [],
   patch: null,
   createdFile: false,
+  content: null,
   images: [],
   unchanged: false,
+  count: null,
+  files: [],
+  questions: null,
+  outcome: null,
   agent: null,
   taskId: null,
   ...extra,
@@ -88,7 +98,13 @@ async function agentWroteAfterTurn(name: string) {
   setState("turn", null)
 
   writeFileSync(join(dir, "b.txt"), "b\n")
-  setState("byId", "w", tool("w", "Write", { file_path: join(dir, "b.txt"), content: "b\n" }, { createdFile: true }))
+  const file = join(dir, "b.txt")
+  const written = { path: file, change: "create" as const, movedTo: null, patch: null, after: "b\n" }
+  setState(
+    "byId",
+    "w",
+    tool("w", "Write", { file_path: file, content: "b\n" }, { toolKind: "write", createdFile: true, files: [written] }),
+  )
   setState("byId", "agent", { ...agent, children: ["w"] })
   return { capture, snapshots, session, unfollow }
 }

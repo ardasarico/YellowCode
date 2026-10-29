@@ -101,7 +101,8 @@ export type Ask = {
   // The band's main line: a command, a path, a URL, a call's arguments.
   target: string
   preview: AskPreview | null
-  // Absolute paths the call will create, change or delete; empty when it writes nothing.
+  // The files the call will create, change or delete, spelled as its FileChange.path will be; empty when it writes
+  // nothing.
   writes: string[]
   detail: string
   reason: string

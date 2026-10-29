@@ -1,6 +1,6 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Index, Match, Show, Switch } from "solid-js"
-import type { SessionEntry } from "../resume/session-list.ts"
+import type { SessionEntry } from "../agent/sessions.ts"
 import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"

@@ -5,7 +5,10 @@ import { basename, join } from "node:path"
 import packageJson from "../package.json"
 import { apiVersion } from "./mods/version.ts"
 import { logFile } from "./log/log.ts"
-import type { StoredSettings } from "./session/settings-file.ts"
+import type { AgentKindId } from "./agent/ids.ts"
+import type { ModeRow } from "./agent/lists.ts"
+import { modeLabel } from "./session/settings.ts"
+import { defaultModeIn, type StoredSettings } from "./session/settings-file.ts"
 import { hostEnv } from "./source/claude-cli.ts"
 
 // A label and its value; a row without a value is left out of the report.
@@ -86,13 +89,20 @@ export function terminalFacts(capabilities: TerminalCapabilities | null): Row[] 
   return rows
 }
 
-export function settingsFacts(settings: StoredSettings, problem: string | null): Row[] {
+// `modes` are the agent's, for the saved mode's label.
+export function settingsFacts(
+  settings: StoredSettings,
+  agent: AgentKindId,
+  modes: ModeRow[],
+  problem: string | null,
+): Row[] {
+  const mode = defaultModeIn(settings, agent)
   return [
     ["Theme", settings.theme],
     ["Sidebar", settings.sidebar],
     ["Thinking", settings.thinking],
     ["Session title", settings.sessionTitle],
-    ["Permission mode", settings.permissionMode],
+    ["Permission mode", modeLabel(modes, mode)],
     ["Editor", settings.editor],
     ["Notifications", settings.notifications],
     ["Problem", problem],

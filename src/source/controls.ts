@@ -1,18 +1,16 @@
-import { createEffect, createRoot, on } from "solid-js"
-import type { LiveProvider } from "../input/provider.ts"
+import type { ModeId } from "../agent/ids.ts"
+import type { ModelRow } from "../agent/lists.ts"
+import { CLAUDE_MODES, commandsOf, EFFORT_LEVELS, type EffortLevel, modelsOf } from "../agents/claude/lists.ts"
+import type { LiveProvider } from "../agents/claude/provider.ts"
 import { log } from "../log/log.ts"
 import {
   appliedSettings,
   commandRows,
-  modelInfo,
-  type ModelInfo,
   modelRows,
   initializeAccount,
   initializeMode,
   permissionModeReply,
   type ProtocolMessage,
-  slashCommand,
-  type SlashCommand,
 } from "../protocol/messages.ts"
 import {
   applyFlagSettingsRequest,
@@ -22,26 +20,23 @@ import {
   setPermissionModeRequest,
   thinkingDisplayRequest,
 } from "../protocol/outgoing.ts"
-import { rowsOf } from "../protocol/json.ts"
-import { modeLabel, protocolMode } from "../session/settings-file.ts"
 import type { SessionStore } from "../session/session.ts"
 import {
   controlProblem,
+  modeLabel,
   modelChoices,
-  modelValue,
   setControlProblem,
   setKnobs,
   setModelChoices,
-  settings,
 } from "../session/settings.ts"
-import { EFFORT_LEVELS, type EffortLevel } from "../theme/brand.ts"
 import type { Launch } from "./claude-args.ts"
 import type { Requests } from "./requests.ts"
 
-// What the user chose for the conversation, or what claude said it uses.
+// What the user chose for the conversation, or what claude said it uses. `model` is the id a model row stands for.
 export type Knobs = { model: string | null; effort: EffortLevel | null; ultracode: boolean }
 
-// Live only: what claude offers and uses, read from its initialize reply, get_settings and the messages after them.
+// Live only: what claude offers and uses, read from its initialize reply, get_settings and the messages after them,
+// and the knobs that change it. A knob change goes out SEND_DELAY_MS after the last one, so Shift+→→→ sends once.
 export type Controls = {
   // Another live module that takes the same initialize reply and messages, after it was created.
   follow(follower: Follower): void
@@ -51,18 +46,29 @@ export type Controls = {
   flush(): void
   // A claude started again for the same conversation gets the knobs it had, before any message goes out.
   carry(knobs: Knobs): void
+  // `value` is the listed model row's id, such as an alias.
+  setModel(value: string): void
+  // An effort goes out with the ultracode switch the knobs show, since claude turns ultracode off without it.
+  setEffort(effort: EffortLevel, ultracode: boolean): void
+  setUltracode(on: boolean): void
+  setMode(mode: ModeId): void
+  setThinking(shown: boolean): void
   // The claude is being replaced: nothing it answers from here on reaches the knobs, the lists or the notices.
   dispose(): void
 }
 
 export type Follower = Pick<Controls, "initialized" | "onMessage">
 
-export const commandsOf = (rows: unknown[]): SlashCommand[] => rowsOf(slashCommand, rows).rows
-
-const modelsOf = (rows: unknown[]): ModelInfo[] => rowsOf(modelInfo, rows).rows
-
-const isEffort = (value: string | null | undefined): value is EffortLevel =>
+export const isEffort = (value: string | null | undefined): value is EffortLevel =>
   EFFORT_LEVELS.some((level) => level === value)
+
+// The id a listed model row stands for: an alias row (opus) switches at once and stands for a full id.
+export const modelIdOf = (models: ModelRow[], value: string): string =>
+  modelChoices(models).find((choice) => choice.ref.id === value)?.id ?? value
+
+// The listed row a model id is switched with; the inverse of modelIdOf.
+export const modelValueOf = (models: ModelRow[], id: string): string =>
+  modelChoices(models).find((choice) => choice.id === id)?.ref.id ?? id
 
 export const SEND_DELAY_MS = 300
 const ULTRACODE_UNAVAILABLE = "Ultracode is not available for this model"
@@ -90,19 +96,25 @@ export function createControls(options: {
   // The mode claude was started in, and whether it was started with --allow-dangerously-skip-permissions, so
   // bypassPermissions can be switched to.
   launch: Launch
+  // Hears what claude says it uses, as the knobs show it.
+  onKnobs?: (knobs: Partial<Knobs>) => void
 }): Controls {
   const { requests, provider, session } = options
   const { bypass } = options.launch
+  const report = (knobs: Partial<Knobs>) => {
+    setKnobs(knobs)
+    options.onKnobs?.(knobs)
+  }
   // claude starts in the mode it is given when it can, and silently in another one when it cannot (auto turned off,
   // a policy), so the mode it reports first is checked once against the one it was started with.
-  const launched = protocolMode(options.launch.mode)
+  const launched = options.launch.mode
   let modeChecked = false
   const checkMode = (current: string) => {
     if (modeChecked) return
     modeChecked = true
     if (current !== launched)
       setControlProblem({
-        text: `Permission mode ${modeLabel(launched)} is not available, using ${modeLabel(current)}`,
+        text: `Permission mode ${modeLabel(CLAUDE_MODES, launched)} is not available, using ${modeLabel(CLAUDE_MODES, current)}`,
       })
   }
   // What claude said it uses, last. A knob sends only what differs from it, so writing it back to the knobs sends
@@ -143,7 +155,7 @@ export function createControls(options: {
           setControlProblem({ text: ULTRACODE_UNAVAILABLE })
         else if (known.ultracode && controlProblem()?.text === ULTRACODE_UNAVAILABLE) setControlProblem(null)
         ultracodeAsked = false
-        setKnobs({ ...known })
+        report({ ...known })
       },
       (error: unknown) => log.warn("claude settings failed", error instanceof Error ? error.message : error),
     )
@@ -154,7 +166,6 @@ export function createControls(options: {
     if (pending.size === 0) refresh()
   }
 
-  // A knob goes out SEND_DELAY_MS after its last change, so Shift+→→→ sends once.
   const wait = (knob: Knob, run: () => void) => {
     if (session.state.status === "ended") return
     pending.add(knob)
@@ -182,94 +193,28 @@ export function createControls(options: {
       )
     })
 
-  const stopEffects = createRoot((dispose) => {
-    createEffect(
-      on(
-        () => settings.model,
-        (model) => {
-          if (model !== null && model !== known.model) change("model", (id) => setModelRequest(id, modelValue(model)))
-        },
-        { defer: true },
-      ),
+  const setMode = (mode: ModeId) => {
+    if (disposed) return
+    // The mode is the user's choice from here on, not the launch's.
+    modeChecked = true
+    // claude switches to bypassPermissions only in a session started with the allow flag; the saved mode brings that
+    // flag at the next start. Stepping past it on the way to another mode says nothing.
+    if (mode === "bypassPermissions" && !bypass) {
+      wait("permission", () => {
+        setControlProblem({ text: "bypassPermissions applies from the next start" })
+        settle("permission")
+      })
+      return
+    }
+    change(
+      "permission",
+      (id) => setPermissionModeRequest(id, mode),
+      (reply) => {
+        const current = permissionModeReply.safeParse(reply).data?.mode
+        if (current) session.setPermissionMode(current)
+      },
     )
-    createEffect(
-      on(
-        () => settings.effort,
-        (effort) => {
-          if (effort === null || effort === known.effort) return
-          // An effort sent without the ultracode key would turn ultracode off.
-          const flags = { effortLevel: effort, ultracode: settings.ultracode }
-          change("effort", (id) => applyFlagSettingsRequest(id, flags))
-        },
-        { defer: true },
-      ),
-    )
-    createEffect(
-      on(
-        () => settings.ultracode,
-        (ultracode) => {
-          if (ultracode === known.ultracode) return
-          if (ultracode) ultracodeAsked = true
-          change("ultracode", (id) => applyFlagSettingsRequest(id, { ultracode }))
-        },
-        { defer: true },
-      ),
-    )
-    createEffect(
-      on(
-        () => settings.sessionMode,
-        (mode) => {
-          if (mode === null) return
-          modeChecked = true
-          change(
-            "permission",
-            (id) => setPermissionModeRequest(id, protocolMode(mode)),
-            (reply) => {
-              const current = permissionModeReply.safeParse(reply).data?.mode
-              if (current) session.setPermissionMode(current)
-            },
-          )
-        },
-        { defer: true },
-      ),
-    )
-    createEffect(
-      on(
-        () => settings.permissionMode,
-        (mode) => {
-          // The mode is the user's choice from here on, not the launch's.
-          modeChecked = true
-          // claude switches to bypassPermissions only in a session started with the allow flag; the saved mode
-          // brings that flag at the next start. Stepping past it on the way to another mode says nothing.
-          if (mode === "bypassPermissions" && !bypass) {
-            wait("permission", () => {
-              setControlProblem({ text: "bypassPermissions applies from the next start" })
-              settle("permission")
-            })
-            return
-          }
-          change(
-            "permission",
-            (id) => setPermissionModeRequest(id, protocolMode(mode)),
-            (reply) => {
-              const current = permissionModeReply.safeParse(reply).data?.mode
-              if (current) session.setPermissionMode(current)
-            },
-          )
-        },
-        { defer: true },
-      ),
-    )
-    createEffect(
-      on(
-        () => settings.thinking,
-        (thinking) =>
-          change("thinking", (id) => thinkingDisplayRequest(id, thinking === "hidden" ? "omitted" : "summarized")),
-        { defer: true },
-      ),
-    )
-    return dispose
-  })
+  }
 
   const flush = () => {
     for (const { timer, send } of timers.values()) {
@@ -284,14 +229,31 @@ export function createControls(options: {
     },
     flush,
     carry({ model, effort, ultracode }) {
-      if (model !== null) change("model", (id) => setModelRequest(id, modelValue(model)))
+      if (model !== null) change("model", (id) => setModelRequest(id, modelValueOf(provider.models(), model)))
       if (effort !== null) change("effort", (id) => applyFlagSettingsRequest(id, { effortLevel: effort, ultracode }))
       else if (ultracode) change("ultracode", (id) => applyFlagSettingsRequest(id, { ultracode }))
       flush()
     },
+    setModel(value) {
+      if (!disposed && modelIdOf(provider.models(), value) !== known.model)
+        change("model", (id) => setModelRequest(id, value))
+    },
+    setEffort(effort, ultracode) {
+      if (disposed || effort === known.effort) return
+      const flags = { effortLevel: effort, ultracode }
+      change("effort", (id) => applyFlagSettingsRequest(id, flags))
+    },
+    setUltracode(ultracode) {
+      if (disposed || ultracode === known.ultracode) return
+      if (ultracode) ultracodeAsked = true
+      change("ultracode", (id) => applyFlagSettingsRequest(id, { ultracode }))
+    },
+    setMode,
+    setThinking(shown) {
+      if (!disposed) change("thinking", (id) => thinkingDisplayRequest(id, shown ? "summarized" : "omitted"))
+    },
     dispose() {
       disposed = true
-      stopEffects()
       for (const { timer } of timers.values()) clearTimeout(timer)
       timers.clear()
     },
@@ -327,7 +289,7 @@ export function createControls(options: {
         // A typed /model or a fallback model shows here first; a switch of our own on its way wins.
         if (message.model !== known.model && !pending.has("model")) {
           known.model = message.model
-          setKnobs({ model: message.model })
+          report({ model: message.model })
         }
       } else if (message.type === "result" && message.local_command) refresh()
       tell((follower) => follower.onMessage(message))

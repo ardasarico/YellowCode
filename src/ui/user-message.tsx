@@ -1,8 +1,8 @@
 import { overridable } from "../mods/overridable.tsx"
 import type { BorderCharacters, TextRenderable } from "@opentui/core"
 import { createEffect, createSignal, Index, onCleanup, onMount, Show } from "solid-js"
+import type { SettingChange } from "../agent/settings.ts"
 import type { Command } from "../input/commands.ts"
-import { claudeChange } from "../session/claude-settings.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -64,6 +64,8 @@ function MessageText(props: { text: string; commands: Command[] }) {
 export type UserMessageRowProps = {
   item: UserMessage
   commands: Command[]
+  // A message that only changes a setting shows as a ⚙ row.
+  settingChange?: (text: string) => SettingChange | null
   selected: boolean
   expanded: boolean
   selection?: string | null
@@ -86,7 +88,7 @@ function UserMessageRowBase(props: UserMessageRowProps) {
   onCleanup(() => text?.off("line-info-change", update))
   createEffect(() => props.onOverflow(props.item.id, overflowing()))
 
-  const change = () => (props.item.images.length === 0 ? claudeChange(props.item.text.trim()) : null)
+  const change = () => (props.item.images.length === 0 ? (props.settingChange?.(props.item.text.trim()) ?? null) : null)
 
   return (
     <Show

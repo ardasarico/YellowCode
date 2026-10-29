@@ -1,17 +1,14 @@
 import { RGBA } from "@opentui/core"
 
-export type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max"
-
-export const EFFORT_LEVELS: EffortLevel[] = ["low", "medium", "high", "xhigh", "max"]
-
-const EFFORT_HEX: Record<EffortLevel, string> = {
+const EFFORT_HEX = {
   low: "#6FA8DC",
   medium: "#7CC68A",
   high: "#FFD23F",
   xhigh: "#FF9A3C",
   max: "#FF5C5C",
 }
-const EFFORT_ANSI: Record<EffortLevel, number> = { low: 4, medium: 2, high: 3, xhigh: 9, max: 1 }
+const EFFORT_ANSI: Record<keyof typeof EFFORT_HEX, number> = { low: 4, medium: 2, high: 3, xhigh: 9, max: 1 }
+const hasColor = (level: string): level is keyof typeof EFFORT_HEX => Object.hasOwn(EFFORT_HEX, level)
 
 const ULTRACODE_HEX = [
   "#7B5CE0",
@@ -35,8 +32,10 @@ export function yellow(rgb: boolean): RGBA {
   return rgb ? RGBA.fromHex("#FFD23F") : RGBA.fromIndex(3)
 }
 
-export function effortColor(level: EffortLevel, rgb: boolean): RGBA {
-  return rgb ? RGBA.fromHex(EFFORT_HEX[level]) : RGBA.fromIndex(EFFORT_ANSI[level])
+// A level of another name takes high's color.
+export function effortColor(level: string, rgb: boolean): RGBA {
+  const known = hasColor(level) ? level : "high"
+  return rgb ? RGBA.fromHex(EFFORT_HEX[known]) : RGBA.fromIndex(EFFORT_ANSI[known])
 }
 
 export function ultracodePalette(rgb: boolean): RGBA[] {

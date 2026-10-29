@@ -1,9 +1,12 @@
 import { createSignal, onMount } from "solid-js"
 import { log } from "../../log/log.ts"
-import { NO_PROMPT, type SessionEntry } from "../../resume/session-list.ts"
+import type { SessionEntry } from "../../agent/sessions.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
-import { formatAgo } from "../format.ts"
+import { formatAgo, NO_PROMPT } from "../format.ts"
+
+// Sessions of different agents may share an id.
+const rowId = (entry: SessionEntry) => `${entry.ref.agent}:${entry.ref.id}`
 
 export type ResumeSessions = { list(): Promise<SessionEntry[]>; open(entry: SessionEntry): void }
 
@@ -27,7 +30,7 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
       {
         title: "",
         rows: (entries() ?? []).map((entry) => ({
-          id: entry.id,
+          id: rowId(entry),
           label: entry.title || NO_PROMPT,
           labelColor: entry.title ? undefined : theme.panelMuted,
           value: formatAgo(entry.modified, now),
@@ -48,7 +51,7 @@ export function ResumeDialog(props: { sessions: ResumeSessions; onClose: () => v
       ]}
       view="resume"
       onEnter={(row) => {
-        const entry = entries()?.find((candidate) => candidate.id === row.id)
+        const entry = entries()?.find((candidate) => rowId(candidate) === row.id)
         if (!entry) return
         props.sessions.open(entry)
         props.onClose()

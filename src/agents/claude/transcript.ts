@@ -1,17 +1,18 @@
 import { z } from "zod"
-import { endSession, feedLines, stopRunning } from "../agents/claude/translate.ts"
-import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
-import { interruptRequest } from "../protocol/outgoing.ts"
-import type { SessionStore } from "../session/session.ts"
-import type { SourceEvent } from "../source/source.ts"
+import type { AgentEvent } from "../../agent/events.ts"
+import type { HistoryCursor, HistoryPage } from "../../agent/sessions.ts"
+import { log } from "../../log/log.ts"
+import { parseJson } from "../../json.ts"
+import { interruptRequest } from "../../protocol/outgoing.ts"
+import type { SourceEvent } from "../../source/source.ts"
 import { readLinesBackward } from "./reverse-lines.ts"
 import { CHAIN_TYPES, commandPrompt } from "./session-list.ts"
+import { translateLines } from "./translate.ts"
 
 const PART_TURNS = 20
 
 export type TranscriptCursor = { offset: number; wanted: string }
-export type TranscriptPart = { events: SourceEvent[]; earlier: TranscriptCursor | null }
+export type TranscriptPart = { events: AgentEvent[]; earlier: TranscriptCursor | null }
 
 const Block = z.looseObject({ type: z.string(), text: z.string().optional() })
 
@@ -198,8 +199,8 @@ function namedNotes(events: SourceEvent[]): SourceEvent[] {
   })
 }
 
-// Both passes need the part in order, oldest first.
-const inOrder = (events: SourceEvent[]) => interrupts(namedNotes(events.toReversed()))
+// Both passes need the part in order, oldest first. Each part is read with a translator of its own.
+const inOrder = (events: SourceEvent[]) => translateLines(interrupts(namedNotes(events.toReversed())))
 
 function isCompactCommand(event: SourceEvent | undefined): boolean {
   return event?.dir === "out" && event.line.includes('"content":"/compact')
@@ -247,8 +248,17 @@ export async function readTranscript(path: string, cursor?: TranscriptCursor): P
   return { events: inOrder(events), earlier: null }
 }
 
-export function loadTranscript(session: SessionStore, part: TranscriptPart): void {
-  feedLines(session, part.events)
-  stopRunning(session)
-  endSession(session)
+const Cursor = z.object({ offset: z.number(), wanted: z.string() })
+
+// AgentKind.history over the transcript: the cursor is the walk's place, written out.
+export async function historyPage(path: string, cursor: HistoryCursor | null): Promise<HistoryPage> {
+  let from: TranscriptCursor | undefined
+  if (cursor !== null) {
+    const json = parseJson(cursor)
+    const read = json.ok ? Cursor.safeParse(json.value) : null
+    if (!read?.success) throw new Error("not a transcript cursor")
+    from = read.data
+  }
+  const part = await readTranscript(path, from)
+  return { events: part.events, earlier: part.earlier && JSON.stringify(part.earlier) }
 }

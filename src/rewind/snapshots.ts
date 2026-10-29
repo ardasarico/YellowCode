@@ -19,7 +19,7 @@ import { lstat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { log } from "../log/log.ts"
-import { projectKey } from "../resume/project-key.ts"
+import { projectKey } from "../project-key.ts"
 import { alive, type GitRun, gitEnv, runGit } from "./common.ts"
 
 // Paths are relative to `root`, with `/` separators, as git prints them.

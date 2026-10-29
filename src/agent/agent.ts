@@ -3,7 +3,7 @@ import type { Capabilities } from "./capabilities.ts"
 import type { AgentEvent } from "./events.ts"
 import type { AgentKindId, AskId, EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "./ids.ts"
 import type { ListName } from "./lists.ts"
-import type { SettingRow, SettingValue } from "./settings.ts"
+import type { SettingChange, SettingRow, SettingValue } from "./settings.ts"
 import type { FileBackup, HistoryCursor, HistoryPage, SessionEntry, SessionRef } from "./sessions.ts"
 
 export type PromptImage = { mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp"; base64: string }
@@ -55,6 +55,10 @@ export type StartOptions = {
   mcpServers: McpLaunch[]
 }
 
+// The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on
+// in the mode it was in.
+export type RestartOptions = Pick<StartOptions, "mode" | "defaultMode" | "thinking">
+
 export type Detection =
   | { installed: false }
   // `blocked` names a protocol YellowCode cannot speak, such as "needs opencode 2".
@@ -73,6 +77,7 @@ export type ContextReport = {
     holds: "files" | "tools" | null
   }[]
   files: { path: string; tokens: number }[]
+  // `name` is the tool's own, without its server's.
   tools: { name: string; server: string; tokens: number }[]
 }
 
@@ -90,17 +95,26 @@ export type UsageReport = {
 export type AgentKind = {
   id: AgentKindId
   name: string
+  // What its sessions can do; a saved session is shown with these.
+  caps: Capabilities
   detect(): Promise<Detection>
   start(options: StartOptions): Promise<Agent>
   // Every session of this agent for the folder, newest first.
   sessions(cwd: string): Promise<SessionEntry[]>
-  // An earlier session's events, the latest page first; null starts from the end.
+  // An earlier session's events, the latest page first; null starts from the end. Refs here and in `heldElsewhere`
+  // and `fileHistory` come from `sessions()`.
   history(ref: SessionRef, cursor: HistoryCursor | null): Promise<HistoryPage>
   heldElsewhere?(ref: SessionRef): Promise<boolean>
   // One answer from the agent's small model, for titles when caps.titles is "none".
   oneShot?(prompt: string, cwd: string): Promise<string | null>
-  // The agent's own file backups of a session (feature fileHistory).
-  fileHistory?(ref: SessionRef): Promise<FileBackup[]>
+  // The agent's own file backups of a session (feature fileHistory), for the prompts `wanted` says yes to.
+  fileHistory?(ref: SessionRef, wanted: (prompt: PromptId) => boolean): Promise<FileBackup[]>
+  // For an agent whose settings writes go out as messages: the change a message's text makes, or null for any other
+  // message.
+  settingChange?(text: string): SettingChange | null
+  // For the same agents: the message that writes a setting, which YellowCode sends as the user's own in place of
+  // `settings.write`; null for a setting the agent does not have.
+  settingMessage?(id: string, value: SettingValue): string | null
   // A recording of this agent's own wire, played back as a session. `send` and `answer` release the next recorded
   // message or reply; other intents do nothing.
   replay?(path: string): Promise<Agent>
@@ -119,8 +133,9 @@ export type Agent = {
   send(prompt: Prompt): Promise<Outcome>
   interrupt(): Promise<Outcome>
   answer(ask: AskId, reply: AskReply): Promise<void>
-  // After `ended`: the same session goes on in a new agent process, with the settings it had.
-  restart(): Promise<Outcome>
+  // After `ended`: the same session goes on in a new agent process, with the settings it had and the saved ones in
+  // `options`.
+  restart(options: RestartOptions): Promise<Outcome>
   close(): Promise<void>
   setMode(mode: ModeId): Promise<Outcome>
   setModel(model: ModelRef): Promise<Outcome>

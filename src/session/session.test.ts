@@ -124,11 +124,11 @@ test("an ask offers the first suggestion that is not switching to auto mode", ()
       ],
     }),
   )
-  expect(session.state.byId["ask-r1"]).toMatchObject({
-    description: "List files",
-    status: "pending",
-    suggestion: { type: "addRules" },
-  })
+  const ask = session.state.byId["ask-r1"]
+  expect(ask).toMatchObject({ description: "List files", status: "pending" })
+  const options = ask?.kind === "ask" ? ask.options : []
+  expect(options.map((option) => option.id)).toEqual(["yes", "always-0", "no"])
+  expect(options[1]).toMatchObject({ subject: "ls", grant: { type: "addRules" } })
 })
 
 test("an ask offers no suggestion when always allow is suppressed", () => {
@@ -138,7 +138,8 @@ test("an ask offers no suggestion when always allow is suppressed", () => {
       permission_suggestions: [{ type: "addRules", rules: [{ toolName: "Bash" }], behavior: "allow" }],
     }),
   )
-  expect(session.state.byId["ask-r1"]).toMatchObject({ suggestion: null })
+  const ask = session.state.byId["ask-r1"]
+  expect(ask?.kind === "ask" && ask.options.map((option) => option.id)).toEqual(["yes", "no"])
 })
 
 const settle = (response: object, ask: object = {}) => {

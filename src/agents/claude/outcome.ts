@@ -7,7 +7,7 @@ import {
   SUBAGENT_ASK,
   TOOL_DECLINED,
 } from "../../protocol/outgoing.ts"
-import { answersInResult, askKeys } from "../../session/ask.ts"
+import { answersInResult, askKeys } from "./ask-input.ts"
 
 // The words a no reached claude with, read back into why and the user's note.
 export function denied(said: string): AskOutcome {
@@ -23,9 +23,17 @@ export function denied(said: string): AskOutcome {
   return { status: "denied", said, why: "declined", note }
 }
 
-// How a question call ended, read from its result alone, as for a call no live ask settled.
-export function resultOutcome(input: unknown, status: "done" | "error" | "stopped", result: string): AskOutcome {
+const isDenial = (said: string) =>
+  said === QUESTION_TO_CHAT ||
+  said === SUBAGENT_ASK ||
+  said === TOOL_DECLINED ||
+  said.startsWith(NOT_SHOWN) ||
+  said.startsWith(DECLINED_WITH_NOTE)
+
+// How a question call ended, read from its result alone, as for a call no live ask settled. An error in words of
+// no denial is a failed call, not an answer.
+export function resultOutcome(input: unknown, status: "done" | "error" | "stopped", result: string): AskOutcome | null {
   if (status === "stopped" || result.startsWith(INTERRUPTED_CALL)) return { status: "cancelled" }
-  if (status === "error") return denied(result)
+  if (status === "error") return isDenial(result) ? denied(result) : null
   return { status: "answered", ...answersInResult(result, askKeys(input)) }
 }

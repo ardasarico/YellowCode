@@ -5,33 +5,33 @@
     "b9e83d7615e7",
     "4942bb4d2c0b",
     "b299ef97a9ff",
-    "506a54a01d54",
-    "dbc36c7ea0c6",
-    "4861e28f23ca",
-    "9e0192a75337",
-    "29e3333053d9",
-    "f2ad907164d2",
-    "f2ad907164d2",
-    "f3eee9981aaa",
-    "960083bf1ddf",
-    "b32167209f26",
-    "b32167209f26",
-    "e0ee790fafda",
-    "e8eb0c5c1e72",
-    "f44a332b6b19",
-    "cec82a98fdda",
-    "06655459407f",
-    "77194955cafc",
-    "77194955cafc",
-    "1743b1163a18",
-    "1743b1163a18",
-    "97d3efd02927",
-    "6f5ea6d40eb5",
-    "e2f65a6446ab",
-    "ee2a6c855cec",
-    "a1d464b9d46f",
-    "f830d64f239b",
-    "01e590b3caf5"
+    "89ff66a1b1e3",
+    "177b6c7fbf66",
+    "cba0dd92ebd3",
+    "2f3faf0c33dd",
+    "3b4306ed0508",
+    "0abc7d6ecfb4",
+    "0abc7d6ecfb4",
+    "02bf1ddf1bed",
+    "f741c320d395",
+    "1232e7ae055d",
+    "1232e7ae055d",
+    "8ec6064d68cb",
+    "a3e1c1e913e5",
+    "302526276508",
+    "0513126bcde4",
+    "10ca7d567cc3",
+    "7214851f0e0c",
+    "7214851f0e0c",
+    "81aa49cd1fa8",
+    "81aa49cd1fa8",
+    "723ab5f399a3",
+    "bbde6f1e34fb",
+    "d693c4b98e3f",
+    "33baf701f93c",
+    "7be277c7549e",
+    "b13676a9fc3e",
+    "fe080f85ca6a"
   ],
   "emitted": [],
   "fileOriginals": [],
@@ -99,18 +99,28 @@
         "kind": "tool",
         "id": "toolu-1",
         "name": "Bash",
+        "toolKind": "shell",
+        "title": "Bash",
+        "server": null,
         "inputText": "{\"command\":\"ls\"}",
         "input": {
           "command": "ls"
         },
         "summary": "ls",
+        "detail": null,
+        "background": false,
         "status": "stopped",
         "result": "",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -120,28 +130,68 @@
         "requestId": "req-perm-1",
         "toolUseId": "toolu-2",
         "toolName": "Bash",
+        "toolKind": "shell",
+        "server": null,
         "displayName": "Bash",
         "input": {
           "command": "rm -rf build"
         },
+        "target": "rm -rf build",
+        "writes": [],
         "description": "",
         "reason": "",
-        "suggestion": {
-          "type": "addRules",
-          "rules": [
-            {
-              "toolName": "Bash",
-              "ruleContent": "rm:*"
+        "options": [
+          {
+            "id": "yes",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always-0",
+            "effect": "allow",
+            "lasts": "project",
+            "label": null,
+            "subject": "rm:*",
+            "note": false,
+            "endsTurn": false,
+            "mode": null,
+            "grant": {
+              "type": "addRules",
+              "rules": [
+                {
+                  "toolName": "Bash",
+                  "ruleContent": "rm:*"
+                }
+              ],
+              "behavior": "allow"
             }
-          ],
-          "behavior": "allow"
-        },
+          },
+          {
+            "id": "no",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
         "defaultToNo": false,
         "safetyCheck": false,
         "status": "cancelled",
         "answers": {},
         "notes": {},
-        "denial": ""
+        "denial": "",
+        "why": null,
+        "note": ""
       },
       "ask-req-perm-2": {
         "kind": "ask",
@@ -149,19 +199,48 @@
         "requestId": "req-perm-2",
         "toolUseId": "toolu-3",
         "toolName": "Bash",
+        "toolKind": "shell",
+        "server": null,
         "displayName": "Bash",
         "input": {
           "command": "git push --force"
         },
+        "target": "git push --force",
+        "writes": [],
         "description": "",
         "reason": "Force push",
-        "suggestion": null,
+        "options": [
+          {
+            "id": "yes",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "no",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": true,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
         "defaultToNo": true,
         "safetyCheck": true,
         "status": "denied",
         "answers": {},
         "notes": {},
-        "denial": "The user declined this tool call and said:\nnot now"
+        "denial": "The user declined this tool call and said:\nnot now",
+        "why": "declined",
+        "note": "not now"
       },
       "turn-2": {
         "kind": "turn-end",
@@ -273,6 +352,8 @@
         "requestId": "req-q",
         "toolUseId": "toolu-q",
         "toolName": "AskUserQuestion",
+        "toolKind": "question",
+        "server": null,
         "displayName": "AskUserQuestion",
         "input": {
           "questions": [
@@ -304,15 +385,68 @@
             }
           ]
         },
+        "target": "Storage, Formats",
+        "writes": [],
         "description": "",
         "reason": "",
-        "suggestion": null,
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Storage?",
+              "header": "Storage",
+              "question": "Storage?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Per project",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Global",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Formats?",
+              "header": "Formats",
+              "question": "Formats?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
         "defaultToNo": false,
         "safetyCheck": false,
         "status": "pending",
         "answers": {},
         "notes": {},
-        "denial": ""
+        "denial": "",
+        "why": null,
+        "note": ""
       }
     },
     "tasks": {},

@@ -1,10 +1,10 @@
-import { createEffect, createMemo, createRoot, createSignal, on } from "solid-js"
+import { createEffect, createMemo, createRoot, on } from "solid-js"
 import { z } from "zod"
 import packageJson from "../../package.json"
 import { log } from "../log/log.ts"
 import type { ModToolResult } from "../mods/api.ts"
 import type { ModEntry } from "../mods/host.ts"
-import { modTools } from "../mods/registry.ts"
+import { modTools, setModServerErrors } from "../mods/registry.ts"
 import { type McpMessage, OWN_ASK_SERVER } from "../protocol/messages.ts"
 import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "./requests.ts"
@@ -95,10 +95,6 @@ export function modServerConfigs(entries: readonly ModEntry[]): Record<string, u
 
 const setServersReply = z.looseObject({ errors: z.record(z.string(), z.string()).optional() })
 
-// MCP connection errors of mod servers, by server name, for /mods.
-const [serverErrors, setServerErrors] = createSignal<Record<string, string>>({})
-export { serverErrors }
-
 // Each mod's tool names, so a change in them can be told apart from a change in the servers.
 function toolNames(): Record<string, string> {
   const names: Record<string, string[]> = {}
@@ -118,7 +114,7 @@ export function syncModServers(requests: Requests, entries: () => readonly ModEn
           const shown = Object.fromEntries(
             Object.entries(errors).map(([name, error]) => [name, safeText(error, commandOf(servers[name]))]),
           )
-          setServerErrors(shown)
+          setModServerErrors(shown)
           if (Object.keys(shown).length > 0) log.warn("mod MCP servers failed", shown)
         },
         (error: unknown) => log.warn("mcp_set_servers failed", error instanceof Error ? error.message : error),

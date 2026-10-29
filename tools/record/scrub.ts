@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { z } from "zod"
-import { parseJson } from "../../src/protocol/json.ts"
+import { parseJson } from "../../src/json.ts"
 import { HOOKS_ID, parseRecording, SETTINGS_ID, SKILLS_DIALOG_ID } from "../../src/source/recording.ts"
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g

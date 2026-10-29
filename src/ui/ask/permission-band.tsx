@@ -1,15 +1,12 @@
 import { type InputRenderable, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
-import { z } from "zod"
-import type { PermissionUpdate } from "../../protocol/messages.ts"
-import { allowTool, DECLINED_WITH_NOTE, denyTool, TOOL_DECLINED } from "../../protocol/outgoing.ts"
+import type { AskOption } from "../../agent/ask.ts"
 import { severe } from "../../session/ask.ts"
-import { summarizeToolInput } from "../../session/tool-summary.ts"
 import type { Ask } from "../../session/types.ts"
 import { type WorkflowPlan, workflowPlan } from "../../session/workflow-script.ts"
 import { theme } from "../../theme/theme.ts"
-import { cut, cutPath, mcpTool, toolLabel } from "../format.ts"
+import { cut, cutPath } from "../format.ts"
 import { covered } from "../images.ts"
 import { barChars } from "../user-message.tsx"
 import { AskScroll } from "./ask-scroll.tsx"
@@ -19,6 +16,8 @@ import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS = "↑↓ choose · enter confirm · n tell Claude instead · esc no"
 const SHORT_HINTS = "↑↓ · enter · n · esc"
+const NO_NOTE_HINTS = "↑↓ choose · enter confirm · esc no"
+const SHORT_NO_NOTE_HINTS = "↑↓ · enter · esc"
 const SCRIPT_HINTS = "↑↓ choose · enter confirm · v script · esc no"
 const SHORT_SCRIPT_HINTS = "↑↓ · enter · v · esc"
 const NOTE_HINTS = "enter send · esc back"
@@ -27,7 +26,6 @@ const TEXT_ROWS = 3
 const PLAN_ROWS = 8
 // Below this many cells beside the title, the description starts on the next row.
 const INLINE_ROOM = 10
-const MODE_WORDS: Record<string, string> = { acceptEdits: "edits" }
 
 type PlanRow = { lead: string; name: string; text: string }
 
@@ -45,9 +43,7 @@ function planRows(plan: WorkflowPlan): PlanRow[] {
   ]
 }
 
-type Choice = { kind: "yes" | "always" | "no"; before: string; subject: string; after: string }
-
-const bashInput = z.looseObject({ command: z.string() })
+type Choice = { id: string; before: string; subject: string; after: string }
 
 // An MCP tool has no known fields, so every argument gets its own row.
 function mcpArguments(input: unknown): string {
@@ -58,9 +54,7 @@ function mcpArguments(input: unknown): string {
 }
 
 function target(ask: Ask): string {
-  if (mcpTool(ask.toolName)) return mcpArguments(ask.input)
-  const bash = ask.toolName === "Bash" ? bashInput.safeParse(ask.input) : null
-  return bash?.success ? bash.data.command : summarizeToolInput(ask.input)
+  return ask.toolKind === "mcp" ? mcpArguments(ask.input) : ask.target
 }
 
 // Splits text into rows of at most `width` cells, the way the target line wraps it.
@@ -85,38 +79,18 @@ function oneLine(text: string): string {
   return rest.length > 0 ? `${first}…` : first
 }
 
-function modeWords(mode: string): string {
-  return MODE_WORDS[mode] ?? mode.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()
-}
-
-export function alwaysChoice(update: PermissionUpdate, toolName: string): Choice {
-  const rule = update.rules?.[0]
-  const text =
-    update.type === "setMode"
-      ? modeWords(update.mode ?? "")
-      : update.type === "addDirectories"
-        ? (update.directories?.join(", ") ?? "")
-        : (rule?.ruleContent ?? toolLabel(rule?.toolName ?? ""))
-  // claude writes an absolute path in a rule with a second leading slash.
-  const subject = (oneLine(text) || toolLabel(toolName)).replace(/^\/\//, "/")
-  const lasts = lasting(update)
-  if (lasts === "session") return { kind: "always", before: "Yes, and allow ", subject, after: " for this session" }
-  const after = lasts === "everywhere" ? " in every project" : " here"
-  return { kind: "always", before: "Yes, and always allow ", subject, after }
-}
-
-// Where claude keeps the update decides how long it lasts.
-function lasting(update: PermissionUpdate): "session" | "here" | "everywhere" {
-  if (update.destination === "session" || update.destination === "cliArg") return "session"
-  if (update.destination === "userSettings") return "everywhere"
-  if (update.destination) return "here"
-  return update.type === "setMode" ? "session" : "here"
-}
-
-function choicesFor(ask: Ask): Choice[] {
-  const yes: Choice = { kind: "yes", before: "Yes", subject: "", after: "" }
-  const no: Choice = { kind: "no", before: "No", subject: "", after: "" }
-  return ask.suggestion ? [yes, alwaysChoice(ask.suggestion, ask.toolName), no] : [yes, no]
+// The agent's own label, else "Yes" or "No", and for a lasting one what it covers and for how long.
+export function choiceOf(option: AskOption): Choice {
+  const { id } = option
+  if (option.label !== null) return { id, before: option.label, subject: "", after: "" }
+  const yes = option.effect === "allow"
+  if (option.lasts === "once") return { id, before: yes ? "Yes" : "No", subject: "", after: "" }
+  const subject = oneLine(option.subject ?? "")
+  const verb = yes ? "allow " : "deny "
+  const lead = yes ? "Yes, and " : "No, and "
+  if (option.lasts === "session") return { id, before: `${lead}${verb}`, subject, after: " for this session" }
+  const after = option.lasts === "everywhere" ? " in every project" : " here"
+  return { id, before: `${lead}always ${verb}`, subject, after }
 }
 
 function bandColors(ask: Ask) {
@@ -127,15 +101,21 @@ function bandColors(ask: Ask) {
     : { tone, fill: theme.warningBand ?? undefined, line: theme.warningLine ?? undefined }
 }
 
-export function PermissionBand(props: AskViewProps) {
-  const choices = () => choicesFor(props.ask)
+const onceNo = (option: AskOption) => option.effect === "deny" && option.lasts === "once"
+
+// `note`: the agent takes a note with a no.
+export function PermissionBand(props: AskViewProps & { note: boolean }) {
+  const choices = () => props.ask.options.map(choiceOf)
+  // Esc is a no that lasts once; `n` sends the note with the option that takes one.
+  const refusal = () => props.ask.options.find(onceNo)
+  const noted = () => (props.note ? props.ask.options.find((option) => option.note) : undefined)
   const colors = () => bandColors(props.ask)
   const rows = createMemo(() => {
     const text = target(props.ask)
     return text ? targetRows(text.replaceAll("\t", "    "), Math.max(1, props.width - 8)) : []
   })
   const hiddenRows = () => rows().length - TARGET_ROWS
-  const plan = createMemo(() => (props.ask.toolName === "Workflow" ? workflowPlan(props.ask.input) : null))
+  const plan = createMemo(() => (props.ask.toolKind === "workflow" ? workflowPlan(props.ask.input) : null))
   const plans = createMemo(() => {
     const shown = plan()
     return shown ? planRows(shown) : []
@@ -147,9 +127,9 @@ export function PermissionBand(props: AskViewProps) {
   const title = () => cut(`! ${props.ask.displayName}`, inner())
   const from = () => (props.ask.agent ? cut(`  from ${props.ask.agent}`, inner() - Bun.stringWidth(title())) : "")
   const server = () => {
-    const mcp = mcpTool(props.ask.toolName)
+    const name = props.ask.server
     const room = inner() - Bun.stringWidth(title() + from())
-    return mcp && !props.ask.description ? cut(`  ${mcp.server} MCP server`, room) : ""
+    return name !== null && !props.ask.description ? cut(`  ${name} MCP server`, room) : ""
   }
   const description = createMemo(() => {
     if (!props.ask.description) return ""
@@ -165,20 +145,18 @@ export function PermissionBand(props: AskViewProps) {
       choice.subject,
       inner() - 5 - Bun.stringWidth(choice.before) - Bun.stringWidth(choice.after),
     )
-  const [cursor, setCursor] = createSignal(untrack(() => (severe(props.ask) ? choices().length - 1 : 0)))
+  // A severe ask starts on that no.
+  const start = () => (severe(props.ask) ? Math.max(0, props.ask.options.findIndex(onceNo)) : 0)
+  const [cursor, setCursor] = createSignal(untrack(start))
   const [noting, setNoting] = createSignal(false)
 
-  const respond = (choice: Choice) => {
-    const { requestId, input, suggestion } = props.ask
-    if (choice.kind === "no") props.onAnswer(denyTool(requestId, TOOL_DECLINED))
-    else if (choice.kind === "always" && suggestion) props.onAnswer(allowTool(requestId, input, [suggestion]))
-    else props.onAnswer(allowTool(requestId, input))
-  }
+  const respond = (choice: Choice) => props.onAnswer({ type: "option", option: choice.id, note: null })
 
   let field: InputRenderable | undefined
   const sendNote = (note: string) => {
     const text = note.trim()
-    if (text) props.onAnswer(denyTool(props.ask.requestId, DECLINED_WITH_NOTE + text))
+    const option = noted()
+    if (text && option) props.onAnswer({ type: "option", option: option.id, note: text })
   }
 
   const typing = typingGuard()
@@ -195,13 +173,15 @@ export function PermissionBand(props: AskViewProps) {
     else if (key.name === "return") {
       const choice = choices()[cursor()]
       if (choice) respond(choice)
-    } else if (key.name === "escape") props.onAnswer(denyTool(props.ask.requestId, TOOL_DECLINED))
-    else if (key.ctrl || key.meta) return
+    } else if (key.name === "escape") {
+      const option = refusal()
+      if (option) props.onAnswer({ type: "option", option: option.id, note: null })
+    } else if (key.ctrl || key.meta) return
     else if (key.name === "v" && plan()) {
       key.preventDefault()
       const shown = plan()
       if (shown) props.onOpenScript?.(shown.name || "workflow", shown.script)
-    } else if (key.name === "n" && !plan()) {
+    } else if (key.name === "n" && noted() && !plan()) {
       key.preventDefault()
       setNoting(true)
     } else if (!severe(props.ask) && /^[1-9]$/.test(key.name)) {
@@ -313,7 +293,9 @@ export function PermissionBand(props: AskViewProps) {
             ? NOTE_HINTS
             : plan()
               ? fitHints(SCRIPT_HINTS, SHORT_SCRIPT_HINTS, props.width - 4)
-              : fitHints(HINTS, SHORT_HINTS, props.width - 4)}
+              : noted()
+                ? fitHints(HINTS, SHORT_HINTS, props.width - 4)
+                : fitHints(NO_NOTE_HINTS, SHORT_NO_NOTE_HINTS, props.width - 4)}
         </text>
       </box>
     </box>

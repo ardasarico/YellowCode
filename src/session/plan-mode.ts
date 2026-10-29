@@ -1,8 +1,10 @@
-import { type PermissionMode, savedMode } from "./settings-file.ts"
+import type { ModeId } from "../agent/ids.ts"
+import type { ModeRow } from "../agent/lists.ts"
 
-// After an approved plan the session goes back to the mode it had before plan mode, or to auto when it began in plan.
+// After an approved plan the session goes back to the mode it had before plan mode, or to the agent's auto mode when it
+// began in plan.
 export function planReturn() {
-  let before: PermissionMode | null = null
+  let before: ModeId | null = null
   let approved = false
   return {
     approve() {
@@ -11,18 +13,19 @@ export function planReturn() {
     cancel() {
       approved = false
     },
-    // The mode to ask claude for, if the one it now reports is not the one the session should be in.
-    seen(reported: string): PermissionMode | null {
-      const mode = savedMode(reported)
-      if (reported === "plan") return null
+    // The mode to ask the agent for, if the one it now reports is not the one the session should be in. `modes` are
+    // the agent's.
+    seen(reported: string, modes: ModeRow[]): ModeId | null {
+      const known = modes.find((mode) => mode.id === reported)
+      if (known?.kind === "plan") return null
       if (!approved) {
-        before = mode
+        before = known?.id ?? null
         return null
       }
       approved = false
-      const target = before ?? "auto"
+      const target = before ?? modes.find((mode) => mode.kind === "auto")?.id ?? null
       before = target
-      return mode === target ? null : target
+      return known?.id === target ? null : target
     },
   }
 }

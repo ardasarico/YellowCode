@@ -41,8 +41,22 @@
       "rules": { "no-console": "error", "yellowcode/no-raw-json-parse": "error" }
     },
     {
-      "files": ["src/protocol/json.ts"],
+      "files": ["src/json.ts"],
       "rules": { "yellowcode/no-raw-json-parse": "off" }
+    },
+    {
+      "files": ["src/agent/**", "src/ui/**", "src/session/**", "src/rewind/**", "src/project-key.ts"],
+      "rules": { "yellowcode/agent-boundary": "error" }
+    },
+    {
+      "files": [
+        "src/ui/**/*.test.ts",
+        "src/ui/**/*.test.tsx",
+        "src/session/**/*.test.ts",
+        "src/session/golden-cases.ts",
+        "src/rewind/**/*.test.ts"
+      ],
+      "rules": { "yellowcode/agent-boundary": "off" }
     }
   ],
   "ignorePatterns": [".agents/**", ".claude/**", ".local/**"],

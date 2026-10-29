@@ -15,16 +15,16 @@ import {
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { z } from "zod"
-import { feed, prependLines } from "../agents/claude/translate.ts"
-import { parseJson } from "../protocol/json.ts"
+import { listSessions } from "../agents/claude/session-list.ts"
+import { promptParent, readTranscript, type TranscriptPart } from "../agents/claude/transcript.ts"
+import { feed } from "../agents/claude/translate.ts"
+import { parseJson } from "../json.ts"
 import * as outgoing from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
-import { listSessions } from "../resume/session-list.ts"
-import { loadTranscript, promptParent, readTranscript, type TranscriptPart } from "../resume/transcript.ts"
 import { parseRecording } from "../source/recording.ts"
 import { agentMessage } from "./agent-message.ts"
 import { askServerLines, controlLines, outgoingCases, scriptedSessions, spawnArgs, type Step } from "./golden-cases.ts"
-import { createSession, type SessionStore } from "./session.ts"
+import { createSession, loadHistory, type SessionStore } from "./session.ts"
 
 // Golden files pin what the Claude path does today. UPDATE_GOLDENS=1 writes them again.
 const ROOT = join(import.meta.dir, "..", "..")
@@ -157,7 +157,7 @@ function checkReplay(file: string, actual: Replay, where: (index: number) => str
 // What the session tells live rewind about the files Edit and Write found, by the step it came at.
 function recordOriginals(session: SessionStore, steps: string[]): unknown[] {
   const originals: unknown[] = []
-  session.onFileOriginal((id, original) =>
+  session.onFileOriginal((id, _path, original) =>
     originals.push({ step: steps.length, id, original: original === null ? null : sha(original) }),
   )
   return originals
@@ -213,7 +213,7 @@ async function pages(path: string, open: (part: TranscriptPart) => SessionStore)
   while (part.earlier) {
     // oxlint-disable-next-line no-await-in-loop -- each part starts where the one before ended
     part = await readTranscript(path, part.earlier)
-    prependLines(session, part.events)
+    session.prepend(part.events)
     shown.push({ earlier: part.earlier, state: snapshot(session) })
   }
   return shown
@@ -223,12 +223,12 @@ async function pages(path: string, open: (part: TranscriptPart) => SessionStore)
 async function opened(path: string) {
   const viewed = await pages(path, (part) => {
     const session = createSession()
-    loadTranscript(session, part)
+    loadHistory(session, part.events)
     return session
   })
   const continued = await pages(path, (part) => {
     const session = createSession({ starting: true })
-    prependLines(session, part.events)
+    session.prepend(part.events)
     return session
   })
   return { viewed, continued }

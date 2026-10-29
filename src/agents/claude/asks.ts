@@ -1,5 +1,5 @@
 import type { z } from "zod"
-import type { Ask, AskOption, AskOutcome, Lasts, Questions } from "../../agent/ask.ts"
+import type { Ask, AskOption, AskOutcome, Lasts } from "../../agent/ask.ts"
 import type { AskId, ToolId } from "../../agent/ids.ts"
 import { log } from "../../log/log.ts"
 import {
@@ -7,19 +7,17 @@ import {
   OWN_ASK,
   OWN_ASK_SERVER,
   ownAskCall,
-  ownAskMatrix,
-  ownAskPages,
   ownAskResult,
   type PermissionUpdate,
   permissionReply,
   type ProtocolMessage,
   questionAnswers,
 } from "../../protocol/messages.ts"
-import { answersInResult, askKeys } from "../../session/ask.ts"
-import { summarizeToolInput } from "../../session/tool-summary.ts"
+import { answersInResult, askKeys, ownAskProblem, questionsOf } from "./ask-input.ts"
+import { summarizeToolInput } from "./summary.ts"
 import type { Draft } from "./draft.ts"
 import { denied } from "./outcome.ts"
-import { field, kindOf, mcpOf, text, type Tools } from "./tools.ts"
+import { field, inputFile, kindOf, mcpOf, shownMcp, text, type Tools } from "./tools.ts"
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
 type CanUseTool = Extract<Of<"control_request">["request"], { subtype: "can_use_tool" }>
@@ -39,69 +37,53 @@ function lastsOf(update: PermissionUpdate): Lasts {
   return update.type === "setMode" ? "session" : "project"
 }
 
-function subjectOf(update: PermissionUpdate): string | null {
-  if (update.type === "setMode") return update.mode ?? null
-  if (update.type === "addDirectories") return update.directories?.join(", ") ?? null
-  const rule = update.rules?.[0]
-  return rule?.ruleContent ?? rule?.toolName ?? null
+const MODE_WORDS: Record<string, string> = { acceptEdits: "edits" }
+
+function modeWords(mode: string): string {
+  return MODE_WORDS[mode] ?? mode.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()
 }
 
-// A yes, one lasting yes per suggestion (switching to auto mode is never offered), and a no that takes a note.
+function toolLabel(name: string): string {
+  const mcp = mcpOf(name)
+  return mcp ? `${mcp.server}/${mcp.tool}` : name
+}
+
+// What the update covers, never empty; claude writes an absolute path in a rule with a second leading slash.
+export function subjectOf(update: PermissionUpdate, name: string): string {
+  const rule = update.rules?.[0]
+  const words =
+    update.type === "setMode"
+      ? modeWords(update.mode ?? "")
+      : update.type === "addDirectories"
+        ? (update.directories?.join(", ") ?? "")
+        : (rule?.ruleContent ?? toolLabel(rule?.toolName ?? ""))
+  return (words.trim() || toolLabel(name)).replace(/^\/\//, "/")
+}
+
+// A yes, a lasting yes for claude's first suggestion (switching to auto mode is never offered), and a no that takes
+// a note.
 function permissionOptions(request: CanUseTool): AskOption[] {
   const suggestions = request.suppress_always_allow_rule ? [] : (request.permission_suggestions ?? [])
-  const always = suggestions
-    .filter((update) => !(update.type === "setMode" && update.mode === "auto"))
-    .map((update, index) =>
-      option(`always-${index}`, "allow", lastsOf(update), {
-        subject: subjectOf(update),
-        grant: update,
-      }),
-    )
-  return [YES, ...always, NO]
-}
-
-// AskUserQuestion's pages, or our own ask's pages or matrix; a page is filed under its question.
-function questionsOf(input: unknown): Questions | null {
-  const matrix = ownAskMatrix.safeParse(input).data?.matrix
-  if (matrix)
-    return {
-      matrix: {
-        header: matrix.header,
-        question: matrix.question,
-        rows: matrix.rows.map((row) => row.label),
-        scale: matrix.scale,
-      },
-    }
-  const pages = ownAskPages.safeParse(input).data?.questions
-  if (!pages) return null
-  return {
-    pages: pages.map((page) => ({
-      key: page.question,
-      header: page.header,
-      question: page.question,
-      multi: page.multiSelect ?? false,
-      gallery: page.gallery ?? false,
-      custom: true,
-      options: page.options.map((choice) => ({
-        label: choice.label,
-        description: choice.description ?? null,
-        preview: text(field(choice, "preview")),
-        image: choice.image ?? null,
-      })),
-    })),
-  }
+  const update = suggestions.find((suggestion) => !(suggestion.type === "setMode" && suggestion.mode === "auto"))
+  if (!update) return [YES, NO]
+  const always = option("always-0", "allow", lastsOf(update), {
+    subject: subjectOf(update, request.tool_name),
+    grant: update,
+  })
+  return [YES, always, NO]
 }
 
 function permissionAsk(id: AskId, request: CanUseTool): Ask {
   const name = request.tool_name
   const kind = kindOf(name)
   const input = request.input
-  const path = text(field(input, "file_path")) ?? text(field(input, "notebook_path"))
+  const path = inputFile(input)
+  const questions = kind === "question" ? questionsOf(name, input) : null
   return {
     id,
     kind: kind === "question" ? "question" : kind === "plan" ? "plan" : "permission",
     call: request.tool_use_id,
-    tool: { name, kind, mcp: mcpOf(name) },
+    tool: { name, kind, mcp: shownMcp(name) },
     title: request.display_name ?? name,
     input,
     target: (kind === "shell" ? text(field(input, "command")) : null) ?? summarizeToolInput(input),
@@ -109,8 +91,9 @@ function permissionAsk(id: AskId, request: CanUseTool): Ask {
     writes: path && (kind === "edit" || kind === "write") ? [path] : [],
     detail: request.description ?? "",
     reason: Bun.stripANSI(request.decision_reason ?? ""),
-    options: kind === "question" ? [] : kind === "plan" ? [YES, NO] : permissionOptions(request),
-    questions: kind === "question" ? questionsOf(input) : null,
+    // A question the views cannot show is answered as a permission.
+    options: questions ? [] : kind === "plan" || kind === "question" ? [YES, NO] : permissionOptions(request),
+    questions,
     plan: kind === "plan" ? { text: text(field(input, "plan")) ?? "", path: text(field(input, "planFilePath")) } : null,
     defaultNo: request.default_to_no ?? false,
     safety: request.decision_reason_type === "safetyCheck",
@@ -124,7 +107,7 @@ function ownAsk(id: AskId, handle: string | number, call: ToolId, input: unknown
     id,
     kind: "question",
     call: call || null,
-    tool: { name: OWN_ASK, kind: "question", mcp: mcpOf(OWN_ASK) },
+    tool: { name: OWN_ASK, kind: "question", mcp: null },
     title: "ask",
     input,
     target: summarizeToolInput(input),
@@ -133,7 +116,7 @@ function ownAsk(id: AskId, handle: string | number, call: ToolId, input: unknown
     detail: "",
     reason: "",
     options: [],
-    questions: questionsOf(input),
+    questions: questionsOf(OWN_ASK, input),
     plan: null,
     defaultNo: false,
     safety: false,
@@ -199,6 +182,8 @@ export function createAsks(tools: Tools) {
       }
       const call = ownAskCall.safeParse(params).data
       if (method !== "tools/call" || rpcId === undefined || call?.name !== "ask") return []
+      // The ask server turns down a call it cannot show, so it never opens.
+      if (ownAskProblem({ toolName: OWN_ASK, input: call.input }) !== null) return []
       const ask = ownAsk(message.request_id, rpcId, call.toolUseId, call.input)
       // Only the main agent's call opens. Its tool_use line came first; any other call waits for the ask server to
       // place it (`openHeld`) or turn it down.

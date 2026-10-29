@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { parseJson } from "./json.ts"
+import { parseJson } from "../json.ts"
 import { KNOWN_KEYS, protocolMessage, type ProtocolMessage } from "./messages.ts"
 
 export type ParseResult =

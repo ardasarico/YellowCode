@@ -5,16 +5,8 @@ import {
   recordedPluginHooks,
   recordedSettingsSources,
   recordedSkillRows,
-} from "../source/recording.ts"
-import { type Plugin, pluginEntries, pluginScope } from "./plugins.ts"
-
-const sample = (name: string, marketplace: string | null): Plugin => ({
-  name,
-  marketplace,
-  scope: "global",
-  on: true,
-  brings: { skills: [], mcp: [], commands: [], agents: [], hooks: [] },
-})
+} from "../../source/recording.ts"
+import { pluginEntries, pluginScope } from "./plugins.ts"
 
 test("a plugin is switched where its deciding setting lives, and nowhere when no setting names it", () => {
   const sources = [
@@ -23,11 +15,11 @@ test("a plugin is switched where its deciding setting lives, and nowhere when no
     { source: "localSettings", settings: { enabledPlugins: { "both@m": true } } },
     { source: "flagSettings", settings: { enabledPlugins: { "flag@m": true } } },
   ]
-  expect(pluginScope(sample("both", "m"), sources)).toBe("local")
-  expect(pluginScope(sample("user", "m"), sources)).toBe("user")
-  expect(pluginScope(sample("user", "other"), sources)).toBeNull()
-  expect(pluginScope(sample("inline-plug", "inline"), sources)).toBeNull()
-  expect(pluginScope(sample("flag", "m"), sources)).toBeNull()
+  expect(pluginScope("both@m", sources)).toBe("local")
+  expect(pluginScope("user@m", sources)).toBe("user")
+  expect(pluginScope("user@other", sources)).toBeNull()
+  expect(pluginScope("inline-plug@inline", sources)).toBeNull()
+  expect(pluginScope("flag@m", sources)).toBeNull()
 })
 
 test("the plugins fixture lists on and off plugins with what each brings", async () => {

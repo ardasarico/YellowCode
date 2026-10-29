@@ -1,7 +1,7 @@
 // A stdio MCP server with one tool, `echo`, for the mcp recording scenario.
 import { createInterface } from "node:readline"
 import { z } from "zod"
-import { parseJson } from "../../src/protocol/json.ts"
+import { parseJson } from "../../src/json.ts"
 
 const rpcRequest = z.looseObject({
   id: z.union([z.number(), z.string()]).optional(),

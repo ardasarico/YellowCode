@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, UNREADABLE_PROBLEM } from "./settings-file.ts"
 
 function fileWith(content: string | null): string {
@@ -33,10 +33,27 @@ test("a file with comments and trailing commas is read and replaced", () => {
   expect(loaded.problem).toBe("settings.json repaired")
 })
 
-test("a byte order mark is ignored and the protocol's default mode reads as manual", () => {
-  const loaded = loadSettings(fileWith('﻿{"permissionMode":"default"}'))
-  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, permissionMode: "manual" })
+test("a byte order mark is ignored and a mode saved as manual reads as claude's default", () => {
+  const loaded = loadSettings(fileWith('﻿{"agents":{"claude":{"defaultMode":"manual"}}}'))
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, agents: { claude: { defaultMode: "default" } } })
   expect(loaded.problem).toBeNull()
+})
+
+test("the saved mode of a file from before agents had entries becomes Claude's, and saves under it", () => {
+  const path = fileWith('{"permissionMode":"plan","theme":"dusk"}')
+  const loaded = loadSettings(path)
+  expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, theme: "dusk", agents: { claude: { defaultMode: "plan" } } })
+  saveSettings(loaded.settings, path)
+  expect(loadSettings(path).settings).toEqual(loaded.settings)
+  expect(readFileSync(path, "utf8")).not.toContain("permissionMode")
+})
+
+test("a bad agent entry is reset alone, and another agent's own mode names are kept", () => {
+  const loaded = loadSettings(
+    fileWith('{"agents":{"claude":{"defaultMode":"plan"},"other":{"defaultMode":"build"},"broken":{"defaultMode":1}}}'),
+  )
+  expect(loaded.settings.agents).toEqual({ claude: { defaultMode: "plan" }, other: { defaultMode: "build" } })
+  expect(loaded.problem).toBe("settings.json: invalid agents.broken, using the default")
 })
 
 test("a bad field is reset, the other fields are kept and the file is not archived", () => {

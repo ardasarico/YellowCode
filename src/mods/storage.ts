@@ -3,7 +3,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import type { ModStorage } from "./api.ts"
 
 function readValues(path: string): Record<string, unknown> {

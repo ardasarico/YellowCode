@@ -5,10 +5,6 @@ import type { ItemId, Session, ToolCall } from "./types.ts"
 export type TodoState = "pending" | "active" | "done"
 export type Todo = { id: string; text: string; state: TodoState }
 
-// Claude keeps its task list with TaskCreate/TaskUpdate, or TodoWrite on its own; both are off by default on recent
-// models, so the list shows only when they are on.
-export const TODO_TOOLS = new Set(["TaskCreate", "TaskUpdate", "TaskList", "TaskGet", "TodoWrite"])
-
 const fields = z.record(z.string(), z.unknown())
 const record = (value: unknown): Record<string, unknown> => fields.safeParse(value).data ?? {}
 const text = (value: unknown) => (typeof value === "string" ? value : "")
@@ -20,6 +16,7 @@ function stateOf(status: unknown): TodoState | null {
   return null
 }
 
+// Still reads Claude's TodoWrite / TaskCreate / TaskUpdate inputs until the todo events are settled.
 function apply(list: Todo[], tool: ToolCall): Todo[] {
   const input = record(tool.input)
   if (tool.name === "TodoWrite" && Array.isArray(input.todos))
@@ -47,7 +44,7 @@ function apply(list: Todo[], tool: ToolCall): Todo[] {
 const mainTodoCalls = (session: Session): ToolCall[] =>
   shownItems(session.items, session.rewound).flatMap((id) => {
     const item = session.byId[id]
-    return item?.kind === "tool" && TODO_TOOLS.has(item.name) && item.status !== "error" ? [item] : []
+    return item?.kind === "tool" && item.toolKind === "todo" && item.status !== "error" ? [item] : []
   })
 
 export function todoList(session: Session): Todo[] {

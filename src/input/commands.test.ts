@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
+import { toCommandRows } from "../agents/claude/lists.ts"
 import {
-  claudeCommands,
+  agentCommands,
   type Command,
   hintValues,
   matchCommands,
@@ -87,9 +88,9 @@ test("Claude Code's commands keep their aliases and drop help, internal, blocked
   const rows = ["help", "__debug", "doctor", "fast", "mcp"]
     .map((name) => cliRow(name))
     .concat(cliRow("clear", ["reset", "new"]))
-  const merged = claudeCommands(rows, ["doctor"])
+  const merged = agentCommands(toCommandRows(rows), ["doctor"])
   // Own commands come last, and the own /mcp hides claude's.
-  expect(merged.slice(0, -OWN_COMMANDS.length)).toEqual([command("clear", ["reset", "new"])])
+  expect(merged.slice(0, -OWN_COMMANDS.length)).toEqual([{ ...command("clear", ["reset", "new"]), builtin: false }])
   expect(merged.slice(-OWN_COMMANDS.length)).toEqual(OWN_COMMANDS)
 })
 

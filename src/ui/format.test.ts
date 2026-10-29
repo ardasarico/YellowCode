@@ -1,15 +1,10 @@
 import { expect, test } from "bun:test"
-import { cut, formatTokens, modelName, pad, printable, toolLabel, windowTitle } from "./format.ts"
+import { cut, formatTokens, mcpTool, modelName, pad, printable, windowTitle } from "./format.ts"
 
-test("toolLabel splits MCP tool names at the first server boundary", () => {
-  expect(toolLabel("mcp__github__list_pull_requests")).toBe("github/list_pull_requests")
-  expect(toolLabel("mcp__my_db__run__query")).toBe("my_db/run__query")
-  expect(["Read", "mcp__echo", "mcp__echo__", "mcp_x__y"].map(toolLabel)).toEqual([
-    "Read",
-    "mcp__echo",
-    "mcp__echo__",
-    "mcp_x__y",
-  ])
+test("mcpTool splits MCP tool names at the first server boundary", () => {
+  expect(mcpTool("mcp__github__list_pull_requests")).toEqual({ server: "github", tool: "list_pull_requests" })
+  expect(mcpTool("mcp__my_db__run__query")).toEqual({ server: "my_db", tool: "run__query" })
+  expect(["Read", "mcp__echo", "mcp__echo__", "mcp_x__y"].map(mcpTool)).toEqual([null, null, null, null])
 })
 
 test("modelName turns model ids into display names", () => {

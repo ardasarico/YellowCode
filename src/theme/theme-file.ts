@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs"
 import { basename, join } from "node:path"
 import { z } from "zod"
 import { configPath } from "../config-path.ts"
-import { parseJson } from "../protocol/json.ts"
+import { parseJson } from "../json.ts"
 import type { ThemeColors, ThemeDefinition } from "./theme.ts"
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/)

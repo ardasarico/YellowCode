@@ -1,5 +1,7 @@
-import { setSetting, settings } from "../../session/settings.ts"
-import { PERMISSION_MODES, type PermissionMode, type StoredSettings } from "../../session/settings-file.ts"
+import type { AgentKindId } from "../../agent/ids.ts"
+import type { ModeRow } from "../../agent/lists.ts"
+import { defaultModeOf, resetSetting, setDefaultMode, setSetting, settings } from "../../session/settings.ts"
+import { DEFAULT_MODE, type StoredSettings } from "../../session/settings-file.ts"
 import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
@@ -9,78 +11,129 @@ type SettingOption<V extends string = string> = { value: V; label: string; note?
 // The settings picked from a list; disabledMods is changed in /mods.
 type ChoiceKey = { [K in keyof StoredSettings]: StoredSettings[K] extends string ? K : never }[keyof StoredSettings]
 
-type Definition<K extends ChoiceKey> = {
+type Stored<K extends ChoiceKey> = {
   key: K
   section: string
   label: string
   options: SettingOption<StoredSettings[K]>[]
 }
 
-export type SettingDefinition = { [K in ChoiceKey]: Definition<K> }[ChoiceKey]
+export type SettingDefinition = {
+  key: string
+  section: string
+  label: string
+  readonly options: SettingOption[]
+  value(): string
+  set(value: string): void
+  reset(): void
+}
 
-const NOTES: Partial<Record<PermissionMode, string>> = {
-  bypassPermissions: "Every tool runs without asking.",
-  dontAsk: "Tools not pre-approved are denied without asking.",
+// The definition is read on every use, so options given by a getter stay current.
+function stored<K extends ChoiceKey>(definition: Stored<K>): SettingDefinition {
+  return {
+    key: definition.key,
+    section: definition.section,
+    label: definition.label,
+    get options() {
+      return definition.options
+    },
+    value: () => settings[definition.key],
+    set(value) {
+      const option = definition.options.find((candidate) => candidate.value === value)
+      if (option) setSetting(definition.key, option.value)
+    },
+    reset: () => resetSetting(definition.key),
+  }
 }
 
 const same = <V extends string>(values: readonly V[]): SettingOption<V>[] =>
   values.map((value) => ({ value, label: value }))
 
-export const SETTINGS: SettingDefinition[] = [
-  {
-    key: "theme",
-    section: "Appearance",
-    label: "Theme",
-    get options() {
-      return themeEntries()
-        .filter((entry) => entry.problem === null)
-        .map(({ id, name, source }) => ({ value: id, label: name, tag: source === "user" ? "user" : undefined }))
-    },
+export const THEME = stored({
+  key: "theme",
+  section: "Appearance",
+  label: "Theme",
+  get options() {
+    return themeEntries()
+      .filter((entry) => entry.problem === null)
+      .map(({ id, name, source }) => ({ value: id, label: name, tag: source === "user" ? "user" : undefined }))
   },
-  { key: "sidebar", section: "Appearance", label: "Sidebar", options: same(["auto", "shown", "hidden"]) },
-  { key: "thinking", section: "Appearance", label: "Thinking", options: same(["summarized", "hidden"]) },
-  {
-    key: "sessionTitle",
-    section: "Session",
-    label: "Session title",
-    options: [
-      { value: "yellowcode", label: "YellowCode" },
-      { value: "claude-code", label: "Claude Code" },
-    ],
+})
+
+// The mode the agent's new sessions start in, kept for that agent.
+const defaultMode = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition => ({
+  key: "permissionMode",
+  section: "Session",
+  label: "Permission mode",
+  options: modes.map(({ id, label, description }) => ({ value: id, label, note: description || undefined })),
+  value: () => defaultModeOf(agent),
+  set(value) {
+    if (modes.some((mode) => mode.id === value)) setDefaultMode(agent, value)
   },
-  {
-    key: "permissionMode",
-    section: "Session",
-    label: "Permission mode",
-    options: PERMISSION_MODES.map((value) => ({ value, label: value, note: NOTES[value] })),
+  reset: () => setDefaultMode(agent, DEFAULT_MODE),
+})
+
+const SIDEBAR = stored<"sidebar">({
+  key: "sidebar",
+  section: "Appearance",
+  label: "Sidebar",
+  options: same(["auto", "shown", "hidden"]),
+})
+
+const THINKING = stored<"thinking">({
+  key: "thinking",
+  section: "Appearance",
+  label: "Thinking",
+  options: same(["summarized", "hidden"]),
+})
+
+const SESSION_TITLE = stored({
+  key: "sessionTitle",
+  section: "Session",
+  label: "Session title",
+  options: [
+    { value: "yellowcode", label: "YellowCode" },
+    { value: "claude-code", label: "Claude Code" },
+  ],
+})
+
+const EDITOR = stored({
+  key: "editor",
+  section: "Session",
+  label: "Open files in",
+  get options() {
+    return editorChoices(settings.editor).map((value) => ({ value, label: editorName(value) }))
   },
-  {
-    key: "editor",
-    section: "Session",
-    label: "Open files in",
-    get options() {
-      return editorChoices(settings.editor).map((value) => ({ value, label: editorName(value) }))
-    },
-  },
-  {
-    key: "notifications",
-    section: "Session",
-    label: "Notifications",
-    options: [
-      { value: "all", label: "All" },
-      { value: "waiting", label: "Only when waiting" },
-      { value: "off", label: "Off" },
-    ],
-  },
+})
+
+const NOTIFICATIONS = stored({
+  key: "notifications",
+  section: "Session",
+  label: "Notifications",
+  options: [
+    { value: "all", label: "All" },
+    { value: "waiting", label: "Only when waiting" },
+    { value: "off", label: "Off" },
+  ],
+})
+
+// YellowCode's own settings, with what it keeps for the agent among them.
+export const settingsFor = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition[] => [
+  THEME,
+  SIDEBAR,
+  THINKING,
+  SESSION_TITLE,
+  defaultMode(agent, modes),
+  EDITOR,
+  NOTIFICATIONS,
 ]
 
 export const LONG = 3
 
-export const settingFor = (id: string) => SETTINGS.find((setting) => setting.key === id)
 export const opensList = (setting: SettingDefinition) => setting.options.length > LONG
 
 export function currentOption(setting: SettingDefinition): SettingOption | undefined {
-  const saved = settings[setting.key]
+  const saved = setting.value()
   const found = setting.options.find((option) => option.value === saved)
   if (found || setting.key !== "theme") return found ?? setting.options[0]
   return { value: saved, label: `${saved} (not found)` }
@@ -90,15 +143,10 @@ export function step(setting: SettingDefinition, by: 1 | -1) {
   const count = setting.options.length
   const index = Math.max(
     0,
-    setting.options.findIndex((option) => option.value === settings[setting.key]),
+    setting.options.findIndex((option) => option.value === setting.value()),
   )
   const next = setting.options[(index + by + count) % count]
-  if (next) setSetting(setting.key, next.value)
-}
-
-export function choose(setting: SettingDefinition, value: string) {
-  const option = setting.options.find((candidate) => candidate.value === value)
-  if (option) setSetting(setting.key, option.value)
+  if (next) setting.set(next.value)
 }
 
 export const optionSections = (setting: SettingDefinition, title = setting.label): DialogSection[] => [
@@ -108,7 +156,7 @@ export const optionSections = (setting: SettingDefinition, title = setting.label
       ...setting.options.map((option) => ({
         id: option.value,
         label: option.label,
-        value: option.value === settings[setting.key] ? "current" : undefined,
+        value: option.value === setting.value() ? "current" : undefined,
         note: option.note,
         tag: option.tag,
       })),

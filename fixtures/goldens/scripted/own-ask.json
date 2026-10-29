@@ -3,20 +3,20 @@
     "a686e9afb9fb",
     "70e9dfd88afc",
     "70e9dfd88afc",
-    "5f3b319d77be",
-    "9c24b1fee425",
-    "d8d0619edafb",
-    "5a249f44386f",
-    "f6110bdf3428",
-    "5905094fc1a2",
-    "5905094fc1a2",
-    "b3e3cffc4036",
-    "2a52b63826ff",
-    "2a52b63826ff",
-    "2a52b63826ff",
-    "2a52b63826ff",
-    "2a52b63826ff",
-    "c8ba4b0b11eb"
+    "a17688e603aa",
+    "0149c94e9364",
+    "4d6ee29bf502",
+    "867e01419bb2",
+    "83d4800c8055",
+    "bc5178af149b",
+    "bc5178af149b",
+    "848716abc5e9",
+    "c0bd26aa5923",
+    "c0bd26aa5923",
+    "c0bd26aa5923",
+    "c0bd26aa5923",
+    "c0bd26aa5923",
+    "e8354a5768bb"
   ],
   "emitted": [],
   "fileOriginals": [],
@@ -74,6 +74,9 @@
         "kind": "tool",
         "id": "toolu-a1",
         "name": "mcp__yellowcode__ask",
+        "toolKind": "question",
+        "title": "AskUserQuestion",
+        "server": null,
         "inputText": "{\"questions\":[{\"question\":\"Storage?\",\"header\":\"Storage\",\"options\":[{\"label\":\"Per project\"},{\"label\":\"Global\"}]},{\"question\":\"Formats?\",\"header\":\"Formats\",\"options\":[{\"label\":\"JSON\"},{\"label\":\"YAML\",\"description\":\"Needs a parser\"}],\"multiSelect\":true}]}",
         "input": {
           "questions": [
@@ -106,13 +109,67 @@
           ]
         },
         "summary": "Storage, Formats",
+        "detail": null,
+        "background": false,
         "status": "stopped",
         "result": "",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Storage?",
+              "header": "Storage",
+              "question": "Storage?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Per project",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Global",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Formats?",
+              "header": "Formats",
+              "question": "Formats?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -122,6 +179,8 @@
         "requestId": "req-a1",
         "toolUseId": "toolu-a1",
         "toolName": "mcp__yellowcode__ask",
+        "toolKind": "question",
+        "server": null,
         "displayName": "ask",
         "input": {
           "questions": [
@@ -153,15 +212,68 @@
             }
           ]
         },
+        "target": "Storage, Formats",
+        "writes": [],
         "description": "",
         "reason": "",
-        "suggestion": null,
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Storage?",
+              "header": "Storage",
+              "question": "Storage?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Per project",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Global",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Formats?",
+              "header": "Formats",
+              "question": "Formats?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
         "defaultToNo": false,
         "safetyCheck": false,
         "status": "denied",
         "answers": {},
         "notes": {},
         "denial": "The user declined this tool call and said:\nnot now",
+        "why": "declined",
+        "note": "not now",
         "mcp": {
           "rpcId": 1
         }
@@ -170,6 +282,9 @@
         "kind": "tool",
         "id": "toolu-a2",
         "name": "mcp__yellowcode__ask",
+        "toolKind": "question",
+        "title": "AskUserQuestion",
+        "server": null,
         "inputText": "{\"matrix\":{\"question\":\"Ready to ship?\",\"header\":\"Checks\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs updated\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}}",
         "input": {
           "matrix": {
@@ -191,13 +306,34 @@
           }
         },
         "summary": "Checks",
+        "detail": null,
+        "background": false,
         "status": "stopped",
         "result": "",
         "children": [],
         "patch": null,
         "createdFile": false,
+        "content": null,
         "images": [],
         "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": {
+          "matrix": {
+            "header": "Checks",
+            "question": "Ready to ship?",
+            "rows": [
+              "Tests pass",
+              "Docs updated"
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "outcome": null,
         "agent": null,
         "taskId": null
       },
@@ -207,6 +343,8 @@
         "requestId": "req-a2",
         "toolUseId": "toolu-a2",
         "toolName": "mcp__yellowcode__ask",
+        "toolKind": "question",
+        "server": null,
         "displayName": "ask",
         "input": {
           "matrix": {
@@ -227,9 +365,27 @@
             ]
           }
         },
+        "target": "Checks",
+        "writes": [],
         "description": "",
         "reason": "",
-        "suggestion": null,
+        "options": [],
+        "questions": {
+          "matrix": {
+            "header": "Checks",
+            "question": "Ready to ship?",
+            "rows": [
+              "Tests pass",
+              "Docs updated"
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "plan": null,
         "defaultToNo": false,
         "safetyCheck": false,
         "status": "answered",
@@ -241,6 +397,8 @@
           "Tests pass": "ok"
         },
         "denial": "",
+        "why": null,
+        "note": "",
         "mcp": {
           "rpcId": 2
         }
@@ -251,6 +409,8 @@
         "requestId": "req-a3",
         "toolUseId": "toolu-a3",
         "toolName": "mcp__yellowcode__ask",
+        "toolKind": "question",
+        "server": null,
         "displayName": "ask",
         "input": {
           "questions": [
@@ -282,15 +442,68 @@
             }
           ]
         },
+        "target": "Storage, Formats",
+        "writes": [],
         "description": "",
         "reason": "",
-        "suggestion": null,
+        "options": [],
+        "questions": {
+          "pages": [
+            {
+              "key": "Storage?",
+              "header": "Storage",
+              "question": "Storage?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Per project",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Global",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Formats?",
+              "header": "Formats",
+              "question": "Formats?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
+        "plan": null,
         "defaultToNo": false,
         "safetyCheck": false,
         "status": "cancelled",
         "answers": {},
         "notes": {},
         "denial": "",
+        "why": null,
+        "note": "",
         "mcp": {
           "rpcId": 3
         }

@@ -1,37 +1,14 @@
 import type { LimitWindow, SessionInfo } from "../../agent/events.ts"
-import type { McpPlace, McpServerRow, McpState } from "../../agent/lists.ts"
+import type { McpServerRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
 import { isOwnAskServer, type ProtocolMessage } from "../../protocol/messages.ts"
 import { type Draft, textOf } from "./draft.ts"
 import { LOGIN_HINT, needsLogin } from "./login.ts"
+import { placeOf, shortName, stateOf } from "./mcp-rows.ts"
 import { mcpOf } from "./tools.ts"
 
 type Of<T extends ProtocolMessage["type"]> = Extract<ProtocolMessage, { type: T }>
 type System<S extends Of<"system">["subtype"]> = Extract<Of<"system">, { subtype: S }>
-
-const STATES = new Map<string, McpState>(
-  Object.entries({
-    connected: "connected",
-    pending: "connecting",
-    failed: "failed",
-    "needs-auth": "needs-login",
-    disabled: "off",
-  }),
-)
-
-const PLACES = new Map<string, McpPlace>(
-  Object.entries({
-    project: "project-shared",
-    local: "project-private",
-    user: "everywhere",
-    claudeai: "account",
-    dynamic: "builtin",
-    enterprise: "managed",
-  }),
-)
-
-// "plugin:figma:figma" is figma, "claude.ai Gmail" is Gmail.
-const label = (name: string) => /^plugin:[^:]+:(.+)$/.exec(name)?.[1] ?? name.replace(/^claude\.ai /, "")
 
 const FIVE_HOURS = 5 * 60
 const WEEK = 7 * 24 * 60
@@ -58,10 +35,11 @@ export function initInfo(message: System<"init">): SessionInfo {
       .filter((server) => !isOwnAskServer(server))
       .map((server): McpServerRow => ({
         name: server.name,
-        label: label(server.name),
-        place: (server.source && PLACES.get(server.source)) || "other",
-        state: STATES.get(server.status) ?? "unknown",
+        label: shortName(server.name),
+        place: placeOf(server.source ?? null),
+        state: stateOf(server.status),
         status: server.status,
+        // claude's own word: the store keeps it as the server's source until it keeps these rows.
         origin: server.source ?? null,
         scope: null,
         error: server.error ?? null,
@@ -73,7 +51,8 @@ export function initInfo(message: System<"init">): SessionInfo {
     commands: message.slash_commands ?? [],
     subagents: message.agents ?? [],
     plugins: (message.plugins ?? []).map(({ name, path, source }) => ({ name, path, source: source ?? null })),
-    authSource: message.apiKeySource ?? "none",
+    // A subscription sign-in is no key: the UI shows no cost for it.
+    authSource: !message.apiKeySource || message.apiKeySource === "oauth" ? "none" : message.apiKeySource,
   }
 }
 

@@ -4,8 +4,16 @@ import { join, relative } from "node:path"
 import { log } from "../log/log.ts"
 import type { RewindExtras, RewindPreview } from "../session/rewind.ts"
 import type { Session } from "../session/types.ts"
-import { blobId, covers, fileInput, inRoot, tildePath } from "./common.ts"
-import { agentWrites, type Capture, type Manifest, type Point, promptManifests, type Segment } from "./live-rewind.ts"
+import { blobId, covers, inRoot, tildePath } from "./common.ts"
+import {
+  type AgentWrite,
+  agentWrites,
+  type Capture,
+  type Manifest,
+  type Point,
+  promptManifests,
+  type Segment,
+} from "./live-rewind.ts"
 import { type OutsideFile, outsideNow, refsUnder, restoreOutside } from "./outside.ts"
 import { applyRestore, createdIn, planRestore, type RestoreInput, type Target } from "./restore.ts"
 import type { Snapshots, Taken, TreeEntry } from "./snapshots.ts"
@@ -21,12 +29,12 @@ const tracked = (manifest: Manifest | null) =>
 const imported = (manifest: Manifest | null) => manifest?.segments.some((segment) => segment.kind === "imported")
 
 // An agent segment's after already holds an edit made while the agent ran, so the agent's own last call is the
-// reference: a Write must have left its content; an Edit cannot be checked without the file it started from.
-function agentChanged(session: Session, callId: string | undefined, after: string | null): boolean {
-  const call = callId === undefined ? undefined : session.byId[callId]
-  if (call?.kind !== "tool" || call.name !== "Write") return true
-  const content = fileInput.safeParse(call.input).data?.content
-  return content === undefined || after === null || blobId(Buffer.from(content), after) !== after
+// reference: it must have left what it says it left; a call that does not say cannot be checked.
+function agentChanged(session: Session, last: AgentWrite | undefined, after: string | null): boolean {
+  const call = last === undefined ? undefined : session.byId[last.id]
+  const file = call?.kind === "tool" ? call.files.find((written) => written.path === last?.write.file) : undefined
+  const left = file?.after ?? null
+  return left === null || after === null || blobId(Buffer.from(left), after) !== after
 }
 
 // What a rewind to the prompt restores, as Enter and the dialog's dry run both build it; the safety snapshot is added
@@ -158,11 +166,11 @@ export async function conflictsNow(
   byAfter.delete("")
   const read = [...byAfter].map(([tree, group]) => snapshots.entries(tree, group))
   for (const entries of await Promise.all(read)) for (const [path, entry] of entries) expected.set(path, entry)
-  // The last Edit/Write call an agent made to each path, by prompt.
-  const agentCalls = new Map<string, string>()
+  // The last call an agent made that wrote each path, by prompt.
+  const agentCalls = new Map<string, AgentWrite>()
   for (const call of agentWrites(session)) {
     const path = inRoot(snapshots.root, call.write.file)
-    if (path !== null) agentCalls.set(`${call.uuid}\0${path}`, call.id)
+    if (path !== null) agentCalls.set(`${call.uuid}\0${path}`, call)
   }
   // A path an earlier rewind restored is measured against what that rewind left.
   const rewound = pending?.after ? await snapshots.entries(pending.after.tree, [...pending.paths]) : null
@@ -226,7 +234,7 @@ async function preview(
             path: shown(change.path),
             plus: change.plus ?? 0,
             minus: change.minus ?? 0,
-            // An imported path no call in the chat names was changed by a subagent's Edit/Write.
+            // An imported path no call in the chat names was written by a subagent's call.
             edit: segment.kind === "imported",
           })
       }

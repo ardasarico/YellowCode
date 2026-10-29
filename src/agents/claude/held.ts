@@ -1,9 +1,9 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { z } from "zod"
-import { log } from "../log/log.ts"
-import { parseJson } from "../protocol/json.ts"
-import { CLAUDE_PROJECTS } from "./project-key.ts"
+import { log } from "../../log/log.ts"
+import { parseJson } from "../../json.ts"
+import { CLAUDE_PROJECTS } from "./projects.ts"
 
 // Claude Code lists each running claude in <pid>.json; the folder also holds key files, which are never opened.
 const REGISTRY = join(dirname(CLAUDE_PROJECTS), "sessions")

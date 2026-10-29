@@ -2,12 +2,12 @@ import { expect, test } from "bun:test"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { prependLines } from "../agents/claude/translate.ts"
-import { createSession, type SessionStore } from "../session/session.ts"
+import { createSession, loadHistory, type SessionStore } from "../../session/session.ts"
 import { listSessions } from "./session-list.ts"
-import { loadTranscript, readTranscript } from "./transcript.ts"
+import { readTranscript } from "./transcript.ts"
+import { translateLines } from "./translate.ts"
 
-const FOLDER = join(import.meta.dir, "..", "..", "fixtures", "transcripts", "-Users-user-project")
+const FOLDER = join(import.meta.dir, "..", "..", "..", "fixtures", "transcripts", "-Users-user-project")
 
 async function pathOf(title: string): Promise<string> {
   const entry = (await listSessions(FOLDER, "/Users/user/project")).find((session) => session.title === title)
@@ -17,7 +17,7 @@ async function pathOf(title: string): Promise<string> {
 
 async function open(title: string): Promise<SessionStore> {
   const session = createSession()
-  loadTranscript(session, await readTranscript(await pathOf(title)))
+  loadHistory(session, (await readTranscript(await pathOf(title))).events)
   return session
 }
 
@@ -61,17 +61,17 @@ test("long: earlier parts load from the cursor and go in front", async () => {
   const path = await pathOf("Reply with the number 1.")
   const session = createSession()
   const last = await readTranscript(path)
-  loadTranscript(session, last)
+  loadHistory(session, last.events)
   expect(rows(session)).toEqual(prompts(6, 25))
   expect(last.earlier).not.toBeNull()
 
   const earlier = await readTranscript(path, last.earlier ?? undefined)
   expect(earlier.earlier).toBeNull()
   const part = createSession()
-  loadTranscript(part, earlier)
+  loadHistory(part, earlier.events)
   expect(rows(part)).toEqual(prompts(1, 5))
 
-  prependLines(session, earlier.events)
+  session.prepend(earlier.events)
   expect(rows(session)).toEqual(prompts(1, 25))
 })
 
@@ -88,7 +88,7 @@ const caveat = user("<local-command-caveat>The command below was run directly in
 test("a task notification ends its agent and an interrupt ends its turn, and neither is a user row", async () => {
   const path = join(FOLDER, "..", "-Users-user-tasks", "5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b.jsonl")
   const session = createSession()
-  loadTranscript(session, await readTranscript(path))
+  loadHistory(session, (await readTranscript(path)).events)
   expect(rows(session)).toEqual([
     "user Start a background agent that counts the sheep.",
     "user Write a short poem about rain.",
@@ -128,7 +128,7 @@ test("a later task notification without its tool-use-id still reaches the agent"
   const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "notes.jsonl")
   writeFileSync(path, lines.join("\n") + "\n")
   const session = createSession()
-  loadTranscript(session, await readTranscript(path))
+  loadHistory(session, (await readTranscript(path)).events)
   const tool = Object.values(session.state.byId).find((item) => item.kind === "tool")
   expect(tool).toMatchObject({ agent: { state: "completed", report: "finished" } })
 })
@@ -154,7 +154,7 @@ test("commands claude ran itself drop out with their output, /compact stays", as
   const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "commands.jsonl")
   writeFileSync(path, lines.join("\n") + "\n")
   const session = createSession()
-  loadTranscript(session, await readTranscript(path))
+  loadHistory(session, (await readTranscript(path)).events)
   expect(rows(session)).toEqual(["user first", "user /compact", "user second"])
 })
 
@@ -183,8 +183,8 @@ const unfinished = (prefix: string) => [
 
 test("work with no recorded outcome shows as stopped, in the first part and in earlier ones", () => {
   const session = createSession()
-  loadTranscript(session, { events: unfinished("a"), earlier: null })
-  prependLines(session, unfinished("b"))
+  loadHistory(session, translateLines(unfinished("a")))
+  session.prepend(translateLines(unfinished("b")))
   const tools = Object.values(session.state.byId).flatMap((item) => (item.kind === "tool" ? [item] : []))
   expect(tools.map((tool) => [tool.name, tool.status, tool.agent?.state ?? null])).toEqual([
     ["Bash", "stopped", null],
@@ -216,7 +216,7 @@ test("a killed note marks its agent as stopped by the user, a stopped one does n
   const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "killed.jsonl")
   writeFileSync(path, lines.join("\n") + "\n")
   const session = createSession()
-  loadTranscript(session, await readTranscript(path))
+  loadHistory(session, (await readTranscript(path)).events)
   expect(session.state.byId.t1).toMatchObject({ agent: { state: "stopped", stoppedByUser: true } })
   expect(session.state.byId.t2).toMatchObject({ agent: { state: "stopped", stoppedByUser: false } })
 })
