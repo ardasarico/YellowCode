@@ -52,10 +52,10 @@ and logged in. See [Usage](docs/usage.md) for the rest.
 | Agent              | Status         |
 | ------------------ | -------------- |
 | Claude Code        | ✅ Works       |
-| Codex CLI          | ⏳ In progress |
+| Codex CLI          | ✅ Works       |
 | GitHub Copilot CLI | ⏳ In progress |
 | Cursor CLI         | ⏳ In progress |
-| opencode           | ⏳ In progress |
+| opencode           | ✅ Works       |
 
 ## How it works
 

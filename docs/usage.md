@@ -4,7 +4,7 @@
 
 - macOS or Linux. On Windows, run it inside WSL.
 - A [supported agent](../README.md#supported-agents), installed and logged in. For Claude Code, that means `claude` is
-  on your `PATH`.
+  on your `PATH`; for Codex, `codex`; for opencode, `opencode` 2 or newer.
 - For images, a terminal that can draw them, such as [Ghostty](https://ghostty.org) or
   [kitty](https://sw.kovidgoyal.net/kitty/). Other terminals and tmux work without images. YellowCode says so when it
   starts, and `--skip-terminal-check` skips that screen.
@@ -54,20 +54,22 @@ yellowcode mod <command>
 
 ## Commands
 
-| Command     | What it does                                  |
-| ----------- | --------------------------------------------- |
-| `/rewind`   | Go back to before a prompt, with your files   |
-| `/timeline` | Move through the prompts of this session      |
-| `/redo`     | Bring back what the last rewind undid         |
-| `/resume`   | Open an earlier session from this project     |
-| `/export`   | Copy the conversation, or save it as Markdown |
-| `/settings` | YellowCode's settings                         |
-| `/theme`    | Pick a theme                                  |
-| `/mods`     | See and manage your mods                      |
-| `/mcp`      | The MCP servers of this session               |
-| `/skills`   | The skills of this session                    |
-| `/plugins`  | The plugins of this session                   |
-| `/report`   | Copy a summary of your setup for a bug report |
+| Command        | What it does                                               |
+| -------------- | ---------------------------------------------------------- |
+| `/rewind`      | Go back to before a prompt, with your files                |
+| `/timeline`    | Move through the prompts of this session                   |
+| `/redo`        | Bring back what the last rewind undid                      |
+| `/resume`      | Open an earlier session from this project                  |
+| `/agent`       | Switch to another agent, in a new session                  |
+| `/export`      | Copy the conversation, or save it as Markdown              |
+| `/settings`    | YellowCode's settings                                      |
+| `/theme`       | Pick a theme                                               |
+| `/mods`        | See and manage your mods                                   |
+| `/mcp`         | The MCP servers of this session                            |
+| `/skills`      | The skills of this session                                 |
+| `/plugins`     | The plugins of this session                                |
+| `/permissions` | The rules you allowed for good, where the agent lists them |
+| `/report`      | Copy a summary of your setup for a bug report              |
 
 Other commands go to your agent. YellowCode handles a few of Claude Code's itself, such as `/model`, `/effort`,
 `/context`, `/usage` and `/plan`, and leaves out the few that only work in Claude Code's own screen.
@@ -82,8 +84,8 @@ Other commands go to your agent. YellowCode handles a few of Claude Code's itsel
   your projects. Snapshots older than Claude Code's `cleanupPeriodDays` (30 days by default) are deleted.
 - The mod list: `~/.cache/yellowcode/mods.json`, following `XDG_CACHE_HOME`.
 
-Your agent keeps its own sessions and settings where it always does. For Claude Code that is `~/.claude`, and
-`/resume` reads its session list from there.
+Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex
+and opencode's own service for opencode. `/resume` lists the sessions of every installed agent.
 
 ## Updating and uninstalling
 
