@@ -205,7 +205,7 @@ export function connect(options: {
     initialize()
     void initialized.promise.then((reply) => {
       if (reply) controls.initialized(reply)
-      if (reply) stopModServers = syncModServers(requests, () => mods.entries)
+      if (reply) stopModServers = syncModServers(requests, mods)
     })
     if (carry) controls.carry(carry)
     tasks.start()

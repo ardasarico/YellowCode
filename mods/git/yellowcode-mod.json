@@ -3,6 +3,7 @@
   "name": "Git",
   "version": "0.1.0",
   "description": "The files you and Claude changed, in the sidebar.",
-  "api": "^0.1",
+  "api": "^0.2",
+  "agents": "any",
   "entry": "index.tsx"
 }

@@ -1,11 +1,5 @@
 import { expect, test } from "bun:test"
-import { cut, formatTokens, mcpTool, modelName, pad, printable, windowTitle } from "./format.ts"
-
-test("mcpTool splits MCP tool names at the first server boundary", () => {
-  expect(mcpTool("mcp__github__list_pull_requests")).toEqual({ server: "github", tool: "list_pull_requests" })
-  expect(mcpTool("mcp__my_db__run__query")).toEqual({ server: "my_db", tool: "run__query" })
-  expect(["Read", "mcp__echo", "mcp__echo__", "mcp_x__y"].map(mcpTool)).toEqual([null, null, null, null])
-})
+import { cut, formatTokens, modelName, pad, printable, windowTitle } from "./format.ts"
 
 test("modelName turns model ids into display names", () => {
   expect(modelName("claude-haiku-5-5")).toBe("Haiku 5.5")

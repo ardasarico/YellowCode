@@ -37,6 +37,10 @@ A mod taken off the list stops loading, and `/mods` shows why. Its folder stays 
 GitHub that is not on the list is tagged "Unlisted", and one you copied in by hand "Local". The selected mod shows what
 it adds, its settings and its last error.
 
+Each mod names the agents it is made for, or works with any agent. With an agent it was not made for, it stays off and
+`/mods` shows it as "not for this agent". A mod that names no agents at all was made for an older YellowCode and does
+not load until it is updated.
+
 - Space turns a mod on or off.
 - → opens its settings.
 - Ctrl+R reloads it.

@@ -13,7 +13,7 @@ import { addedRows, diffRows } from "./diff.ts"
 import { DiffView } from "./diff-view.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
 import { FoldHint, foldHintWidth } from "./fold-hint.tsx"
-import { cut, cutPath, formatDuration, mcpTool } from "./format.ts"
+import { cut, cutPath, formatDuration } from "./format.ts"
 import { ImageLabels } from "./image-label.tsx"
 import { CodeBlock } from "./markdown/code-block.tsx"
 import { FOLDED_CODE, LONG_CODE } from "./markdown/folds.ts"
@@ -164,11 +164,14 @@ export function ToolCallRow(props: {
     get name() {
       return props.item.name
     },
+    get kind() {
+      return props.item.toolKind
+    },
     get short() {
-      return mcpTool(props.item.name)?.tool ?? props.item.name
+      return props.item.title
     },
     get source() {
-      return mcpTool(props.item.name)?.server ?? null
+      return props.item.server
     },
     get input() {
       return props.item.input

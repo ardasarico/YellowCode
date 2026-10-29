@@ -35,7 +35,7 @@ function publish(repo: string, id: string, version: string) {
   const stage = join(root, `stage-${sha}`)
   const tree = join(stage, `repo-${sha}`)
   mkdirSync(tree, { recursive: true })
-  const manifest = JSON.stringify({ id, name: id, version, api: "^0.1", entry: "index.ts" })
+  const manifest = JSON.stringify({ id, name: id, version, api: "^0.2", agents: "any", entry: "index.ts" })
   writeFileSync(join(tree, "yellowcode-mod.json"), manifest)
   writeFileSync(join(tree, "index.ts"), `export default {} // ${version}\n`)
   tarballs.set(sha, Bun.spawnSync(["tar", "-czf", "-", "-C", stage, `repo-${sha}`]).stdout)
@@ -44,7 +44,7 @@ function publish(repo: string, id: string, version: string) {
   return { id, repo, sha, version, treeHash: hashEntries(dirEntries(tree).files) }
 }
 
-const listed = (mod: ReturnType<typeof publish>) => ({ ...mod, name: mod.id, description: "", api: "^0.1" })
+const listed = (mod: ReturnType<typeof publish>) => ({ ...mod, name: mod.id, description: "", api: "^0.2" })
 
 async function run(args: string, answers?: string) {
   const child = Bun.spawn([process.execPath, "src/index.tsx", "mod", ...args.split(" ")], {

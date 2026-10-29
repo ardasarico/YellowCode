@@ -3,28 +3,31 @@ import { createSignal } from "solid-js"
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createModHost, revokedReason } from "./host.ts"
+import { createModHost, type ModAgent, revokedReason } from "./host.ts"
 import { readManifest } from "./manifest.ts"
 import { linkRuntime } from "./runtime.ts"
 
 const calls: string[] = []
 Object.assign(globalThis, { modTestCalls: calls })
 
-function writeMod(folder: string, id: string, api: string, source: string): void {
+const claude: ModAgent = { id: "claude", caps: { clientTools: "live", mcpServers: "live" } }
+
+// `agents` null leaves the field out.
+function writeMod(folder: string, id: string, api: string, source: string, agents: unknown = "any"): void {
   mkdirSync(join(folder, id), { recursive: true })
-  const manifest = { id, name: id, version: "1.0.0", api, entry: "index.ts" }
+  const manifest = { id, name: id, version: "1.0.0", api, ...(agents === null ? {} : { agents }), entry: "index.ts" }
   writeFileSync(join(folder, id, "yellowcode-mod.json"), JSON.stringify(manifest))
   writeFileSync(join(folder, id, "index.ts"), source)
 }
 
-test("a throwing or incompatible mod is marked and the others still load and dispose", async () => {
+test("a throwing, incompatible or other agent's mod is marked and the others still load and dispose", async () => {
   const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
   mkdirSync(folder, { recursive: true })
   linkRuntime(folder)
   writeMod(
     folder,
     "works",
-    "^0.1",
+    "^0.2",
     `import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
 export default defineMod({
@@ -38,15 +41,17 @@ export default defineMod({
   writeMod(
     folder,
     "throws",
-    "^0.1",
+    "^0.2",
     `import { defineMod } from "yellowcode/mod"
 export default defineMod({ setup() { throw new Error("broken setup") } })`,
   )
   const setupRan = `import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
 export default defineMod({ setup() { calls.push("should not run") } })`
-  writeMod(folder, "too-new", "^0.2", setupRan)
-  writeMod(folder, "pulled", "^0.1", setupRan)
+  writeMod(folder, "too-new", "^0.3", setupRan)
+  writeMod(folder, "pulled", "^0.2", setupRan)
+  writeMod(folder, "unlisted-agents", "^0.2", setupRan, null)
+  writeMod(folder, "other-agent", "^0.2", setupRan, ["codex"])
 
   let disabled: string[] = []
   const host = createModHost({
@@ -57,17 +62,28 @@ export default defineMod({ setup() { calls.push("should not run") } })`
   })
   const failures: string[] = []
   host.onFailure((failure) => failures.push(failure.id))
-  host.discover()
+  host.discover(claude)
   await host.loadAll()
 
   const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
-  expect(status).toEqual({ works: "on", throws: "failed", "too-new": "incompatible", pulled: "revoked" })
+  expect(status).toEqual({
+    works: "on",
+    throws: "failed",
+    "too-new": "incompatible",
+    pulled: "revoked",
+    "unlisted-agents": "failed",
+    "other-agent": "elsewhere",
+  })
+  expect(host.entries.find((entry) => entry.id === "unlisted-agents")?.problem).toBe(
+    'yellowcode-mod.json: needs an "agents" list, like "agents": ["claude"], or "any"',
+  )
+  expect(host.entries.find((entry) => entry.id === "other-agent")?.problem).toBe("not for this agent")
   expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe(
     "needs a newer YellowCode · update YellowCode",
   )
   expect(host.entries.find((entry) => entry.id === "pulled")?.problem).toBe("Revoked: steals tokens")
   expect(host.entries.find((entry) => entry.id === "throws")?.error?.message).toBe("Error: broken setup")
-  expect(failures.toSorted()).toEqual(["pulled", "throws", "too-new"])
+  expect(failures.toSorted()).toEqual(["pulled", "throws", "too-new", "unlisted-agents"])
   expect(calls).not.toContain("should not run")
 
   await host.setEnabled("works", false)
@@ -77,7 +93,15 @@ export default defineMod({ setup() { calls.push("should not run") } })`
 })
 
 test("a revoke matches listed mods by version, unlisted by SHA and local ones only for every version", () => {
-  const manifest = { id: "x", name: "x", description: "", version: "1.0.0", api: "^0.1", entry: "index.ts" }
+  const manifest = {
+    id: "x",
+    name: "x",
+    description: "",
+    version: "1.0.0",
+    api: "^0.2",
+    agents: "any" as const,
+    entry: "index.ts",
+  }
   const sha = "a".repeat(40)
   const record = { source: "github:o/x", sha, treeHash: "", version: "1.0.0", installedAt: "" }
   const listed = { ...record, listed: true }
@@ -102,7 +126,7 @@ test("turning a mod off while its setup awaits removes what it adds afterwards",
   writeMod(
     folder,
     "slow",
-    "^0.1",
+    "^0.2",
     `import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
 export default defineMod({
@@ -116,7 +140,7 @@ export default defineMod({
   calls.length = 0
   let disabled: string[] = []
   const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
-  host.discover()
+  host.discover(claude)
   const loading = host.loadAll()
   await new Promise((resolve) => setTimeout(resolve, 5))
   await host.setEnabled("slow", false)
@@ -134,7 +158,7 @@ test("an effect a mod makes in setup stops when the mod is turned off", async ()
   writeMod(
     folder,
     "effect",
-    "^0.1",
+    "^0.2",
     `import { createEffect } from "solid-js"
 import { defineMod } from "yellowcode/mod"
 const calls = (globalThis as any).modTestCalls
@@ -148,7 +172,7 @@ export default defineMod({
   calls.length = 0
   let disabled: string[] = []
   const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
-  host.discover()
+  host.discover(claude)
   await host.loadAll()
   setTick(1)
   await host.setEnabled("effect", false)
@@ -163,7 +187,7 @@ test("a manifest with the old yellowcode field says to use api", () => {
   writeFileSync(join(folder, "yellowcode-mod.json"), JSON.stringify(manifest))
   expect(readManifest(folder)).toEqual({
     ok: false,
-    problem: 'yellowcode-mod.json: "yellowcode" is now "api", like "api": "^0.1"',
+    problem: 'yellowcode-mod.json: "yellowcode" is now "api", like "api": "^0.2"',
   })
 })
 
@@ -174,12 +198,12 @@ test("a setup that never finishes fails after the limit", async () => {
   writeMod(
     folder,
     "hangs",
-    "^0.1",
+    "^0.2",
     `import { defineMod } from "yellowcode/mod"
 export default defineMod({ setup: () => new Promise(() => {}) })`,
   )
   const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {}, setupLimitMs: 50 })
-  host.discover()
+  host.discover(claude)
   await host.loadAll()
   const entry = host.entries.find((candidate) => candidate.id === "hangs")
   expect(entry?.status).toBe("failed")

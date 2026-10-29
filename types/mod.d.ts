@@ -2,7 +2,7 @@
 import type { KeyEvent, RGBA } from "@opentui/core"
 import type { Component, JSX } from "solid-js"
 
-export declare const apiVersion = "0.1.0"
+export declare const apiVersion = "0.2.0"
 
 export type ModTheme = {
   readonly background: RGBA | null
@@ -143,6 +143,7 @@ export type ModSectionOptions = {
 export type ModEvents = {
   "tool-done": {
     name: string
+    kind: ModToolKind
     status: "done" | "error" | "stopped"
   }
   "turn-end": {
@@ -159,11 +160,17 @@ export type ModEvents = {
 export type ModNotifyOptions = {
   level?: "info" | "warning" | "error"
 }
+export type ModModeKind = "default" | "edits" | "plan" | "auto" | "bypass" | "readonly" | "other"
+export type ModMode = {
+  id: string
+  label: string
+  kind: ModModeKind
+}
 export type ModSession = {
   model(): string | null
   id(): string | null
   running(): boolean
-  permissionMode(): string | null
+  mode(): ModMode | null
 }
 export type ModChooseOptions = {
   title: string
@@ -210,8 +217,30 @@ export type ModDialogs = {
   input(options: ModInputOptions): Promise<string | null>
   open(options: ModDialogOptions): ModDialogHandle
 }
+export type ModToolKind =
+  | "shell"
+  | "read"
+  | "search"
+  | "edit"
+  | "write"
+  | "delete"
+  | "move"
+  | "fetch"
+  | "websearch"
+  | "agent"
+  | "message"
+  | "workflow"
+  | "question"
+  | "plan"
+  | "mode"
+  | "think"
+  | "skill"
+  | "todo"
+  | "mcp"
+  | "other"
 export type ModToolCall = {
   readonly name: string
+  readonly kind: ModToolKind
   readonly short: string
   readonly source: string | null
   readonly input: unknown
@@ -291,7 +320,7 @@ export type ModOverridePoints = {
   "status-line": {
     readonly width: number
     readonly model: string | null
-    readonly permissionMode?: string | null
+    readonly mode?: ModMode | null
     readonly asking: boolean
   }
 }

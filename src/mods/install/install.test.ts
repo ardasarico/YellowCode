@@ -36,7 +36,15 @@ afterAll(() => {
 })
 
 const manifest = (fields: object = {}) =>
-  JSON.stringify({ id: "demo", name: "Demo", version: "1.0.0", api: "^0.1", entry: "index.ts", ...fields })
+  JSON.stringify({
+    id: "demo",
+    name: "Demo",
+    version: "1.0.0",
+    api: "^0.2",
+    agents: "any",
+    entry: "index.ts",
+    ...fields,
+  })
 
 // Serves the files as codeload would at a new SHA and returns the SHA and the folder's tree hash.
 function publish(files: Record<string, string>, symlinks: Record<string, string> = {}): { sha: string; hash: string } {

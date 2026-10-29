@@ -42,6 +42,7 @@ import {
   modelIds,
   modelRef,
   modeLabel,
+  modeOf,
   nextMode,
   pickEffort,
   pickModel,
@@ -444,7 +445,8 @@ export function App(props: AppProps) {
         model: () => settings.model ?? props.model(),
         id: () => props.session.info?.id ?? null,
         running: () => props.session.status === "running",
-        permissionMode: () => props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null,
+        mode: () =>
+          modeOf(props.provider.modes(), props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null),
       },
     })
     onMount(() => setAppShown(true))

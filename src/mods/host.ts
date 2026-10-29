@@ -2,9 +2,11 @@ import { readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
+import type { Capabilities } from "../agent/capabilities.ts"
+import type { AgentKindId } from "../agent/ids.ts"
 import { log } from "../log/log.ts"
 import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions } from "./api.ts"
-import { compatible, type Manifest, readManifest } from "./manifest.ts"
+import { compatible, forAgent, type Manifest, readManifest } from "./manifest.ts"
 import {
   addCommand,
   addFence,
@@ -29,7 +31,16 @@ import { type InstallRecord, readRecord } from "./install/record.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modFacingStorage, modStorage } from "./storage.ts"
 
-export type ModStatus = "on" | "off" | "failed" | "incompatible" | "revoked"
+// "elsewhere": the manifest does not list the agent YellowCode runs.
+export type ModStatus = "on" | "off" | "failed" | "incompatible" | "revoked" | "elsewhere"
+
+const NOT_FOR_AGENT = "not for this agent"
+
+// Each mod's tools are served as the MCP server mod-<id>; its manifest's servers are mod-<id>--<name>.
+export const MOD_SERVER_PREFIX = "mod-"
+
+// The agent mods load for, and what it takes from them.
+export type ModAgent = { id: AgentKindId; caps: Pick<Capabilities, "clientTools" | "mcpServers"> }
 
 // A mod with no install record was put in the folder by hand.
 export type ModSource = "listed" | "unlisted" | "local"
@@ -56,7 +67,8 @@ export type ModFailure = { id: string; late: boolean }
 export type ModHost = {
   readonly entries: readonly ModEntry[]
   readonly folder: string
-  discover(): void
+  // The agent is the one the mods load for until the next discover.
+  discover(agent: ModAgent): void
   loadAll(): Promise<void>
   setEnabled(id: string, on: boolean): Promise<void>
   // Runs every mod's cleanups, on quit.
@@ -65,6 +77,9 @@ export type ModHost = {
   fail(id: string, error: unknown): void
   // The settings of a running mod.
   settings(id: string): SettingsHandle | null
+  // A running mod's manifest servers by the name the agent gets, mod-<id>--<name>; none for an agent that takes no MCP
+  // servers.
+  servers(id: string): Record<string, unknown>
   onFailure(listener: (failure: ModFailure) => void): () => void
 }
 
@@ -155,6 +170,7 @@ export function createModHost(options: {
   const running = new Map<string, Running>()
   const listeners = new Set<(failure: ModFailure) => void>()
   let imports = 0
+  let agent: ModAgent | null = null
 
   const indexOf = (id: string) => entries.findIndex((entry) => entry.id === id)
   const update = (id: string, patch: Partial<ModEntry>) => {
@@ -176,6 +192,8 @@ export function createModHost(options: {
     const reason = options.revoked?.(id, manifest, record) ?? null
     if (reason !== null) return { ...base, manifest, status: "revoked", problem: `Revoked: ${reason}` }
     if (!compatible(manifest)) return { ...base, manifest, status: "incompatible", problem: INCOMPATIBLE }
+    if (!agent || !forAgent(manifest, agent.id))
+      return { ...base, manifest, status: "elsewhere", problem: NOT_FOR_AGENT }
     const off = options.disabled().includes(id)
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
   }
@@ -249,6 +267,10 @@ export function createModHost(options: {
             if (!TOOL_NAME.test(tool.name)) throw new Error(`"${tool.name}" is not a tool name`)
             if (modTools().some((other) => other.mod === id && other.name === tool.name))
               throw new Error(`tool "${tool.name}" is already added`)
+            if (agent?.caps.clientTools === "none") {
+              log.info(`mod ${id}: tool ${tool.name} not added, the agent takes no tools`)
+              return () => {}
+            }
             return own(addTool({ ...tool, mod: id }))
           },
         },
@@ -279,7 +301,7 @@ export function createModHost(options: {
           model: () => appBridge()?.session.model() ?? null,
           id: () => appBridge()?.session.id() ?? null,
           running: () => appBridge()?.session.running() ?? false,
-          permissionMode: () => appBridge()?.session.permissionMode() ?? null,
+          mode: () => appBridge()?.session.mode() ?? null,
         },
         prompt: { insert: (text) => appBridge()?.insert(text) },
       }
@@ -319,7 +341,8 @@ export function createModHost(options: {
   return {
     entries,
     folder: options.folder,
-    discover() {
+    discover(forMods) {
+      agent = forMods
       for (const id of running.keys()) unload(id)
       const ids = modFolders(options.folder)
       setLoadOrder(ids)
@@ -342,6 +365,15 @@ export function createModHost(options: {
       for (const id of running.keys()) unload(id)
     },
     settings: (id) => running.get(id)?.settings ?? null,
+    servers(id) {
+      const entry = entries[indexOf(id)]
+      if (entry?.status !== "on" || agent?.caps.mcpServers === "none") return {}
+      const servers: Record<string, unknown> = {}
+      // Ids never hold "--", so a manifest server cannot take another mod's name.
+      for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
+        servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = config
+      return servers
+    },
     fail(id, error) {
       if (!running.has(id)) return
       unload(id)

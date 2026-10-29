@@ -9,7 +9,7 @@ import type { Capabilities } from "./agent/capabilities.ts"
 import { createRegistry } from "./agent/registry.ts"
 import type { HistoryCursor, SessionEntry } from "./agent/sessions.ts"
 import { type ClaudeAgent, claudeKind, showPrompt } from "./agents/claude/agent.ts"
-import { CLAUDE } from "./agents/claude/caps.ts"
+import { CLAUDE, CLAUDE_CAPS } from "./agents/claude/caps.ts"
 import { CLAUDE_MODES } from "./agents/claude/lists.ts"
 import { stopOneShots } from "./agents/claude/one-shot.ts"
 import { liveProvider, replayProvider, savedProvider } from "./agents/claude/provider.ts"
@@ -145,7 +145,7 @@ const firstSession = createSession({ starting: values.replay === undefined })
 // claude starts with flags from the saved settings, so they are read first.
 const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
-await startMods(values["no-mods"])
+await startMods(values["no-mods"], { id: CLAUDE, caps: CLAUDE_CAPS })
 
 // The agent of the session YellowCode runs now; another session replaces it. Never set in a replay.
 let agent: ClaudeAgent

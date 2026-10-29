@@ -128,11 +128,3 @@ export function formatAgo(ms: number, now: number): string {
   if (days < 365) return `${Math.floor(days / 30.4375)}mo`
   return `${Math.floor(days / 365)}y`
 }
-
-// MCP tools are named `mcp__<server>__<tool>`. Like Claude Code, the first part is the server and the tool keeps any
-// further `__`.
-export function mcpTool(name: string): { server: string; tool: string } | null {
-  const [prefix, server, ...rest] = name.split("__")
-  const tool = rest.join("__")
-  return prefix === "mcp" && server && tool ? { server, tool } : null
-}

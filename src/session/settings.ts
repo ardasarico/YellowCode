@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AgentKindId, EffortId, ModeId, ModelRef } from "../agent/ids.ts"
-import type { EffortRow, ModelRow, ModeRow } from "../agent/lists.ts"
+import type { EffortRow, ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
 import { DEFAULT_SETTINGS, defaultModeIn, saveSettings, type StoredSettings } from "./settings-file.ts"
 
 // Replay has no model list from claude, so these stand in until the live process provides one.
@@ -136,6 +136,13 @@ export function stepModel(step: 1 | -1, current: string | null): string | null {
 
 // What the user sees for a mode: its label in the agent's list, or the id the agent reported.
 export const modeLabel = (modes: ModeRow[], id: string): string => modes.find((mode) => mode.id === id)?.label ?? id
+
+// A mode as mods see it; an id the agent did not list is its own label, of kind "other".
+export function modeOf(modes: ModeRow[], id: string | null): { id: string; label: string; kind: ModeKind } | null {
+  if (id === null) return null
+  const row = modes.find((mode) => mode.id === id)
+  return { id, label: row?.label ?? id, kind: row?.kind ?? "other" }
+}
 
 // Shift+Tab walks the modes that cycle, in list order; any other mode goes to the first, and none yet counts as the
 // first.

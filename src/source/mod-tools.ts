@@ -3,7 +3,7 @@ import { z } from "zod"
 import packageJson from "../../package.json"
 import { log } from "../log/log.ts"
 import type { ModToolResult } from "../mods/api.ts"
-import type { ModEntry } from "../mods/host.ts"
+import { MOD_SERVER_PREFIX as PREFIX, type ModHost } from "../mods/host.ts"
 import { modTools, setModServerErrors } from "../mods/registry.ts"
 import { type McpMessage, OWN_ASK_SERVER } from "../protocol/messages.ts"
 import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest } from "../protocol/outgoing.ts"
@@ -11,8 +11,6 @@ import type { Requests } from "./requests.ts"
 import { OWN_ASK_TIMEOUT_MS } from "./own-ask-tool.ts"
 import { commandOf, safeText } from "./safe-text.ts"
 
-// Each mod's tools are an in-process MCP server named mod-<id>; its manifest's servers are mod-<id>--<name>.
-const PREFIX = "mod-"
 const METHOD_NOT_FOUND = -32601
 const INVALID_PARAMS = -32602
 
@@ -78,17 +76,15 @@ export function serveModTools(send: (line: string) => void, requestId: string, r
 }
 
 // The servers claude should have: our ask server, every running mod's tools, and its manifest's servers.
-export function modServerConfigs(entries: readonly ModEntry[]): Record<string, unknown> {
+export function modServerConfigs(host: Pick<ModHost, "entries" | "servers">): Record<string, unknown> {
   const servers: Record<string, unknown> = {
     [OWN_ASK_SERVER]: { type: "sdk", name: OWN_ASK_SERVER, timeout: OWN_ASK_TIMEOUT_MS },
   }
   const withTools = new Set(modTools().map((tool) => tool.mod))
-  for (const entry of entries) {
+  for (const entry of host.entries) {
     if (entry.status !== "on") continue
     if (withTools.has(entry.id)) servers[`${PREFIX}${entry.id}`] = { type: "sdk", name: `${PREFIX}${entry.id}` }
-    for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
-      // Ids never hold "--", so a manifest server cannot take another mod's name.
-      servers[`${PREFIX}${entry.id}--${name}`] = config
+    Object.assign(servers, host.servers(entry.id))
   }
   return servers
 }
@@ -103,8 +99,8 @@ function toolNames(): Record<string, string> {
 }
 
 // Keeps claude's dynamic MCP servers in step with the running mods, from initialize on.
-export function syncModServers(requests: Requests, entries: () => readonly ModEntry[]): () => void {
-  const configs = () => modServerConfigs(entries())
+export function syncModServers(requests: Requests, host: Pick<ModHost, "entries" | "servers">): () => void {
+  const configs = () => modServerConfigs(host)
   const setServers = (servers: Record<string, unknown>) =>
     requests
       .send((id) => mcpSetServersRequest(id, servers))

@@ -4,7 +4,7 @@ import { createStore } from "solid-js/store"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
-import { createModHost, revokedReason } from "./host.ts"
+import { createModHost, type ModAgent, revokedReason } from "./host.ts"
 import { autoUpdate } from "./install/auto-update.ts"
 import { installAt } from "./install/install.ts"
 import { type ListedMod, type ModList, readCachedList, refreshList } from "./install/list.ts"
@@ -57,14 +57,14 @@ onModNotify((mod, text, level) => {
   setModNotice({ text: `${name}: ${text}`, problem: level !== "info" })
 })
 
-export async function startMods(off: boolean): Promise<void> {
+export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
   if (off) {
     setModNotice({ text: "Mods are off (--no-mods)", problem: false })
     return
   }
   const failed: string[] = []
   const stop = mods.onFailure(({ id }) => failed.push(id))
-  mods.discover()
+  mods.discover(agent)
   if (mods.entries.length > 0) linkRuntime(mods.folder)
   await mods.loadAll()
   stop()

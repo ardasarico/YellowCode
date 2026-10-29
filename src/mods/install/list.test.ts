@@ -12,7 +12,7 @@ const entry = {
   version: "0.3.1",
   sha: "a".repeat(40),
   treeHash: `sha256-${"A".repeat(43)}=`,
-  api: "^0.1",
+  api: "^0.2",
 }
 const list = { mods: [entry], revoked: [{ id: "old", versions: "all", reason: "broken" }] }
 

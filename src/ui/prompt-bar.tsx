@@ -1,3 +1,4 @@
+import type { ModMode } from "../mods/api.ts"
 import { overridable } from "../mods/overridable.tsx"
 import { RGBA, TextAttributes } from "@opentui/core"
 import { useTerminalDimensions } from "@opentui/solid"
@@ -7,7 +8,7 @@ import type { Draft } from "../input/draft.ts"
 import { loadImage } from "../input/image-file.ts"
 import type { ModeRow } from "../agent/lists.ts"
 import type { InputProvider } from "../input/provider.ts"
-import { settings } from "../session/settings.ts"
+import { modeOf, settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
@@ -254,12 +255,12 @@ export type StatusLineProps = {
   shells?: Shells
   asking: boolean
   unfoldable: boolean
-  permissionMode?: string | null
+  mode?: ModMode | null
   modes: ModeRow[]
 }
 
 function InfoLineBase(props: StatusLineProps) {
-  const mode = () => modeWord(props.permissionMode ?? null, props.modes)
+  const mode = () => modeWord(props.mode?.id ?? null, props.modes)
   const modeWidth = () => (mode() ? Bun.stringWidth(mode()?.text ?? "") + 2 : 0)
   const label = () =>
     props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - modeWidth() - contextWidth(props.context)) : ""
@@ -435,7 +436,7 @@ function PromptBarBase(props: PromptBarProps) {
         width={inner()}
         agents={props.agents ?? false}
         shells={props.shells}
-        permissionMode={props.permissionMode}
+        mode={modeOf(props.provider.modes(), props.permissionMode ?? null)}
         modes={props.provider.modes()}
         asking={props.ask !== undefined}
         unfoldable={unfoldable()}

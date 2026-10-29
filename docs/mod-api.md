@@ -24,7 +24,8 @@ Make a folder for it in the mods folder:
   "name": "Hello",
   "version": "0.1.0",
   "description": "Says hello.",
-  "api": "^0.1",
+  "api": "^0.2",
+  "agents": "any",
   "entry": "index.tsx"
 }
 ```
@@ -135,14 +136,25 @@ Every mod folder has a `yellowcode-mod.json`:
 | `name`        | yes      | The name shown in `/mods`.                                                                                          |
 | `version`     | yes      | The mod's own version, shown in `/mods`.                                                                            |
 | `description` | no       | One line, shown in `/mods`.                                                                                         |
-| `api`         | yes      | A semver range of mod API versions the mod works with, like `"^0.1"`.                                               |
+| `api`         | yes      | A semver range of mod API versions the mod works with, like `"^0.2"`.                                               |
+| `agents`      | yes      | The agents the mod is made for, like `["claude"]`, or `"any"`. See [Agents](#agents).                               |
 | `entry`       | yes      | The `.ts` or `.tsx` file to load, relative to the folder and inside it.                                             |
 | `mcpServers`  | no       | MCP servers to give the agent while the mod is on. See [MCP servers in the manifest](#mcp-servers-in-the-manifest). |
 
 A manifest that is missing, is not valid JSON, or has a wrong field marks the mod as failed, and `/mods` names the
 problem. A mod whose `api` range does not match the running mod API version (`apiVersion`, exported by `yellowcode/mod`)
-is marked incompatible and is not loaded. Before 1.0 the API only gains things within a minor version, so `"^0.1"` keeps
-working through every 0.1.x and stops at 0.2.
+is marked incompatible and is not loaded. Before 1.0 the API only gains things within a minor version, so `"^0.2"` keeps
+working through every 0.2.x and stops at 0.3.
+
+### Agents
+
+YellowCode runs one agent at a time, and `agents` says which ones the mod is made for, by id: `"claude"` is Claude Code.
+On an agent the list leaves out, the mod does not load at all, and `/mods` shows it as "not for this agent". A mod that
+uses only YellowCode's own API, such as commands, panes, fences or the sidebar, can say `"any"` to load with every
+agent; YellowCode does not check that it stays out of the agent-bound parts. Those are the tools a mod gives the agent
+([`mod.tools`](#tools-for-the-agent) and [`mcpServers`](#mcp-servers-in-the-manifest)), and anything that relies on one
+agent's own tool names, modes or replies. A manifest without `agents` does not load, and `/mods` says it needs an
+`agents` list.
 
 ## The entry file
 
@@ -542,8 +554,8 @@ for long diffs.
 
 ## Tool rows
 
-A row renderer draws the rows of the agent's tool calls in the chat. This one draws Bash calls as `Shell` with a line
-count:
+A row renderer draws the rows of the agent's tool calls in the chat. This one draws shell commands as `Shell` with a
+line count:
 
 ```tsx
 import { defineMod, theme } from "yellowcode/mod"
@@ -552,7 +564,7 @@ export default defineMod({
   setup(mod) {
     mod.toolRows.add({
       render(tool) {
-        if (tool.name !== "Bash") return null
+        if (tool.kind !== "shell") return null
         if (tool.status === "running") return { title: "Shell" }
         const lines = tool.result.split("\n").filter(Boolean)
         return {
@@ -572,8 +584,11 @@ export default defineMod({
 
 `render` gets the tool call and runs again as it changes, from running to done. The call has:
 
-- `name`: the full name, like `"Bash"` or `"mcp__mod-dice__roll"`,
-- `short`: the name without the MCP prefix, like `"roll"`,
+- `name`: the agent's own name for the tool, like `"Bash"` or `"mcp__mod-dice__roll"` on Claude Code,
+- `kind`: what the tool does, whatever the agent calls it: `"shell"`, `"read"`, `"search"`, `"edit"`, `"write"`,
+  `"delete"`, `"move"`, `"fetch"`, `"websearch"`, `"agent"` (a subagent), `"message"` (to a running subagent),
+  `"workflow"`, `"question"`, `"plan"`, `"mode"`, `"think"`, `"skill"`, `"todo"`, `"mcp"` or `"other"`,
+- `short`: the name the app shows, without the MCP server, like `"roll"`,
 - `source`: the MCP server, like `"mod-dice"`, or `null` for the agent's own tools,
 - `input`, `result` and `status` (`"running"`, `"done"`, `"error"` or `"stopped"`),
 - `summary`: the app's one-line summary of the input, like a path or a command.
@@ -649,7 +664,7 @@ mod.overrides.wrap("turn-end", (Original) => (props) => (
 | `turn-end`     | `parts`, each with `durationMs`, tokens, `costUsd`, `error`, `retries`, `interrupted`, `endedAt`; `waiting` |
 | `system-row`   | `item` (`level`, `text`, `detail`)                                                                          |
 | `prompt`       | `focused`, `width`, `placeholder`                                                                           |
-| `status-line`  | `width`, `model`, `permissionMode`, `asking`                                                                |
+| `status-line`  | `width`, `model`, `mode` (as `mod.session.mode()` gives it), `asking`                                       |
 
 Pass the props on to `Original` whole, `<Original {...props} />`: the original needs more than the typed fields. A wrap
 may change a field it can read, such as `item.text`, by passing `{...props, item: {...props.item, text}}`. When several
@@ -701,9 +716,11 @@ export default defineMod({
 ```
 
 Each mod's tools form an MCP server named `mod-<id>`, which YellowCode serves itself, so Claude Code sees this tool as
-`mcp__mod-dice__roll`. `name` is letters, digits, `_` and `-`, up to 64 characters, and unique in the mod. `inputSchema`
-is the JSON schema of the arguments. `run` gets the arguments as the agent sent them, so check them yourself. It returns
-the text the agent reads, or `{ text, isError: true }` for an error, and may be `async`.
+`mcp__mod-dice__roll`. Tools are agent-bound: list the agents that take them in `agents`. On an agent that takes no
+tools from YellowCode, `mod.tools.add` adds nothing. `name` is letters, digits, `_` and `-`, up to 64 characters, and
+unique in the mod. `inputSchema` is the JSON schema of the arguments. `run` gets the arguments as the agent sent them,
+so check them yourself. It returns the text the agent reads, or `{ text, isError: true }` for an error, and may be
+`async`.
 
 The server is added to the agent when the mod loads and removed when it stops, without a restart. A tool added or
 removed later reaches the agent too: YellowCode hands it the server again so it lists the tools anew. Tools only work in
@@ -720,7 +737,8 @@ Code's `.mcp.json`:
   "name": "Dice",
   "version": "0.1.0",
   "description": "Lets the agent roll dice.",
-  "api": "^0.1",
+  "api": "^0.2",
+  "agents": ["claude"],
   "entry": "index.ts",
   "mcpServers": {
     "memory": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] }
@@ -730,19 +748,20 @@ Code's `.mcp.json`:
 
 A server name may use letters, digits, `_` and `-`. Each one is given to the agent as `mod-<id>--<name>`, here
 `mod-dice--memory`, while the mod is on. YellowCode passes the entry to Claude Code as written, so a `command` is not
-resolved against the mod's folder. If a server cannot connect, `/mods` shows the error on the mod's page.
+resolved against the mod's folder. If a server cannot connect, `/mods` shows the error on the mod's page. An agent that
+takes no MCP servers from YellowCode gets none of them.
 
 ## Events
 
 `mod.events.on(event, handler)` listens to:
 
-| Event           | Data                                                          | When                                    |
-| --------------- | ------------------------------------------------------------- | --------------------------------------- |
-| `tool-done`     | `{ name, status }`, status `"done"`, `"error"` or `"stopped"` | One of the agent's tools finished.      |
-| `turn-end`      | `{ error }`, `null` when the turn went well                   | The agent's turn ended.                 |
-| `focus`         | `{}`                                                          | The terminal window got the focus back. |
-| `message-sent`  | `{ text }`, after every before-send                           | The user sent a message they typed.     |
-| `model-changed` | `{ model }`                                                   | The session's model changed.            |
+| Event           | Data                                                                | When                                    |
+| --------------- | ------------------------------------------------------------------- | --------------------------------------- |
+| `tool-done`     | `{ name, kind, status }`, status `"done"`, `"error"` or `"stopped"` | One of the agent's tools finished.      |
+| `turn-end`      | `{ error }`, `null` when the turn went well                         | The agent's turn ended.                 |
+| `focus`         | `{}`                                                                | The terminal window got the focus back. |
+| `message-sent`  | `{ text }`, after every before-send                                 | The user sent a message they typed.     |
+| `model-changed` | `{ model }`                                                         | The session's model changed.            |
 
 `tool-done` and `turn-end` fire only while a turn runs, not for a session loaded from history. `focus` needs a terminal
 that reports focus changes. The sidebar example above uses all three. The Git mod refreshes its file list on each of
@@ -759,19 +778,28 @@ mod.notify("Push failed", { level: "error" }) // "info" (default), "warning" or 
 await mod.clipboard.write(text) // false when no clipboard took it
 await mod.open("https://example.com") // a URL in the browser, or a path in the user's editor
 mod.prompt.insert("@notes.md ") // text at the prompt's cursor; sending stays with the user
-mod.session.model() // also id(), running() and permissionMode(); null before the session is known
+mod.session.model() // also id() and running(); null before the session is known
+mod.session.mode() // { id: "acceptEdits", label: "acceptEdits", kind: "edits" }, or null
 ```
 
-The `mod.session` values are signals: read them in a view or an effect and it follows changes. A mod cannot send a
-message to the agent by itself.
+The `mod.session` values are signals: read them in a view or an effect and it follows changes. `mode()` is the session's
+mode: `id` is the agent's own, `label` the name YellowCode shows, and `kind` what it does whatever the agent calls it:
+`"default"`, `"edits"`, `"plan"`, `"auto"`, `"bypass"`, `"readonly"` or `"other"`. A mod cannot send a message to the
+agent by itself.
 
 ## Versions
 
 `apiVersion`, exported by `yellowcode/mod`, is the version of everything in this guide; the manifest's `api` names the
 range a mod works with. The API is still 0.x, so a minor version may change things. Additions raise the patch version
-(0.1.1) and only add things: new fields, methods, events, union members and props. So handle a value you do not know,
-like a new `status`, instead of assuming a list is complete. A change that can break a mod raises the minor version
-(0.2.0), and mods asking for `"^0.1"` then show as incompatible. From 1.0 on the usual semver rules apply.
+(0.2.1) and only add things: new fields, methods, events, union members and props. So handle a value you do not know,
+like a new `status` or `kind`, instead of assuming a list is complete. A change that can break a mod raises the minor
+version (0.3.0), and mods asking for `"^0.2"` then show as incompatible. From 1.0 on the usual semver rules apply.
+
+0.2 made mods agent-aware. To move a 0.1 mod: set `"api": "^0.2"`, add `agents`, read `mod.session.mode().id` where it
+read `mod.session.permissionMode()`, and `props.mode?.id` where a `status-line` wrap read `props.permissionMode`. Tool
+calls and `tool-done` gained `kind`. YellowCode's own question tool, which stands in for Claude Code's AskUserQuestion,
+now reaches row renderers as `short` `"AskUserQuestion"` with `source` `null`, like the tool it replaces; its `name` is
+unchanged.
 
 ## Getting a mod listed
 
@@ -788,7 +816,7 @@ files:
   "version": "0.1.0",
   "sha": "<the full 40-character commit SHA>",
   "treeHash": "sha256-...",
-  "api": "^0.1"
+  "api": "^0.2"
 }
 ```
 

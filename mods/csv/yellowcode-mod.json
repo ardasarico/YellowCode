@@ -3,6 +3,7 @@
   "name": "CSV",
   "version": "0.1.0",
   "description": "Shows csv and tsv code blocks as tables.",
-  "api": "^0.1",
+  "api": "^0.2",
+  "agents": "any",
   "entry": "index.tsx"
 }

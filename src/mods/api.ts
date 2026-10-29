@@ -1,5 +1,5 @@
-// What a mod imports as "yellowcode/mod", versioned as `apiVersion`. Within a compatible range (0.1.x now) things are only
-// added: new fields, methods, union members and props fields. A mod written against an older 0.1.x keeps working; a mod
+// What a mod imports as "yellowcode/mod", versioned as `apiVersion`. Within a compatible range (0.2.x now) things are only
+// added: new fields, methods, union members and props fields. A mod written against an older 0.2.x keeps working; a mod
 // that switches exhaustively over a union should keep a default case.
 
 import type { KeyEvent } from "@opentui/core"
@@ -125,9 +125,9 @@ export type ModSectionOptions = {
 
 // What a mod can listen to, with what each event carries.
 export type ModEvents = {
-  // One of Claude's tools finished during a turn.
-  "tool-done": { name: string; status: "done" | "error" | "stopped" }
-  // Claude's turn ended; error is null when it went well.
+  // One of the agent's tools finished during a turn.
+  "tool-done": { name: string; kind: ModToolKind; status: "done" | "error" | "stopped" }
+  // The agent's turn ended; error is null when it went well.
   "turn-end": { error: string | null }
   // The terminal window got the focus back.
   focus: Record<string, never>
@@ -139,13 +139,19 @@ export type ModEvents = {
 
 export type ModNotifyOptions = { level?: "info" | "warning" | "error" }
 
+// What a mode does, whatever the agent calls it.
+export type ModModeKind = "default" | "edits" | "plan" | "auto" | "bypass" | "readonly" | "other"
+
+// `id` is the agent's own, `label` the name the app shows for it.
+export type ModMode = { id: string; label: string; kind: ModModeKind }
+
 // The session as the app shows it. Read in a view or an effect and they follow changes; null before it is known.
 export type ModSession = {
   model(): string | null
   id(): string | null
   // A turn is running.
   running(): boolean
-  permissionMode(): string | null
+  mode(): ModMode | null
 }
 
 export type ModChooseOptions = {
@@ -196,13 +202,40 @@ export type ModDialogs = {
   open(options: ModDialogOptions): ModDialogHandle
 }
 
+// What a tool does, whatever the agent calls it.
+export type ModToolKind =
+  | "shell"
+  | "read"
+  | "search"
+  | "edit"
+  | "write"
+  | "delete"
+  | "move"
+  | "fetch"
+  | "websearch"
+  | "agent"
+  // A message to a running subagent.
+  | "message"
+  | "workflow"
+  | "question"
+  // A finished plan put up for approval.
+  | "plan"
+  // A switch to another of the agent's modes.
+  | "mode"
+  | "think"
+  | "skill"
+  | "todo"
+  | "mcp"
+  | "other"
+
 // A tool call in the chat, as a row renderer sees it.
 export type ModToolCall = {
-  // The full name, like "Bash" or "mcp__mod-terminal__terminal_read".
+  // The agent's own name, like "Bash" or "mcp__mod-terminal__terminal_read".
   readonly name: string
-  // The name without the MCP prefix: "terminal_read".
+  readonly kind: ModToolKind
+  // The name the app shows, without the MCP server: "terminal_read".
   readonly short: string
-  // The MCP server the tool came from, like "mod-terminal"; null for Claude Code's own tools.
+  // The MCP server the tool came from, like "mod-terminal"; null for the agent's own tools.
   readonly source: string | null
   readonly input: unknown
   readonly result: string
@@ -224,7 +257,7 @@ export type ModRowParts = {
 // Null leaves the row to the next mod, and in the end to the app.
 export type ModRowRenderer = { render(tool: ModToolCall): ModRowParts | null }
 
-// A fenced code block in Claude's reply, drawn once it is finished.
+// A fenced code block in the agent's reply, drawn once it is finished.
 export type ModFenceBlock = { code: string; lang: string }
 
 export type ModFence = {
@@ -284,8 +317,8 @@ export type ModOverridePoints = {
   "status-line": {
     readonly width: number
     readonly model: string | null
-    readonly permissionMode?: string | null
-    // Claude is waiting for an answer from the user.
+    readonly mode?: ModMode | null
+    // The agent is waiting for an answer from the user.
     readonly asking: boolean
   }
 }
@@ -303,7 +336,8 @@ export type ModOverrides = {
 
 export type ModToolResult = string | { text: string; isError?: boolean }
 
-// A tool Claude can call, as mcp__mod-<mod id>__<name>. Calls go through Claude Code's permission prompt.
+// A tool the agent can call, served as the MCP server mod-<mod id>. Calls go through the agent's permission prompt. An
+// agent that takes no tools from YellowCode gets none, and `tools.add` adds nothing there.
 export type ModTool = {
   name: string
   description: string

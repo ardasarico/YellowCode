@@ -49,12 +49,12 @@ function publish(id: string, version: string) {
   mkdirSync(tree, { recursive: true })
   writeFileSync(
     join(tree, "yellowcode-mod.json"),
-    JSON.stringify({ id, name: id, version, api: "^0.1", entry: "index.ts" }),
+    JSON.stringify({ id, name: id, version, api: "^0.2", agents: "any", entry: "index.ts" }),
   )
   writeFileSync(join(tree, "index.ts"), `export default {} // ${version}\n`)
   tarballs.set(sha, Bun.spawnSync(["tar", "-czf", "-", "-C", stage, `${id}-${sha}`]).stdout)
   const treeHash = hashEntries(dirEntries(tree).files)
-  return { id, name: id, description: "", repo: `someone/${id}`, version, sha, treeHash, api: "^0.1" }
+  return { id, name: id, description: "", repo: `someone/${id}`, version, sha, treeHash, api: "^0.2" }
 }
 
 async function install(mod: ReturnType<typeof publish>, listed: boolean) {
