@@ -1,0 +1,338 @@
+{
+  "steps": [
+    "a686e9afb9fb",
+    "70e9dfd88afc",
+    "70e9dfd88afc",
+    "5f3b319d77be",
+    "9c24b1fee425",
+    "d8d0619edafb",
+    "5a249f44386f",
+    "f6110bdf3428",
+    "5905094fc1a2",
+    "5905094fc1a2",
+    "b3e3cffc4036",
+    "2a52b63826ff",
+    "2a52b63826ff",
+    "2a52b63826ff",
+    "2a52b63826ff",
+    "2a52b63826ff",
+    "c8ba4b0b11eb"
+  ],
+  "emitted": [],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "session-3",
+      "model": "claude-opus-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.312",
+      "tools": [
+        "Agent",
+        "Bash",
+        "SendMessage",
+        "mcp__yellowcode__ask"
+      ],
+      "mcpServers": [
+        {
+          "name": "yellowcode",
+          "status": "connected",
+          "source": null,
+          "scope": null,
+          "error": null,
+          "config": null,
+          "serverInfo": null,
+          "tools": null
+        }
+      ],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "toolu-a1",
+      "ask-req-a1",
+      "toolu-a2",
+      "ask-req-a2",
+      "ask-req-a3",
+      "turn-2"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Pick the storage",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "toolu-a1": {
+        "kind": "tool",
+        "id": "toolu-a1",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"questions\":[{\"question\":\"Storage?\",\"header\":\"Storage\",\"options\":[{\"label\":\"Per project\"},{\"label\":\"Global\"}]},{\"question\":\"Formats?\",\"header\":\"Formats\",\"options\":[{\"label\":\"JSON\"},{\"label\":\"YAML\",\"description\":\"Needs a parser\"}],\"multiSelect\":true}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ]
+        },
+        "summary": "Storage, Formats",
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-req-a1": {
+        "kind": "ask",
+        "id": "ask-req-a1",
+        "requestId": "req-a1",
+        "toolUseId": "toolu-a1",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "denied",
+        "answers": {},
+        "notes": {},
+        "denial": "The user declined this tool call and said:\nnot now",
+        "mcp": {
+          "rpcId": 1
+        }
+      },
+      "toolu-a2": {
+        "kind": "tool",
+        "id": "toolu-a2",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"matrix\":{\"question\":\"Ready to ship?\",\"header\":\"Checks\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs updated\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}}",
+        "input": {
+          "matrix": {
+            "question": "Ready to ship?",
+            "header": "Checks",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs updated"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "summary": "Checks",
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-req-a2": {
+        "kind": "ask",
+        "id": "ask-req-a2",
+        "requestId": "req-a2",
+        "toolUseId": "toolu-a2",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "matrix": {
+            "question": "Ready to ship?",
+            "header": "Checks",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs updated"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Tests pass": "Yes",
+          "Docs updated": "No"
+        },
+        "notes": {
+          "Tests pass": "ok"
+        },
+        "denial": "",
+        "mcp": {
+          "rpcId": 2
+        }
+      },
+      "ask-req-a3": {
+        "kind": "ask",
+        "id": "ask-req-a3",
+        "requestId": "req-a3",
+        "toolUseId": "toolu-a3",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "cancelled",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "mcp": {
+          "rpcId": 3
+        }
+      },
+      "turn-2": {
+        "kind": "turn-end",
+        "id": "turn-2",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 16000
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 150,
+      "costUsd": 0.01,
+      "context": {
+        "used": 120,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

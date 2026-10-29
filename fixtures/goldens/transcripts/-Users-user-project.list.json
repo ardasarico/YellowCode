@@ -1,0 +1,129 @@
+{
+  "byProjectKey": [
+    {
+      "id": "fb47eef5-11f5-442d-954f-243eb5f4bc61",
+      "path": "<project>/fb47eef5-11f5-442d-954f-243eb5f4bc61.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Reply with the number 1.",
+      "firstPrompt": "Reply with the number 1.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999880000
+    },
+    {
+      "id": "db7d86ce-8cfe-4027-8b9a-fcf6f34660ca",
+      "path": "<project>/db7d86ce-8cfe-4027-8b9a-fcf6f34660ca.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Reply with the word red.",
+      "firstPrompt": "Reply with the word red.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999820000
+    },
+    {
+      "id": "d5c8a46f-b0ac-477c-8c59-21998feb2b58",
+      "path": "<project>/d5c8a46f-b0ac-477c-8c59-21998feb2b58.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Renamed demo",
+      "firstPrompt": "Reply with the single word ready.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999760000
+    },
+    {
+      "id": "d3d5b4c6-dac7-423d-a75a-8d4ff2e74d03",
+      "path": "<project>/d3d5b4c6-dac7-423d-a75a-8d4ff2e74d03.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Reply with the word alpha.",
+      "firstPrompt": "Reply with the word alpha.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999700000
+    },
+    {
+      "id": "8922f31d-e8da-4585-943e-2cf3578aa653",
+      "path": "<project>/8922f31d-e8da-4585-943e-2cf3578aa653.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Read notes.txt and reply with its first word.",
+      "firstPrompt": "Read notes.txt and reply with its first word.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999580000
+    },
+    {
+      "id": "5bb55efd-d4f3-40df-ad48-f7e0593fcf62",
+      "path": "<project>/5bb55efd-d4f3-40df-ad48-f7e0593fcf62.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Counting words",
+      "firstPrompt": "Reply with the single word one.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999520000
+    }
+  ],
+  "byCwd": {
+    "cwd": "/Users/user/project",
+    "sessions": [
+      {
+        "id": "fb47eef5-11f5-442d-954f-243eb5f4bc61",
+        "path": "<project>/fb47eef5-11f5-442d-954f-243eb5f4bc61.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Reply with the number 1.",
+        "firstPrompt": "Reply with the number 1.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999880000
+      },
+      {
+        "id": "db7d86ce-8cfe-4027-8b9a-fcf6f34660ca",
+        "path": "<project>/db7d86ce-8cfe-4027-8b9a-fcf6f34660ca.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Reply with the word red.",
+        "firstPrompt": "Reply with the word red.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999820000
+      },
+      {
+        "id": "d5c8a46f-b0ac-477c-8c59-21998feb2b58",
+        "path": "<project>/d5c8a46f-b0ac-477c-8c59-21998feb2b58.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Renamed demo",
+        "firstPrompt": "Reply with the single word ready.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999760000
+      },
+      {
+        "id": "d3d5b4c6-dac7-423d-a75a-8d4ff2e74d03",
+        "path": "<project>/d3d5b4c6-dac7-423d-a75a-8d4ff2e74d03.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Reply with the word alpha.",
+        "firstPrompt": "Reply with the word alpha.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999700000
+      },
+      {
+        "id": "8922f31d-e8da-4585-943e-2cf3578aa653",
+        "path": "<project>/8922f31d-e8da-4585-943e-2cf3578aa653.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Read notes.txt and reply with its first word.",
+        "firstPrompt": "Read notes.txt and reply with its first word.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999580000
+      },
+      {
+        "id": "5bb55efd-d4f3-40df-ad48-f7e0593fcf62",
+        "path": "<project>/5bb55efd-d4f3-40df-ad48-f7e0593fcf62.jsonl",
+        "cwd": "/Users/user/project",
+        "branch": "HEAD",
+        "title": "Counting words",
+        "firstPrompt": "Reply with the single word one.",
+        "model": "claude-haiku-5-5",
+        "modified": 1799999520000
+      }
+    ]
+  }
+}

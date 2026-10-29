@@ -1,0 +1,29 @@
+{
+  "byProjectKey": [
+    {
+      "id": "5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b",
+      "path": "<project>/5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b.jsonl",
+      "cwd": "/Users/user/tasks",
+      "branch": "main",
+      "title": "Start a background agent that counts the sheep.",
+      "firstPrompt": "Start a background agent that counts the sheep.",
+      "model": "claude-haiku-5-5",
+      "modified": 1800000000000
+    }
+  ],
+  "byCwd": {
+    "cwd": "/Users/user/tasks",
+    "sessions": [
+      {
+        "id": "5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b",
+        "path": "<project>/5e55a0b1-7c1d-4e2f-9a3b-6c7d8e9f0a1b.jsonl",
+        "cwd": "/Users/user/tasks",
+        "branch": "main",
+        "title": "Start a background agent that counts the sheep.",
+        "firstPrompt": "Start a background agent that counts the sheep.",
+        "model": "claude-haiku-5-5",
+        "modified": 1800000000000
+      }
+    ]
+  }
+}

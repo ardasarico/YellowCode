@@ -1,0 +1,889 @@
+{
+  "steps": [
+    "3d3074472aab",
+    "2bbd7490bb41",
+    "82f5c7c9b9a8",
+    "3579450c25b2",
+    "8d7cf947d56a",
+    "eb5be2274015",
+    "6594b53a6ea9",
+    "76c7afa0b83c",
+    "078f6a7232c0",
+    "b3a5db82e19e",
+    "8ae0c92f7731",
+    "abd88fcebc69",
+    "5ba3c3452573",
+    "5d93447563a9",
+    "7a6fac1f18be",
+    "7643d30b5115",
+    "198cc01cd6ab",
+    "0775e53e0726",
+    "958f2a158624",
+    "4f1e9fd8be09"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "5a26cd23-5ef5-44f0-8fd6-1bffef64f03b",
+      "model": "claude-haiku-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.296",
+      "tools": [
+        "Task",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "DesignSync",
+        "Edit",
+        "EnterPlanMode",
+        "EnterWorktree",
+        "ExitPlanMode",
+        "ExitWorktree",
+        "ListAgents",
+        "Monitor",
+        "NotebookEdit",
+        "PushNotification",
+        "Read",
+        "RemoteTrigger",
+        "ReportFindings",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Workflow",
+        "Write",
+        "mcp__yellowcode__ask"
+      ],
+      "mcpServers": [],
+      "skills": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring"
+      ],
+      "slashCommands": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_own_ask_1",
+      "ask-30000000-0000-0000-0000-000000000001",
+      "text-3",
+      "toolu_own_ask_2",
+      "ask-30000000-0000-0000-0000-000000000002",
+      "text-4",
+      "toolu_own_ask_3",
+      "ask-30000000-0000-0000-0000-000000000003",
+      "text-5",
+      "toolu_own_ask_4",
+      "ask-30000000-0000-0000-0000-000000000004",
+      "text-6",
+      "turn-7"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Let's rework the settings screen. Ask me whatever you need first.",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "A few questions before I touch anything.",
+        "streaming": false
+      },
+      "toolu_own_ask_1": {
+        "kind": "tool",
+        "id": "toolu_own_ask_1",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"questions\":[{\"question\":\"Should the sidebar be open when YellowCode starts?\",\"header\":\"Sidebar\",\"options\":[{\"label\":\"Open (Recommended)\",\"description\":\"session, usage and agents stay in view\",\"image\":\"fixtures/images/ask-dusk.png\"},{\"label\":\"Closed\",\"description\":\"the chat takes the full width; F3 opens it\",\"image\":\"fixtures/images/ask-no-sidebar.png\"},{\"label\":\"Narrow\",\"description\":\"a slimmer sidebar with only the meters\",\"image\":\"fixtures/images/ask-narrow-sidebar.svg\"},{\"label\":\"Remember the last state\",\"description\":\"no preview for this one\"}]},{\"question\":\"Which commit message style should the settings changes use?\",\"header\":\"Commits\",\"options\":[{\"label\":\"Subject only\"},{\"label\":\"Subject and one sentence\"},{\"label\":\"Conventional commits\"}]},{\"question\":\"Which settings formats should be read?\",\"header\":\"Formats\",\"multiSelect\":true,\"options\":[{\"label\":\"JSON (Recommended)\",\"description\":\"what settings.json uses today\"},{\"label\":\"TOML\",\"description\":\"allows comments\"},{\"label\":\"YAML\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Should the sidebar be open when YellowCode starts?",
+              "header": "Sidebar",
+              "options": [
+                {
+                  "label": "Open (Recommended)",
+                  "description": "session, usage and agents stay in view",
+                  "image": "fixtures/images/ask-dusk.png"
+                },
+                {
+                  "label": "Closed",
+                  "description": "the chat takes the full width; F3 opens it",
+                  "image": "fixtures/images/ask-no-sidebar.png"
+                },
+                {
+                  "label": "Narrow",
+                  "description": "a slimmer sidebar with only the meters",
+                  "image": "fixtures/images/ask-narrow-sidebar.svg"
+                },
+                {
+                  "label": "Remember the last state",
+                  "description": "no preview for this one"
+                }
+              ]
+            },
+            {
+              "question": "Which commit message style should the settings changes use?",
+              "header": "Commits",
+              "options": [
+                {
+                  "label": "Subject only"
+                },
+                {
+                  "label": "Subject and one sentence"
+                },
+                {
+                  "label": "Conventional commits"
+                }
+              ]
+            },
+            {
+              "question": "Which settings formats should be read?",
+              "header": "Formats",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "JSON (Recommended)",
+                  "description": "what settings.json uses today"
+                },
+                {
+                  "label": "TOML",
+                  "description": "allows comments"
+                },
+                {
+                  "label": "YAML"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "Sidebar, Commits, Formats",
+        "status": "done",
+        "result": "Your questions have been answered: \"Should the sidebar be open when YellowCode starts?\"=\"Open (Recommended)\" notes: but close it under 100 columns, \"Which commit message style should the settings changes use?\"=\"Subject only\", \"Which settings formats should be read?\"=\"JSON (Recommended), TOML\". You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-30000000-0000-0000-0000-000000000001": {
+        "kind": "ask",
+        "id": "ask-30000000-0000-0000-0000-000000000001",
+        "requestId": "30000000-0000-0000-0000-000000000001",
+        "toolUseId": "toolu_own_ask_1",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Should the sidebar be open when YellowCode starts?",
+              "header": "Sidebar",
+              "options": [
+                {
+                  "label": "Open (Recommended)",
+                  "description": "session, usage and agents stay in view",
+                  "image": "fixtures/images/ask-dusk.png"
+                },
+                {
+                  "label": "Closed",
+                  "description": "the chat takes the full width; F3 opens it",
+                  "image": "fixtures/images/ask-no-sidebar.png"
+                },
+                {
+                  "label": "Narrow",
+                  "description": "a slimmer sidebar with only the meters",
+                  "image": "fixtures/images/ask-narrow-sidebar.svg"
+                },
+                {
+                  "label": "Remember the last state",
+                  "description": "no preview for this one"
+                }
+              ]
+            },
+            {
+              "question": "Which commit message style should the settings changes use?",
+              "header": "Commits",
+              "options": [
+                {
+                  "label": "Subject only"
+                },
+                {
+                  "label": "Subject and one sentence"
+                },
+                {
+                  "label": "Conventional commits"
+                }
+              ]
+            },
+            {
+              "question": "Which settings formats should be read?",
+              "header": "Formats",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "JSON (Recommended)",
+                  "description": "what settings.json uses today"
+                },
+                {
+                  "label": "TOML",
+                  "description": "allows comments"
+                },
+                {
+                  "label": "YAML"
+                }
+              ]
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Should the sidebar be open when YellowCode starts?": "Open (Recommended)",
+          "Which commit message style should the settings changes use?": "Subject only",
+          "Which settings formats should be read?": "JSON (Recommended), TOML"
+        },
+        "notes": {
+          "Should the sidebar be open when YellowCode starts?": "but close it under 100 columns"
+        },
+        "denial": "",
+        "mcp": {
+          "rpcId": 2
+        }
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "Now what the settings file should remember.",
+        "streaming": false
+      },
+      "toolu_own_ask_2": {
+        "kind": "tool",
+        "id": "toolu_own_ask_2",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"matrix\":{\"question\":\"Which settings should the file keep?\",\"header\":\"Settings file\",\"rows\":[{\"label\":\"Chosen theme\"},{\"label\":\"Effort level\"},{\"label\":\"Last used model\"},{\"label\":\"Sidebar width\"},{\"label\":\"Session title source\"},{\"label\":\"Font size\"},{\"label\":\"Key bindings\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}}",
+        "input": {
+          "matrix": {
+            "question": "Which settings should the file keep?",
+            "header": "Settings file",
+            "rows": [
+              {
+                "label": "Chosen theme"
+              },
+              {
+                "label": "Effort level"
+              },
+              {
+                "label": "Last used model"
+              },
+              {
+                "label": "Sidebar width"
+              },
+              {
+                "label": "Session title source"
+              },
+              {
+                "label": "Font size"
+              },
+              {
+                "label": "Key bindings"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "summary": "Settings file",
+        "status": "done",
+        "result": "Your questions have been answered: \"Which settings should the file keep?\": \"Chosen theme\"=\"Yes\", \"Effort level\"=\"Yes\", \"Last used model\"=\"No\", \"Sidebar width\"=\"Yes\", \"Session title source\"=\"Unsure\" notes: ask me again after the settings screen exists, \"Font size\"=\"No\", \"Key bindings\"=\"Unsure\". You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-30000000-0000-0000-0000-000000000002": {
+        "kind": "ask",
+        "id": "ask-30000000-0000-0000-0000-000000000002",
+        "requestId": "30000000-0000-0000-0000-000000000002",
+        "toolUseId": "toolu_own_ask_2",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "matrix": {
+            "question": "Which settings should the file keep?",
+            "header": "Settings file",
+            "rows": [
+              {
+                "label": "Chosen theme"
+              },
+              {
+                "label": "Effort level"
+              },
+              {
+                "label": "Last used model"
+              },
+              {
+                "label": "Sidebar width"
+              },
+              {
+                "label": "Session title source"
+              },
+              {
+                "label": "Font size"
+              },
+              {
+                "label": "Key bindings"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Chosen theme": "Yes",
+          "Effort level": "Yes",
+          "Last used model": "No",
+          "Sidebar width": "Yes",
+          "Session title source": "Unsure",
+          "Font size": "No",
+          "Key bindings": "Unsure"
+        },
+        "notes": {
+          "Session title source": "ask me again after the settings screen exists"
+        },
+        "denial": "",
+        "mcp": {
+          "rpcId": 3
+        }
+      },
+      "text-4": {
+        "kind": "text",
+        "id": "text-4",
+        "markdown": "Here are the three themes side by side.",
+        "streaming": false
+      },
+      "toolu_own_ask_3": {
+        "kind": "tool",
+        "id": "toolu_own_ask_3",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"questions\":[{\"question\":\"Which theme should new installs start with?\",\"header\":\"Theme\",\"gallery\":true,\"options\":[{\"label\":\"Dusk\",\"description\":\"dark blue, the current default\",\"image\":\"fixtures/images/ask-dusk.png\"},{\"label\":\"Petal\",\"description\":\"warm pink accents\",\"image\":\"fixtures/images/ask-petal.png\"},{\"label\":\"Ember\",\"description\":\"orange on deep brown\",\"image\":\"fixtures/images/ask-ember.png\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Which theme should new installs start with?",
+              "header": "Theme",
+              "gallery": true,
+              "options": [
+                {
+                  "label": "Dusk",
+                  "description": "dark blue, the current default",
+                  "image": "fixtures/images/ask-dusk.png"
+                },
+                {
+                  "label": "Petal",
+                  "description": "warm pink accents",
+                  "image": "fixtures/images/ask-petal.png"
+                },
+                {
+                  "label": "Ember",
+                  "description": "orange on deep brown",
+                  "image": "fixtures/images/ask-ember.png"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "Theme",
+        "status": "done",
+        "result": "Your questions have been answered: \"Which theme should new installs start with?\"=\"Dusk\" notes: keep Petal as the light pick. You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-30000000-0000-0000-0000-000000000003": {
+        "kind": "ask",
+        "id": "ask-30000000-0000-0000-0000-000000000003",
+        "requestId": "30000000-0000-0000-0000-000000000003",
+        "toolUseId": "toolu_own_ask_3",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Which theme should new installs start with?",
+              "header": "Theme",
+              "gallery": true,
+              "options": [
+                {
+                  "label": "Dusk",
+                  "description": "dark blue, the current default",
+                  "image": "fixtures/images/ask-dusk.png"
+                },
+                {
+                  "label": "Petal",
+                  "description": "warm pink accents",
+                  "image": "fixtures/images/ask-petal.png"
+                },
+                {
+                  "label": "Ember",
+                  "description": "orange on deep brown",
+                  "image": "fixtures/images/ask-ember.png"
+                }
+              ]
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Which theme should new installs start with?": "Dusk"
+        },
+        "notes": {
+          "Which theme should new installs start with?": "keep Petal as the light pick"
+        },
+        "denial": "",
+        "mcp": {
+          "rpcId": 4
+        }
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Last round: the small defaults.",
+        "streaming": false
+      },
+      "toolu_own_ask_4": {
+        "kind": "tool",
+        "id": "toolu_own_ask_4",
+        "name": "mcp__yellowcode__ask",
+        "inputText": "{\"questions\":[{\"question\":\"Where should settings be stored?\",\"header\":\"Storage\",\"options\":[{\"label\":\"User config file (Recommended)\"},{\"label\":\"Project file\"}]},{\"question\":\"Which file format should be written?\",\"header\":\"Format\",\"options\":[{\"label\":\"JSON (Recommended)\"},{\"label\":\"TOML\"}]},{\"question\":\"Should settings sync across machines?\",\"header\":\"Sync\",\"options\":[{\"label\":\"No (Recommended)\"},{\"label\":\"Through git\"}]},{\"question\":\"Which theme picker should /theme open?\",\"header\":\"Theme\",\"options\":[{\"label\":\"The list (Recommended)\"},{\"label\":\"A gallery\"}]},{\"question\":\"Which font size should the chat use?\",\"header\":\"Font\",\"options\":[{\"label\":\"Terminal default (Recommended)\"},{\"label\":\"One step smaller\"}]},{\"question\":\"Which key opens settings?\",\"header\":\"Keys\",\"options\":[{\"label\":\"/settings only (Recommended)\"},{\"label\":\"Ctrl+,\"}]},{\"question\":\"Where should the sidebar sit?\",\"header\":\"Sidebar\",\"options\":[{\"label\":\"Right (Recommended)\"},{\"label\":\"Left\"}]},{\"question\":\"Who writes session titles?\",\"header\":\"Titles\",\"options\":[{\"label\":\"Haiku (Recommended)\"},{\"label\":\"Claude Code\"}]},{\"question\":\"How should updates be announced?\",\"header\":\"Updates\",\"options\":[{\"label\":\"A notice line (Recommended)\"},{\"label\":\"Nothing\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Where should settings be stored?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "User config file (Recommended)"
+                },
+                {
+                  "label": "Project file"
+                }
+              ]
+            },
+            {
+              "question": "Which file format should be written?",
+              "header": "Format",
+              "options": [
+                {
+                  "label": "JSON (Recommended)"
+                },
+                {
+                  "label": "TOML"
+                }
+              ]
+            },
+            {
+              "question": "Should settings sync across machines?",
+              "header": "Sync",
+              "options": [
+                {
+                  "label": "No (Recommended)"
+                },
+                {
+                  "label": "Through git"
+                }
+              ]
+            },
+            {
+              "question": "Which theme picker should /theme open?",
+              "header": "Theme",
+              "options": [
+                {
+                  "label": "The list (Recommended)"
+                },
+                {
+                  "label": "A gallery"
+                }
+              ]
+            },
+            {
+              "question": "Which font size should the chat use?",
+              "header": "Font",
+              "options": [
+                {
+                  "label": "Terminal default (Recommended)"
+                },
+                {
+                  "label": "One step smaller"
+                }
+              ]
+            },
+            {
+              "question": "Which key opens settings?",
+              "header": "Keys",
+              "options": [
+                {
+                  "label": "/settings only (Recommended)"
+                },
+                {
+                  "label": "Ctrl+,"
+                }
+              ]
+            },
+            {
+              "question": "Where should the sidebar sit?",
+              "header": "Sidebar",
+              "options": [
+                {
+                  "label": "Right (Recommended)"
+                },
+                {
+                  "label": "Left"
+                }
+              ]
+            },
+            {
+              "question": "Who writes session titles?",
+              "header": "Titles",
+              "options": [
+                {
+                  "label": "Haiku (Recommended)"
+                },
+                {
+                  "label": "Claude Code"
+                }
+              ]
+            },
+            {
+              "question": "How should updates be announced?",
+              "header": "Updates",
+              "options": [
+                {
+                  "label": "A notice line (Recommended)"
+                },
+                {
+                  "label": "Nothing"
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "Storage, Format, Sync, Theme, Font, Keys, Sidebar, Titles, Updates",
+        "status": "done",
+        "result": "Your questions have been answered: \"Where should settings be stored?\"=\"User config file (Recommended)\", \"Which file format should be written?\"=\"JSON (Recommended)\", \"Should settings sync across machines?\"=\"No (Recommended)\", \"Which theme picker should /theme open?\"=\"The list (Recommended)\", \"Which font size should the chat use?\"=\"Terminal default (Recommended)\", \"Which key opens settings?\"=\"/settings only (Recommended)\", \"Where should the sidebar sit?\"=\"Right (Recommended)\", \"Who writes session titles?\"=\"Haiku (Recommended)\", \"How should updates be announced?\"=\"A notice line (Recommended)\". You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-30000000-0000-0000-0000-000000000004": {
+        "kind": "ask",
+        "id": "ask-30000000-0000-0000-0000-000000000004",
+        "requestId": "30000000-0000-0000-0000-000000000004",
+        "toolUseId": "toolu_own_ask_4",
+        "toolName": "mcp__yellowcode__ask",
+        "displayName": "ask",
+        "input": {
+          "questions": [
+            {
+              "question": "Where should settings be stored?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "User config file (Recommended)"
+                },
+                {
+                  "label": "Project file"
+                }
+              ]
+            },
+            {
+              "question": "Which file format should be written?",
+              "header": "Format",
+              "options": [
+                {
+                  "label": "JSON (Recommended)"
+                },
+                {
+                  "label": "TOML"
+                }
+              ]
+            },
+            {
+              "question": "Should settings sync across machines?",
+              "header": "Sync",
+              "options": [
+                {
+                  "label": "No (Recommended)"
+                },
+                {
+                  "label": "Through git"
+                }
+              ]
+            },
+            {
+              "question": "Which theme picker should /theme open?",
+              "header": "Theme",
+              "options": [
+                {
+                  "label": "The list (Recommended)"
+                },
+                {
+                  "label": "A gallery"
+                }
+              ]
+            },
+            {
+              "question": "Which font size should the chat use?",
+              "header": "Font",
+              "options": [
+                {
+                  "label": "Terminal default (Recommended)"
+                },
+                {
+                  "label": "One step smaller"
+                }
+              ]
+            },
+            {
+              "question": "Which key opens settings?",
+              "header": "Keys",
+              "options": [
+                {
+                  "label": "/settings only (Recommended)"
+                },
+                {
+                  "label": "Ctrl+,"
+                }
+              ]
+            },
+            {
+              "question": "Where should the sidebar sit?",
+              "header": "Sidebar",
+              "options": [
+                {
+                  "label": "Right (Recommended)"
+                },
+                {
+                  "label": "Left"
+                }
+              ]
+            },
+            {
+              "question": "Who writes session titles?",
+              "header": "Titles",
+              "options": [
+                {
+                  "label": "Haiku (Recommended)"
+                },
+                {
+                  "label": "Claude Code"
+                }
+              ]
+            },
+            {
+              "question": "How should updates be announced?",
+              "header": "Updates",
+              "options": [
+                {
+                  "label": "A notice line (Recommended)"
+                },
+                {
+                  "label": "Nothing"
+                }
+              ]
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Where should settings be stored?": "User config file (Recommended)",
+          "Which file format should be written?": "JSON (Recommended)",
+          "Should settings sync across machines?": "No (Recommended)",
+          "Which theme picker should /theme open?": "The list (Recommended)",
+          "Which font size should the chat use?": "Terminal default (Recommended)",
+          "Which key opens settings?": "/settings only (Recommended)",
+          "Where should the sidebar sit?": "Right (Recommended)",
+          "Who writes session titles?": "Haiku (Recommended)",
+          "How should updates be announced?": "A notice line (Recommended)"
+        },
+        "notes": {},
+        "denial": "",
+        "mcp": {
+          "rpcId": 5
+        }
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "Got it. I will keep the sidebar open (closed under 100 columns), store the theme, effort and sidebar width, and start new installs on Dusk.",
+        "streaming": false
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "costUsd": 0.00139139,
+        "durationMs": 3422,
+        "inputTokens": 4,
+        "outputTokens": 394,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 5651
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 36805,
+      "costUsd": 0.00139139,
+      "context": {
+        "used": 21102,
+        "window": 1000000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

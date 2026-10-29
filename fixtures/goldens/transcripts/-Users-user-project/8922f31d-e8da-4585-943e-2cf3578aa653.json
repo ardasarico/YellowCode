@@ -1,0 +1,154 @@
+{
+  "viewed": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "ended",
+        "items": [
+          "user-1",
+          "toolu_016aZ6MjQcwkGKub4fHPWNMD",
+          "text-2"
+        ],
+        "byId": {
+          "user-1": {
+            "kind": "user",
+            "id": "user-1",
+            "text": "Read notes.txt and reply with its first word.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "b758d51f-0413-4bf8-9f63-f140cd97bbc3"
+          },
+          "toolu_016aZ6MjQcwkGKub4fHPWNMD": {
+            "kind": "tool",
+            "id": "toolu_016aZ6MjQcwkGKub4fHPWNMD",
+            "name": "Read",
+            "inputText": "{\"file_path\":\"/Users/user/project/notes.txt\"}",
+            "input": {
+              "file_path": "/Users/user/project/notes.txt"
+            },
+            "summary": "/Users/user/project/notes.txt",
+            "status": "done",
+            "result": "1\tpelican\n2\t",
+            "children": [],
+            "patch": null,
+            "createdFile": false,
+            "images": [],
+            "unchanged": false,
+            "agent": null,
+            "taskId": null
+          },
+          "text-2": {
+            "kind": "text",
+            "id": "text-2",
+            "markdown": "pelican",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": 1800000000000,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 18015,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ],
+  "continued": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "starting",
+        "items": [
+          "p1-user-1",
+          "toolu_016aZ6MjQcwkGKub4fHPWNMD",
+          "p1-text-2"
+        ],
+        "byId": {
+          "p1-user-1": {
+            "kind": "user",
+            "id": "p1-user-1",
+            "text": "Read notes.txt and reply with its first word.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "b758d51f-0413-4bf8-9f63-f140cd97bbc3"
+          },
+          "toolu_016aZ6MjQcwkGKub4fHPWNMD": {
+            "kind": "tool",
+            "id": "toolu_016aZ6MjQcwkGKub4fHPWNMD",
+            "name": "Read",
+            "inputText": "{\"file_path\":\"/Users/user/project/notes.txt\"}",
+            "input": {
+              "file_path": "/Users/user/project/notes.txt"
+            },
+            "summary": "/Users/user/project/notes.txt",
+            "status": "done",
+            "result": "1\tpelican\n2\t",
+            "children": [],
+            "patch": null,
+            "createdFile": false,
+            "images": [],
+            "unchanged": false,
+            "agent": null,
+            "taskId": null
+          },
+          "p1-text-2": {
+            "kind": "text",
+            "id": "p1-text-2",
+            "markdown": "pelican",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "viewed": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "ended",
+        "items": [
+          "user-1",
+          "text-2",
+          "user-3",
+          "text-4"
+        ],
+        "byId": {
+          "user-1": {
+            "kind": "user",
+            "id": "user-1",
+            "text": "Reply with the single word one.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "626b193f-57cb-4d36-aece-2a33433e257c"
+          },
+          "text-2": {
+            "kind": "text",
+            "id": "text-2",
+            "markdown": "one",
+            "streaming": false
+          },
+          "user-3": {
+            "kind": "user",
+            "id": "user-3",
+            "text": "Reply with the single word two.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "cee2e62c-e8d8-46c2-bd8c-ff4975e57a0d"
+          },
+          "text-4": {
+            "kind": "text",
+            "id": "text-4",
+            "markdown": "two",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": 1800000000000,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 17938,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ],
+  "continued": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "starting",
+        "items": [
+          "p1-user-1",
+          "p1-text-2",
+          "p1-user-3",
+          "p1-text-4"
+        ],
+        "byId": {
+          "p1-user-1": {
+            "kind": "user",
+            "id": "p1-user-1",
+            "text": "Reply with the single word one.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "626b193f-57cb-4d36-aece-2a33433e257c"
+          },
+          "p1-text-2": {
+            "kind": "text",
+            "id": "p1-text-2",
+            "markdown": "one",
+            "streaming": false
+          },
+          "p1-user-3": {
+            "kind": "user",
+            "id": "p1-user-3",
+            "text": "Reply with the single word two.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "cee2e62c-e8d8-46c2-bd8c-ff4975e57a0d"
+          },
+          "p1-text-4": {
+            "kind": "text",
+            "id": "p1-text-4",
+            "markdown": "two",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ]
+}

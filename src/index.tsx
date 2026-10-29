@@ -13,9 +13,11 @@ import { permissionReply, rewindConversationReply } from "./protocol/messages.ts
 import {
   backgroundTasksRequest,
   interruptRequest,
+  keptReply,
   shellContext,
   type OutgoingImage,
   ownAskReply,
+  promptLines,
   renameSession,
   rewindConversationRequest,
   userMessage,
@@ -557,9 +559,9 @@ function sendPrompt(
   // A send makes a rewind final, so /redo has nothing to bring back.
   fileRewind.release()
   const uuid = crypto.randomUUID()
-  const line = userMessage([...told, text, ...after].filter((part) => part !== "").join("\n\n"), images, uuid)
+  const { sent: line, shown } = promptLines(text, images, uuid, told, after)
   const startsTurn = live.session.state.status !== "running"
-  live.session.showEarly(told.length + after.length > 0 ? userMessage(text, images, uuid) : line)
+  live.session.showEarly(shown)
   const ready = capture?.before(uuid, idOf(live) ?? null, live.session)
   const unsent = () => {
     capture?.drop(uuid)
@@ -686,14 +688,7 @@ async function sendAfterRewinds(live: Connection, text: string, images: Outgoing
   }
   const shells = untoldShells?.session === session ? untoldShells.texts : []
   untoldShells = null
-  sendPrompt(
-    target,
-    text,
-    images,
-    giveBack,
-    replies.map((reply) => `${KEPT_REPLY}\n${reply}`),
-    shells,
-  )
+  sendPrompt(target, text, images, giveBack, replies.map(keptReply), shells)
 }
 
 // `!` commands Claude has yet to read; they go out ahead of the next message.
@@ -715,8 +710,6 @@ function runShellCommand(session: Connection["session"], command: string): void 
 }
 
 let untold: { session: Connection["session"]; conversation: number; replies: string[] } | null = null
-
-const KEPT_REPLY = "While the conversation was rewound, a background task finished and you said:"
 
 // Rewinds and redos run one at a time; a message typed meanwhile goes out after them.
 let rewinding: Promise<unknown> = Promise.resolve()

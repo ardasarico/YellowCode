@@ -1,0 +1,262 @@
+{
+  "viewed": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "ended",
+        "items": [
+          "user-1",
+          "toolu_fake_sheep",
+          "text-2",
+          "user-3",
+          "text-4",
+          "turn-5",
+          "text-6"
+        ],
+        "byId": {
+          "user-1": {
+            "kind": "user",
+            "id": "user-1",
+            "text": "Start a background agent that counts the sheep.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "00000000-0000-4000-8000-000000000001"
+          },
+          "toolu_fake_sheep": {
+            "kind": "tool",
+            "id": "toolu_fake_sheep",
+            "name": "Agent",
+            "inputText": "{\"description\":\"Count the sheep\",\"prompt\":\"Count the sheep.\",\"subagent_type\":\"general-purpose\",\"run_in_background\":true}",
+            "input": {
+              "description": "Count the sheep",
+              "prompt": "Count the sheep.",
+              "subagent_type": "general-purpose",
+              "run_in_background": true
+            },
+            "summary": "Count the sheep",
+            "status": "done",
+            "result": "Async agent launched successfully.",
+            "children": [],
+            "patch": null,
+            "createdFile": false,
+            "images": [],
+            "unchanged": false,
+            "agent": {
+              "name": "general-purpose",
+              "task": "Count the sheep",
+              "prompt": "Count the sheep.",
+              "type": "general-purpose",
+              "model": "",
+              "tokens": 0,
+              "state": "completed",
+              "toolUses": 0,
+              "durationMs": 0,
+              "report": "Agent \"Count the sheep\" finished",
+              "error": null,
+              "activity": "",
+              "stoppedByUser": false
+            },
+            "taskId": "afake0sheep"
+          },
+          "text-2": {
+            "kind": "text",
+            "id": "text-2",
+            "markdown": "The sheep are being counted.",
+            "streaming": false
+          },
+          "user-3": {
+            "kind": "user",
+            "id": "user-3",
+            "text": "Write a short poem about rain.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "00000000-0000-4000-8000-000000000005"
+          },
+          "text-4": {
+            "kind": "text",
+            "id": "text-4",
+            "markdown": "Rain on the",
+            "streaming": false
+          },
+          "turn-5": {
+            "kind": "turn-end",
+            "id": "turn-5",
+            "costUsd": 0,
+            "durationMs": 5000,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "error": null,
+            "retries": 0,
+            "interrupted": true,
+            "endedAt": 1792490409000
+          },
+          "text-6": {
+            "kind": "text",
+            "id": "text-6",
+            "markdown": "The agent counted twelve sheep.",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": 1800000000000,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 1,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ],
+  "continued": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "starting",
+        "items": [
+          "p1-user-1",
+          "toolu_fake_sheep",
+          "p1-text-2",
+          "p1-user-3",
+          "p1-text-4",
+          "p1-turn-5",
+          "p1-text-6"
+        ],
+        "byId": {
+          "p1-user-1": {
+            "kind": "user",
+            "id": "p1-user-1",
+            "text": "Start a background agent that counts the sheep.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "00000000-0000-4000-8000-000000000001"
+          },
+          "toolu_fake_sheep": {
+            "kind": "tool",
+            "id": "toolu_fake_sheep",
+            "name": "Agent",
+            "inputText": "{\"description\":\"Count the sheep\",\"prompt\":\"Count the sheep.\",\"subagent_type\":\"general-purpose\",\"run_in_background\":true}",
+            "input": {
+              "description": "Count the sheep",
+              "prompt": "Count the sheep.",
+              "subagent_type": "general-purpose",
+              "run_in_background": true
+            },
+            "summary": "Count the sheep",
+            "status": "done",
+            "result": "Async agent launched successfully.",
+            "children": [],
+            "patch": null,
+            "createdFile": false,
+            "images": [],
+            "unchanged": false,
+            "agent": {
+              "name": "general-purpose",
+              "task": "Count the sheep",
+              "prompt": "Count the sheep.",
+              "type": "general-purpose",
+              "model": "",
+              "tokens": 0,
+              "state": "completed",
+              "toolUses": 0,
+              "durationMs": 0,
+              "report": "Agent \"Count the sheep\" finished",
+              "error": null,
+              "activity": "",
+              "stoppedByUser": false
+            },
+            "taskId": "afake0sheep"
+          },
+          "p1-text-2": {
+            "kind": "text",
+            "id": "p1-text-2",
+            "markdown": "The sheep are being counted.",
+            "streaming": false
+          },
+          "p1-user-3": {
+            "kind": "user",
+            "id": "p1-user-3",
+            "text": "Write a short poem about rain.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "00000000-0000-4000-8000-000000000005"
+          },
+          "p1-text-4": {
+            "kind": "text",
+            "id": "p1-text-4",
+            "markdown": "Rain on the",
+            "streaming": false
+          },
+          "p1-turn-5": {
+            "kind": "turn-end",
+            "id": "p1-turn-5",
+            "costUsd": 0,
+            "durationMs": 5000,
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "error": null,
+            "retries": 0,
+            "interrupted": true,
+            "endedAt": 1792490409000
+          },
+          "p1-text-6": {
+            "kind": "text",
+            "id": "p1-text-6",
+            "markdown": "The agent counted twelve sheep.",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ]
+}

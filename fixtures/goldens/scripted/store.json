@@ -1,0 +1,381 @@
+{
+  "steps": [
+    "2d561f7eb12e",
+    "a064f8ec2e46",
+    "a064f8ec2e46",
+    "a064f8ec2e46",
+    "663bd0affdc5",
+    "590e8548154c",
+    "eeb9744ce37c",
+    "87fecb2aef8d",
+    "22e11b108ce6",
+    "ed498d568806",
+    "bf94fed16715",
+    "23e534a74b80",
+    "0a8ec8d1f521",
+    "a2be5e5815ff",
+    "152cbd826a92",
+    "8a514dcc6169",
+    "8a514dcc6169",
+    "8a514dcc6169",
+    "436a1d26a94e",
+    "a52d251f73cf",
+    "436a1d26a94e",
+    "a52d251f73cf",
+    "73610a2f6a11",
+    "73610a2f6a11",
+    "7df5a23ea6ad",
+    "24573197a96f",
+    "c9382c92a558",
+    "24573197a96f",
+    "edf8d8bf5c8f",
+    "05b4ed07c1a8",
+    "05b4ed07c1a8",
+    "bc5558d4a4f9",
+    "411f5fe4924f",
+    "c99e7c875646",
+    "04cd3b523337",
+    "04cd3b523337",
+    "6f9e865c92d6",
+    "d2b0a89532e3",
+    "d2b0a89532e3",
+    "d2b0a89532e3",
+    "d2b0a89532e3",
+    "30fe14f0dc0e",
+    "d2b0a89532e3",
+    "84130f80344d",
+    "84130f80344d",
+    "7767b36f8036",
+    "7767b36f8036",
+    "02ee19be28a9",
+    "c0c855e1ae07"
+  ],
+  "emitted": [
+    "hidden turn started"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "session-5",
+      "model": "claude-opus-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.312",
+      "tools": [
+        "Agent",
+        "Bash",
+        "SendMessage",
+        "mcp__yellowcode__ask"
+      ],
+      "mcpServers": [
+        {
+          "name": "yellowcode",
+          "status": "connected",
+          "source": null,
+          "scope": null,
+          "error": null,
+          "config": null,
+          "serverInfo": null,
+          "tools": null
+        }
+      ],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "user-2",
+      "text-3",
+      "turn-4",
+      "shell-5",
+      "shell-6",
+      "shell-7",
+      "user-11",
+      "toolu-h1",
+      "turn-12",
+      "user-13",
+      "user-14",
+      "text-15",
+      "system-16"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Plan the release",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "uuid-1"
+      },
+      "user-2": {
+        "kind": "user",
+        "id": "user-2",
+        "text": "And notes",
+        "images": [],
+        "to": null,
+        "queue": "not sent",
+        "uuid": "uuid-2"
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "Here is the plan.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 7000
+      },
+      "shell-5": {
+        "kind": "tool",
+        "id": "shell-5",
+        "name": "Bash",
+        "inputText": "",
+        "input": {
+          "command": "ls src"
+        },
+        "summary": "ls src",
+        "status": "done",
+        "result": "index.tsx\nsession\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null,
+        "local": {
+          "told": true
+        }
+      },
+      "shell-6": {
+        "kind": "tool",
+        "id": "shell-6",
+        "name": "Bash",
+        "inputText": "",
+        "input": {
+          "command": "false"
+        },
+        "summary": "false",
+        "status": "error",
+        "result": "failed\nexit code 1",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null,
+        "local": {
+          "told": true
+        }
+      },
+      "shell-7": {
+        "kind": "tool",
+        "id": "shell-7",
+        "name": "Bash",
+        "inputText": "",
+        "input": {
+          "command": "sleep 10"
+        },
+        "summary": "sleep 10",
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null,
+        "local": {
+          "told": true
+        }
+      },
+      "user-8": {
+        "kind": "user",
+        "id": "user-8",
+        "text": "What did ls show?",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "uuid-3"
+      },
+      "text-9": {
+        "kind": "text",
+        "id": "text-9",
+        "markdown": "It shows two",
+        "streaming": false
+      },
+      "turn-10": {
+        "kind": "turn-end",
+        "id": "turn-10",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 22000
+      },
+      "user-11": {
+        "kind": "user",
+        "id": "user-11",
+        "text": "Start over",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "uuid-4"
+      },
+      "toolu-h1": {
+        "kind": "tool",
+        "id": "toolu-h1",
+        "name": "Agent",
+        "inputText": "{\"description\":\"Build\",\"name\":\"builder\",\"prompt\":\"Build\"}",
+        "input": {
+          "description": "Build",
+          "name": "builder",
+          "prompt": "Build"
+        },
+        "summary": "Build",
+        "status": "done",
+        "result": "Async agent launched successfully.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": {
+          "name": "builder",
+          "task": "Build",
+          "prompt": "Build",
+          "type": "",
+          "model": "",
+          "tokens": 0,
+          "state": "completed",
+          "toolUses": 0,
+          "durationMs": 0,
+          "report": "Built.",
+          "error": null,
+          "activity": "",
+          "stoppedByUser": false
+        },
+        "taskId": "task-h1"
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 34000
+      },
+      "user-13": {
+        "kind": "user",
+        "id": "user-13",
+        "text": "Continue",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "uuid-5"
+      },
+      "user-14": {
+        "kind": "user",
+        "id": "user-14",
+        "text": "One more",
+        "images": [],
+        "to": null,
+        "queue": "not sent",
+        "uuid": "uuid-6"
+      },
+      "text-15": {
+        "kind": "text",
+        "id": "text-15",
+        "markdown": "Working",
+        "streaming": false
+      },
+      "system-16": {
+        "kind": "system",
+        "id": "system-16",
+        "text": "Claude Code stopped",
+        "level": "error",
+        "detail": [
+          "exit code 1"
+        ]
+      }
+    },
+    "tasks": {
+      "task-h1": {
+        "id": "task-h1",
+        "type": "local_agent",
+        "toolUseId": "toolu-h1",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "completed",
+        "name": "builder",
+        "description": "Review the parser",
+        "prompt": "Build",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "Built.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": [],
+    "plugins": [],
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 450,
+      "costUsd": 0.01,
+      "context": {
+        "used": 120,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

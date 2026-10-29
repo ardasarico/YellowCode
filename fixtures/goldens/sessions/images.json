@@ -1,0 +1,346 @@
+{
+  "steps": [
+    "2f957db047a7",
+    "10e99d1b9a3d",
+    "10e99d1b9a3d",
+    "10e99d1b9a3d",
+    "05c4e32c184f",
+    "05c4e32c184f",
+    "60355a2ffe45",
+    "c760d02d84fd",
+    "a5512c566906",
+    "a5512c566906",
+    "a5512c566906",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "723be1794bcb",
+    "fa97c3f3542c",
+    "fa97c3f3542c",
+    "fa97c3f3542c",
+    "f965810a83ff",
+    "07f325198bd4",
+    "688632094071",
+    "7b031dd3ecf4",
+    "6cd7a1ecfd2e",
+    "e20a0cbac620",
+    "3119f2e7d5a3",
+    "810b6ba7dfff",
+    "e4f386965141",
+    "e4f386965141",
+    "e4f386965141",
+    "e4f386965141",
+    "6c1bd2b99e58",
+    "2a86466a2545",
+    "b906f3b319d2",
+    "e0e3b38f40cb"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "d4f23517-965c-4fdd-83c5-dc00e26bafd1",
+      "model": "claude-haiku-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.300",
+      "tools": [
+        "Task",
+        "AskUserQuestion",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "DesignSync",
+        "Edit",
+        "EnterPlanMode",
+        "EnterWorktree",
+        "ExitPlanMode",
+        "ExitWorktree",
+        "ListAgents",
+        "Monitor",
+        "NotebookEdit",
+        "PushNotification",
+        "Read",
+        "RemoteTrigger",
+        "ReportFindings",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Workflow",
+        "Write"
+      ],
+      "mcpServers": [],
+      "skills": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring"
+      ],
+      "slashCommands": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "plugins": [
+        {
+          "name": "plugin-a",
+          "path": "/plugins/plugin-a",
+          "source": "plugin-a@inline"
+        },
+        {
+          "name": "plugin-b",
+          "path": "/plugins/plugin-b",
+          "source": "plugin-b@inline"
+        },
+        {
+          "name": "plugin-c",
+          "path": "/plugins/plugin-c",
+          "source": "plugin-c@marketplace-a"
+        },
+        {
+          "name": "plugin-d",
+          "path": "/plugins/plugin-d",
+          "source": "plugin-d@marketplace-a"
+        },
+        {
+          "name": "plugin-e",
+          "path": "/plugins/plugin-e",
+          "source": "plugin-e@marketplace-a"
+        },
+        {
+          "name": "plugin-f",
+          "path": "/plugins/plugin-f",
+          "source": "plugin-f@marketplace-a"
+        },
+        {
+          "name": "plugin-g",
+          "path": "/plugins/plugin-g",
+          "source": "plugin-g@marketplace-b"
+        },
+        {
+          "name": "plugin-h",
+          "path": "/plugins/plugin-h",
+          "source": "plugin-h@builtin"
+        },
+        {
+          "name": "plugin-i",
+          "path": "/plugins/plugin-i",
+          "source": "plugin-i@builtin"
+        },
+        {
+          "name": "plugin-j",
+          "path": "/plugins/plugin-j",
+          "source": "plugin-j@builtin"
+        }
+      ],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "toolu_01Kicg6TdHZasieY4P7uKmvK",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Use the Read tool to open shot.png, then say its main colour in one sentence.",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "toolu_01Kicg6TdHZasieY4P7uKmvK": {
+        "kind": "tool",
+        "id": "toolu_01Kicg6TdHZasieY4P7uKmvK",
+        "name": "Read",
+        "inputText": "{\"file_path\":\"/Users/user/project/shot.png\"}",
+        "input": {
+          "file_path": "/Users/user/project/shot.png"
+        },
+        "summary": "/Users/user/project/shot.png",
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [
+          {
+            "name": "shot.png",
+            "mediaType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAhElEQVR4nO3RQQ0AIAwEQeSgqdoRgwgeE5JNTkA7u/acr7f4BT2gCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSswXvFlF91h4TzNMb4OAAAAAElFTkSuQmCC",
+            "path": "/Users/user/project/shot.png"
+          }
+        ],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The main colour of shot.png is a solid medium-bright royal blue.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.00394071,
+        "durationMs": 2649,
+        "inputTokens": 4,
+        "outputTokens": 95,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 3232
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "[Image 1] Here is the new screen. How do the before and after shots compare?",
+        "images": [
+          {
+            "name": "Image 1",
+            "mediaType": "image/png",
+            "data": "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",
+            "path": null
+          }
+        ],
+        "to": null,
+        "queue": null
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "The card was shifted left; it is centred now. Before and after:\n\n![before](fixtures/images/before.png) ![after](fixtures/images/after.png)\n\nTwo Apollo photos, one under the other:\n\n![blue marble](fixtures/images/blue-marble.jpg)\n![moonwalk](fixtures/images/moonwalk.jpg)\n\nEarthrise, cropped wide and short:\n\n![earthrise](fixtures/images/earthrise.jpg)\n\nThe old draft is no longer there: ![gone](fixtures/images/gone.png)\n\nThe logo comes from the web: ![logo](https://example.com/logo.png)",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0.00394071,
+        "durationMs": 1800,
+        "inputTokens": 4,
+        "outputTokens": 95,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 8752
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 74126,
+      "costUsd": 0.00394071,
+      "context": {
+        "used": 18545,
+        "window": 1000000
+      },
+      "limits": {
+        "fiveHour": {
+          "utilization": 0.3,
+          "resetsAt": 3592055998317
+        },
+        "week": {
+          "utilization": 0.2,
+          "resetsAt": 3592461598317
+        },
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

@@ -1,0 +1,413 @@
+{
+  "steps": [
+    "d865682943ea",
+    "0b0a6ff63c02",
+    "0b0a6ff63c02",
+    "0b0a6ff63c02",
+    "77001975707a",
+    "77001975707a",
+    "8d966ef6766b",
+    "e56c30870b60",
+    "8bc149dea4a9",
+    "5836283f1171",
+    "4cbf8adfba28",
+    "8fc25a5cfc3a",
+    "e5a2a8a7086d",
+    "17f674d484be",
+    "c69440ce63ec",
+    "6beccbb4259e",
+    "63b5e9947ca3",
+    "5ed745f6c746",
+    "03aac5fd9216",
+    "a77747c96232",
+    "9d7ad6377a70",
+    "0a642d1bee9f",
+    "e7d3660c8835",
+    "a72f24d6ac84",
+    "19f84b8b7469",
+    "f18aa7376343",
+    "1b69d2c50d78",
+    "62fe9104dd88",
+    "e8283ce36bed",
+    "f7f596e5e95c",
+    "c8d3c951e3da",
+    "be03200a0410",
+    "21e4bc8ccd76",
+    "9ce099c8e6c8",
+    "c3e4be2a7918",
+    "11a1d8295465",
+    "112aeef9ff9a",
+    "40d45ea682d0",
+    "ab6777ac2fcc",
+    "5158fb7d42c1",
+    "6360e8058eb3",
+    "d3b248c04a76",
+    "e1b752a28585",
+    "4ddf89030a1f",
+    "24fab162bc06",
+    "e8b53532ca23",
+    "1b0911164cca",
+    "12ffd1ad1dcc",
+    "a5b93370f0db",
+    "12463b4c5bd5",
+    "8a4ca1eed3ce",
+    "34ef5b880263",
+    "be3884fbde24",
+    "769bad55917e",
+    "38d86b98f9c2",
+    "76d8306cce48",
+    "91d62e0b8c4a",
+    "662b0f3dc58d",
+    "f5a417f28c12",
+    "aadc41542b8a",
+    "2a3f5bcc474d",
+    "b67dca0d6216",
+    "8476bdeab083",
+    "11653d410ef9",
+    "5581d30f486e",
+    "ef52822778f1",
+    "5081662566ea",
+    "877d03ea0405",
+    "25acd278cd2d",
+    "9e4c4ee6fbf2",
+    "733648c370ec",
+    "4c0f8b326635",
+    "82fe8cebf14a",
+    "0bc567a13625",
+    "cd26241ae402",
+    "cd26241ae402",
+    "cd26241ae402",
+    "cd26241ae402",
+    "28c177859c0d",
+    "79b0e248ee0c",
+    "79b0e248ee0c",
+    "79b0e248ee0c",
+    "8a0cfa671dc6",
+    "57ee25914cdf",
+    "25eef8e34a50",
+    "855ecab08bc5",
+    "11095608998b",
+    "316e149b8884",
+    "d778f6c303da",
+    "380aa87779eb",
+    "380aa87779eb",
+    "380aa87779eb",
+    "380aa87779eb",
+    "34ad67465ea1"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "5a26cd23-5ef5-44f0-8fd6-1bffef64f03b",
+      "model": "claude-haiku-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.296",
+      "tools": [
+        "Task",
+        "AskUserQuestion",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "DesignSync",
+        "Edit",
+        "EnterPlanMode",
+        "EnterWorktree",
+        "ExitPlanMode",
+        "ExitWorktree",
+        "ListAgents",
+        "Monitor",
+        "NotebookEdit",
+        "PushNotification",
+        "Read",
+        "RemoteTrigger",
+        "ReportFindings",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Workflow",
+        "Write"
+      ],
+      "mcpServers": [],
+      "skills": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring"
+      ],
+      "slashCommands": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "toolu_01XfoEZyYoLvnG7pLGTSMvzE",
+      "ask-6a356233-d7f2-4ecb-a8c7-071c499d7c7d",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Use the AskUserQuestion tool once to ask me two questions: which storage to use for settings (user config file, per project, environment variable; recommend the first) and which formats to support (JSON, TOML, YAML; multiple answers allowed). Then reply with one sentence.",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "toolu_01XfoEZyYoLvnG7pLGTSMvzE": {
+        "kind": "tool",
+        "id": "toolu_01XfoEZyYoLvnG7pLGTSMvzE",
+        "name": "AskUserQuestion",
+        "inputText": "{\"questions\":[{\"question\":\"Where should settings be stored?\",\"header\":\"Storage\",\"multiSelect\":false,\"options\":[{\"label\":\"User config file (Recommended)\",\"description\":\"A single config file in the user's home directory, applied across all projects.\"},{\"label\":\"Per project\",\"description\":\"A settings file inside each project directory, so settings can differ between projects.\"},{\"label\":\"Environment variables\",\"description\":\"Settings read from environment variables, which suits containers and CI but is harder to edit by hand.\"}]},{\"question\":\"Which formats should be supported?\",\"header\":\"Formats\",\"multiSelect\":true,\"options\":[{\"label\":\"JSON\",\"description\":\"Widely used, strict syntax that is easy for tools to parse and write.\"},{\"label\":\"TOML\",\"description\":\"Human-friendly syntax with explicit types, common in Rust and Python tooling.\"},{\"label\":\"YAML\",\"description\":\"Indentation-based syntax that is compact but has more parsing edge cases.\"}]}]}",
+        "input": {
+          "questions": [
+            {
+              "question": "Where should settings be stored?",
+              "header": "Storage",
+              "multiSelect": false,
+              "options": [
+                {
+                  "label": "User config file (Recommended)",
+                  "description": "A single config file in the user's home directory, applied across all projects."
+                },
+                {
+                  "label": "Per project",
+                  "description": "A settings file inside each project directory, so settings can differ between projects."
+                },
+                {
+                  "label": "Environment variables",
+                  "description": "Settings read from environment variables, which suits containers and CI but is harder to edit by hand."
+                }
+              ]
+            },
+            {
+              "question": "Which formats should be supported?",
+              "header": "Formats",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": "Widely used, strict syntax that is easy for tools to parse and write."
+                },
+                {
+                  "label": "TOML",
+                  "description": "Human-friendly syntax with explicit types, common in Rust and Python tooling."
+                },
+                {
+                  "label": "YAML",
+                  "description": "Indentation-based syntax that is compact but has more parsing edge cases."
+                }
+              ]
+            }
+          ]
+        },
+        "summary": "Storage, Formats",
+        "status": "done",
+        "result": "Your questions have been answered: \"Where should settings be stored?\"=\"User config file (Recommended)\", \"Which formats should be supported?\"=\"JSON\". You can now continue with these answers in mind.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-6a356233-d7f2-4ecb-a8c7-071c499d7c7d": {
+        "kind": "ask",
+        "id": "ask-6a356233-d7f2-4ecb-a8c7-071c499d7c7d",
+        "requestId": "6a356233-d7f2-4ecb-a8c7-071c499d7c7d",
+        "toolUseId": "toolu_01XfoEZyYoLvnG7pLGTSMvzE",
+        "toolName": "AskUserQuestion",
+        "displayName": "AskUserQuestion",
+        "input": {
+          "questions": [
+            {
+              "question": "Where should settings be stored?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "User config file (Recommended)",
+                  "description": "A single config file in the user's home directory, applied across all projects."
+                },
+                {
+                  "label": "Per project",
+                  "description": "A settings file inside each project directory, so settings can differ between projects."
+                },
+                {
+                  "label": "Environment variables",
+                  "description": "Settings read from environment variables, which suits containers and CI but is harder to edit by hand."
+                }
+              ],
+              "multiSelect": false
+            },
+            {
+              "question": "Which formats should be supported?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON",
+                  "description": "Widely used, strict syntax that is easy for tools to parse and write."
+                },
+                {
+                  "label": "TOML",
+                  "description": "Human-friendly syntax with explicit types, common in Rust and Python tooling."
+                },
+                {
+                  "label": "YAML",
+                  "description": "Indentation-based syntax that is compact but has more parsing edge cases."
+                }
+              ],
+              "multiSelect": true
+            }
+          ]
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "answered",
+        "answers": {
+          "Where should settings be stored?": "User config file (Recommended)",
+          "Which formats should be supported?": "JSON"
+        },
+        "notes": {},
+        "denial": ""
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Settings will be stored in a user config file and supported in JSON format only.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.00139139,
+        "durationMs": 3422,
+        "inputTokens": 4,
+        "outputTokens": 394,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 3932
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 36805,
+      "costUsd": 0.00139139,
+      "context": {
+        "used": 18435,
+        "window": 1000000
+      },
+      "limits": {
+        "fiveHour": {
+          "utilization": 0.3,
+          "resetsAt": 3591592796946
+        },
+        "week": {
+          "utilization": 0.2,
+          "resetsAt": 3591856796946
+        },
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

@@ -1,0 +1,992 @@
+{
+  "userMessage text": {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "message": {
+      "role": "user",
+      "content": "Explain the build"
+    }
+  },
+  "userMessage uuid": {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-1",
+    "message": {
+      "role": "user",
+      "content": "And the tests"
+    }
+  },
+  "userMessage images": {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "image",
+          "source": {
+            "type": "base64",
+            "media_type": "image/png",
+            "data": "iVBORw0KGgo="
+          }
+        },
+        {
+          "type": "image",
+          "source": {
+            "type": "base64",
+            "media_type": "image/jpeg",
+            "data": "/9j/4AAQSkZJRg=="
+          }
+        },
+        {
+          "type": "text",
+          "text": "What changed? [Image 1] [Image 2]"
+        }
+      ]
+    }
+  },
+  "userMessage images uuid": {
+    "type": "user",
+    "parent_tool_use_id": null,
+    "uuid": "uuid-2",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "image",
+          "source": {
+            "type": "base64",
+            "media_type": "image/png",
+            "data": "iVBORw0KGgo="
+          }
+        },
+        {
+          "type": "text",
+          "text": "[Image 1]"
+        }
+      ]
+    }
+  },
+  "promptLines plain": "{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-5\",\"message\":{\"role\":\"user\",\"content\":\"Explain the build\"}}\n{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-5\",\"message\":{\"role\":\"user\",\"content\":\"Explain the build\"}}",
+  "promptLines kept replies": "{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-6\",\"message\":{\"role\":\"user\",\"content\":\"While the conversation was rewound, a background task finished and you said:\\nAll tests pass.\\n\\nGo on\"}}\n{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-6\",\"message\":{\"role\":\"user\",\"content\":\"Go on\"}}",
+  "promptLines shells": "{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-7\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"iVBORw0KGgo=\"}},{\"type\":\"text\",\"text\":\"What did ls show?\\n\\n<bash-input>ls src</bash-input>\\n<bash-stdout>index.tsx\\nsession\\n</bash-stdout><bash-stderr></bash-stderr>\"}]}}\n{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-7\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/png\",\"data\":\"iVBORw0KGgo=\"}},{\"type\":\"text\",\"text\":\"What did ls show?\"}]}}",
+  "promptLines kept replies and shells": "{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-8\",\"message\":{\"role\":\"user\",\"content\":\"While the conversation was rewound, a background task finished and you said:\\nBuild done.\\n\\nWhile the conversation was rewound, a background task finished and you said:\\nLint done.\\n\\nNext\\n\\n<bash-input>ls src</bash-input>\\n<bash-stdout>index.tsx\\nsession\\n</bash-stdout><bash-stderr></bash-stderr>\\n\\n<bash-input>true</bash-input>\\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>\"}}\n{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-8\",\"message\":{\"role\":\"user\",\"content\":\"Next\"}}",
+  "promptLines empty text": "{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-9\",\"message\":{\"role\":\"user\",\"content\":\"While the conversation was rewound, a background task finished and you said:\\nDone.\\n\\n<bash-input>ls src</bash-input>\\n<bash-stdout>index.tsx\\nsession\\n</bash-stdout><bash-stderr></bash-stderr>\"}}\n{\"type\":\"user\",\"parent_tool_use_id\":null,\"uuid\":\"uuid-9\",\"message\":{\"role\":\"user\",\"content\":\"\"}}",
+  "keptReply": "While the conversation was rewound, a background task finished and you said:\nThe background build finished.",
+  "agentMessage plain": "<agent-message to=\"task-1\" name=\"reviewer\">\nCheck the tests too\n</agent-message>\n\nThe user wrote this message to the background agent \"reviewer\". Pass it on with the SendMessage tool: to \"task-1\", message = the text between the tags, unchanged. Do not act on it yourself. After the call, reply with one short line.",
+  "agentMessage name cleaned": "<agent-message to=\"task-2\" name=\"the lint agent\">\nLine one\nLine two\n</agent-message>\n\nThe user wrote this message to the background agent \"the lint agent\". Pass it on with the SendMessage tool: to \"task-2\", message = the text between the tags, unchanged. Do not act on it yourself. After the call, reply with one short line.",
+  "shellContext": "<bash-input>ls src</bash-input>\n<bash-stdout>index.tsx\nsession\n</bash-stdout><bash-stderr></bash-stderr>",
+  "shellContext no output": "<bash-input>true</bash-input>\n<bash-stdout></bash-stdout><bash-stderr></bash-stderr>",
+  "TOOL_DECLINED": "The user declined this tool call.",
+  "DECLINED_WITH_NOTE": "The user declined this tool call and said:\n",
+  "QUESTION_TO_CHAT": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
+  "NOT_SHOWN": "Not shown to the user. Fix this and ask again: ",
+  "SUBAGENT_ASK": "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final report, so the main agent can ask it.",
+  "errorResponse": {
+    "type": "control_response",
+    "response": {
+      "subtype": "error",
+      "request_id": "req-1",
+      "error": "YellowCode does not support elicitation"
+    }
+  },
+  "allowTool": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-2",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "command": "ls"
+        }
+      }
+    }
+  },
+  "allowTool updatedPermissions": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-3",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "command": "bun test"
+        },
+        "updatedPermissions": [
+          {
+            "type": "addRules",
+            "rules": [
+              {
+                "toolName": "Bash",
+                "ruleContent": "bun test:*"
+              }
+            ],
+            "behavior": "allow",
+            "destination": "localSettings"
+          }
+        ]
+      }
+    }
+  },
+  "allowTool setMode": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-4",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "file_path": "notes.md"
+        },
+        "updatedPermissions": [
+          {
+            "type": "setMode",
+            "mode": "acceptEdits",
+            "destination": "session"
+          }
+        ]
+      }
+    }
+  },
+  "denyTool": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-5",
+      "response": {
+        "behavior": "deny",
+        "message": "The user declined this tool call."
+      }
+    }
+  },
+  "denyTool note": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-6",
+      "response": {
+        "behavior": "deny",
+        "message": "The user declined this tool call and said:\nuse rg instead"
+      }
+    }
+  },
+  "answerQuestions": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-7",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ],
+          "answers": {
+            "Storage?": "Per project",
+            "Formats?": "JSON, YAML"
+          }
+        }
+      }
+    }
+  },
+  "answerQuestions notes": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-8",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ],
+          "answers": {
+            "Storage?": "Per project",
+            "Formats?": "JSON, YAML"
+          },
+          "annotations": {
+            "Storage?": {
+              "notes": "keep it local"
+            }
+          }
+        }
+      }
+    }
+  },
+  "answerQuestions additional note": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-9",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ],
+          "answers": {
+            "Storage?": "Per project",
+            "Formats?": "JSON, YAML"
+          },
+          "annotations": {
+            "Formats?": {
+              "notes": "Additional note: ship it soon"
+            }
+          }
+        }
+      }
+    }
+  },
+  "answerQuestions additional note joins last note": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-10",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "questions": [
+            {
+              "question": "Storage?",
+              "header": "Storage",
+              "options": [
+                {
+                  "label": "Per project"
+                },
+                {
+                  "label": "Global"
+                }
+              ]
+            },
+            {
+              "question": "Formats?",
+              "header": "Formats",
+              "options": [
+                {
+                  "label": "JSON"
+                },
+                {
+                  "label": "YAML",
+                  "description": "Needs a parser"
+                }
+              ],
+              "multiSelect": true
+            }
+          ],
+          "answers": {
+            "Storage?": "Per project",
+            "Formats?": "JSON, YAML"
+          },
+          "annotations": {
+            "Formats?": {
+              "notes": "JSON first\nAdditional note: ship it soon"
+            }
+          }
+        }
+      }
+    }
+  },
+  "answerQuestions additional note without questions": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-11",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "questions": [],
+          "answers": {}
+        }
+      }
+    }
+  },
+  "allowAnswers matrix": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-12",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "matrix": {
+            "question": "Ready to ship?",
+            "header": "Checks",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs updated"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          },
+          "answers": {
+            "Tests pass": "Yes",
+            "Docs updated": "No"
+          }
+        }
+      }
+    }
+  },
+  "allowAnswers matrix notes": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-13",
+      "response": {
+        "behavior": "allow",
+        "updatedInput": {
+          "matrix": {
+            "question": "Ready to ship?",
+            "header": "Checks",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs updated"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          },
+          "answers": {
+            "Tests pass": "Yes",
+            "Docs updated": "Unsure"
+          },
+          "annotations": {
+            "Docs updated": {
+              "notes": "README only"
+            }
+          }
+        }
+      }
+    }
+  },
+  "mcpResponse": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-14",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "mcpResponse string id": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-15",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": "rpc-1",
+          "result": {
+            "tools": []
+          }
+        }
+      }
+    }
+  },
+  "mcpError": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-16",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 4,
+          "error": {
+            "code": -32601,
+            "message": "Method not found"
+          }
+        }
+      }
+    }
+  },
+  "mcpAck": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-17",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "result": {},
+          "id": 0
+        }
+      }
+    }
+  },
+  "mcpToolError": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "req-18",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 5,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Not shown"
+              }
+            ],
+            "isError": true
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply pages": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 6,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Your questions have been answered: \"Storage?\"=\"Per project\" notes: keep it local, \"Formats?\"=\"JSON, YAML\" notes: Additional note: ship it soon. You can now continue with these answers in mind."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply pages unanswered": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Your questions have been answered: \"Storage?\"=\"Global\". You can now continue with these answers in mind."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply matrix": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-2",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": "rpc-2",
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Your questions have been answered: \"Ready to ship?\": \"Tests pass\"=\"Yes\", \"Docs updated\"=\"Unsure\" notes: x. You can now continue with these answers in mind."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply declined": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 8,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The user declined this tool call."
+              }
+            ],
+            "isError": true
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply declined note": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 9,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The user declined this tool call and said:\nnot now"
+              }
+            ],
+            "isError": true
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply to chat": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 10,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message."
+              }
+            ],
+            "isError": true
+          }
+        }
+      }
+    }
+  },
+  "ownAskReply unreadable reply": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "ask-1",
+      "response": {
+        "mcp_response": {
+          "jsonrpc": "2.0",
+          "id": 11,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "The user declined this tool call."
+              }
+            ],
+            "isError": true
+          }
+        }
+      }
+    }
+  },
+  "getContextUsageRequest": {
+    "type": "control_request",
+    "request_id": "req-19",
+    "request": {
+      "subtype": "get_context_usage"
+    }
+  },
+  "getUsageRequest": {
+    "type": "control_request",
+    "request_id": "req-20",
+    "request": {
+      "subtype": "get_usage"
+    }
+  },
+  "reloadSkillsRequest": {
+    "type": "control_request",
+    "request_id": "req-21",
+    "request": {
+      "subtype": "reload_skills"
+    }
+  },
+  "mcpSetServersRequest": {
+    "type": "control_request",
+    "request_id": "req-22",
+    "request": {
+      "subtype": "mcp_set_servers",
+      "servers": {
+        "docs": {
+          "type": "stdio",
+          "command": "docs-server",
+          "args": [
+            "--stdio"
+          ]
+        }
+      }
+    }
+  },
+  "mcpSetServersRequest none": {
+    "type": "control_request",
+    "request_id": "req-23",
+    "request": {
+      "subtype": "mcp_set_servers",
+      "servers": {}
+    }
+  },
+  "interruptRequest": {
+    "type": "control_request",
+    "request_id": "req-24",
+    "request": {
+      "subtype": "interrupt"
+    }
+  },
+  "initializeRequest": {
+    "type": "control_request",
+    "request_id": "req-25",
+    "request": {
+      "subtype": "initialize"
+    }
+  },
+  "initializeRequest live": {
+    "type": "control_request",
+    "request_id": "req-26",
+    "request": {
+      "subtype": "initialize",
+      "perTaskStopAffordance": true,
+      "sdkMcpServers": [
+        "yellowcode"
+      ],
+      "sdkMcpServerConfigs": {
+        "yellowcode": {
+          "timeout": 1000000000000
+        }
+      }
+    }
+  },
+  "getTaskOutputRequest": {
+    "type": "control_request",
+    "request_id": "req-27",
+    "request": {
+      "subtype": "get_task_output",
+      "task_id": "task-1"
+    }
+  },
+  "stopTaskRequest": {
+    "type": "control_request",
+    "request_id": "req-28",
+    "request": {
+      "subtype": "stop_task",
+      "task_id": "task-2"
+    }
+  },
+  "backgroundTasksRequest": {
+    "type": "control_request",
+    "request_id": "req-29",
+    "request": {
+      "subtype": "background_tasks"
+    }
+  },
+  "rewindConversationRequest": {
+    "type": "control_request",
+    "request_id": "req-30",
+    "request": {
+      "subtype": "rewind_conversation",
+      "target_message_uuid": "uuid-3"
+    }
+  },
+  "renameSession": {
+    "type": "control_request",
+    "request_id": "req-31",
+    "request": {
+      "subtype": "rename_session",
+      "title": "Build notes"
+    }
+  },
+  "renameSession sessionId": {
+    "type": "control_request",
+    "request_id": "req-32",
+    "request": {
+      "subtype": "rename_session",
+      "title": "Build notes",
+      "session_id": "session-1"
+    }
+  },
+  "getSettingsRequest": {
+    "type": "control_request",
+    "request_id": "req-33",
+    "request": {
+      "subtype": "get_settings"
+    }
+  },
+  "setPermissionModeRequest default": {
+    "type": "control_request",
+    "request_id": "mode-default",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "default"
+    }
+  },
+  "setPermissionModeRequest auto": {
+    "type": "control_request",
+    "request_id": "mode-auto",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "auto"
+    }
+  },
+  "setPermissionModeRequest manual": {
+    "type": "control_request",
+    "request_id": "mode-manual",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "manual"
+    }
+  },
+  "setPermissionModeRequest acceptEdits": {
+    "type": "control_request",
+    "request_id": "mode-acceptEdits",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "acceptEdits"
+    }
+  },
+  "setPermissionModeRequest plan": {
+    "type": "control_request",
+    "request_id": "mode-plan",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "plan"
+    }
+  },
+  "setPermissionModeRequest bypassPermissions": {
+    "type": "control_request",
+    "request_id": "mode-bypassPermissions",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "bypassPermissions"
+    }
+  },
+  "setPermissionModeRequest dontAsk": {
+    "type": "control_request",
+    "request_id": "mode-dontAsk",
+    "request": {
+      "subtype": "set_permission_mode",
+      "mode": "dontAsk"
+    }
+  },
+  "setModelRequest": {
+    "type": "control_request",
+    "request_id": "req-34",
+    "request": {
+      "subtype": "set_model",
+      "model": "opus"
+    }
+  },
+  "setModelRequest default": {
+    "type": "control_request",
+    "request_id": "req-35",
+    "request": {
+      "subtype": "set_model",
+      "model": "default"
+    }
+  },
+  "applyFlagSettingsRequest effort": {
+    "type": "control_request",
+    "request_id": "req-36",
+    "request": {
+      "subtype": "apply_flag_settings",
+      "settings": {
+        "effortLevel": "high",
+        "ultracode": false
+      }
+    }
+  },
+  "applyFlagSettingsRequest ultracode": {
+    "type": "control_request",
+    "request_id": "req-37",
+    "request": {
+      "subtype": "apply_flag_settings",
+      "settings": {
+        "ultracode": true
+      }
+    }
+  },
+  "thinkingDisplayRequest summarized": {
+    "type": "control_request",
+    "request_id": "req-38",
+    "request": {
+      "subtype": "set_max_thinking_tokens",
+      "thinking_display": "summarized"
+    }
+  },
+  "thinkingDisplayRequest omitted": {
+    "type": "control_request",
+    "request_id": "req-39",
+    "request": {
+      "subtype": "set_max_thinking_tokens",
+      "thinking_display": "omitted"
+    }
+  },
+  "fileSuggestionsRequest": {
+    "type": "control_request",
+    "request_id": "req-40",
+    "request": {
+      "subtype": "file_suggestions",
+      "query": "src/ses"
+    }
+  },
+  "getHooksListingRequest": {
+    "type": "control_request",
+    "request_id": "req-41",
+    "request": {
+      "subtype": "get_hooks_listing"
+    }
+  },
+  "getSkillsDialogRequest": {
+    "type": "control_request",
+    "request_id": "req-42",
+    "request": {
+      "subtype": "get_skills_dialog"
+    }
+  },
+  "mcpStatusRequest": {
+    "type": "control_request",
+    "request_id": "req-43",
+    "request": {
+      "subtype": "mcp_status"
+    }
+  },
+  "mcpReconnectRequest": {
+    "type": "control_request",
+    "request_id": "req-44",
+    "request": {
+      "subtype": "mcp_reconnect",
+      "serverName": "docs"
+    }
+  },
+  "mcpToggleRequest on": {
+    "type": "control_request",
+    "request_id": "req-45",
+    "request": {
+      "subtype": "mcp_toggle",
+      "serverName": "docs",
+      "enabled": true
+    }
+  },
+  "mcpToggleRequest off": {
+    "type": "control_request",
+    "request_id": "req-46",
+    "request": {
+      "subtype": "mcp_toggle",
+      "serverName": "docs",
+      "enabled": false
+    }
+  },
+  "reloadPluginsRequest": {
+    "type": "control_request",
+    "request_id": "req-47",
+    "request": {
+      "subtype": "reload_plugins"
+    }
+  }
+}

@@ -1,0 +1,300 @@
+{
+  "steps": [
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "ee14c9985894",
+    "7a7fceb94f42",
+    "7e24347998ee",
+    "7e24347998ee",
+    "7e24347998ee",
+    "330bc1c77c4b",
+    "4f4dc02afb52",
+    "060b03239176",
+    "060b03239176",
+    "060b03239176",
+    "060b03239176",
+    "c4d887c01fcc",
+    "b35be75594cc"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "b4839cd8-c653-45d7-a25a-29fe4aa0b48b",
+      "model": "claude-haiku-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.300",
+      "tools": [
+        "Task",
+        "AskUserQuestion",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "DesignSync",
+        "Edit",
+        "EnterPlanMode",
+        "EnterWorktree",
+        "ExitPlanMode",
+        "ExitWorktree",
+        "ListAgents",
+        "LSP",
+        "Monitor",
+        "NotebookEdit",
+        "PushNotification",
+        "Read",
+        "RemoteTrigger",
+        "ReportFindings",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Workflow",
+        "Write"
+      ],
+      "mcpServers": [],
+      "skills": [
+        "user-skill-1",
+        "release-notes",
+        "deep-research",
+        "plugin-b:skill-1",
+        "plugin-b:skill-2",
+        "plugin-b:skill-3",
+        "plugin-c:skill-1",
+        "plugin-c:skill-2",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "anthropic-skills:synced-skill-1",
+        "anthropic-skills:synced-skill-2",
+        "anthropic-skills:synced-skill-3",
+        "anthropic-skills:synced-skill-4"
+      ],
+      "slashCommands": [
+        "user-skill-1",
+        "release-notes",
+        "hello-cmd",
+        "deep-research",
+        "plugin-a:command-1",
+        "plugin-b:skill-1",
+        "plugin-b:skill-2",
+        "plugin-b:skill-3",
+        "plugin-c:skill-1",
+        "plugin-c:skill-2",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding",
+        "anthropic-skills:synced-skill-1",
+        "anthropic-skills:synced-skill-2",
+        "anthropic-skills:synced-skill-3",
+        "anthropic-skills:synced-skill-4"
+      ],
+      "agents": [
+        "claude",
+        "plugin-e:agent-1",
+        "Explore",
+        "general-purpose",
+        "Plan",
+        "statusline-setup"
+      ],
+      "plugins": [
+        {
+          "name": "plugin-g",
+          "path": "/plugins/plugin-g",
+          "source": "plugin-g@inline"
+        },
+        {
+          "name": "plugin-h",
+          "path": "/plugins/plugin-h",
+          "source": "plugin-h@inline"
+        },
+        {
+          "name": "plugin-d",
+          "path": "/plugins/plugin-d",
+          "source": "plugin-d@marketplace-a"
+        },
+        {
+          "name": "plugin-e",
+          "path": "/plugins/plugin-e",
+          "source": "plugin-e@marketplace-a"
+        },
+        {
+          "name": "plugin-a",
+          "path": "/plugins/plugin-a",
+          "source": "plugin-a@marketplace-a"
+        },
+        {
+          "name": "plugin-f",
+          "path": "/plugins/plugin-f",
+          "source": "plugin-f@marketplace-a"
+        },
+        {
+          "name": "plugin-b",
+          "path": "/plugins/plugin-b",
+          "source": "plugin-b@marketplace-b"
+        },
+        {
+          "name": "plugin-c",
+          "path": "/plugins/plugin-c",
+          "source": "plugin-c@synced"
+        },
+        {
+          "name": "plugin-i",
+          "path": "/plugins/plugin-i",
+          "source": "plugin-i@builtin"
+        },
+        {
+          "name": "plugin-j",
+          "path": "/plugins/plugin-j",
+          "source": "plugin-j@builtin"
+        },
+        {
+          "name": "plugin-k",
+          "path": "/plugins/plugin-k",
+          "source": "plugin-k@builtin"
+        }
+      ],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Reply with the single word ready.",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "ready",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.0016347000000000002,
+        "durationMs": 1083,
+        "inputTokens": 2,
+        "outputTokens": 4,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1640
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 22409,
+      "costUsd": 0.0016347000000000002,
+      "context": {
+        "used": 22405,
+        "window": 1000000
+      },
+      "limits": {
+        "fiveHour": {
+          "utilization": 0.3,
+          "resetsAt": 3592037998372
+        },
+        "week": {
+          "utilization": 0.2,
+          "resetsAt": 3592461598372
+        },
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "viewed": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "ended",
+        "items": [],
+        "byId": {},
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ],
+  "continued": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "starting",
+        "items": [],
+        "byId": {},
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ]
+}

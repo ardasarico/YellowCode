@@ -1,0 +1,216 @@
+{
+  "viewed": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "ended",
+        "items": [
+          "user-1",
+          "text-2",
+          "user-3",
+          "text-4",
+          "user-5",
+          "system-6",
+          "user-7",
+          "text-8"
+        ],
+        "byId": {
+          "user-1": {
+            "kind": "user",
+            "id": "user-1",
+            "text": "Reply with the word alpha.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "7cb5d412-a590-48a5-bba6-5985260457dd"
+          },
+          "text-2": {
+            "kind": "text",
+            "id": "text-2",
+            "markdown": "alpha",
+            "streaming": false
+          },
+          "user-3": {
+            "kind": "user",
+            "id": "user-3",
+            "text": "Reply with the word beta.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "a189d910-dc3e-46b9-a6f1-3069412941a5"
+          },
+          "text-4": {
+            "kind": "text",
+            "id": "text-4",
+            "markdown": "beta",
+            "streaming": false
+          },
+          "user-5": {
+            "kind": "user",
+            "id": "user-5",
+            "text": "/compact",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "7c2053e1-ada0-426d-968f-b349328d1f03"
+          },
+          "system-6": {
+            "kind": "system",
+            "id": "system-6",
+            "text": "context compacted",
+            "level": "info"
+          },
+          "user-7": {
+            "kind": "user",
+            "id": "user-7",
+            "text": "Reply with the word gamma.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "06e92b8e-0aea-424d-b3dd-a6bde0b90bf8"
+          },
+          "text-8": {
+            "kind": "text",
+            "id": "text-8",
+            "markdown": "gamma",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": 1800000000000,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 15952,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ],
+  "continued": [
+    {
+      "earlier": null,
+      "state": {
+        "info": null,
+        "status": "starting",
+        "items": [
+          "p1-user-1",
+          "p1-text-2",
+          "p1-user-3",
+          "p1-text-4",
+          "p1-user-5",
+          "p1-system-6",
+          "p1-user-7",
+          "p1-text-8"
+        ],
+        "byId": {
+          "p1-user-1": {
+            "kind": "user",
+            "id": "p1-user-1",
+            "text": "Reply with the word alpha.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "7cb5d412-a590-48a5-bba6-5985260457dd"
+          },
+          "p1-text-2": {
+            "kind": "text",
+            "id": "p1-text-2",
+            "markdown": "alpha",
+            "streaming": false
+          },
+          "p1-user-3": {
+            "kind": "user",
+            "id": "p1-user-3",
+            "text": "Reply with the word beta.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "a189d910-dc3e-46b9-a6f1-3069412941a5"
+          },
+          "p1-text-4": {
+            "kind": "text",
+            "id": "p1-text-4",
+            "markdown": "beta",
+            "streaming": false
+          },
+          "p1-user-5": {
+            "kind": "user",
+            "id": "p1-user-5",
+            "text": "/compact",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "7c2053e1-ada0-426d-968f-b349328d1f03"
+          },
+          "p1-system-6": {
+            "kind": "system",
+            "id": "p1-system-6",
+            "text": "context compacted",
+            "level": "info"
+          },
+          "p1-user-7": {
+            "kind": "user",
+            "id": "p1-user-7",
+            "text": "Reply with the word gamma.",
+            "images": [],
+            "to": null,
+            "queue": null,
+            "uuid": "06e92b8e-0aea-424d-b3dd-a6bde0b90bf8"
+          },
+          "p1-text-8": {
+            "kind": "text",
+            "id": "p1-text-8",
+            "markdown": "gamma",
+            "streaming": false
+          }
+        },
+        "tasks": {},
+        "mcpServers": null,
+        "plugins": null,
+        "usage": {
+          "startedAt": null,
+          "tokens": 0,
+          "costUsd": 0,
+          "context": {
+            "used": 0,
+            "window": null
+          },
+          "limits": {
+            "fiveHour": null,
+            "week": null,
+            "models": {}
+          },
+          "warning": null
+        },
+        "rewound": null,
+        "interrupting": false,
+        "turn": null,
+        "permissionMode": null,
+        "claudeTitle": null,
+        "conversation": 0,
+        "compacting": false,
+        "carried": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "initialize": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-1\",\"request\":{\"subtype\":\"get_settings\"}}",
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-2\",\"request\":{\"subtype\":\"file_suggestions\",\"query\":\"a\"}}"
+    ],
+    "problem": null
+  },
+  "model with an alias": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-3\",\"request\":{\"subtype\":\"set_model\",\"model\":\"sonnet\"}}"
+    ],
+    "problem": null
+  },
+  "model without an alias": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-4\",\"request\":{\"subtype\":\"set_model\",\"model\":\"claude-fable-5-1\"}}"
+    ],
+    "problem": null
+  },
+  "effort": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-5\",\"request\":{\"subtype\":\"apply_flag_settings\",\"settings\":{\"effortLevel\":\"max\",\"ultracode\":false}}}"
+    ],
+    "problem": null
+  },
+  "ultracode on": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-6\",\"request\":{\"subtype\":\"apply_flag_settings\",\"settings\":{\"ultracode\":true}}}"
+    ],
+    "problem": null
+  },
+  "effort with ultracode on": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-7\",\"request\":{\"subtype\":\"apply_flag_settings\",\"settings\":{\"effortLevel\":\"low\",\"ultracode\":true}}}"
+    ],
+    "problem": null
+  },
+  "ultracode off": {
+    "lines": [],
+    "problem": null
+  },
+  "session mode manual": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-8\",\"request\":{\"subtype\":\"set_permission_mode\",\"mode\":\"default\"}}"
+    ],
+    "problem": null
+  },
+  "session mode plan": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-9\",\"request\":{\"subtype\":\"set_permission_mode\",\"mode\":\"plan\"}}"
+    ],
+    "problem": null
+  },
+  "saved mode acceptEdits": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-10\",\"request\":{\"subtype\":\"set_permission_mode\",\"mode\":\"acceptEdits\"}}"
+    ],
+    "problem": null
+  },
+  "saved mode bypassPermissions without the allow flag": {
+    "lines": [],
+    "problem": "bypassPermissions applies from the next start"
+  },
+  "thinking hidden": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-11\",\"request\":{\"subtype\":\"set_max_thinking_tokens\",\"thinking_display\":\"omitted\"}}"
+    ],
+    "problem": null
+  },
+  "thinking summarized": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-12\",\"request\":{\"subtype\":\"set_max_thinking_tokens\",\"thinking_display\":\"summarized\"}}"
+    ],
+    "problem": null
+  },
+  "carry all": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-13\",\"request\":{\"subtype\":\"set_model\",\"model\":\"opus\"}}",
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-14\",\"request\":{\"subtype\":\"apply_flag_settings\",\"settings\":{\"effortLevel\":\"high\",\"ultracode\":true}}}"
+    ],
+    "problem": null
+  },
+  "carry ultracode only": {
+    "lines": [
+      "{\"type\":\"control_request\",\"request_id\":\"ctl-15\",\"request\":{\"subtype\":\"apply_flag_settings\",\"settings\":{\"ultracode\":true}}}"
+    ],
+    "problem": null
+  },
+  "carry nothing": {
+    "lines": [],
+    "problem": null
+  }
+}

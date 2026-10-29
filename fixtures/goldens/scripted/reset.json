@@ -1,0 +1,181 @@
+{
+  "steps": [
+    "624bc6f1fe5c",
+    "23b97565e6cb",
+    "23b97565e6cb",
+    "ea715f30c439",
+    "d15e372fbb76",
+    "8fba16c5b74b",
+    "ecdd45a0fb09",
+    "d5924f5c185a",
+    "a9ce92da5f51",
+    "6dfd218b1852",
+    "0b19fb443e7e",
+    "78e48cf778b6",
+    "c2f769a5aade",
+    "2cf3652751c5",
+    "51b37c7c9cb2"
+  ],
+  "emitted": [],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "session-3",
+      "model": "claude-opus-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.312",
+      "tools": [
+        "Agent",
+        "Bash",
+        "SendMessage",
+        "mcp__yellowcode__ask"
+      ],
+      "mcpServers": [
+        {
+          "name": "yellowcode",
+          "status": "connected",
+          "source": null,
+          "scope": null,
+          "error": null,
+          "config": null,
+          "serverInfo": null,
+          "tools": null
+        }
+      ],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "running",
+    "items": [
+      "ask-req-r1",
+      "user-5"
+    ],
+    "byId": {
+      "toolu-r1": {
+        "kind": "tool",
+        "id": "toolu-r1",
+        "name": "Agent",
+        "inputText": "{\"description\":\"Build\",\"name\":\"builder\",\"prompt\":\"Build\"}",
+        "input": {
+          "description": "Build",
+          "name": "builder",
+          "prompt": "Build"
+        },
+        "summary": "Build",
+        "status": "running",
+        "result": "Async agent launched successfully.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": {
+          "name": "builder",
+          "task": "Build",
+          "prompt": "Build",
+          "type": "",
+          "model": "",
+          "tokens": 0,
+          "state": "running",
+          "toolUses": 0,
+          "durationMs": 0,
+          "report": "",
+          "error": null,
+          "activity": "",
+          "stoppedByUser": false
+        },
+        "taskId": "task-r1"
+      },
+      "ask-req-r1": {
+        "kind": "ask",
+        "id": "ask-req-r1",
+        "requestId": "req-r1",
+        "toolUseId": "toolu-r2",
+        "toolName": "Bash",
+        "displayName": "Bash",
+        "input": {
+          "command": "make"
+        },
+        "description": "",
+        "reason": "",
+        "suggestion": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "pending",
+        "answers": {},
+        "notes": {},
+        "denial": ""
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "After the clear",
+        "images": [],
+        "to": null,
+        "queue": "queued",
+        "uuid": "uuid-r1"
+      }
+    },
+    "tasks": {
+      "task-r1": {
+        "id": "task-r1",
+        "type": "local_agent",
+        "toolUseId": "toolu-r1",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "running",
+        "name": "builder",
+        "description": "Review the parser",
+        "prompt": "Build",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": null,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 150,
+      "costUsd": 0.01,
+      "context": {
+        "used": 0,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 1,
+    "compacting": false,
+    "carried": [
+      "toolu-r1"
+    ]
+  }
+}

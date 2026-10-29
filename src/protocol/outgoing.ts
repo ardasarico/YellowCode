@@ -21,6 +21,23 @@ export function userMessage(text: string, images: OutgoingImage[] = [], uuid?: s
   return JSON.stringify({ type: "user", parent_tool_use_id: null, uuid, message: { role: "user", content } })
 }
 
+// The line that goes out and the one the chat shows at once. `told` goes before the text and `after` after it; the
+// chat shows neither.
+export function promptLines(
+  text: string,
+  images: OutgoingImage[],
+  uuid: string,
+  told: string[] = [],
+  after: string[] = [],
+): { sent: string; shown: string } {
+  const sent = userMessage([...told, text, ...after].filter((part) => part !== "").join("\n\n"), images, uuid)
+  return { sent, shown: told.length + after.length > 0 ? userMessage(text, images, uuid) : sent }
+}
+
+// What claude said while the conversation was rewound; the next message tells it again.
+export const keptReply = (reply: string) =>
+  `While the conversation was rewound, a background task finished and you said:\n${reply}`
+
 // A `!` command and its output, in the form Claude Code gives its own shell mode; it goes out ahead of the next message.
 export function shellContext(command: string, output: string): string {
   return `<bash-input>${command}</bash-input>\n<bash-stdout>${output}</bash-stdout><bash-stderr></bash-stderr>`

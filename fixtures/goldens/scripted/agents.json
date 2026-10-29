@@ -1,0 +1,347 @@
+{
+  "steps": [
+    "cb49488e2f90",
+    "b79512c2211f",
+    "b79512c2211f",
+    "aaeec39a2687",
+    "11d72aacea5a",
+    "8a6401b87220",
+    "9314b688d78f",
+    "74440b125a06",
+    "824a0e4ec58d",
+    "ed2ec927d8fa",
+    "d5212a2c6276",
+    "47aa28df9944",
+    "ca4f9127a90e",
+    "f3b5ba402f1e",
+    "ee5c37750d87",
+    "b39886253111",
+    "f9af78a408db",
+    "77dfdefa64d1",
+    "77dfdefa64d1",
+    "19c7bec08671",
+    "438dd537d255",
+    "bbe3ebb0d786",
+    "de213f68e254",
+    "88c64994c6e1",
+    "ad705be2ef07",
+    "81966389b456"
+  ],
+  "emitted": [],
+  "fileOriginals": [
+    {
+      "step": 8,
+      "id": "toolu-w1",
+      "original": null
+    },
+    {
+      "step": 10,
+      "id": "toolu-e2",
+      "original": "8a7525b1492f"
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "session-4",
+      "model": "claude-opus-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.312",
+      "tools": [
+        "Agent",
+        "Bash",
+        "SendMessage",
+        "mcp__yellowcode__ask"
+      ],
+      "mcpServers": [
+        {
+          "name": "yellowcode",
+          "status": "connected",
+          "source": null,
+          "scope": null,
+          "error": null,
+          "config": null,
+          "serverInfo": null,
+          "tools": null
+        }
+      ],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "toolu-g1",
+      "toolu-w1",
+      "toolu-e2",
+      "turn-2",
+      "text-3",
+      "turn-4",
+      "user-5",
+      "toolu-s1",
+      "text-6",
+      "turn-7"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Review the parser",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "toolu-g1": {
+        "kind": "tool",
+        "id": "toolu-g1",
+        "name": "Agent",
+        "inputText": "{\"description\":\"Review the parser\",\"name\":\"reviewer\",\"subagent_type\":\"general-purpose\",\"prompt\":\"Review src/parser.ts\"}",
+        "input": {
+          "description": "Review the parser",
+          "name": "reviewer",
+          "subagent_type": "general-purpose",
+          "prompt": "Review src/parser.ts"
+        },
+        "summary": "Review the parser",
+        "status": "done",
+        "result": "Async agent launched successfully.\nagentId: task-g1",
+        "children": [
+          "toolu-e1"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": {
+          "name": "reviewer",
+          "task": "Review the parser",
+          "prompt": "Review src/parser.ts",
+          "type": "general-purpose",
+          "model": "",
+          "tokens": 0,
+          "state": "completed",
+          "toolUses": 0,
+          "durationMs": 0,
+          "report": "No problems found.",
+          "error": null,
+          "activity": "",
+          "stoppedByUser": false
+        },
+        "taskId": "task-g1"
+      },
+      "toolu-e1": {
+        "kind": "tool",
+        "id": "toolu-e1",
+        "name": "Edit",
+        "inputText": "{\"file_path\":\"src/parser.ts\"}",
+        "input": {
+          "file_path": "src/parser.ts"
+        },
+        "summary": "src/parser.ts",
+        "status": "done",
+        "result": "Updated.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu-w1": {
+        "kind": "tool",
+        "id": "toolu-w1",
+        "name": "Write",
+        "inputText": "{\"file_path\":\"notes.md\",\"content\":\"Notes\"}",
+        "input": {
+          "file_path": "notes.md",
+          "content": "Notes"
+        },
+        "summary": "notes.md",
+        "status": "done",
+        "result": "File created successfully at: notes.md",
+        "children": [],
+        "patch": null,
+        "createdFile": true,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "toolu-e2": {
+        "kind": "tool",
+        "id": "toolu-e2",
+        "name": "Edit",
+        "inputText": "{\"file_path\":\"notes.md\"}",
+        "input": {
+          "file_path": "notes.md"
+        },
+        "summary": "notes.md",
+        "status": "done",
+        "result": "Updated.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "turn-2": {
+        "kind": "turn-end",
+        "id": "turn-2",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 12000
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "The reviewer found no problems.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 16000
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "Check the tests too",
+        "images": [],
+        "to": {
+          "id": "task-g1",
+          "name": "the reviewer agent"
+        },
+        "queue": null,
+        "uuid": "uuid-m1",
+        "delivery": "resumed"
+      },
+      "toolu-s1": {
+        "kind": "tool",
+        "id": "toolu-s1",
+        "name": "SendMessage",
+        "inputText": "{\"to\":\"task-g1\",\"message\":\"Check the tests too\"}",
+        "input": {
+          "to": "task-g1",
+          "message": "Check the tests too"
+        },
+        "summary": "reviewer · Check the tests too",
+        "status": "stopped",
+        "result": "{\"success\":true,\"message\":\"Resuming agent task-g1\"}",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [],
+        "unchanged": false,
+        "agent": {
+          "name": "reviewer",
+          "task": "Review the parser",
+          "prompt": "Check the tests too",
+          "type": "general-purpose",
+          "model": "",
+          "tokens": 0,
+          "state": "stopped",
+          "toolUses": 0,
+          "durationMs": 0,
+          "report": "Stopped.",
+          "error": null,
+          "activity": "",
+          "stoppedByUser": true
+        },
+        "taskId": "task-g1",
+        "quiet": false
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "Passed it on.",
+        "streaming": false,
+        "quiet": true
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "costUsd": 0.01,
+        "durationMs": 1200,
+        "inputTokens": 120,
+        "outputTokens": 30,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 23000
+      }
+    },
+    "tasks": {
+      "task-g1": {
+        "id": "task-g1",
+        "type": "local_agent",
+        "toolUseId": "toolu-s1",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "stopped",
+        "name": "reviewer",
+        "description": "Review the parser",
+        "prompt": "Check the tests too",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "Stopped.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 450,
+      "costUsd": 0.01,
+      "context": {
+        "used": 120,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

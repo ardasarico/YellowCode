@@ -1,0 +1,398 @@
+{
+  "list": [
+    {
+      "id": "partial-compact",
+      "path": "<project>/partial-compact.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Reply with the word alpha.",
+      "firstPrompt": "Reply with the word alpha.",
+      "model": "claude-haiku-5-5",
+      "modified": 1800000000000
+    },
+    {
+      "id": "many-prompts",
+      "path": "<project>/many-prompts.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Reply with the number 1.",
+      "firstPrompt": "Reply with the number 1.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999940000
+    },
+    {
+      "id": "late-prompt",
+      "path": "<project>/late-prompt.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Read notes.txt and reply with its first word.",
+      "firstPrompt": "Read notes.txt and reply with its first word.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999880000
+    },
+    {
+      "id": "large",
+      "path": "<project>/large.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Tail title",
+      "firstPrompt": "Read notes.txt and reply with its first word.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999820000
+    },
+    {
+      "id": "agent-message",
+      "path": "<project>/agent-message.jsonl",
+      "cwd": "/Users/user/project",
+      "branch": "HEAD",
+      "title": "Renamed demo",
+      "firstPrompt": "@the reviewer Reply with the single word ready.",
+      "model": "claude-haiku-5-5",
+      "modified": 1799999760000
+    }
+  ],
+  "partial-compact": {
+    "viewed": [
+      {
+        "earlier": null,
+        "state": {
+          "info": null,
+          "status": "ended",
+          "items": [
+            "user-1",
+            "text-2",
+            "user-3",
+            "text-4",
+            "user-5",
+            "system-6",
+            "user-7",
+            "text-8"
+          ],
+          "byId": {
+            "user-1": {
+              "kind": "user",
+              "id": "user-1",
+              "text": "Reply with the word alpha.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "7cb5d412-a590-48a5-bba6-5985260457dd"
+            },
+            "text-2": {
+              "kind": "text",
+              "id": "text-2",
+              "markdown": "alpha",
+              "streaming": false
+            },
+            "user-3": {
+              "kind": "user",
+              "id": "user-3",
+              "text": "Reply with the word beta.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "a189d910-dc3e-46b9-a6f1-3069412941a5"
+            },
+            "text-4": {
+              "kind": "text",
+              "id": "text-4",
+              "markdown": "beta",
+              "streaming": false
+            },
+            "user-5": {
+              "kind": "user",
+              "id": "user-5",
+              "text": "/compact",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "7c2053e1-ada0-426d-968f-b349328d1f03"
+            },
+            "system-6": {
+              "kind": "system",
+              "id": "system-6",
+              "text": "context compacted",
+              "level": "info"
+            },
+            "user-7": {
+              "kind": "user",
+              "id": "user-7",
+              "text": "Reply with the word gamma.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "06e92b8e-0aea-424d-b3dd-a6bde0b90bf8"
+            },
+            "text-8": {
+              "kind": "text",
+              "id": "text-8",
+              "markdown": "gamma",
+              "streaming": false
+            }
+          },
+          "tasks": {},
+          "mcpServers": null,
+          "plugins": null,
+          "usage": {
+            "startedAt": 1800000000000,
+            "tokens": 0,
+            "costUsd": 0,
+            "context": {
+              "used": 15952,
+              "window": null
+            },
+            "limits": {
+              "fiveHour": null,
+              "week": null,
+              "models": {}
+            },
+            "warning": null
+          },
+          "rewound": null,
+          "interrupting": false,
+          "turn": null,
+          "permissionMode": null,
+          "claudeTitle": null,
+          "conversation": 0,
+          "compacting": false,
+          "carried": []
+        }
+      }
+    ],
+    "continued": [
+      {
+        "earlier": null,
+        "state": {
+          "info": null,
+          "status": "starting",
+          "items": [
+            "p1-user-1",
+            "p1-text-2",
+            "p1-user-3",
+            "p1-text-4",
+            "p1-user-5",
+            "p1-system-6",
+            "p1-user-7",
+            "p1-text-8"
+          ],
+          "byId": {
+            "p1-user-1": {
+              "kind": "user",
+              "id": "p1-user-1",
+              "text": "Reply with the word alpha.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "7cb5d412-a590-48a5-bba6-5985260457dd"
+            },
+            "p1-text-2": {
+              "kind": "text",
+              "id": "p1-text-2",
+              "markdown": "alpha",
+              "streaming": false
+            },
+            "p1-user-3": {
+              "kind": "user",
+              "id": "p1-user-3",
+              "text": "Reply with the word beta.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "a189d910-dc3e-46b9-a6f1-3069412941a5"
+            },
+            "p1-text-4": {
+              "kind": "text",
+              "id": "p1-text-4",
+              "markdown": "beta",
+              "streaming": false
+            },
+            "p1-user-5": {
+              "kind": "user",
+              "id": "p1-user-5",
+              "text": "/compact",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "7c2053e1-ada0-426d-968f-b349328d1f03"
+            },
+            "p1-system-6": {
+              "kind": "system",
+              "id": "p1-system-6",
+              "text": "context compacted",
+              "level": "info"
+            },
+            "p1-user-7": {
+              "kind": "user",
+              "id": "p1-user-7",
+              "text": "Reply with the word gamma.",
+              "images": [],
+              "to": null,
+              "queue": null,
+              "uuid": "06e92b8e-0aea-424d-b3dd-a6bde0b90bf8"
+            },
+            "p1-text-8": {
+              "kind": "text",
+              "id": "p1-text-8",
+              "markdown": "gamma",
+              "streaming": false
+            }
+          },
+          "tasks": {},
+          "mcpServers": null,
+          "plugins": null,
+          "usage": {
+            "startedAt": null,
+            "tokens": 0,
+            "costUsd": 0,
+            "context": {
+              "used": 0,
+              "window": null
+            },
+            "limits": {
+              "fiveHour": null,
+              "week": null,
+              "models": {}
+            },
+            "warning": null
+          },
+          "rewound": null,
+          "interrupting": false,
+          "turn": null,
+          "permissionMode": null,
+          "claudeTitle": null,
+          "conversation": 0,
+          "compacting": false,
+          "carried": []
+        }
+      }
+    ]
+  },
+  "agent-message": {
+    "viewed": [
+      {
+        "earlier": null,
+        "state": {
+          "info": null,
+          "status": "ended",
+          "items": [
+            "user-1",
+            "text-2"
+          ],
+          "byId": {
+            "user-1": {
+              "kind": "user",
+              "id": "user-1",
+              "text": "Reply with the single word ready.",
+              "images": [],
+              "to": {
+                "id": "task-1",
+                "name": "the reviewer"
+              },
+              "queue": null,
+              "uuid": "5b1cb554-28a2-4d9b-9dc9-7ce99d36a901"
+            },
+            "text-2": {
+              "kind": "text",
+              "id": "text-2",
+              "markdown": "ready",
+              "streaming": false
+            }
+          },
+          "tasks": {},
+          "mcpServers": null,
+          "plugins": null,
+          "usage": {
+            "startedAt": 1800000000000,
+            "tokens": 0,
+            "costUsd": 0,
+            "context": {
+              "used": 17901,
+              "window": null
+            },
+            "limits": {
+              "fiveHour": null,
+              "week": null,
+              "models": {}
+            },
+            "warning": null
+          },
+          "rewound": null,
+          "interrupting": false,
+          "turn": null,
+          "permissionMode": null,
+          "claudeTitle": null,
+          "conversation": 0,
+          "compacting": false,
+          "carried": []
+        }
+      }
+    ],
+    "continued": [
+      {
+        "earlier": null,
+        "state": {
+          "info": null,
+          "status": "starting",
+          "items": [
+            "p1-user-1",
+            "p1-text-2"
+          ],
+          "byId": {
+            "p1-user-1": {
+              "kind": "user",
+              "id": "p1-user-1",
+              "text": "Reply with the single word ready.",
+              "images": [],
+              "to": {
+                "id": "task-1",
+                "name": "the reviewer"
+              },
+              "queue": null,
+              "uuid": "5b1cb554-28a2-4d9b-9dc9-7ce99d36a901"
+            },
+            "p1-text-2": {
+              "kind": "text",
+              "id": "p1-text-2",
+              "markdown": "ready",
+              "streaming": false
+            }
+          },
+          "tasks": {},
+          "mcpServers": null,
+          "plugins": null,
+          "usage": {
+            "startedAt": null,
+            "tokens": 0,
+            "costUsd": 0,
+            "context": {
+              "used": 0,
+              "window": null
+            },
+            "limits": {
+              "fiveHour": null,
+              "week": null,
+              "models": {}
+            },
+            "warning": null
+          },
+          "rewound": null,
+          "interrupting": false,
+          "turn": null,
+          "permissionMode": null,
+          "claudeTitle": null,
+          "conversation": 0,
+          "compacting": false,
+          "carried": []
+        }
+      }
+    ]
+  },
+  "promptParent": {
+    "ec372d1c-0524-4d23-b422-8f94d741ee3e": null,
+    "3a0eebcc-59c5-4fe9-9252-6536206deedc": "a9c80edd-26ee-4ee8-b5a7-302b39750a83",
+    "82c406e7-2b56-4ebe-81e5-76a8235262fb": "51bd0f92-8543-46d5-999c-e7494fd9363d",
+    "uuid-folded": "82c406e7-2b56-4ebe-81e5-76a8235262fb",
+    "uuid-missing": "(not found)",
+    "(no file)": "(not found)"
+  }
+}

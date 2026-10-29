@@ -1,0 +1,307 @@
+{
+  "steps": [
+    "2f957db047a7",
+    "10e99d1b9a3d",
+    "10e99d1b9a3d",
+    "10e99d1b9a3d",
+    "05c4e32c184f",
+    "05c4e32c184f",
+    "60355a2ffe45",
+    "c760d02d84fd",
+    "a5512c566906",
+    "a5512c566906",
+    "a5512c566906",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "5d3c2893293a",
+    "723be1794bcb",
+    "fa97c3f3542c",
+    "fa97c3f3542c",
+    "fa97c3f3542c",
+    "f965810a83ff",
+    "07f325198bd4",
+    "688632094071",
+    "7b031dd3ecf4",
+    "6cd7a1ecfd2e",
+    "e20a0cbac620",
+    "3119f2e7d5a3",
+    "810b6ba7dfff",
+    "e4f386965141",
+    "e4f386965141",
+    "e4f386965141",
+    "e4f386965141",
+    "6c1bd2b99e58"
+  ],
+  "fileOriginals": [],
+  "state": {
+    "info": {
+      "id": "d4f23517-965c-4fdd-83c5-dc00e26bafd1",
+      "model": "claude-haiku-5-5",
+      "permissionMode": "default",
+      "cwd": "/Users/user/project",
+      "cliVersion": "2.1.300",
+      "tools": [
+        "Task",
+        "AskUserQuestion",
+        "Bash",
+        "CronCreate",
+        "CronDelete",
+        "CronList",
+        "DesignSync",
+        "Edit",
+        "EnterPlanMode",
+        "EnterWorktree",
+        "ExitPlanMode",
+        "ExitWorktree",
+        "ListAgents",
+        "Monitor",
+        "NotebookEdit",
+        "PushNotification",
+        "Read",
+        "RemoteTrigger",
+        "ReportFindings",
+        "ScheduleWakeup",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Workflow",
+        "Write"
+      ],
+      "mcpServers": [],
+      "skills": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring"
+      ],
+      "slashCommands": [
+        "deep-research",
+        "design",
+        "design-sync",
+        "dataviz",
+        "update-config",
+        "verify",
+        "debug",
+        "code-review",
+        "simplify",
+        "batch",
+        "fewer-permission-prompts",
+        "doctor",
+        "loop",
+        "schedule",
+        "claude-api",
+        "workflow-authoring",
+        "run",
+        "run-skill-generator",
+        "plugin-authoring",
+        "advisor",
+        "agents",
+        "auto-mode-setup",
+        "autocompact",
+        "clear",
+        "color",
+        "compact",
+        "config",
+        "output-style",
+        "context",
+        "effort",
+        "fast",
+        "focus",
+        "heapdump",
+        "init",
+        "mcp",
+        "import",
+        "model",
+        "__remote-workflow",
+        "workflow-launch-exec",
+        "reload-plugins",
+        "reload-skills",
+        "rename",
+        "ultrareview",
+        "security-review",
+        "usage-credits",
+        "extra-usage",
+        "usage",
+        "insights",
+        "recap",
+        "skill-doctor",
+        "goal",
+        "design-consent",
+        "design-revoke",
+        "list-agents",
+        "team-onboarding"
+      ],
+      "agents": [
+        "claude",
+        "Explore",
+        "general-purpose",
+        "Plan"
+      ],
+      "plugins": [
+        {
+          "name": "plugin-a",
+          "path": "/plugins/plugin-a",
+          "source": "plugin-a@inline"
+        },
+        {
+          "name": "plugin-b",
+          "path": "/plugins/plugin-b",
+          "source": "plugin-b@inline"
+        },
+        {
+          "name": "plugin-c",
+          "path": "/plugins/plugin-c",
+          "source": "plugin-c@marketplace-a"
+        },
+        {
+          "name": "plugin-d",
+          "path": "/plugins/plugin-d",
+          "source": "plugin-d@marketplace-a"
+        },
+        {
+          "name": "plugin-e",
+          "path": "/plugins/plugin-e",
+          "source": "plugin-e@marketplace-a"
+        },
+        {
+          "name": "plugin-f",
+          "path": "/plugins/plugin-f",
+          "source": "plugin-f@marketplace-a"
+        },
+        {
+          "name": "plugin-g",
+          "path": "/plugins/plugin-g",
+          "source": "plugin-g@marketplace-b"
+        },
+        {
+          "name": "plugin-h",
+          "path": "/plugins/plugin-h",
+          "source": "plugin-h@builtin"
+        },
+        {
+          "name": "plugin-i",
+          "path": "/plugins/plugin-i",
+          "source": "plugin-i@builtin"
+        },
+        {
+          "name": "plugin-j",
+          "path": "/plugins/plugin-j",
+          "source": "plugin-j@builtin"
+        }
+      ],
+      "apiKeySource": "none"
+    },
+    "status": "idle",
+    "items": [
+      "user-1",
+      "toolu_01Kicg6TdHZasieY4P7uKmvK",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "Use the Read tool to open shot.png, then say its main colour in one sentence.",
+        "images": [],
+        "to": null,
+        "queue": null
+      },
+      "toolu_01Kicg6TdHZasieY4P7uKmvK": {
+        "kind": "tool",
+        "id": "toolu_01Kicg6TdHZasieY4P7uKmvK",
+        "name": "Read",
+        "inputText": "{\"file_path\":\"/Users/user/project/shot.png\"}",
+        "input": {
+          "file_path": "/Users/user/project/shot.png"
+        },
+        "summary": "/Users/user/project/shot.png",
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "images": [
+          {
+            "name": "shot.png",
+            "mediaType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAhElEQVR4nO3RQQ0AIAwEQeSgqdoRgwgeE5JNTkA7u/acr7f4BT2gCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSugCSswXvFlF91h4TzNMb4OAAAAAElFTkSuQmCC",
+            "path": "/Users/user/project/shot.png"
+          }
+        ],
+        "unchanged": false,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The main colour of shot.png is a solid medium-bright royal blue.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0.00394071,
+        "durationMs": 2649,
+        "inputTokens": 4,
+        "outputTokens": 95,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 3232
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 37063,
+      "costUsd": 0.00394071,
+      "context": {
+        "used": 18545,
+        "window": 1000000
+      },
+      "limits": {
+        "fiveHour": {
+          "utilization": 0.3,
+          "resetsAt": 3592055998317
+        },
+        "week": {
+          "utilization": 0.2,
+          "resetsAt": 3592461598317
+        },
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "default",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}
