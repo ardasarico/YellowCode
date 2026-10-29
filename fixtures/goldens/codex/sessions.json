@@ -1,0 +1,125 @@
+{
+  "page": {
+    "events": [
+      {
+        "type": "user",
+        "prompt": "prompt-1",
+        "text": "ECHO one: what is in the readme?",
+        "images": [],
+        "to": null,
+        "history": true,
+        "cutPoint": true,
+        "at": 1793255106000
+      },
+      {
+        "type": "text.start",
+        "part": "msg_mock0001",
+        "parent": null,
+        "text": "The readme describes a small demo.",
+        "local": false,
+        "quiet": false,
+        "at": 1793255106000
+      },
+      {
+        "type": "text.end",
+        "part": "msg_mock0001",
+        "text": null,
+        "at": 1793255106000
+      },
+      {
+        "type": "user",
+        "prompt": "prompt-2",
+        "text": "ECHO two: and the source?",
+        "images": [],
+        "to": null,
+        "history": true,
+        "cutPoint": true,
+        "at": 1793255106000
+      },
+      {
+        "type": "text.start",
+        "part": "msg_mock0002",
+        "parent": null,
+        "text": "There is one source file, src/a.ts.",
+        "local": false,
+        "quiet": false,
+        "at": 1793255106000
+      },
+      {
+        "type": "text.end",
+        "part": "msg_mock0002",
+        "text": null,
+        "at": 1793255106000
+      }
+    ],
+    "earlier": null
+  },
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "user-3",
+      "text-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "ECHO one: what is in the readme?",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The readme describes a small demo.",
+        "streaming": false
+      },
+      "user-3": {
+        "kind": "user",
+        "id": "user-3",
+        "text": "ECHO two: and the source?",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-4": {
+        "kind": "text",
+        "id": "text-4",
+        "markdown": "There is one source file, src/a.ts.",
+        "streaming": false
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 0,
+      "costUsd": 0,
+      "context": {
+        "used": 0,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": []
+  }
+}

@@ -1,0 +1,381 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793264609000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793264609000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793264609000
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793264610000
+    }
+  ],
+  "outputs": [
+    {
+      "settings": [
+        {
+          "id": "web-search",
+          "label": "Web search",
+          "section": "",
+          "note": null,
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "",
+                "label": "default"
+              },
+              {
+                "value": "disabled",
+                "label": "off"
+              },
+              {
+                "value": "cached",
+                "label": "cached"
+              },
+              {
+                "value": "indexed",
+                "label": "indexed"
+              },
+              {
+                "value": "live",
+                "label": "live"
+              }
+            ]
+          },
+          "value": "live",
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        },
+        {
+          "id": "compaction.threshold",
+          "label": "Auto-compact at",
+          "section": "",
+          "note": "Tokens in the context that start a compaction",
+          "control": {
+            "type": "number",
+            "min": 1,
+            "max": null,
+            "step": 1,
+            "unit": "tokens"
+          },
+          "value": 50000,
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        },
+        {
+          "id": "verbosity",
+          "label": "Verbosity",
+          "section": "",
+          "note": "How long the model's answers are",
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "",
+                "label": "default"
+              },
+              {
+                "value": "low",
+                "label": "low"
+              },
+              {
+                "value": "medium",
+                "label": "medium"
+              },
+              {
+                "value": "high",
+                "label": "high"
+              }
+            ]
+          },
+          "value": "low",
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/project/.codex/config.toml",
+            "layer": "project"
+          },
+          "overriddenBy": "project"
+        },
+        {
+          "id": "tool-output.tokens",
+          "label": "Tool output limit",
+          "section": "",
+          "note": "Tokens of a tool's output the model sees",
+          "control": {
+            "type": "number",
+            "min": 1,
+            "max": null,
+            "step": 1,
+            "unit": "tokens"
+          },
+          "value": null,
+          "writable": true,
+          "applies": "new-session",
+          "origin": null,
+          "overriddenBy": null
+        },
+        {
+          "id": "login-shell",
+          "label": "Login shells",
+          "section": "",
+          "note": "The model may run commands in a login shell",
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "true",
+                "label": "on"
+              },
+              {
+                "value": "false",
+                "label": "off"
+              }
+            ]
+          },
+          "value": "true",
+          "writable": true,
+          "applies": "new-session",
+          "origin": null,
+          "overriddenBy": null
+        }
+      ]
+    },
+    {
+      "settings": [
+        {
+          "id": "web-search",
+          "label": "Web search",
+          "section": "",
+          "note": null,
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "",
+                "label": "default"
+              },
+              {
+                "value": "disabled",
+                "label": "off"
+              },
+              {
+                "value": "cached",
+                "label": "cached"
+              },
+              {
+                "value": "indexed",
+                "label": "indexed"
+              },
+              {
+                "value": "live",
+                "label": "live"
+              }
+            ]
+          },
+          "value": "disabled",
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        },
+        {
+          "id": "compaction.threshold",
+          "label": "Auto-compact at",
+          "section": "",
+          "note": "Tokens in the context that start a compaction",
+          "control": {
+            "type": "number",
+            "min": 1,
+            "max": null,
+            "step": 1,
+            "unit": "tokens"
+          },
+          "value": 60000,
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        },
+        {
+          "id": "verbosity",
+          "label": "Verbosity",
+          "section": "",
+          "note": "How long the model's answers are",
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "",
+                "label": "default"
+              },
+              {
+                "value": "low",
+                "label": "low"
+              },
+              {
+                "value": "medium",
+                "label": "medium"
+              },
+              {
+                "value": "high",
+                "label": "high"
+              }
+            ]
+          },
+          "value": "low",
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/project/.codex/config.toml",
+            "layer": "project"
+          },
+          "overriddenBy": "project"
+        },
+        {
+          "id": "tool-output.tokens",
+          "label": "Tool output limit",
+          "section": "",
+          "note": "Tokens of a tool's output the model sees",
+          "control": {
+            "type": "number",
+            "min": 1,
+            "max": null,
+            "step": 1,
+            "unit": "tokens"
+          },
+          "value": 2000,
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        },
+        {
+          "id": "login-shell",
+          "label": "Login shells",
+          "section": "",
+          "note": "The model may run commands in a login shell",
+          "control": {
+            "type": "choice",
+            "options": [
+              {
+                "value": "true",
+                "label": "on"
+              },
+              {
+                "value": "false",
+                "label": "off"
+              }
+            ]
+          },
+          "value": "false",
+          "writable": true,
+          "applies": "new-session",
+          "origin": {
+            "file": "<root>/codex/config.toml",
+            "layer": "user"
+          },
+          "overriddenBy": null
+        }
+      ]
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [],
+    "byId": {},
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 0,
+      "costUsd": 0,
+      "context": {
+        "used": 0,
+        "window": null
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

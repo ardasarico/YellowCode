@@ -1,0 +1,233 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793254966000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793254966000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793254966000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254966171
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254966171
+    },
+    {
+      "type": "reply",
+      "at": 1793254966171
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "LIMA what is two plus two?",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254966175
+    },
+    {
+      "type": "thinking.start",
+      "part": "rs_mock0001",
+      "parent": null,
+      "text": "The user wan",
+      "live": true,
+      "at": 1793254966179
+    },
+    {
+      "type": "thinking.delta",
+      "part": "rs_mock0001",
+      "text": "ts a sum. Tw",
+      "at": 1793254966184
+    },
+    {
+      "type": "thinking.delta",
+      "part": "rs_mock0001",
+      "text": "o and two ma",
+      "at": 1793254966190
+    },
+    {
+      "type": "thinking.delta",
+      "part": "rs_mock0001",
+      "text": "ke four.",
+      "at": 1793254966196
+    },
+    {
+      "type": "thinking.end",
+      "part": "rs_mock0001",
+      "text": "The user wants a sum. Two and two make four.",
+      "at": 1793254966202
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254966203
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Four.",
+      "at": 1793254966203
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Four.",
+      "at": 1793254966207
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793254966208
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793254966208
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 62,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254966210
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793254966210
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "thinking-2",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "LIMA what is two plus two?",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "thinking-2": {
+        "kind": "thinking",
+        "id": "thinking-2",
+        "text": "The user wants a sum. Two and two make four.",
+        "streaming": false,
+        "durationMs": 23
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "Four.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0,
+        "durationMs": 62,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254966210
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

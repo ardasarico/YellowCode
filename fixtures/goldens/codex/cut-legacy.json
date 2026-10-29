@@ -1,0 +1,255 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793261092000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261092000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793261092000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000008",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261092723
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261092796
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261092796
+    },
+    {
+      "type": "reply",
+      "at": 1793261092796
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "WHISKEY three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261092800
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261092804
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "Three, in th",
+      "at": 1793261092804
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "e copy.",
+      "at": 1793261092810
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "Three, in the copy.",
+      "at": 1793261092816
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793261092817
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793261092817
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 22,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261092819
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793261092819
+    }
+  ],
+  "outputs": [
+    {
+      "sessions": [
+        {
+          "ref": {
+            "agent": "codex",
+            "id": "00000000-0000-7000-8000-000000000008"
+          },
+          "title": "WHISKEY one",
+          "firstPrompt": "WHISKEY one",
+          "cwd": "<root>/project",
+          "branch": "main",
+          "model": {
+            "provider": "mock",
+            "id": "gpt-5.5"
+          },
+          "modified": 1793261092000
+        },
+        {
+          "ref": {
+            "agent": "codex",
+            "id": "00000000-0000-7000-8000-000000000001"
+          },
+          "title": "WHISKEY one",
+          "firstPrompt": "WHISKEY one",
+          "cwd": "<root>/project",
+          "branch": "main",
+          "model": {
+            "provider": "mock",
+            "id": "gpt-5.5"
+          },
+          "modified": 1793261092000
+        }
+      ]
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000008",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "WHISKEY three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Three, in the copy.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 22,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261092819
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

@@ -89,6 +89,7 @@ export function choiceOf(option: AskOption): Choice {
   const verb = yes ? "allow " : "deny "
   const lead = yes ? "Yes, and " : "No, and "
   if (option.lasts === "session") return { id, before: `${lead}${verb}`, subject, after: " for this session" }
+  if (option.lasts === "turn") return { id, before: `${lead}${verb}`, subject, after: " for this turn" }
   const after = option.lasts === "everywhere" ? " in every project" : " here"
   return { id, before: `${lead}always ${verb}`, subject, after }
 }

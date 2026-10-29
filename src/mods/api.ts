@@ -230,7 +230,8 @@ export type ModToolKind =
 
 // A tool call in the chat, as a row renderer sees it.
 export type ModToolCall = {
-  // The agent's own name, like "Bash" or "mcp__mod-terminal__terminal_read".
+  // The agent's own name, like "Bash" or "mcp__mod-terminal__terminal_read" on Claude Code; Codex names a mod tool
+  // "terminal_read". Match a mod's own tools by `source` and `short`, which every agent fills alike.
   readonly name: string
   readonly kind: ModToolKind
   // The name the app shows, without the MCP server: "terminal_read".

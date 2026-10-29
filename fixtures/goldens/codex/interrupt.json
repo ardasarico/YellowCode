@@ -1,0 +1,414 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793261076000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "full-access",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261076000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793261076000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261076215
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261076215
+    },
+    {
+      "type": "reply",
+      "at": 1793261076215
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "TANGO run a long command",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261076217
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0001",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793261076385
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0001",
+      "kind": "shell",
+      "name": "exec_command",
+      "title": "shell",
+      "input": {
+        "command": "/bin/zsh -lc 'sleep 5; echo slept'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "unknown",
+            "command": "sleep 5; echo slept"
+          }
+        ]
+      },
+      "summary": "sleep 5; echo slept",
+      "detail": null,
+      "command": "sleep 5; echo slept",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793261076385
+    },
+    {
+      "type": "interrupt",
+      "state": "asked",
+      "at": 1793261076385
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793261076439
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793261076439
+    },
+    {
+      "type": "interrupt",
+      "state": "answered",
+      "at": 1793261076439
+    },
+    {
+      "type": "task.start",
+      "id": "call_mock0001",
+      "kind": "shell",
+      "taskType": "local_bash",
+      "call": "call_mock0001",
+      "parent": null,
+      "depth": null,
+      "background": true,
+      "resumed": false,
+      "description": "sleep 5; echo slept",
+      "prompt": "",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793261076441
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0001",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "call_mock0001",
+      "files": [],
+      "at": 1793261076441
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": true,
+      "local": false,
+      "durationMs": 249,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261076441
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261076447
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261076447
+    },
+    {
+      "type": "reply",
+      "at": 1793261076447
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "UNIFORM after the stop",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261076449
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793261076449
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261076453
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Uniform, aft",
+      "at": 1793261076453
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "er the stop.",
+      "at": 1793261076459
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Uniform, after the stop.",
+      "at": 1793261076466
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 22,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261076469
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793261076469
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "full-access",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0001",
+      "user-2",
+      "turn-3",
+      "text-4",
+      "turn-5"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "TANGO run a long command",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0001": {
+        "kind": "tool",
+        "id": "call_mock0001",
+        "name": "exec_command",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'sleep 5; echo slept'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"unknown\",\"command\":\"sleep 5; echo slept\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'sleep 5; echo slept'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "unknown",
+              "command": "sleep 5; echo slept"
+            }
+          ]
+        },
+        "summary": "sleep 5; echo slept",
+        "detail": null,
+        "background": false,
+        "status": "running",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": "call_mock0001"
+      },
+      "user-2": {
+        "kind": "user",
+        "id": "user-2",
+        "text": "UNIFORM after the stop",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 249,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": true,
+        "endedAt": 1793261076441
+      },
+      "text-4": {
+        "kind": "text",
+        "id": "text-4",
+        "markdown": "Uniform, after the stop.",
+        "streaming": false
+      },
+      "turn-5": {
+        "kind": "turn-end",
+        "id": "turn-5",
+        "costUsd": 0,
+        "durationMs": 22,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261076469
+      }
+    },
+    "tasks": {
+      "call_mock0001": {
+        "id": "call_mock0001",
+        "type": "local_bash",
+        "toolUseId": "call_mock0001",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "running",
+        "name": "sleep 5; echo slept",
+        "description": "sleep 5; echo slept",
+        "prompt": "",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "",
+        "lastTool": null,
+        "toolUses": 0,
+        "durationMs": 0,
+        "tokens": 0,
+        "summary": "",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "sleep 5; echo slept",
+        "endedAt": null,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

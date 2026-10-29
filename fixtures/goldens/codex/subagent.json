@@ -1,0 +1,991 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793255089000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793255089000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793255089000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793255089780
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793255089780
+    },
+    {
+      "type": "reply",
+      "at": 1793255089780
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "PAPA have a helper change the greeting",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793255089787
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793255089804
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793255089804
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0002",
+      "parent": null,
+      "name": "spawnAgent",
+      "kind": "agent",
+      "title": "agent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255089817
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "agent",
+      "name": "spawnAgent",
+      "title": "agent",
+      "input": {
+        "prompt": "QUEBEC change the greeting",
+        "model": "",
+        "agents": []
+      },
+      "summary": "QUEBEC change the greeting",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "agent",
+        "task": "QUEBEC change the greeting",
+        "prompt": "QUEBEC change the greeting",
+        "type": "",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793255089817
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "agent",
+      "name": "spawnAgent",
+      "title": "agent",
+      "input": {
+        "prompt": "QUEBEC change the greeting",
+        "model": "gpt-5.5",
+        "agents": [
+          "00000000-0000-7000-8000-000000000004"
+        ]
+      },
+      "summary": "QUEBEC change the greeting",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "agent",
+        "task": "QUEBEC change the greeting",
+        "prompt": "QUEBEC change the greeting",
+        "type": "",
+        "model": "gpt-5.5"
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793255089845
+    },
+    {
+      "type": "task.start",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "call_mock0002",
+      "parent": null,
+      "depth": null,
+      "background": true,
+      "resumed": false,
+      "description": "QUEBEC change the greeting",
+      "prompt": "QUEBEC change the greeting",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793255089845
+    },
+    {
+      "type": "subagent.model",
+      "call": "call_mock0002",
+      "model": "gpt-5.5",
+      "at": 1793255089845
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0002",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "00000000-0000-7000-8000-000000000004",
+      "files": [],
+      "at": 1793255089845
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0003",
+      "parent": null,
+      "name": "wait",
+      "kind": "other",
+      "title": "wait",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255089891
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0003",
+      "kind": "other",
+      "name": "wait",
+      "title": "wait",
+      "input": {
+        "prompt": null,
+        "model": null,
+        "agents": [
+          "00000000-0000-7000-8000-000000000004"
+        ]
+      },
+      "summary": "1 agent",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255089891
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0004",
+      "parent": "call_mock0002",
+      "name": "exec_command",
+      "kind": "search",
+      "title": "list",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255089946
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0004",
+      "kind": "search",
+      "name": "exec_command",
+      "title": "list",
+      "input": {
+        "command": "/bin/zsh -lc 'ls src'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "listFiles",
+            "command": "ls src",
+            "path": "src"
+          }
+        ]
+      },
+      "summary": "<root>/project/src",
+      "detail": null,
+      "command": "ls src",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255089946
+    },
+    {
+      "type": "task.progress",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "activity": "list <root>/project/src",
+      "lastTool": "exec_command",
+      "toolUses": 1,
+      "durationMs": 101,
+      "tokens": null,
+      "at": 1793255089946
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0004",
+      "status": "done",
+      "result": "a.ts\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": {
+        "n": 1,
+        "noun": "file"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255089947
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0005",
+      "parent": "call_mock0002",
+      "name": "apply_patch",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255089960
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0005",
+      "kind": "edit",
+      "name": "apply_patch",
+      "title": "edit",
+      "input": {
+        "changes": [
+          {
+            "path": "<root>/project/src/a.ts",
+            "kind": {
+              "type": "update",
+              "move_path": null
+            },
+            "diff": "@@ -1 +1 @@\n-export const greeting = \"hello\"\n+export const greeting = \"hey\"\n"
+          }
+        ]
+      },
+      "summary": "<root>/project/src/a.ts",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255089960
+    },
+    {
+      "type": "task.progress",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "activity": "edit <root>/project/src/a.ts",
+      "lastTool": "apply_patch",
+      "toolUses": 2,
+      "durationMs": 115,
+      "tokens": null,
+      "at": 1793255089960
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0005",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 1,
+          "newStart": 1,
+          "newLines": 1,
+          "lines": [
+            "-export const greeting = \"hello\"",
+            "+export const greeting = \"hey\""
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/src/a.ts",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 1,
+              "newStart": 1,
+              "newLines": 1,
+              "lines": [
+                "-export const greeting = \"hello\"",
+                "+export const greeting = \"hey\""
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793255089979
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": "call_mock0002",
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793255089984
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "The greeting",
+      "at": 1793255089984
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": " now says he",
+      "at": 1793255089990
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "y.",
+      "at": 1793255089996
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "The greeting now says hey.",
+      "at": 1793255090003
+    },
+    {
+      "type": "task.end",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "state": "completed",
+      "report": {
+        "summary": "The greeting now says hey.",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 2,
+          "durationMs": 161,
+          "tokens": null
+        },
+        "stoppedByUser": false
+      },
+      "call": "call_mock0002",
+      "at": 1793255090006
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0003",
+      "status": "done",
+      "result": "The greeting now says hey.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255090007
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793255090013
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "The helper c",
+      "at": 1793255090013
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "hanged the g",
+      "at": 1793255090019
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "reeting.",
+      "at": 1793255090026
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "The helper changed the greeting.",
+      "at": 1793255090032
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 302,
+      "inputTokens": 4800,
+      "outputTokens": 720,
+      "tokens": 5520,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793255090038
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793255090038
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "PAPA have a helper change the greeting",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0002",
+            "parent": null,
+            "name": "spawnAgent",
+            "kind": "agent",
+            "title": "agent",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0002",
+            "kind": "agent",
+            "name": "spawnAgent",
+            "title": "agent",
+            "input": {
+              "prompt": "QUEBEC change the greeting",
+              "model": "gpt-5.5",
+              "agents": [
+                "00000000-0000-7000-8000-000000000004"
+              ]
+            },
+            "summary": "QUEBEC change the greeting",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": {
+              "name": "agent",
+              "task": "QUEBEC change the greeting",
+              "prompt": "QUEBEC change the greeting",
+              "type": "",
+              "model": "gpt-5.5"
+            },
+            "message": null,
+            "todos": null,
+            "at": 1793255089000
+          },
+          {
+            "type": "task.start",
+            "id": "00000000-0000-7000-8000-000000000004",
+            "kind": "agent",
+            "taskType": "local_agent",
+            "call": "call_mock0002",
+            "parent": null,
+            "depth": null,
+            "background": true,
+            "resumed": false,
+            "description": "QUEBEC change the greeting",
+            "prompt": "QUEBEC change the greeting",
+            "workflow": "",
+            "agentType": "",
+            "at": 1793255089000
+          },
+          {
+            "type": "subagent.model",
+            "call": "call_mock0002",
+            "model": "gpt-5.5",
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0002",
+            "status": "done",
+            "result": "",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": true,
+            "task": "00000000-0000-7000-8000-000000000004",
+            "files": [],
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0003",
+            "parent": null,
+            "name": "wait",
+            "kind": "other",
+            "title": "wait",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0003",
+            "kind": "other",
+            "name": "wait",
+            "title": "wait",
+            "input": {
+              "prompt": null,
+              "model": null,
+              "agents": [
+                "00000000-0000-7000-8000-000000000004"
+              ]
+            },
+            "summary": "1 agent",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255089000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0003",
+            "status": "done",
+            "result": "The greeting now says hey.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255089000
+          },
+          {
+            "type": "task.end",
+            "id": "00000000-0000-7000-8000-000000000004",
+            "state": "completed",
+            "report": {
+              "summary": "The greeting now says hey.",
+              "outputFile": null,
+              "usage": {
+                "toolUses": 0,
+                "durationMs": 0,
+                "tokens": null
+              },
+              "stoppedByUser": false
+            },
+            "call": "call_mock0002",
+            "at": 1793255089000
+          },
+          {
+            "type": "text.start",
+            "part": "msg_mock0002",
+            "parent": null,
+            "text": "The helper changed the greeting.",
+            "local": false,
+            "quiet": false,
+            "at": 1793255089000
+          },
+          {
+            "type": "text.end",
+            "part": "msg_mock0002",
+            "text": null,
+            "at": 1793255089000
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0002",
+      "call_mock0003",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "PAPA have a helper change the greeting",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0002": {
+        "kind": "tool",
+        "id": "call_mock0002",
+        "name": "spawnAgent",
+        "toolKind": "agent",
+        "title": "agent",
+        "server": null,
+        "inputText": "{\"prompt\":\"QUEBEC change the greeting\",\"model\":\"gpt-5.5\",\"agents\":[\"00000000-0000-7000-8000-000000000004\"]}",
+        "input": {
+          "prompt": "QUEBEC change the greeting",
+          "model": "gpt-5.5",
+          "agents": [
+            "00000000-0000-7000-8000-000000000004"
+          ]
+        },
+        "summary": "QUEBEC change the greeting",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [
+          "call_mock0004",
+          "call_mock0005",
+          "text-2"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "agent",
+          "task": "QUEBEC change the greeting",
+          "prompt": "QUEBEC change the greeting",
+          "type": "",
+          "model": "gpt-5.5",
+          "tokens": 0,
+          "state": "completed",
+          "toolUses": 2,
+          "durationMs": 161,
+          "report": "The greeting now says hey.",
+          "error": null,
+          "activity": "edit <root>/project/src/a.ts",
+          "stoppedByUser": false
+        },
+        "taskId": "00000000-0000-7000-8000-000000000004"
+      },
+      "call_mock0003": {
+        "kind": "tool",
+        "id": "call_mock0003",
+        "name": "wait",
+        "toolKind": "other",
+        "title": "wait",
+        "server": null,
+        "inputText": "{\"prompt\":null,\"model\":null,\"agents\":[\"00000000-0000-7000-8000-000000000004\"]}",
+        "input": {
+          "prompt": null,
+          "model": null,
+          "agents": [
+            "00000000-0000-7000-8000-000000000004"
+          ]
+        },
+        "summary": "1 agent",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "The greeting now says hey.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0004": {
+        "kind": "tool",
+        "id": "call_mock0004",
+        "name": "exec_command",
+        "toolKind": "search",
+        "title": "list",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'ls src'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"listFiles\",\"command\":\"ls src\",\"path\":\"src\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'ls src'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "listFiles",
+              "command": "ls src",
+              "path": "src"
+            }
+          ]
+        },
+        "summary": "<root>/project/src",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "a.ts\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "file"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0005": {
+        "kind": "tool",
+        "id": "call_mock0005",
+        "name": "apply_patch",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"changes\":[{\"path\":\"<root>/project/src/a.ts\",\"kind\":{\"type\":\"update\",\"move_path\":null},\"diff\":\"@@ -1 +1 @@\\n-export const greeting = \\\"hello\\\"\\n+export const greeting = \\\"hey\\\"\\n\"}]}",
+        "input": {
+          "changes": [
+            {
+              "path": "<root>/project/src/a.ts",
+              "kind": {
+                "type": "update",
+                "move_path": null
+              },
+              "diff": "@@ -1 +1 @@\n-export const greeting = \"hello\"\n+export const greeting = \"hey\"\n"
+            }
+          ]
+        },
+        "summary": "<root>/project/src/a.ts",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 1,
+            "newStart": 1,
+            "newLines": 1,
+            "lines": [
+              "-export const greeting = \"hello\"",
+              "+export const greeting = \"hey\""
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/src/a.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hey\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The greeting now says hey.",
+        "streaming": false
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "The helper changed the greeting.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0,
+        "durationMs": 302,
+        "inputTokens": 4800,
+        "outputTokens": 720,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793255090038
+      }
+    },
+    "tasks": {
+      "00000000-0000-7000-8000-000000000004": {
+        "id": "00000000-0000-7000-8000-000000000004",
+        "type": "local_agent",
+        "toolUseId": "call_mock0002",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "completed",
+        "name": "agent",
+        "description": "QUEBEC change the greeting",
+        "prompt": "QUEBEC change the greeting",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "edit <root>/project/src/a.ts",
+        "lastTool": "apply_patch",
+        "toolUses": 2,
+        "durationMs": 161,
+        "tokens": 0,
+        "summary": "The greeting now says hey.",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

@@ -592,11 +592,13 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return
       case "plan":
         return ownPlan(event)
+      case "todos":
+        if (!hiding) setState("todos", structuredClone(event.items))
+        return
       // Not handled yet: nothing sends them yet, or a later stage handles them.
       case "held":
       case "extraEffort":
       case "account":
-      case "todos":
       case "workflow.draft":
         return
       case "cut":

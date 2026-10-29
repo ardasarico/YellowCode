@@ -15,9 +15,11 @@ import { CLAUDE_MODES } from "./agents/claude/lists.ts"
 import { mcpRows } from "./agents/claude/mcp-rows.ts"
 import { stopOneShots } from "./agents/claude/one-shot.ts"
 import { liveProvider, replayProvider, savedProvider } from "./agents/claude/provider.ts"
+import { codexKind } from "./agents/codex/agent.ts"
+import { CODEX, CODEX_NAME } from "./agents/codex/caps.ts"
 import { opencodeKind } from "./agents/opencode/agent.ts"
 import { OPENCODE, OPENCODE_NAME } from "./agents/opencode/caps.ts"
-import { opencodeProvider } from "./agents/opencode/provider.ts"
+import { listedProvider, opencodeProvider } from "./agents/opencode/provider.ts"
 import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
 import type { InputProvider } from "./input/provider.ts"
@@ -132,6 +134,7 @@ if (values.report) {
         [
           { id: CLAUDE, name: CLAUDE_NAME },
           { id: OPENCODE, name: OPENCODE_NAME },
+          { id: CODEX, name: CODEX_NAME },
         ],
         loaded.problem,
       ),
@@ -278,8 +281,25 @@ const opencodeRunner: Runner = {
   hearsShells: false,
   clears: false,
 }
+const codex = codexKind()
+const codexRunner: Runner = {
+  kind: codex,
+  provider: listedProvider(
+    () => chat().session,
+    (query) => live.agent.files(query),
+  ),
+  start: (options, store) =>
+    codex.start(options).then((agent) => {
+      // Codex tells its lists once asked; the skills come with the commands.
+      for (const list of ["modes", "models", "commands", "mcp", "plugins", "hooks"] as const) agent.refresh(list)
+      // The cut goes in at the oldest prompt the store hides.
+      return { agent, hooks: {}, goBack: () => agent.goBack(hiddenPrompts(store.state).at(-1) ?? null) }
+    }),
+  hearsShells: false,
+  clears: false,
+}
 // The agents YellowCode can run, Claude first.
-const runners: Runner[] = [claudeRunner, opencodeRunner]
+const runners: Runner[] = [claudeRunner, opencodeRunner, codexRunner]
 const installed = createRegistry(runners.map((runner) => runner.kind))
 
 function runnerOf(ref: SessionRef): Runner {
@@ -343,7 +363,8 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   thinking: settings.thinking !== "hidden",
   instructions: [],
   clientTools: mods.clientTools(),
-  mcpServers: [],
+  // Claude takes the mods' servers on its own path (syncModServers).
+  mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
 })
 
 // An agent that takes tools mid-session gets the mods' tools of the moment.

@@ -1,0 +1,986 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793264728000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793264728000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793264728000
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "skills": [
+          {
+            "id": "<root>/project/.agents/skills/greet/SKILL.md",
+            "name": "greet",
+            "label": "greet",
+            "description": "Say hello",
+            "command": "greet",
+            "group": "project",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/tidy/SKILL.md",
+            "name": "tidy",
+            "label": "tidy",
+            "description": "Tidy up",
+            "command": "tidy",
+            "group": "global",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/imagegen/SKILL.md",
+            "name": "imagegen",
+            "label": "Image Gen",
+            "description": "Generate or edit images for websites, games, and more",
+            "command": "imagegen",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/openai-docs/SKILL.md",
+            "name": "openai-docs",
+            "label": "OpenAI Docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "command": "openai-docs",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/review-agent/SKILL.md",
+            "name": "review-agent",
+            "label": "Review Agent",
+            "description": "Find actionable bugs in code changes",
+            "command": "review-agent",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-creator/SKILL.md",
+            "name": "skill-creator",
+            "label": "Skill Creator",
+            "description": "Create or update a skill",
+            "command": "skill-creator",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-installer/SKILL.md",
+            "name": "skill-installer",
+            "label": "Skill Installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "command": "skill-installer",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          }
+        ],
+        "commands": [
+          {
+            "name": "compact",
+            "description": "Summarize the conversation to free up context",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": true,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "greet",
+            "description": "Say hello",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "tidy",
+            "description": "Tidy up",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "imagegen",
+            "description": "Generate or edit images for websites, games, and more",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "openai-docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "review-agent",
+            "description": "Find actionable bugs in code changes",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update a skill",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          }
+        ]
+      },
+      "at": 1793264728926
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "mcp": [
+          {
+            "name": "echo",
+            "label": "echo",
+            "place": "other",
+            "state": "connected",
+            "status": "connected",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": null,
+            "server": {
+              "name": "echo",
+              "version": "1.0.0"
+            },
+            "tools": [
+              "echo"
+            ],
+            "toolServer": "echo"
+          },
+          {
+            "name": "remote",
+            "label": "remote",
+            "place": "other",
+            "state": "failed",
+            "status": "failed",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": {
+              "url": "http://127.0.0.1:9"
+            },
+            "server": null,
+            "tools": [],
+            "toolServer": "remote"
+          }
+        ]
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "plugins": []
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "hooks": [
+          {
+            "event": "PreToolUse",
+            "matcher": "Bash",
+            "plugin": null
+          }
+        ]
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "skills": [
+          {
+            "id": "<root>/project/.agents/skills/greet/SKILL.md",
+            "name": "greet",
+            "label": "greet",
+            "description": "Say hello",
+            "command": "greet",
+            "group": "project",
+            "plugin": null,
+            "enabled": false,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/tidy/SKILL.md",
+            "name": "tidy",
+            "label": "tidy",
+            "description": "Tidy up",
+            "command": "tidy",
+            "group": "global",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/imagegen/SKILL.md",
+            "name": "imagegen",
+            "label": "Image Gen",
+            "description": "Generate or edit images for websites, games, and more",
+            "command": "imagegen",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/openai-docs/SKILL.md",
+            "name": "openai-docs",
+            "label": "OpenAI Docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "command": "openai-docs",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/review-agent/SKILL.md",
+            "name": "review-agent",
+            "label": "Review Agent",
+            "description": "Find actionable bugs in code changes",
+            "command": "review-agent",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-creator/SKILL.md",
+            "name": "skill-creator",
+            "label": "Skill Creator",
+            "description": "Create or update a skill",
+            "command": "skill-creator",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-installer/SKILL.md",
+            "name": "skill-installer",
+            "label": "Skill Installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "command": "skill-installer",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          }
+        ],
+        "commands": [
+          {
+            "name": "compact",
+            "description": "Summarize the conversation to free up context",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": true,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "tidy",
+            "description": "Tidy up",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "imagegen",
+            "description": "Generate or edit images for websites, games, and more",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "openai-docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "review-agent",
+            "description": "Find actionable bugs in code changes",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update a skill",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          }
+        ]
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "skills": [
+          {
+            "id": "<root>/project/.agents/skills/greet/SKILL.md",
+            "name": "greet",
+            "label": "greet",
+            "description": "Say hello",
+            "command": "greet",
+            "group": "project",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/tidy/SKILL.md",
+            "name": "tidy",
+            "label": "tidy",
+            "description": "Tidy up",
+            "command": "tidy",
+            "group": "global",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/imagegen/SKILL.md",
+            "name": "imagegen",
+            "label": "Image Gen",
+            "description": "Generate or edit images for websites, games, and more",
+            "command": "imagegen",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/openai-docs/SKILL.md",
+            "name": "openai-docs",
+            "label": "OpenAI Docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "command": "openai-docs",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/review-agent/SKILL.md",
+            "name": "review-agent",
+            "label": "Review Agent",
+            "description": "Find actionable bugs in code changes",
+            "command": "review-agent",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-creator/SKILL.md",
+            "name": "skill-creator",
+            "label": "Skill Creator",
+            "description": "Create or update a skill",
+            "command": "skill-creator",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-installer/SKILL.md",
+            "name": "skill-installer",
+            "label": "Skill Installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "command": "skill-installer",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          }
+        ],
+        "commands": [
+          {
+            "name": "compact",
+            "description": "Summarize the conversation to free up context",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": true,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "greet",
+            "description": "Say hello",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "tidy",
+            "description": "Tidy up",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "imagegen",
+            "description": "Generate or edit images for websites, games, and more",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "openai-docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "review-agent",
+            "description": "Find actionable bugs in code changes",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update a skill",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          }
+        ]
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "skills": [
+          {
+            "id": "<root>/project/.agents/skills/greet/SKILL.md",
+            "name": "greet",
+            "label": "greet",
+            "description": "Say hello",
+            "command": "greet",
+            "group": "project",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/tidy/SKILL.md",
+            "name": "tidy",
+            "label": "tidy",
+            "description": "Tidy up",
+            "command": "tidy",
+            "group": "global",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/imagegen/SKILL.md",
+            "name": "imagegen",
+            "label": "Image Gen",
+            "description": "Generate or edit images for websites, games, and more",
+            "command": "imagegen",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/openai-docs/SKILL.md",
+            "name": "openai-docs",
+            "label": "OpenAI Docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "command": "openai-docs",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/review-agent/SKILL.md",
+            "name": "review-agent",
+            "label": "Review Agent",
+            "description": "Find actionable bugs in code changes",
+            "command": "review-agent",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-creator/SKILL.md",
+            "name": "skill-creator",
+            "label": "Skill Creator",
+            "description": "Create or update a skill",
+            "command": "skill-creator",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          },
+          {
+            "id": "<root>/codex/skills/.system/skill-installer/SKILL.md",
+            "name": "skill-installer",
+            "label": "Skill Installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "command": "skill-installer",
+            "group": "builtin",
+            "plugin": null,
+            "enabled": true,
+            "locked": false
+          }
+        ],
+        "commands": [
+          {
+            "name": "compact",
+            "description": "Summarize the conversation to free up context",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": true,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "greet",
+            "description": "Say hello",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "tidy",
+            "description": "Tidy up",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "imagegen",
+            "description": "Generate or edit images for websites, games, and more",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "openai-docs",
+            "description": "OpenAI and Codex docs for models, skills, tasks, and setup",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "review-agent",
+            "description": "Find actionable bugs in code changes",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-creator",
+            "description": "Create or update a skill",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "skill-installer",
+            "description": "Install curated skills from openai/skills or other repos",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          }
+        ]
+      },
+      "at": 1793264730185
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "mcp": [
+          {
+            "name": "echo",
+            "label": "echo",
+            "place": "other",
+            "state": "connected",
+            "status": "connected",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": null,
+            "server": {
+              "name": "echo",
+              "version": "1.0.0"
+            },
+            "tools": [
+              "echo"
+            ],
+            "toolServer": "echo"
+          },
+          {
+            "name": "remote",
+            "label": "remote",
+            "place": "other",
+            "state": "connecting",
+            "status": "starting",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": {
+              "url": "http://127.0.0.1:9"
+            },
+            "server": null,
+            "tools": [],
+            "toolServer": "remote"
+          }
+        ]
+      },
+      "at": 1793264730312
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "mcp": [
+          {
+            "name": "echo",
+            "label": "echo",
+            "place": "other",
+            "state": "connected",
+            "status": "connected",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": null,
+            "server": {
+              "name": "echo",
+              "version": "1.0.0"
+            },
+            "tools": [
+              "echo"
+            ],
+            "toolServer": "echo"
+          },
+          {
+            "name": "remote",
+            "label": "remote",
+            "place": "other",
+            "state": "failed",
+            "status": "failed",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": {
+              "url": "http://127.0.0.1:9"
+            },
+            "server": null,
+            "tools": [],
+            "toolServer": "remote"
+          }
+        ]
+      },
+      "at": 1793264731569
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793264731725
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793264731725
+    },
+    {
+      "type": "reply",
+      "at": 1793264731725
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "/greet say hi",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793264731756
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793264731801
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "GREETED",
+      "at": 1793264731801
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "GREETED",
+      "at": 1793264731803
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793264731806
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793264731806
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 159,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793264731812
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793264731812
+    }
+  ],
+  "outputs": [
+    {
+      "files": [
+        "src/a.ts",
+        ".agents/",
+        ".agents/skills/",
+        ".agents/skills/greet/",
+        ".agents/skills/greet/SKILL.md",
+        "README.md"
+      ]
+    },
+    {
+      "files": [
+        "src/",
+        "src/a.ts"
+      ]
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "/greet say hi",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "GREETED",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 159,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793264731812
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

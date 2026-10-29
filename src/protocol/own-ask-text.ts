@@ -1,4 +1,5 @@
 // Our own ask's answer text, as every agent that hosts the ask gives it to the model.
+import type { Answers } from "../agent/ask.ts"
 import { ownAskMatrix, ownAskPages } from "./messages.ts"
 
 // The model sees notes only under a question's own key, so an additional note joins the last question's notes.
@@ -32,4 +33,22 @@ export function ownAskAnswerText(
   const matrix = ownAskMatrix.safeParse(input).data?.matrix
   const body = matrix ? `"${matrix.question}": ${pairs}` : pairs
   return `Your questions have been answered: ${body}. You can now continue with these answers in mind.`
+}
+
+// The answers as the Claude adapter gives them for its own ask. A page's extra note joins the last question's notes.
+export function ownAskAnswered(
+  input: unknown,
+  given: Answers,
+): { said: string; answers: Record<string, string>; notes: Record<string, string> } {
+  const keys = ownAskKeys(input)
+  const answered = keys.filter((key) => given.values[key] !== undefined)
+  const answers = Object.fromEntries(answered.map((key) => [key, given.values[key]?.join(", ") ?? ""]))
+  const typed = Object.fromEntries(Object.entries(given.notes).filter(([, note]) => note !== ""))
+  const last = ownAskMatrix.safeParse(input).success ? undefined : keys.at(-1)
+  const notes = withAdditionalNote(typed, last, given.note.trim())
+  return {
+    said: ownAskAnswerText(input, answers, notes),
+    answers,
+    notes: Object.fromEntries(answered.flatMap((key) => (notes[key] ? [[key, notes[key]]] : []))),
+  }
 }

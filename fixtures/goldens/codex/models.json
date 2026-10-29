@@ -1,0 +1,1807 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793259042000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793259042000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793259042000
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "models": [
+          {
+            "provider": {
+              "id": "mock",
+              "name": "Mock"
+            },
+            "applies": "now",
+            "models": [
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-6.1-sol"
+                },
+                "label": "GPT-6.1-Sol",
+                "note": "Latest workhorse model for coding and everyday work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-6-astra"
+                },
+                "label": "GPT-6-Astra",
+                "note": "Frontier intelligence for the most demanding work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-6-sol"
+                },
+                "label": "GPT-6-Sol",
+                "note": "Previous generation workhorse model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-6-luna"
+                },
+                "label": "GPT-6-Luna",
+                "note": "Fast and affordable model for easier tasks.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-5.6-sol"
+                },
+                "label": "GPT-5.6-Sol",
+                "note": "Older generation workhorse model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-6.1-terra"
+                },
+                "label": "GPT-6.1 Terra",
+                "note": "GPT-6.1 Terra Codex model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-5.6-terra"
+                },
+                "label": "GPT-5.6-Terra",
+                "note": "Older balanced model for straightforward work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-5.6-luna"
+                },
+                "label": "GPT-5.6-Luna",
+                "note": "Older fast and efficient model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "mock",
+                  "id": "gpt-5.5"
+                },
+                "label": "GPT-5.5",
+                "note": "Legacy coding model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  }
+                ],
+                "images": true
+              }
+            ]
+          },
+          {
+            "provider": {
+              "id": "other",
+              "name": "Other"
+            },
+            "applies": "new-session",
+            "models": [
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-6.1-sol"
+                },
+                "label": "GPT-6.1-Sol",
+                "note": "Latest workhorse model for coding and everyday work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-6-astra"
+                },
+                "label": "GPT-6-Astra",
+                "note": "Frontier intelligence for the most demanding work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-6-sol"
+                },
+                "label": "GPT-6-Sol",
+                "note": "Previous generation workhorse model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-6-luna"
+                },
+                "label": "GPT-6-Luna",
+                "note": "Fast and affordable model for easier tasks.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-5.6-sol"
+                },
+                "label": "GPT-5.6-Sol",
+                "note": "Older generation workhorse model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-6.1-terra"
+                },
+                "label": "GPT-6.1 Terra",
+                "note": "GPT-6.1 Terra Codex model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low",
+                    "note": "default"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-5.6-terra"
+                },
+                "label": "GPT-5.6-Terra",
+                "note": "Older balanced model for straightforward work.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  },
+                  {
+                    "id": "ultra",
+                    "label": "ultra"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-5.6-luna"
+                },
+                "label": "GPT-5.6-Luna",
+                "note": "Older fast and efficient model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  },
+                  {
+                    "id": "max",
+                    "label": "max"
+                  }
+                ],
+                "images": true
+              },
+              {
+                "ref": {
+                  "provider": "other",
+                  "id": "gpt-5.5"
+                },
+                "label": "GPT-5.5",
+                "note": "Legacy coding model.",
+                "resolves": null,
+                "efforts": [
+                  {
+                    "id": "low",
+                    "label": "low"
+                  },
+                  {
+                    "id": "medium",
+                    "label": "medium",
+                    "note": "default"
+                  },
+                  {
+                    "id": "high",
+                    "label": "high"
+                  },
+                  {
+                    "id": "xhigh",
+                    "label": "xhigh"
+                  }
+                ],
+                "images": true
+              }
+            ]
+          }
+        ]
+      },
+      "at": 1793259042113
+    },
+    {
+      "type": "effort",
+      "effort": "medium",
+      "at": 1793259042113
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.6-luna"
+      },
+      "at": 1793259042130
+    },
+    {
+      "type": "effort",
+      "effort": "high",
+      "at": 1793259042130
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259042175
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259042175
+    },
+    {
+      "type": "reply",
+      "at": 1793259042175
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "OSCAR one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259042189
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259042226
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "On gpt-5.6-l",
+      "at": 1793259042226
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "una.",
+      "at": 1793259042232
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "On gpt-5.6-luna.",
+      "at": 1793259042240
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793259042242
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793259042242
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 106,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259042244
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259042250
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259042250
+    },
+    {
+      "type": "reply",
+      "at": 1793259042250
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "OSCAR two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259042257
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0001",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793259042444
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0001",
+      "kind": "shell",
+      "name": "exec_command",
+      "title": "shell",
+      "input": {
+        "command": "/bin/zsh -lc 'sleep 1'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "unknown",
+            "command": "sleep 1"
+          }
+        ]
+      },
+      "summary": "sleep 1",
+      "detail": null,
+      "command": "sleep 1",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793259042444
+    },
+    {
+      "type": "effort",
+      "effort": "low",
+      "at": 1793259042450
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0001",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793259043317
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259043329
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Slept.",
+      "at": 1793259043329
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Slept.",
+      "at": 1793259043335
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 1090,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259043343
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259043350
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259043350
+    },
+    {
+      "type": "reply",
+      "at": 1793259043350
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "OSCAR three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259043353
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259043358
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "No summary.",
+      "at": 1793259043358
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "No summary.",
+      "at": 1793259043438
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 95,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259043449
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793259043449
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "call_mock0001",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "text-8",
+      "turn-9"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "OSCAR one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "On gpt-5.6-luna.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 106,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259042244
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "OSCAR two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "call_mock0001": {
+        "kind": "tool",
+        "id": "call_mock0001",
+        "name": "exec_command",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'sleep 1'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"unknown\",\"command\":\"sleep 1\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'sleep 1'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "unknown",
+              "command": "sleep 1"
+            }
+          ]
+        },
+        "summary": "sleep 1",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Slept.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 1090,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259043343
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "OSCAR three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "No summary.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0,
+        "durationMs": 95,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259043449
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.6-luna"
+    },
+    "models": [
+      {
+        "provider": {
+          "id": "mock",
+          "name": "Mock"
+        },
+        "applies": "now",
+        "models": [
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-6.1-sol"
+            },
+            "label": "GPT-6.1-Sol",
+            "note": "Latest workhorse model for coding and everyday work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-6-astra"
+            },
+            "label": "GPT-6-Astra",
+            "note": "Frontier intelligence for the most demanding work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-6-sol"
+            },
+            "label": "GPT-6-Sol",
+            "note": "Previous generation workhorse model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-6-luna"
+            },
+            "label": "GPT-6-Luna",
+            "note": "Fast and affordable model for easier tasks.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-5.6-sol"
+            },
+            "label": "GPT-5.6-Sol",
+            "note": "Older generation workhorse model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-6.1-terra"
+            },
+            "label": "GPT-6.1 Terra",
+            "note": "GPT-6.1 Terra Codex model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-5.6-terra"
+            },
+            "label": "GPT-5.6-Terra",
+            "note": "Older balanced model for straightforward work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-5.6-luna"
+            },
+            "label": "GPT-5.6-Luna",
+            "note": "Older fast and efficient model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "mock",
+              "id": "gpt-5.5"
+            },
+            "label": "GPT-5.5",
+            "note": "Legacy coding model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              }
+            ],
+            "images": true
+          }
+        ]
+      },
+      {
+        "provider": {
+          "id": "other",
+          "name": "Other"
+        },
+        "applies": "new-session",
+        "models": [
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-6.1-sol"
+            },
+            "label": "GPT-6.1-Sol",
+            "note": "Latest workhorse model for coding and everyday work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-6-astra"
+            },
+            "label": "GPT-6-Astra",
+            "note": "Frontier intelligence for the most demanding work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-6-sol"
+            },
+            "label": "GPT-6-Sol",
+            "note": "Previous generation workhorse model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-6-luna"
+            },
+            "label": "GPT-6-Luna",
+            "note": "Fast and affordable model for easier tasks.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-5.6-sol"
+            },
+            "label": "GPT-5.6-Sol",
+            "note": "Older generation workhorse model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-6.1-terra"
+            },
+            "label": "GPT-6.1 Terra",
+            "note": "GPT-6.1 Terra Codex model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low",
+                "note": "default"
+              },
+              {
+                "id": "medium",
+                "label": "medium"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-5.6-terra"
+            },
+            "label": "GPT-5.6-Terra",
+            "note": "Older balanced model for straightforward work.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              },
+              {
+                "id": "ultra",
+                "label": "ultra"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-5.6-luna"
+            },
+            "label": "GPT-5.6-Luna",
+            "note": "Older fast and efficient model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              },
+              {
+                "id": "max",
+                "label": "max"
+              }
+            ],
+            "images": true
+          },
+          {
+            "ref": {
+              "provider": "other",
+              "id": "gpt-5.5"
+            },
+            "label": "GPT-5.5",
+            "note": "Legacy coding model.",
+            "resolves": null,
+            "efforts": [
+              {
+                "id": "low",
+                "label": "low"
+              },
+              {
+                "id": "medium",
+                "label": "medium",
+                "note": "default"
+              },
+              {
+                "id": "high",
+                "label": "high"
+              },
+              {
+                "id": "xhigh",
+                "label": "xhigh"
+              }
+            ],
+            "images": true
+          }
+        ]
+      }
+    ],
+    "effort": "low"
+  }
+}

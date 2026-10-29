@@ -820,9 +820,16 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "choice" ? open.kind : null
   }
-  // A pick goes to the agent only when it changed what the knobs show.
+  // A pick goes to the agent only when it changed what the knobs show. One the agent turns down goes back to what the
+  // session runs.
   const toModel = (id: string | null) => {
-    if (id !== null) void props.knobs?.setModel(modelRef(id))
+    if (id === null || !props.knobs) return
+    void props.knobs.setModel(modelRef(id)).then((picked) => {
+      if (picked.ok) return
+      setControlProblem({ text: picked.problem })
+      const running = sessionModel()
+      if (running) setKnobs({ model: running })
+    })
   }
   // An agent that tells its models, model and effort as events has them in the session, and the knobs show them.
   createEffect(

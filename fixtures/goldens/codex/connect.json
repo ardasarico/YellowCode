@@ -1,0 +1,119 @@
+{
+  "info": {
+    "id": "00000000-0000-7000-8000-000000000001",
+    "model": "gpt-5.5",
+    "permissionMode": "auto",
+    "cwd": "<root>/project",
+    "cliVersion": "0.165.0",
+    "tools": [],
+    "mcpServers": [],
+    "skills": [],
+    "slashCommands": [],
+    "agents": [],
+    "plugins": [],
+    "apiKeySource": "none"
+  },
+  "status": "ended",
+  "items": [
+    "user-1",
+    "text-2",
+    "turn-3",
+    "system-4",
+    "user-5",
+    "text-6",
+    "turn-7"
+  ],
+  "byId": {
+    "user-1": {
+      "kind": "user",
+      "id": "user-1",
+      "text": "ALPHA say hello",
+      "images": [],
+      "to": null,
+      "queue": null,
+      "uuid": "prompt-1"
+    },
+    "text-2": {
+      "kind": "text",
+      "id": "text-2",
+      "markdown": "Hello from Codex.",
+      "streaming": false
+    },
+    "turn-3": {
+      "kind": "turn-end",
+      "id": "turn-3",
+      "costUsd": 0,
+      "durationMs": 74,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "error": null,
+      "retries": 0,
+      "interrupted": false,
+      "endedAt": 1793255105077
+    },
+    "system-4": {
+      "kind": "system",
+      "id": "system-4",
+      "text": "Codex stopped responding",
+      "level": "error",
+      "detail": []
+    },
+    "user-5": {
+      "kind": "user",
+      "id": "user-5",
+      "text": "BRAVO are you back?",
+      "images": [],
+      "to": null,
+      "queue": null,
+      "uuid": "prompt-2"
+    },
+    "text-6": {
+      "kind": "text",
+      "id": "text-6",
+      "markdown": "Still here after the restart.",
+      "streaming": false
+    },
+    "turn-7": {
+      "kind": "turn-end",
+      "id": "turn-7",
+      "costUsd": 0,
+      "durationMs": 31,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "error": null,
+      "retries": 0,
+      "interrupted": false,
+      "endedAt": 1793255105189
+    }
+  },
+  "tasks": {},
+  "mcpServers": null,
+  "plugins": null,
+  "usage": {
+    "startedAt": 1800000000000,
+    "tokens": 2760,
+    "costUsd": 0,
+    "context": {
+      "used": 1380,
+      "window": 258400
+    },
+    "limits": {
+      "fiveHour": null,
+      "week": null,
+      "models": {}
+    },
+    "warning": null
+  },
+  "rewound": null,
+  "interrupting": false,
+  "turn": null,
+  "permissionMode": null,
+  "claudeTitle": null,
+  "conversation": 0,
+  "compacting": false,
+  "carried": [],
+  "model": {
+    "provider": "mock",
+    "id": "gpt-5.5"
+  }
+}

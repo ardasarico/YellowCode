@@ -1,0 +1,330 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793261052000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "full-access",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261052000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793261052000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261053033
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261053033
+    },
+    {
+      "type": "reply",
+      "at": 1793261053033
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "OSCAR run a slow command",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261053047
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0001",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793261053231
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0001",
+      "kind": "shell",
+      "name": "exec_command",
+      "title": "shell",
+      "input": {
+        "command": "/bin/zsh -lc 'sleep 1; echo slept'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "unknown",
+            "command": "sleep 1; echo slept"
+          }
+        ]
+      },
+      "summary": "sleep 1; echo slept",
+      "detail": null,
+      "command": "sleep 1; echo slept",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793261053231
+    },
+    {
+      "type": "tool.output",
+      "id": "call_mock0001",
+      "text": "slept\n",
+      "at": 1793261054095
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0001",
+      "status": "done",
+      "result": "slept\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793261054096
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793261054101
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793261054101
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "also mention the weather",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": false,
+      "at": 1793261054101
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-2"
+      ],
+      "at": 1793261054101
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261054115
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Slept, and n",
+      "at": 1793261054115
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "oted the wea",
+      "at": 1793261054120
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "ther.",
+      "at": 1793261054127
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Slept, and noted the weather.",
+      "at": 1793261054134
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 1143,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261054140
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793261054140
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "full-access",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0001",
+      "user-2",
+      "text-3",
+      "turn-4"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "OSCAR run a slow command",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0001": {
+        "kind": "tool",
+        "id": "call_mock0001",
+        "name": "exec_command",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'sleep 1; echo slept'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"unknown\",\"command\":\"sleep 1; echo slept\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'sleep 1; echo slept'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "unknown",
+              "command": "sleep 1; echo slept"
+            }
+          ]
+        },
+        "summary": "sleep 1; echo slept",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "slept\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "user-2": {
+        "kind": "user",
+        "id": "user-2",
+        "text": "also mention the weather",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "Slept, and noted the weather.",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0,
+        "durationMs": 1143,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261054140
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

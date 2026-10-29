@@ -1,0 +1,300 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793254964000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793254964000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793254964000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254964970
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254964970
+    },
+    {
+      "type": "reply",
+      "at": 1793254964970
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "KILO one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254964974
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254964979
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "First answer",
+      "at": 1793254964979
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": ".",
+      "at": 1793254964984
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "First answer.",
+      "at": 1793254964990
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793254964992
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793254964992
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 45,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254964994
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254964997
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254964997
+    },
+    {
+      "type": "reply",
+      "at": 1793254964997
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "KILO two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254965000
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254965005
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Second answe",
+      "at": 1793254965005
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "r, after the",
+      "at": 1793254965010
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": " first.",
+      "at": 1793254965016
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Second answer, after the first.",
+      "at": 1793254965022
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 28,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254965025
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793254965025
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "KILO one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "First answer.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 45,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254964994
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "KILO two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Second answer, after the first.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 28,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254965025
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

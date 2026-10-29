@@ -1,0 +1,615 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793259137000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "read-only",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793259137000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793259137000
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "read-only",
+            "label": "Read Only",
+            "description": "Reads files; asks before it edits or goes online",
+            "kind": "readonly",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "auto",
+            "label": "Default",
+            "description": "Reads, edits and runs commands in this folder; asks before anything else",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "Plan",
+            "description": "Plans first and changes nothing until you start",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "full-access",
+            "label": "Full Access",
+            "description": "Edits anywhere and goes online without asking",
+            "kind": "bypass",
+            "cycle": false,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793259137487
+    },
+    {
+      "type": "mode",
+      "mode": "read-only",
+      "at": 1793259137487
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259137557
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259137557
+    },
+    {
+      "type": "reply",
+      "at": 1793259137557
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "NOVEMBER one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259137571
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259137584
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Read only.",
+      "at": 1793259137584
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Read only.",
+      "at": 1793259137588
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793259137589
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793259137589
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 69,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259137594
+    },
+    {
+      "type": "mode",
+      "mode": "auto",
+      "at": 1793259137596
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259137599
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259137599
+    },
+    {
+      "type": "reply",
+      "at": 1793259137599
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "NOVEMBER two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259137604
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259137609
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Default.",
+      "at": 1793259137609
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Default.",
+      "at": 1793259137616
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 19,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259137620
+    },
+    {
+      "type": "mode",
+      "mode": "plan",
+      "at": 1793259137621
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259137624
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259137624
+    },
+    {
+      "type": "reply",
+      "at": 1793259137624
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "NOVEMBER three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259137629
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259137633
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "Planning.",
+      "at": 1793259137634
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "Planning.",
+      "at": 1793259137640
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 18,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259137643
+    },
+    {
+      "type": "mode",
+      "mode": "full-access",
+      "at": 1793259137644
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793259137646
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793259137646
+    },
+    {
+      "type": "reply",
+      "at": 1793259137646
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "NOVEMBER four",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793259137649
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0004",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793259137652
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0004",
+      "text": "Full access.",
+      "at": 1793259137652
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0004",
+      "text": "Full access.",
+      "at": 1793259137658
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 14,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793259137662
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793259137662
+    },
+    {
+      "type": "ready",
+      "at": 1793259137000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "full-access",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793259137000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793259137000
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793259137774
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793259137774
+    },
+    {
+      "type": "mode",
+      "mode": "read-only",
+      "at": 1793259137793
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793259137793
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "full-access",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "text-8",
+      "turn-9",
+      "user-10",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "NOVEMBER one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Read only.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 69,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259137594
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "NOVEMBER two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Default.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 19,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259137620
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "NOVEMBER three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Planning.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0,
+        "durationMs": 18,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259137643
+      },
+      "user-10": {
+        "kind": "user",
+        "id": "user-10",
+        "text": "NOVEMBER four",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "Full access.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0,
+        "durationMs": 14,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793259137662
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "read-only",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    },
+    "modes": [
+      {
+        "id": "read-only",
+        "label": "Read Only",
+        "description": "Reads files; asks before it edits or goes online",
+        "kind": "readonly",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "auto",
+        "label": "Default",
+        "description": "Reads, edits and runs commands in this folder; asks before anything else",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "Plan",
+        "description": "Plans first and changes nothing until you start",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "full-access",
+        "label": "Full Access",
+        "description": "Edits anywhere and goes online without asking",
+        "kind": "bypass",
+        "cycle": false,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

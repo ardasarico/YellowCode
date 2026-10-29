@@ -1,0 +1,397 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793266936000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793266936000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793266936000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793266936837
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793266936837
+    },
+    {
+      "type": "reply",
+      "at": 1793266936837
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "VICTOR one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793266936871
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793266936893
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "One.",
+      "at": 1793266936893
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "One.",
+      "at": 1793266936895
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793266936897
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793266936897
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 153,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793266936902
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793266936906
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793266936906
+    },
+    {
+      "type": "reply",
+      "at": 1793266936906
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "VICTOR two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793266936912
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793266936916
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Two.",
+      "at": 1793266936916
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Two.",
+      "at": 1793266936923
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 19,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793266936931
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793266937030
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793266937030
+    },
+    {
+      "type": "reply",
+      "at": 1793266937030
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "VICTOR three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793266937046
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793266937051
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "Three, after",
+      "at": 1793266937051
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": " one.",
+      "at": 1793266937057
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "Three, after one.",
+      "at": 1793266937064
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 39,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793266937074
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793266937074
+    }
+  ],
+  "outputs": [
+    {
+      "sessions": [
+        {
+          "ref": {
+            "agent": "codex",
+            "id": "00000000-0000-7000-8000-000000000001"
+          },
+          "title": "VICTOR one",
+          "firstPrompt": "VICTOR one",
+          "cwd": "<root>/project",
+          "branch": "main",
+          "model": {
+            "provider": "mock",
+            "id": "gpt-5.5"
+          },
+          "modified": 1793266937000
+        }
+      ]
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6",
+      "user-7",
+      "text-8",
+      "turn-9"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "VICTOR one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "One.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 153,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793266936902
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "VICTOR two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Two.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 19,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793266936931
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "VICTOR three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Three, after one.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0,
+        "durationMs": 39,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793266937074
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

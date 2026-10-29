@@ -1,0 +1,231 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793254963000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793254963000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793254963000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254963763
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254963763
+    },
+    {
+      "type": "reply",
+      "at": 1793254963763
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "TEXT what is this image?",
+      "images": [
+        {
+          "name": "Image 1",
+          "mediaType": "image/png",
+          "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4f4bhPwAHZALLB0SopwAAAABJRU5ErkJggg==",
+          "path": null
+        }
+      ],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254963782
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254963796
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "A single pix",
+      "at": 1793254963796
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "el. The read",
+      "at": 1793254963798
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "me describes",
+      "at": 1793254963804
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": " a small dem",
+      "at": 1793254963809
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "o.",
+      "at": 1793254963815
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "A single pixel. The readme describes a small demo.",
+      "at": 1793254963822
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793254963823
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793254963823
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 99,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254963828
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793254963828
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "TEXT what is this image?",
+        "images": [
+          {
+            "name": "Image 1",
+            "mediaType": "image/png",
+            "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4f4bhPwAHZALLB0SopwAAAABJRU5ErkJggg==",
+            "path": null
+          }
+        ],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "A single pixel. The readme describes a small demo.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 99,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254963828
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

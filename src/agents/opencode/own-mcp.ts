@@ -5,14 +5,14 @@
 // The user's answer is the call's result.
 import { z } from "zod"
 import type { ClientTool } from "../../agent/agent.ts"
-import type { Ask, Answers, AskReply } from "../../agent/ask.ts"
+import type { Ask, AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId } from "../../agent/ids.ts"
 import { log } from "../../log/log.ts"
 import { callClientTool, mcpToolEntry } from "../../protocol/mcp-tools.ts"
 import { OWN_ASK, ownAskMatrix, ownAskPages } from "../../protocol/messages.ts"
 import { NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../../protocol/outgoing.ts"
-import { ownAskAnswerText, ownAskKeys, withAdditionalNote } from "../../protocol/own-ask-text.ts"
+import { ownAskAnswered } from "../../protocol/own-ask-text.ts"
 import { OWN_ASK_DESCRIPTION, OWN_ASK_SCHEMA } from "../../source/own-ask-tool.ts"
 import { ownAskProblem, questionsOf } from "../claude/ask-input.ts"
 import type { Clock } from "./sse.ts"
@@ -77,24 +77,6 @@ function ownAsk(id: AskId, handle: RpcId, input: unknown): Ask {
     safety: false,
     by: null,
     own: { handle },
-  }
-}
-
-// The answers as the Claude adapter gives them for its own ask. A page's extra note joins the last question's notes.
-function answeredText(
-  input: unknown,
-  given: Answers,
-): { said: string; answers: Record<string, string>; notes: Record<string, string> } {
-  const keys = ownAskKeys(input)
-  const answered = keys.filter((key) => given.values[key] !== undefined)
-  const answers = Object.fromEntries(answered.map((key) => [key, given.values[key]?.join(", ") ?? ""]))
-  const typed = Object.fromEntries(Object.entries(given.notes).filter(([, note]) => note !== ""))
-  const last = ownAskMatrix.safeParse(input).success ? undefined : keys.at(-1)
-  const notes = withAdditionalNote(typed, last, given.note.trim())
-  return {
-    said: ownAskAnswerText(input, answers, notes),
-    answers,
-    notes: Object.fromEntries(answered.flatMap((key) => (notes[key] ? [[key, notes[key]]] : []))),
   }
 }
 
@@ -334,7 +316,7 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
       const known = open.get(id)
       if (!known) return false
       if (reply.type === "answers") {
-        const { said, answers, notes } = answeredText(known.input, reply.answers)
+        const { said, answers, notes } = ownAskAnswered(known.input, reply.answers)
         known.socket.send(text(known.handle, said))
         settle(id, { status: "answered", answers, notes })
         return true

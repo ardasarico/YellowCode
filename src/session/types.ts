@@ -2,7 +2,7 @@ import type { Ask as AgentAsk, AskOption, AskOutcome, Denial, Questions } from "
 import type { AgentEvent } from "../agent/events.ts"
 import type { EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { ModelGroup, ModeRow } from "../agent/lists.ts"
-import type { FileChange, ToolKind } from "../agent/tools.ts"
+import type { FileChange, Todo, ToolKind } from "../agent/tools.ts"
 import type { Rewound } from "./rewind.ts"
 
 export type ItemId = string
@@ -291,6 +291,8 @@ export type Session = {
   models?: ModelGroup[]
   model?: ModelRef | null
   effort?: EffortId | null
+  // The working plan an agent tells as steps outside any tool call; absent until it does.
+  todos?: Todo[]
   // The title Claude Code keeps for the session: the last rename, YellowCode's own or a typed /rename.
   claudeTitle: string | null
   // How many times claude started the conversation over (/clear).

@@ -2,7 +2,7 @@ import { readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { createRoot } from "solid-js"
 import { createStore } from "solid-js/store"
-import type { ClientTool } from "../agent/agent.ts"
+import type { ClientTool, McpLaunch } from "../agent/agent.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId } from "../agent/ids.ts"
 import { log } from "../log/log.ts"
@@ -83,7 +83,31 @@ export type ModHost = {
   // A running mod's manifest servers by the name the agent gets, mod-<id>--<name>; none for an agent that takes no MCP
   // servers.
   servers(id: string): Record<string, unknown>
+  // Every running mod's manifest servers, for an agent that takes them as launches.
+  launches(): McpLaunch[]
   onFailure(listener: (failure: ModFailure) => void): () => void
+}
+
+const strings = (value: unknown): Record<string, string> =>
+  typeof value === "object" && value !== null
+    ? Object.fromEntries(
+        Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+      )
+    : {}
+
+// A manifest server in the .mcp.json shape as the neutral launch. Fields a launch has no room for are dropped (owner
+// question 17), and a server with neither a command nor a url is left out.
+function launchOf(name: string, config: Record<string, unknown>): McpLaunch | null {
+  const { type, command, url, args, env, headers, ...rest } = config
+  const dropped = Object.keys(rest)
+  if (dropped.length > 0) log.info(`mod server ${name}: ${dropped.join(", ")} not passed to the agent`)
+  if (typeof url === "string" && (type === "http" || type === "sse")) return { name, url, headers: strings(headers) }
+  if (typeof command === "string" && (type === undefined || type === "stdio")) {
+    const list = Array.isArray(args) ? args.filter((arg): arg is string => typeof arg === "string") : []
+    return { name, command, args: list, env: strings(env) }
+  }
+  log.warn(`mod server ${name} has neither a command nor an http url, not passed to the agent`)
+  return null
 }
 
 function textOf(result: ModToolResult): { text: string; error: boolean } {
@@ -371,6 +395,16 @@ export function createModHost(options: {
     await load(id)
   }
 
+  function serversOf(id: string): Record<string, Record<string, unknown>> {
+    const entry = entries[indexOf(id)]
+    if (entry?.status !== "on" || agent?.caps.mcpServers === "none") return {}
+    const servers: Record<string, Record<string, unknown>> = {}
+    // Ids never hold "--", so a manifest server cannot take another mod's name.
+    for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
+      servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = config
+    return servers
+  }
+
   return {
     entries,
     folder: options.folder,
@@ -399,14 +433,14 @@ export function createModHost(options: {
     },
     settings: (id) => running.get(id)?.settings ?? null,
     clientTools: modClientTools,
-    servers(id) {
-      const entry = entries[indexOf(id)]
-      if (entry?.status !== "on" || agent?.caps.mcpServers === "none") return {}
-      const servers: Record<string, unknown> = {}
-      // Ids never hold "--", so a manifest server cannot take another mod's name.
-      for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
-        servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = config
-      return servers
+    servers: serversOf,
+    launches() {
+      return entries.flatMap((entry) =>
+        Object.entries(serversOf(entry.id)).flatMap(([name, config]) => {
+          const launch = launchOf(name, config)
+          return launch ? [launch] : []
+        }),
+      )
     },
     fail(id, error) {
       if (!running.has(id)) return

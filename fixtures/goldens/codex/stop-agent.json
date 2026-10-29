@@ -1,0 +1,613 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793261432000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "full-access",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261432000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793261432000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261433016
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261433016
+    },
+    {
+      "type": "reply",
+      "at": 1793261433016
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "ZULU have a helper sleep",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261433019
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793261433031
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793261433031
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0002",
+      "parent": null,
+      "name": "spawnAgent",
+      "kind": "agent",
+      "title": "agent",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793261433040
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "agent",
+      "name": "spawnAgent",
+      "title": "agent",
+      "input": {
+        "prompt": "HOTEL sleep a while",
+        "model": "",
+        "agents": []
+      },
+      "summary": "HOTEL sleep a while",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "agent",
+        "task": "HOTEL sleep a while",
+        "prompt": "HOTEL sleep a while",
+        "type": "",
+        "model": ""
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793261433040
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "agent",
+      "name": "spawnAgent",
+      "title": "agent",
+      "input": {
+        "prompt": "HOTEL sleep a while",
+        "model": "gpt-5.5",
+        "agents": [
+          "00000000-0000-7000-8000-000000000004"
+        ]
+      },
+      "summary": "HOTEL sleep a while",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": {
+        "name": "agent",
+        "task": "HOTEL sleep a while",
+        "prompt": "HOTEL sleep a while",
+        "type": "",
+        "model": "gpt-5.5"
+      },
+      "message": null,
+      "todos": null,
+      "at": 1793261433060
+    },
+    {
+      "type": "task.start",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "kind": "agent",
+      "taskType": "local_agent",
+      "call": "call_mock0002",
+      "parent": null,
+      "depth": null,
+      "background": true,
+      "resumed": false,
+      "description": "HOTEL sleep a while",
+      "prompt": "HOTEL sleep a while",
+      "workflow": "",
+      "agentType": "",
+      "at": 1793261433060
+    },
+    {
+      "type": "subagent.model",
+      "call": "call_mock0002",
+      "model": "gpt-5.5",
+      "at": 1793261433060
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0002",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": true,
+      "task": "00000000-0000-7000-8000-000000000004",
+      "files": [],
+      "at": 1793261433060
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0003",
+      "parent": null,
+      "name": "wait",
+      "kind": "other",
+      "title": "wait",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793261433073
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0003",
+      "kind": "other",
+      "name": "wait",
+      "title": "wait",
+      "input": {
+        "prompt": null,
+        "model": null,
+        "agents": [
+          "00000000-0000-7000-8000-000000000004"
+        ]
+      },
+      "summary": "1 agent",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793261433073
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0004",
+      "parent": "call_mock0002",
+      "name": "exec_command",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793261433290
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0004",
+      "kind": "shell",
+      "name": "exec_command",
+      "title": "shell",
+      "input": {
+        "command": "/bin/zsh -lc 'sleep 20'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "unknown",
+            "command": "sleep 20"
+          }
+        ]
+      },
+      "summary": "sleep 20",
+      "detail": null,
+      "command": "sleep 20",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793261433290
+    },
+    {
+      "type": "task.progress",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "activity": "shell sleep 20",
+      "lastTool": "exec_command",
+      "toolUses": 1,
+      "durationMs": 230,
+      "tokens": null,
+      "at": 1793261433290
+    },
+    {
+      "type": "task.stopping",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "at": 1793261433290
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0004",
+      "status": "stopped",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793261433297
+    },
+    {
+      "type": "task.end",
+      "id": "00000000-0000-7000-8000-000000000004",
+      "state": "stopped",
+      "report": {
+        "summary": "",
+        "outputFile": null,
+        "usage": {
+          "toolUses": 1,
+          "durationMs": 237,
+          "tokens": null
+        },
+        "stoppedByUser": true
+      },
+      "call": "call_mock0002",
+      "at": 1793261433297
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0003",
+      "kind": "other",
+      "name": "wait",
+      "title": "wait",
+      "input": {
+        "prompt": null,
+        "model": null,
+        "agents": []
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793261443079
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0003",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793261443079
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261443115
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "The helper w",
+      "at": 1793261443115
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "as stopped.",
+      "at": 1793261443121
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "The helper was stopped.",
+      "at": 1793261443128
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 10138,
+      "inputTokens": 4800,
+      "outputTokens": 720,
+      "tokens": 5520,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261443131
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793261443131
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "full-access",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0002",
+      "call_mock0003",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "ZULU have a helper sleep",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0002": {
+        "kind": "tool",
+        "id": "call_mock0002",
+        "name": "spawnAgent",
+        "toolKind": "agent",
+        "title": "agent",
+        "server": null,
+        "inputText": "{\"prompt\":\"HOTEL sleep a while\",\"model\":\"gpt-5.5\",\"agents\":[\"00000000-0000-7000-8000-000000000004\"]}",
+        "input": {
+          "prompt": "HOTEL sleep a while",
+          "model": "gpt-5.5",
+          "agents": [
+            "00000000-0000-7000-8000-000000000004"
+          ]
+        },
+        "summary": "HOTEL sleep a while",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [
+          "call_mock0004"
+        ],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": {
+          "name": "agent",
+          "task": "HOTEL sleep a while",
+          "prompt": "HOTEL sleep a while",
+          "type": "",
+          "model": "gpt-5.5",
+          "tokens": 0,
+          "state": "stopped",
+          "toolUses": 1,
+          "durationMs": 237,
+          "report": "",
+          "error": null,
+          "activity": "shell sleep 20",
+          "stoppedByUser": true
+        },
+        "taskId": "00000000-0000-7000-8000-000000000004"
+      },
+      "call_mock0003": {
+        "kind": "tool",
+        "id": "call_mock0003",
+        "name": "wait",
+        "toolKind": "other",
+        "title": "wait",
+        "server": null,
+        "inputText": "{\"prompt\":null,\"model\":null,\"agents\":[]}",
+        "input": {
+          "prompt": null,
+          "model": null,
+          "agents": []
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0004": {
+        "kind": "tool",
+        "id": "call_mock0004",
+        "name": "exec_command",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'sleep 20'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"unknown\",\"command\":\"sleep 20\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'sleep 20'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "unknown",
+              "command": "sleep 20"
+            }
+          ]
+        },
+        "summary": "sleep 20",
+        "detail": null,
+        "background": false,
+        "status": "stopped",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The helper was stopped.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 10138,
+        "inputTokens": 4800,
+        "outputTokens": 720,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261443131
+      }
+    },
+    "tasks": {
+      "00000000-0000-7000-8000-000000000004": {
+        "id": "00000000-0000-7000-8000-000000000004",
+        "type": "local_agent",
+        "toolUseId": "call_mock0002",
+        "parentId": null,
+        "depth": 1,
+        "background": true,
+        "state": "stopped",
+        "name": "agent",
+        "description": "HOTEL sleep a while",
+        "prompt": "HOTEL sleep a while",
+        "workflowName": "",
+        "startedAt": 1800000000000,
+        "activity": "shell sleep 20",
+        "lastTool": "exec_command",
+        "toolUses": 1,
+        "durationMs": 237,
+        "tokens": 0,
+        "summary": "",
+        "outputFile": null,
+        "error": null,
+        "workflow": null,
+        "command": "",
+        "endedAt": 1800000000000,
+        "output": null,
+        "outputBytes": 0,
+        "truncated": false
+      }
+    },
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

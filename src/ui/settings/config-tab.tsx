@@ -94,9 +94,10 @@ export function ConfigTab(props: {
     if (value === null) return "…"
     return choicesOf(row).find((option) => option.value === value)?.label ?? String(value)
   }
-  // Interim until owner questions 7 and 8 say how read-only rows, `applies` and `origin` are drawn: only writable rows.
+  // Interim until owner questions 7 and 8 say how read-only rows, number and text rows, `applies` and `origin` are
+  // drawn: only writable rows with choices.
   const agentSections = (): DialogSection[] => {
-    const rows = (props.agentSettings?.rows ?? []).filter((row) => row.writable)
+    const rows = (props.agentSettings?.rows ?? []).filter((row) => row.writable && row.control.type === "choice")
     return [...new Set(rows.map((row) => row.section))].map((section) => ({
       title: section || (props.agentSettings?.name ?? ""),
       rows: rows

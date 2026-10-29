@@ -14,7 +14,7 @@ const PERMISSIONS: CommandRow = {
   knob: null,
 }
 
-// opencode's /clear is its own terminal's; here YellowCode starts a new session.
+// The agent's /clear is its own terminal's (opencode's, Codex's); here YellowCode starts a new session.
 const CLEAR: CommandRow = {
   name: "clear",
   description: "Start a new session; this one stays in /resume",
@@ -25,13 +25,14 @@ const CLEAR: CommandRow = {
   knob: null,
 }
 
-// The lists of the session on screen: opencode's commands, then /clear, /permissions, YellowCode's commands and the
-// mods'.
-export const opencodeProvider = (
+// The lists of the session on screen, for an agent that tells them as events: its commands, then /clear, `extra`,
+// YellowCode's commands and the mods'.
+export const listedProvider = (
   store: () => SessionStore,
   files: (query: string) => Promise<string[]>,
+  extra: CommandRow[] = [],
 ): InputProvider => ({
-  commands: () => withModCommands(agentCommands([...(store().lists().commands ?? []), CLEAR, PERMISSIONS], [])),
+  commands: () => withModCommands(agentCommands([...(store().lists().commands ?? []), CLEAR, ...extra], [])),
   blocked: () => false,
   setting: () => null,
   knob: () => null,
@@ -44,3 +45,7 @@ export const opencodeProvider = (
   plan: () => null,
   files,
 })
+
+// opencode's lists, with /permissions.
+export const opencodeProvider = (store: () => SessionStore, files: (query: string) => Promise<string[]>) =>
+  listedProvider(store, files, [PERMISSIONS])

@@ -1,0 +1,1752 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793255087000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793255087000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793255087000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793255087449
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793255087449
+    },
+    {
+      "type": "reply",
+      "at": 1793255087449
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "NOVEMBER try every tool",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793255087464
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0001",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255087535
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0001",
+      "kind": "read",
+      "name": "exec_command",
+      "title": "read",
+      "input": {
+        "command": "/bin/zsh -lc 'cat README.md'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "read",
+            "command": "cat README.md",
+            "name": "README.md",
+            "path": "<root>/project/README.md"
+          }
+        ]
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": "cat README.md",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255087535
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0001",
+      "status": "done",
+      "result": "# demo\n\nA small project for Codex recordings.\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": {
+        "n": 3,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255087535
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793255087537
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793255087537
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0002",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "search",
+      "title": "search",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255087589
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "search",
+      "name": "exec_command",
+      "title": "search",
+      "input": {
+        "command": "/bin/zsh -lc 'grep -rn greeting src'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "search",
+            "command": "grep -rn greeting src",
+            "path": "src",
+            "query": "greeting"
+          }
+        ]
+      },
+      "summary": "greeting in <root>/project/src",
+      "detail": null,
+      "command": "grep -rn greeting src",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255087589
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0002",
+      "status": "done",
+      "result": "src/a.ts:1:export const greeting = \"hello\"\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": {
+        "n": 1,
+        "noun": "match"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255087589
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0003",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "search",
+      "title": "list",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255087683
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0003",
+      "kind": "search",
+      "name": "exec_command",
+      "title": "list",
+      "input": {
+        "command": "/bin/zsh -lc 'ls src'",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "listFiles",
+            "command": "ls src",
+            "path": "src"
+          }
+        ]
+      },
+      "summary": "<root>/project/src",
+      "detail": null,
+      "command": "ls src",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255087683
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0003",
+      "status": "done",
+      "result": "a.ts\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 0,
+      "count": {
+        "n": 1,
+        "noun": "file"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255087684
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0004",
+      "parent": null,
+      "name": "exec_command",
+      "kind": "shell",
+      "title": "shell",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255087852
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0004",
+      "kind": "shell",
+      "name": "exec_command",
+      "title": "shell",
+      "input": {
+        "command": "/bin/zsh -lc \"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"",
+        "cwd": "<root>/project",
+        "actions": [
+          {
+            "type": "unknown",
+            "command": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3"
+          }
+        ]
+      },
+      "summary": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3",
+      "detail": null,
+      "command": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3",
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255087852
+    },
+    {
+      "type": "tool.output",
+      "id": "call_mock0004",
+      "text": "two\n",
+      "at": 1793255088124
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0004",
+      "status": "error",
+      "result": "one\ntwo\n",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": 3,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255088126
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0005",
+      "parent": null,
+      "name": "apply_patch",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255088146
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0005",
+      "kind": "edit",
+      "name": "apply_patch",
+      "title": "edit",
+      "input": {
+        "changes": [
+          {
+            "path": "<root>/project/notes.md",
+            "kind": {
+              "type": "add"
+            },
+            "diff": "# Notes\n\nWritten by the patch.\n"
+          },
+          {
+            "path": "<root>/project/src/a.ts",
+            "kind": {
+              "type": "update",
+              "move_path": null
+            },
+            "diff": "@@ -1 +1 @@\n-export const greeting = \"hello\"\n+export const greeting = \"hello, world\"\n"
+          }
+        ]
+      },
+      "summary": "<root>/project/src/a.ts and 1 more",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255088146
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0005",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 1,
+          "oldLines": 1,
+          "newStart": 1,
+          "newLines": 1,
+          "lines": [
+            "-export const greeting = \"hello\"",
+            "+export const greeting = \"hello, world\""
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/notes.md",
+          "change": "create",
+          "movedTo": null,
+          "patch": null,
+          "before": null,
+          "after": "# Notes\n\nWritten by the patch.\n"
+        },
+        {
+          "path": "<root>/project/src/a.ts",
+          "change": "update",
+          "movedTo": null,
+          "patch": [
+            {
+              "oldStart": 1,
+              "oldLines": 1,
+              "newStart": 1,
+              "newLines": 1,
+              "lines": [
+                "-export const greeting = \"hello\"",
+                "+export const greeting = \"hello, world\""
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793255088211
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0006",
+      "parent": null,
+      "name": "apply_patch",
+      "kind": "edit",
+      "title": "edit",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255088256
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0006",
+      "kind": "edit",
+      "name": "apply_patch",
+      "title": "edit",
+      "input": {
+        "changes": [
+          {
+            "path": "<root>/project/README.md",
+            "kind": {
+              "type": "delete"
+            },
+            "diff": "# demo\n\nA small project for Codex recordings.\n"
+          },
+          {
+            "path": "<root>/project/notes.md",
+            "kind": {
+              "type": "update",
+              "move_path": "<root>/project/docs/notes.md"
+            },
+            "diff": "@@ -2,2 +2,2 @@\n \n-Written by the patch.\n+Moved by the patch.\n\n\nMoved to: <root>/project/docs/notes.md"
+          }
+        ]
+      },
+      "summary": "<root>/project/notes.md and 1 more",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255088256
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0006",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": [
+        {
+          "oldStart": 2,
+          "oldLines": 2,
+          "newStart": 2,
+          "newLines": 2,
+          "lines": [
+            " ",
+            "-Written by the patch.",
+            "+Moved by the patch."
+          ]
+        }
+      ],
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [
+        {
+          "path": "<root>/project/README.md",
+          "change": "delete",
+          "movedTo": null,
+          "patch": null,
+          "before": "# demo\n\nA small project for Codex recordings.\n",
+          "after": null
+        },
+        {
+          "path": "<root>/project/notes.md",
+          "change": "move",
+          "movedTo": "<root>/project/docs/notes.md",
+          "patch": [
+            {
+              "oldStart": 2,
+              "oldLines": 2,
+              "newStart": 2,
+              "newLines": 2,
+              "lines": [
+                " ",
+                "-Written by the patch.",
+                "+Moved by the patch."
+              ]
+            }
+          ],
+          "after": null
+        }
+      ],
+      "at": 1793255088333
+    },
+    {
+      "type": "tool.start",
+      "id": "ws_mock0001",
+      "parent": null,
+      "name": "web_search",
+      "kind": "websearch",
+      "title": "websearch",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255088338
+    },
+    {
+      "type": "tool.called",
+      "id": "ws_mock0001",
+      "kind": "websearch",
+      "name": "web_search",
+      "title": "websearch",
+      "input": {
+        "query": "",
+        "action": {
+          "type": "other"
+        }
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255088338
+    },
+    {
+      "type": "tool.called",
+      "id": "ws_mock0001",
+      "kind": "websearch",
+      "name": "web_search",
+      "title": "websearch",
+      "input": {
+        "query": "codex app-server protocol",
+        "action": {
+          "type": "search",
+          "query": "codex app-server protocol",
+          "queries": null
+        }
+      },
+      "summary": "codex app-server protocol",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255088344
+    },
+    {
+      "type": "tool.end",
+      "id": "ws_mock0001",
+      "status": "done",
+      "result": "",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255088344
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0007",
+      "parent": null,
+      "name": "view_image",
+      "kind": "read",
+      "title": "view image",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793255088353
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0007",
+      "kind": "read",
+      "name": "view_image",
+      "title": "view image",
+      "input": {
+        "path": "<root>/project/pic.png"
+      },
+      "summary": "<root>/project/pic.png",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793255088353
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0007",
+      "status": "done",
+      "result": "",
+      "images": [
+        {
+          "name": "pic.png",
+          "mediaType": "image/png",
+          "data": null,
+          "path": "<root>/project/pic.png"
+        }
+      ],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793255088353
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793255088358
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "All done.",
+      "at": 1793255088358
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "All done.",
+      "at": 1793255088365
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 950,
+      "inputTokens": 9600,
+      "outputTokens": 1440,
+      "tokens": 11040,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793255088370
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793255088370
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "NOVEMBER try every tool",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0001",
+            "parent": null,
+            "name": "exec_command",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0001",
+            "kind": "read",
+            "name": "exec_command",
+            "title": "read",
+            "input": {
+              "command": "/bin/zsh -lc 'cat README.md'",
+              "cwd": "<root>/project",
+              "actions": [
+                {
+                  "type": "read",
+                  "command": "cat README.md",
+                  "name": "README.md",
+                  "path": "<root>/project/README.md"
+                }
+              ]
+            },
+            "summary": "<root>/project/README.md",
+            "detail": null,
+            "command": "cat README.md",
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0001",
+            "status": "done",
+            "result": "# demo\n\nA small project for Codex recordings.\n",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": 0,
+            "count": {
+              "n": 3,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0002",
+            "parent": null,
+            "name": "exec_command",
+            "kind": "search",
+            "title": "search",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0002",
+            "kind": "search",
+            "name": "exec_command",
+            "title": "search",
+            "input": {
+              "command": "/bin/zsh -lc 'grep -rn greeting src'",
+              "cwd": "<root>/project",
+              "actions": [
+                {
+                  "type": "search",
+                  "command": "grep -rn greeting src",
+                  "path": "src",
+                  "query": "greeting"
+                }
+              ]
+            },
+            "summary": "greeting in <root>/project/src",
+            "detail": null,
+            "command": "grep -rn greeting src",
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0002",
+            "status": "done",
+            "result": "src/a.ts:1:export const greeting = \"hello\"\n",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": 0,
+            "count": {
+              "n": 1,
+              "noun": "match"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0003",
+            "parent": null,
+            "name": "exec_command",
+            "kind": "search",
+            "title": "list",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0003",
+            "kind": "search",
+            "name": "exec_command",
+            "title": "list",
+            "input": {
+              "command": "/bin/zsh -lc 'ls src'",
+              "cwd": "<root>/project",
+              "actions": [
+                {
+                  "type": "listFiles",
+                  "command": "ls src",
+                  "path": "src"
+                }
+              ]
+            },
+            "summary": "<root>/project/src",
+            "detail": null,
+            "command": "ls src",
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0003",
+            "status": "done",
+            "result": "a.ts\n",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": 0,
+            "count": {
+              "n": 1,
+              "noun": "file"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0004",
+            "parent": null,
+            "name": "exec_command",
+            "kind": "shell",
+            "title": "shell",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0004",
+            "kind": "shell",
+            "name": "exec_command",
+            "title": "shell",
+            "input": {
+              "command": "/bin/zsh -lc \"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"",
+              "cwd": "<root>/project",
+              "actions": [
+                {
+                  "type": "unknown",
+                  "command": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3"
+                }
+              ]
+            },
+            "summary": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3",
+            "detail": null,
+            "command": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3",
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0004",
+            "status": "error",
+            "result": "one\ntwo\n",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": 3,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0005",
+            "parent": null,
+            "name": "apply_patch",
+            "kind": "edit",
+            "title": "edit",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0005",
+            "kind": "edit",
+            "name": "apply_patch",
+            "title": "edit",
+            "input": {
+              "changes": [
+                {
+                  "path": "<root>/project/notes.md",
+                  "kind": {
+                    "type": "add"
+                  },
+                  "diff": "# Notes\n\nWritten by the patch.\n"
+                },
+                {
+                  "path": "<root>/project/src/a.ts",
+                  "kind": {
+                    "type": "update",
+                    "move_path": null
+                  },
+                  "diff": "@@ -1 +1 @@\n-export const greeting = \"hello\"\n+export const greeting = \"hello, world\"\n"
+                }
+              ]
+            },
+            "summary": "<root>/project/src/a.ts and 1 more",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0005",
+            "status": "done",
+            "result": "",
+            "images": [],
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hello, world\""
+                ]
+              }
+            ],
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/notes.md",
+                "change": "create",
+                "movedTo": null,
+                "patch": null,
+                "before": null,
+                "after": "# Notes\n\nWritten by the patch.\n"
+              },
+              {
+                "path": "<root>/project/src/a.ts",
+                "change": "update",
+                "movedTo": null,
+                "patch": [
+                  {
+                    "oldStart": 1,
+                    "oldLines": 1,
+                    "newStart": 1,
+                    "newLines": 1,
+                    "lines": [
+                      "-export const greeting = \"hello\"",
+                      "+export const greeting = \"hello, world\""
+                    ]
+                  }
+                ],
+                "after": null
+              }
+            ],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0006",
+            "parent": null,
+            "name": "apply_patch",
+            "kind": "edit",
+            "title": "edit",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0006",
+            "kind": "edit",
+            "name": "apply_patch",
+            "title": "edit",
+            "input": {
+              "changes": [
+                {
+                  "path": "<root>/project/README.md",
+                  "kind": {
+                    "type": "delete"
+                  },
+                  "diff": "# demo\n\nA small project for Codex recordings.\n"
+                },
+                {
+                  "path": "<root>/project/notes.md",
+                  "kind": {
+                    "type": "update",
+                    "move_path": "<root>/project/docs/notes.md"
+                  },
+                  "diff": "@@ -2,2 +2,2 @@\n \n-Written by the patch.\n+Moved by the patch.\n\n\nMoved to: <root>/project/docs/notes.md"
+                }
+              ]
+            },
+            "summary": "<root>/project/notes.md and 1 more",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0006",
+            "status": "done",
+            "result": "",
+            "images": [],
+            "patch": [
+              {
+                "oldStart": 2,
+                "oldLines": 2,
+                "newStart": 2,
+                "newLines": 2,
+                "lines": [
+                  " ",
+                  "-Written by the patch.",
+                  "+Moved by the patch."
+                ]
+              }
+            ],
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [
+              {
+                "path": "<root>/project/README.md",
+                "change": "delete",
+                "movedTo": null,
+                "patch": null,
+                "before": "# demo\n\nA small project for Codex recordings.\n",
+                "after": null
+              },
+              {
+                "path": "<root>/project/notes.md",
+                "change": "move",
+                "movedTo": "<root>/project/docs/notes.md",
+                "patch": [
+                  {
+                    "oldStart": 2,
+                    "oldLines": 2,
+                    "newStart": 2,
+                    "newLines": 2,
+                    "lines": [
+                      " ",
+                      "-Written by the patch.",
+                      "+Moved by the patch."
+                    ]
+                  }
+                ],
+                "after": null
+              }
+            ],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "ws_mock0001",
+            "parent": null,
+            "name": "web_search",
+            "kind": "websearch",
+            "title": "websearch",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "ws_mock0001",
+            "kind": "websearch",
+            "name": "web_search",
+            "title": "websearch",
+            "input": {
+              "query": "codex app-server protocol",
+              "action": {
+                "type": "search",
+                "query": "codex app-server protocol",
+                "queries": null
+              }
+            },
+            "summary": "codex app-server protocol",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "ws_mock0001",
+            "status": "done",
+            "result": "",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.start",
+            "id": "call_mock0007",
+            "parent": null,
+            "name": "view_image",
+            "kind": "read",
+            "title": "view image",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.called",
+            "id": "call_mock0007",
+            "kind": "read",
+            "name": "view_image",
+            "title": "view image",
+            "input": {
+              "path": "<root>/project/pic.png"
+            },
+            "summary": "<root>/project/pic.png",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793255087000
+          },
+          {
+            "type": "tool.end",
+            "id": "call_mock0007",
+            "status": "done",
+            "result": "",
+            "images": [
+              {
+                "name": "pic.png",
+                "mediaType": "image/png",
+                "data": null,
+                "path": "<root>/project/pic.png"
+              }
+            ],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": null,
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793255087000
+          },
+          {
+            "type": "text.start",
+            "part": "msg_mock0001",
+            "parent": null,
+            "text": "All done.",
+            "local": false,
+            "quiet": false,
+            "at": 1793255087000
+          },
+          {
+            "type": "text.end",
+            "part": "msg_mock0001",
+            "text": null,
+            "at": 1793255087000
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0001",
+      "call_mock0002",
+      "call_mock0003",
+      "call_mock0004",
+      "call_mock0005",
+      "call_mock0006",
+      "ws_mock0001",
+      "call_mock0007",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "NOVEMBER try every tool",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0001": {
+        "kind": "tool",
+        "id": "call_mock0001",
+        "name": "exec_command",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'cat README.md'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"read\",\"command\":\"cat README.md\",\"name\":\"README.md\",\"path\":\"<root>/project/README.md\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'cat README.md'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "read",
+              "command": "cat README.md",
+              "name": "README.md",
+              "path": "<root>/project/README.md"
+            }
+          ]
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "# demo\n\nA small project for Codex recordings.\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 3,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0002": {
+        "kind": "tool",
+        "id": "call_mock0002",
+        "name": "exec_command",
+        "toolKind": "search",
+        "title": "search",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'grep -rn greeting src'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"search\",\"command\":\"grep -rn greeting src\",\"path\":\"src\",\"query\":\"greeting\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'grep -rn greeting src'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "search",
+              "command": "grep -rn greeting src",
+              "path": "src",
+              "query": "greeting"
+            }
+          ]
+        },
+        "summary": "greeting in <root>/project/src",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "src/a.ts:1:export const greeting = \"hello\"\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "match"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0003": {
+        "kind": "tool",
+        "id": "call_mock0003",
+        "name": "exec_command",
+        "toolKind": "search",
+        "title": "list",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc 'ls src'\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"listFiles\",\"command\":\"ls src\",\"path\":\"src\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc 'ls src'",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "listFiles",
+              "command": "ls src",
+              "path": "src"
+            }
+          ]
+        },
+        "summary": "<root>/project/src",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "a.ts\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 1,
+          "noun": "file"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0004": {
+        "kind": "tool",
+        "id": "call_mock0004",
+        "name": "exec_command",
+        "toolKind": "shell",
+        "title": "shell",
+        "server": null,
+        "inputText": "{\"command\":\"/bin/zsh -lc \\\"printf 'one\\\\\\\\n'; sleep 0.4; printf 'two\\\\\\\\n'; exit 3\\\"\",\"cwd\":\"<root>/project\",\"actions\":[{\"type\":\"unknown\",\"command\":\"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"}]}",
+        "input": {
+          "command": "/bin/zsh -lc \"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"",
+          "cwd": "<root>/project",
+          "actions": [
+            {
+              "type": "unknown",
+              "command": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3"
+            }
+          ]
+        },
+        "summary": "printf 'one\\n'; sleep 0.4; printf 'two\\n'; exit 3",
+        "detail": null,
+        "background": false,
+        "status": "error",
+        "result": "one\ntwo\n",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0005": {
+        "kind": "tool",
+        "id": "call_mock0005",
+        "name": "apply_patch",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"changes\":[{\"path\":\"<root>/project/notes.md\",\"kind\":{\"type\":\"add\"},\"diff\":\"# Notes\\n\\nWritten by the patch.\\n\"},{\"path\":\"<root>/project/src/a.ts\",\"kind\":{\"type\":\"update\",\"move_path\":null},\"diff\":\"@@ -1 +1 @@\\n-export const greeting = \\\"hello\\\"\\n+export const greeting = \\\"hello, world\\\"\\n\"}]}",
+        "input": {
+          "changes": [
+            {
+              "path": "<root>/project/notes.md",
+              "kind": {
+                "type": "add"
+              },
+              "diff": "# Notes\n\nWritten by the patch.\n"
+            },
+            {
+              "path": "<root>/project/src/a.ts",
+              "kind": {
+                "type": "update",
+                "move_path": null
+              },
+              "diff": "@@ -1 +1 @@\n-export const greeting = \"hello\"\n+export const greeting = \"hello, world\"\n"
+            }
+          ]
+        },
+        "summary": "<root>/project/src/a.ts and 1 more",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 1,
+            "oldLines": 1,
+            "newStart": 1,
+            "newLines": 1,
+            "lines": [
+              "-export const greeting = \"hello\"",
+              "+export const greeting = \"hello, world\""
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/notes.md",
+            "change": "create",
+            "movedTo": null,
+            "patch": null,
+            "after": "# Notes\n\nWritten by the patch.\n"
+          },
+          {
+            "path": "<root>/project/src/a.ts",
+            "change": "update",
+            "movedTo": null,
+            "patch": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hello, world\""
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0006": {
+        "kind": "tool",
+        "id": "call_mock0006",
+        "name": "apply_patch",
+        "toolKind": "edit",
+        "title": "edit",
+        "server": null,
+        "inputText": "{\"changes\":[{\"path\":\"<root>/project/README.md\",\"kind\":{\"type\":\"delete\"},\"diff\":\"# demo\\n\\nA small project for Codex recordings.\\n\"},{\"path\":\"<root>/project/notes.md\",\"kind\":{\"type\":\"update\",\"move_path\":\"<root>/project/docs/notes.md\"},\"diff\":\"@@ -2,2 +2,2 @@\\n \\n-Written by the patch.\\n+Moved by the patch.\\n\\n\\nMoved to: <root>/project/docs/notes.md\"}]}",
+        "input": {
+          "changes": [
+            {
+              "path": "<root>/project/README.md",
+              "kind": {
+                "type": "delete"
+              },
+              "diff": "# demo\n\nA small project for Codex recordings.\n"
+            },
+            {
+              "path": "<root>/project/notes.md",
+              "kind": {
+                "type": "update",
+                "move_path": "<root>/project/docs/notes.md"
+              },
+              "diff": "@@ -2,2 +2,2 @@\n \n-Written by the patch.\n+Moved by the patch.\n\n\nMoved to: <root>/project/docs/notes.md"
+            }
+          ]
+        },
+        "summary": "<root>/project/notes.md and 1 more",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": [
+          {
+            "oldStart": 2,
+            "oldLines": 2,
+            "newStart": 2,
+            "newLines": 2,
+            "lines": [
+              " ",
+              "-Written by the patch.",
+              "+Moved by the patch."
+            ]
+          }
+        ],
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [
+          {
+            "path": "<root>/project/README.md",
+            "change": "delete",
+            "movedTo": null,
+            "patch": null,
+            "after": null
+          },
+          {
+            "path": "<root>/project/notes.md",
+            "change": "move",
+            "movedTo": "<root>/project/docs/notes.md",
+            "patch": [
+              {
+                "oldStart": 2,
+                "oldLines": 2,
+                "newStart": 2,
+                "newLines": 2,
+                "lines": [
+                  " ",
+                  "-Written by the patch.",
+                  "+Moved by the patch."
+                ]
+              }
+            ],
+            "after": null
+          }
+        ],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ws_mock0001": {
+        "kind": "tool",
+        "id": "ws_mock0001",
+        "name": "web_search",
+        "toolKind": "websearch",
+        "title": "websearch",
+        "server": null,
+        "inputText": "{\"query\":\"codex app-server protocol\",\"action\":{\"type\":\"search\",\"query\":\"codex app-server protocol\",\"queries\":null}}",
+        "input": {
+          "query": "codex app-server protocol",
+          "action": {
+            "type": "search",
+            "query": "codex app-server protocol",
+            "queries": null
+          }
+        },
+        "summary": "codex app-server protocol",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "call_mock0007": {
+        "kind": "tool",
+        "id": "call_mock0007",
+        "name": "view_image",
+        "toolKind": "read",
+        "title": "view image",
+        "server": null,
+        "inputText": "{\"path\":\"<root>/project/pic.png\"}",
+        "input": {
+          "path": "<root>/project/pic.png"
+        },
+        "summary": "<root>/project/pic.png",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [
+          {
+            "name": "pic.png",
+            "mediaType": "image/png",
+            "data": null,
+            "path": "<root>/project/pic.png"
+          }
+        ],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "All done.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 950,
+        "inputTokens": 9600,
+        "outputTokens": 1440,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793255088370
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 11040,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

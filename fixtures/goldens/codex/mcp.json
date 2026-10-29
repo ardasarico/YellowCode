@@ -1,0 +1,280 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793254984000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793254984000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793254984000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254984594
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254984594
+    },
+    {
+      "type": "reply",
+      "at": 1793254984594
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "OSCAR echo something",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254984629
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793254984640
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793254984640
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0002",
+      "parent": null,
+      "name": "echo",
+      "kind": "mcp",
+      "title": "echo",
+      "mcp": {
+        "server": "echo",
+        "tool": "echo"
+      },
+      "quiet": false,
+      "at": 1793254984651
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "mcp",
+      "name": "echo",
+      "title": "echo",
+      "input": {
+        "text": "hi there"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793254984651
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0002",
+      "status": "done",
+      "result": "echo: hi there",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793254984652
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254984656
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "The server s",
+      "at": 1793254984656
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "aid hi back.",
+      "at": 1793254984662
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "The server said hi back.",
+      "at": 1793254984668
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 97,
+      "inputTokens": 3600,
+      "outputTokens": 540,
+      "tokens": 4140,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254984671
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793254984671
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0002",
+      "text-2",
+      "turn-3"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "OSCAR echo something",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0002": {
+        "kind": "tool",
+        "id": "call_mock0002",
+        "name": "echo",
+        "toolKind": "mcp",
+        "title": "echo",
+        "server": "echo",
+        "inputText": "{\"text\":\"hi there\"}",
+        "input": {
+          "text": "hi there"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "echo: hi there",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The server said hi back.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 97,
+        "inputTokens": 3600,
+        "outputTokens": 540,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254984671
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 4140,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

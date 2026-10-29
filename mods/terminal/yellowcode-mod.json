@@ -4,6 +4,6 @@
   "version": "0.1.0",
   "description": "Your shells in a pane next to the chat.",
   "api": "^0.2",
-  "agents": ["claude"],
+  "agents": ["claude", "codex"],
   "entry": "index.tsx"
 }

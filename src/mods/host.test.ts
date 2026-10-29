@@ -231,6 +231,36 @@ test("another agent loads the mods again: a mod for Claude only is elsewhere the
   host.unloadAll()
 })
 
+test("manifest servers become launches for an agent that takes them, and a shape a launch cannot carry is left out", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(
+    folder,
+    "served",
+    "^0.2",
+    `import { defineMod } from "yellowcode/mod"\nexport default defineMod({ setup() {} })`,
+  )
+  const mcpServers = {
+    local: { command: "node", args: ["s.js", 1], env: { A: "b" }, cwd: "/elsewhere" },
+    remote: { type: "http", url: "https://example.test/mcp", headers: { X: "y" } },
+    odd: { type: "ws", url: "wss://example.test" },
+  }
+  const manifest = { id: "served", name: "served", version: "1.0.0", api: "^0.2", agents: "any", entry: "index.ts" }
+  writeFileSync(join(folder, "served", "yellowcode-mod.json"), JSON.stringify({ ...manifest, mcpServers }))
+  const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {} })
+  host.discover({ id: "second", caps: { clientTools: "start", mcpServers: "start" } })
+  await host.loadAll()
+  expect(host.launches()).toEqual([
+    { name: "mod-served--local", command: "node", args: ["s.js"], env: { A: "b" } },
+    { name: "mod-served--remote", url: "https://example.test/mcp", headers: { X: "y" } },
+  ])
+  host.discover({ id: "third", caps: { clientTools: "start", mcpServers: "none" } })
+  await host.loadAll()
+  expect(host.launches()).toEqual([])
+  host.unloadAll()
+})
+
 test("a manifest with the old yellowcode field says to use api", () => {
   const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "old")
   mkdirSync(folder, { recursive: true })

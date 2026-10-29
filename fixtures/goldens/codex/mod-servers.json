@@ -1,0 +1,629 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793265721000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793265721000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793265721000
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "mcp": [
+          {
+            "name": "mod-demo--echo",
+            "label": "mod-demo--echo",
+            "place": "other",
+            "state": "connected",
+            "status": "connected",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": null,
+            "server": {
+              "name": "echo",
+              "version": "1.0.0"
+            },
+            "tools": [
+              "echo"
+            ],
+            "toolServer": "mod-demo--echo"
+          }
+        ]
+      },
+      "at": 1793265721854
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793265721900
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793265721900
+    },
+    {
+      "type": "reply",
+      "at": 1793265721900
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "YANKEE call the mod's server",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793265721906
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793265721922
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793265721922
+    },
+    {
+      "type": "tool.start",
+      "id": "call_mock0002",
+      "parent": null,
+      "name": "echo",
+      "kind": "mcp",
+      "title": "echo",
+      "mcp": {
+        "server": "mod-demo--echo",
+        "tool": "echo"
+      },
+      "quiet": false,
+      "at": 1793265721936
+    },
+    {
+      "type": "tool.called",
+      "id": "call_mock0002",
+      "kind": "mcp",
+      "name": "echo",
+      "title": "echo",
+      "input": {
+        "text": "from the mod"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793265721936
+    },
+    {
+      "type": "ask.open",
+      "ask": {
+        "preview": null,
+        "writes": [],
+        "detail": "Answers with the text it is given",
+        "reason": "",
+        "questions": null,
+        "plan": null,
+        "defaultNo": false,
+        "safety": false,
+        "own": null,
+        "id": "codex-1",
+        "kind": "permission",
+        "call": "call_mock0002",
+        "tool": {
+          "name": "echo",
+          "kind": "mcp",
+          "mcp": {
+            "server": "mod-demo--echo",
+            "tool": "echo"
+          }
+        },
+        "title": "echo",
+        "input": {
+          "text": "from the mod"
+        },
+        "target": "",
+        "options": [
+          {
+            "id": "accept",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "session",
+            "effect": "allow",
+            "lasts": "session",
+            "label": null,
+            "subject": "echo",
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "kept",
+            "label": null,
+            "subject": "echo",
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "decline",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "by": null
+      },
+      "at": 1793265721937
+    },
+    {
+      "type": "ask.close",
+      "id": "codex-1",
+      "outcome": {
+        "status": "allowed"
+      },
+      "at": 1793265721937
+    },
+    {
+      "type": "tool.end",
+      "id": "call_mock0002",
+      "status": "done",
+      "result": "echo: from the mod",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": null,
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793265721942
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793265721950
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "The mod's se",
+      "at": 1793265721950
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "rver answere",
+      "at": 1793265721955
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "d.",
+      "at": 1793265721962
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "The mod's server answered.",
+      "at": 1793265721969
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 104,
+      "inputTokens": 3600,
+      "outputTokens": 540,
+      "tokens": 4140,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793265721982
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793265721982
+    },
+    {
+      "type": "ready",
+      "at": 1793265721000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793265721000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793265721000
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793265722128
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793265722128
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "mcp": [
+          {
+            "name": "mod-demo--echo",
+            "label": "mod-demo--echo",
+            "place": "other",
+            "state": "connected",
+            "status": "connected",
+            "origin": null,
+            "scope": null,
+            "error": null,
+            "config": null,
+            "server": {
+              "name": "echo",
+              "version": "1.0.0"
+            },
+            "tools": [
+              "echo"
+            ],
+            "toolServer": "mod-demo--echo"
+          }
+        ]
+      },
+      "at": 1793265722183
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793265722214
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793265722214
+    },
+    {
+      "type": "reply",
+      "at": 1793265722214
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "ZULU say it again",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793265722219
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793265722228
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Still here.",
+      "at": 1793265722228
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Still here.",
+      "at": 1793265722235
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 24,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793265722238
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793265722238
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "call_mock0002",
+      "ask-codex-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "text-5",
+      "turn-6"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "YANKEE call the mod's server",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "call_mock0002": {
+        "kind": "tool",
+        "id": "call_mock0002",
+        "name": "echo",
+        "toolKind": "mcp",
+        "title": "echo",
+        "server": "mod-demo--echo",
+        "inputText": "{\"text\":\"from the mod\"}",
+        "input": {
+          "text": "from the mod"
+        },
+        "summary": "",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "echo: from the mod",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": null,
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "ask-codex-1": {
+        "kind": "ask",
+        "id": "ask-codex-1",
+        "requestId": "codex-1",
+        "toolUseId": "call_mock0002",
+        "toolName": "echo",
+        "toolKind": "mcp",
+        "server": "mod-demo--echo",
+        "displayName": "echo",
+        "input": {
+          "text": "from the mod"
+        },
+        "target": "",
+        "writes": [],
+        "description": "Answers with the text it is given",
+        "reason": "",
+        "options": [
+          {
+            "id": "accept",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "session",
+            "effect": "allow",
+            "lasts": "session",
+            "label": null,
+            "subject": "echo",
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "always",
+            "effect": "allow",
+            "lasts": "kept",
+            "label": null,
+            "subject": "echo",
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "decline",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": null,
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "allowed",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": ""
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "The mod's server answered.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 104,
+        "inputTokens": 3600,
+        "outputTokens": 540,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793265721982
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "ZULU say it again",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Still here.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 24,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793265722238
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 5520,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

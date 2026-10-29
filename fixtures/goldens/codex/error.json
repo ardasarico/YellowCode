@@ -1,0 +1,305 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793254967000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793254967000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793254967000
+    },
+    {
+      "type": "notice",
+      "level": "info",
+      "text": "`[features].web_search_request` is deprecated because web search is enabled by default. Set `web_search` to `\"live\"`, `\"indexed\"`, `\"cached\"`, or `\"disabled\"` at the top level (or under a profile) in config.toml if you want to override it.",
+      "at": 1793254967838
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254967997
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254967997
+    },
+    {
+      "type": "reply",
+      "at": 1793254967997
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "MIKE broken",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254968009
+    },
+    {
+      "type": "retry",
+      "attempt": 1,
+      "max": null,
+      "delayMs": null,
+      "status": null,
+      "reason": "responseStreamDisconnected",
+      "at": 1793254968026
+    },
+    {
+      "type": "retry",
+      "attempt": 2,
+      "max": null,
+      "delayMs": null,
+      "status": null,
+      "reason": "responseStreamDisconnected",
+      "at": 1793254968250
+    },
+    {
+      "type": "turn.end",
+      "error": "We’re currently experiencing high demand, which may cause temporary errors.",
+      "interrupted": false,
+      "local": false,
+      "durationMs": 715,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254968646
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793254968653
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793254968653
+    },
+    {
+      "type": "reply",
+      "at": 1793254968653
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "MIKE again",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793254968659
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793254968721
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Back to norm",
+      "at": 1793254968721
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "al.",
+      "at": 1793254968726
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Back to normal.",
+      "at": 1793254968732
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793254968734
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793254968734
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 84,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793254968736
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793254968736
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "system-2",
+      "turn-4",
+      "user-5",
+      "text-6",
+      "turn-7"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "MIKE broken",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "system-2": {
+        "kind": "system",
+        "id": "system-2",
+        "text": "`[features].web_search_request` is deprecated because web search is enabled by default. Set `web_search` to `\"live\"`, `\"indexed\"`, `\"cached\"`, or `\"disabled\"` at the top level (or under a profile) in config.toml if you want to override it.",
+        "level": "info"
+      },
+      "system-3": {
+        "kind": "system",
+        "id": "system-3",
+        "text": "API retry 2",
+        "level": "warning",
+        "retry": {
+          "attempt": 2,
+          "max": null,
+          "delayMs": 0,
+          "status": null,
+          "reason": "responseStreamDisconnected",
+          "at": 1800000000000
+        }
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0,
+        "durationMs": 715,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": "We’re currently experiencing high demand, which may cause temporary errors.",
+        "retries": 2,
+        "interrupted": false,
+        "endedAt": 1793254968646
+      },
+      "user-5": {
+        "kind": "user",
+        "id": "user-5",
+        "text": "MIKE again",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "Back to normal.",
+        "streaming": false
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "costUsd": 0,
+        "durationMs": 84,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793254968736
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 1380,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

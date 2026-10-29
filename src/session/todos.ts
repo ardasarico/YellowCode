@@ -47,7 +47,10 @@ const mainTodoCalls = (session: Session): ToolCall[] =>
     return item?.kind === "tool" && item.toolKind === "todo" && item.status !== "error" ? [item] : []
   })
 
+// An agent that tells its steps as a list has them in the session; the others' come from their todo calls.
 export function todoList(session: Session): Todo[] {
+  if (session.todos)
+    return session.todos.map((todo) => ({ ...todo, state: todo.state === "running" ? "active" : todo.state }))
   return mainTodoCalls(session).reduce(apply, [])
 }
 

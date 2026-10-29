@@ -1,0 +1,379 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793261101000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793261101000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793261101000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261101868
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261101868
+    },
+    {
+      "type": "reply",
+      "at": 1793261101868
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "XRAY one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261101882
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261102090
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "One.",
+      "at": 1793261102090
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "One.",
+      "at": 1793261102097
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793261102099
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793261102099
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 316,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261102104
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261102116
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261102116
+    },
+    {
+      "type": "reply",
+      "at": 1793261102116
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "XRAY two",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261102133
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261102142
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Two.",
+      "at": 1793261102142
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Two.",
+      "at": 1793261102150
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 49,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261102168
+    },
+    {
+      "type": "cut",
+      "before": "prompt-2",
+      "at": 1793261102279
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793261102323
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793261102323
+    },
+    {
+      "type": "reply",
+      "at": 1793261102323
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "XRAY three",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793261102332
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793261102338
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "Three, after",
+      "at": 1793261102338
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": " one.",
+      "at": 1793261102344
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "Three, after one.",
+      "at": 1793261102351
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 35,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "tokens": 0,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793261102356
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793261102356
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-7",
+      "text-8",
+      "turn-9"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "XRAY one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "One.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 316,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261102104
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "XRAY two",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Two.",
+        "streaming": false
+      },
+      "turn-6": {
+        "kind": "turn-end",
+        "id": "turn-6",
+        "costUsd": 0,
+        "durationMs": 49,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261102168
+      },
+      "user-7": {
+        "kind": "user",
+        "id": "user-7",
+        "text": "XRAY three",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-8": {
+        "kind": "text",
+        "id": "text-8",
+        "markdown": "Three, after one.",
+        "streaming": false
+      },
+      "turn-9": {
+        "kind": "turn-end",
+        "id": "turn-9",
+        "costUsd": 0,
+        "durationMs": 35,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793261102356
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

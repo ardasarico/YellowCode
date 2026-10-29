@@ -1,0 +1,381 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793258932000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793258932000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793258932000
+    },
+    {
+      "type": "mode",
+      "mode": "plan",
+      "at": 1793258932061
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793258932097
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793258932097
+    },
+    {
+      "type": "reply",
+      "at": 1793258932097
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "PAPA change the greeting",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793258932114
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793258932128
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Here is the ",
+      "at": 1793258932128
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "plan.\n\n",
+      "at": 1793258932131
+    },
+    {
+      "type": "text.start",
+      "part": "00000000-0000-7000-8000-000000000002-plan",
+      "parent": null,
+      "text": "# Greeting\n\n1. Read src/a.ts\n2. Change the greeting\n",
+      "local": false,
+      "quiet": false,
+      "at": 1793258932221
+    },
+    {
+      "type": "text.end",
+      "part": "00000000-0000-7000-8000-000000000002-plan",
+      "text": null,
+      "at": 1793258932221
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Here is the plan.\n\n",
+      "at": 1793258932222
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793258932224
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793258932224
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 159,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793258932228
+    },
+    {
+      "type": "plan",
+      "text": "# Greeting\n\n1. Read src/a.ts\n2. Change the greeting\n",
+      "path": null,
+      "next": "auto",
+      "at": 1793258932228
+    },
+    {
+      "type": "mode",
+      "mode": "auto",
+      "at": 1793258932229
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793258932232
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793258932232
+    },
+    {
+      "type": "reply",
+      "at": 1793258932232
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "Implement the plan.",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793258932237
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0002",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793258932242
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0002",
+      "text": "Implemented.",
+      "at": 1793258932242
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0002",
+      "text": "Implemented.",
+      "at": 1793258932247
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 17,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793258932250
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793258932250
+    }
+  ],
+  "outputs": [],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "text-3",
+      "turn-4",
+      "ask-plan-5",
+      "user-6",
+      "text-7",
+      "turn-8"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "PAPA change the greeting",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Here is the plan.\n\n",
+        "streaming": false
+      },
+      "text-3": {
+        "kind": "text",
+        "id": "text-3",
+        "markdown": "# Greeting\n\n1. Read src/a.ts\n2. Change the greeting\n",
+        "streaming": false
+      },
+      "turn-4": {
+        "kind": "turn-end",
+        "id": "turn-4",
+        "costUsd": 0,
+        "durationMs": 159,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793258932228
+      },
+      "ask-plan-5": {
+        "kind": "ask",
+        "id": "ask-plan-5",
+        "requestId": "plan-5",
+        "toolUseId": "",
+        "toolName": "",
+        "toolKind": "plan",
+        "server": null,
+        "displayName": "",
+        "input": null,
+        "target": "",
+        "writes": [],
+        "description": "",
+        "reason": "",
+        "options": [
+          {
+            "id": "yes",
+            "effect": "allow",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          },
+          {
+            "id": "no",
+            "effect": "deny",
+            "lasts": "once",
+            "label": null,
+            "subject": null,
+            "note": false,
+            "endsTurn": false,
+            "mode": null
+          }
+        ],
+        "questions": null,
+        "plan": {
+          "text": "# Greeting\n\n1. Read src/a.ts\n2. Change the greeting\n",
+          "path": null
+        },
+        "defaultToNo": false,
+        "safetyCheck": false,
+        "status": "pending",
+        "answers": {},
+        "notes": {},
+        "denial": "",
+        "why": null,
+        "note": "",
+        "ownPlan": {
+          "next": "auto"
+        }
+      },
+      "user-6": {
+        "kind": "user",
+        "id": "user-6",
+        "text": "Implement the plan.",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "text-7": {
+        "kind": "text",
+        "id": "text-7",
+        "markdown": "Implemented.",
+        "streaming": false
+      },
+      "turn-8": {
+        "kind": "turn-end",
+        "id": "turn-8",
+        "costUsd": 0,
+        "durationMs": 17,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793258932250
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 2760,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "auto",
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}

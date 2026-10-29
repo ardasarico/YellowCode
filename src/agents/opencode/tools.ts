@@ -6,8 +6,9 @@ import { z } from "zod"
 import type { Questions } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { ToolId } from "../../agent/ids.ts"
-import type { FileChange, Hunk, SubagentCall, ToolKind } from "../../agent/tools.ts"
+import type { FileChange, SubagentCall, ToolKind } from "../../agent/tools.ts"
 import { oneLine, SUMMARY_LENGTH } from "../../session/tool-summary.ts"
+import { hunksOf } from "../hunks.ts"
 
 const KINDS: Record<string, ToolKind> = {
   shell: "shell",
@@ -175,27 +176,6 @@ export const goesOn = (name: string, metadata: unknown) =>
 
 // Only "modified" has been seen; "added" and "deleted" are guessed.
 const CHANGES: Record<string, FileChange["change"]> = { added: "create", deleted: "delete" }
-
-const lineCount = (value: string | undefined) => (value === undefined ? 1 : Number(value))
-
-// opencode's patches start with `Index:`, `===`, `---` and `+++` lines; only what follows a hunk header counts.
-function hunksOf(patch: string): Hunk[] {
-  const hunks: Hunk[] = []
-  for (const line of patch.replace(/\n$/, "").split("\n")) {
-    const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line)
-    if (header) {
-      const [, oldStart, oldLines, newStart, newLines] = header
-      hunks.push({
-        oldStart: Number(oldStart),
-        oldLines: lineCount(oldLines),
-        newStart: Number(newStart),
-        newLines: lineCount(newLines),
-        lines: [],
-      })
-    } else if (/^[+\- ]/.test(line)) hunks.at(-1)?.lines.push(line)
-  }
-  return hunks
-}
 
 function editFiles(metadata: unknown, directory: string): FileChange[] {
   return (editMeta.safeParse(metadata).data?.files ?? []).map((file) => ({

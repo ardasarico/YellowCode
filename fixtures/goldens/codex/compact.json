@@ -1,0 +1,589 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 1793262959000
+    },
+    {
+      "type": "info",
+      "info": {
+        "id": "00000000-0000-7000-8000-000000000001",
+        "model": {
+          "provider": "mock",
+          "id": "gpt-5.5"
+        },
+        "mode": "auto",
+        "cwd": "<root>/project",
+        "version": "0.165.0",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": "none"
+      },
+      "at": 1793262959000
+    },
+    {
+      "type": "model",
+      "model": {
+        "provider": "mock",
+        "id": "gpt-5.5"
+      },
+      "at": 1793262959000
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793262959467
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793262959467
+    },
+    {
+      "type": "reply",
+      "at": 1793262959467
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "QUEBEC one",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793262959503
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0001",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793262959526
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0001",
+      "text": "Read it.",
+      "at": 1793262959526
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0001",
+      "text": "Read it.",
+      "at": 1793262959534
+    },
+    {
+      "type": "context.window",
+      "tokens": 258400,
+      "at": 1793262959536
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793262959536
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 129,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793262959546
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793262959553
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793262959553
+    },
+    {
+      "type": "reply",
+      "at": 1793262959553
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "/compact",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": false,
+      "at": 1793262959553
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793262959559
+    },
+    {
+      "type": "context.used",
+      "tokens": 7900,
+      "at": 1793262959577
+    },
+    {
+      "type": "compacted",
+      "before": 1380,
+      "after": 7900,
+      "at": 1793262959577
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": true,
+      "durationMs": 29,
+      "inputTokens": 1200,
+      "outputTokens": 180,
+      "tokens": 1380,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793262959579
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793262959585
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793262959585
+    },
+    {
+      "type": "reply",
+      "at": 1793262959585
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "QUEBEC full",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793262959592
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0003",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793262959598
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "That was lon",
+      "at": 1793262959598
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0003",
+      "text": "g.",
+      "at": 1793262959604
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0003",
+      "text": "That was long.",
+      "at": 1793262959610
+    },
+    {
+      "type": "context.used",
+      "tokens": 24300,
+      "at": 1793262959611
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 31,
+      "inputTokens": 24000,
+      "outputTokens": 300,
+      "tokens": 24300,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793262959613
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793262959617
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793262959617
+    },
+    {
+      "type": "reply",
+      "at": 1793262959617
+    },
+    {
+      "type": "compaction",
+      "running": true,
+      "at": 1793262959619
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793262959673
+    },
+    {
+      "type": "context.used",
+      "tokens": 7903,
+      "at": 1793262959674
+    },
+    {
+      "type": "compacted",
+      "before": 24300,
+      "after": 7903,
+      "at": 1793262959675
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-4",
+      "text": "QUEBEC after",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793262959678
+    },
+    {
+      "type": "text.start",
+      "part": "msg_mock0005",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793262959682
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_mock0005",
+      "text": "Still here.",
+      "at": 1793262959682
+    },
+    {
+      "type": "text.end",
+      "part": "msg_mock0005",
+      "text": "Still here.",
+      "at": 1793262959688
+    },
+    {
+      "type": "context.used",
+      "tokens": 1380,
+      "at": 1793262959690
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 74,
+      "inputTokens": 2400,
+      "outputTokens": 360,
+      "tokens": 2760,
+      "sessionCostUsd": null,
+      "prompts": [],
+      "at": 1793262959693
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793262959693
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "QUEBEC one",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.start",
+            "part": "msg_mock0001",
+            "parent": null,
+            "text": "Read it.",
+            "local": false,
+            "quiet": false,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.end",
+            "part": "msg_mock0001",
+            "text": null,
+            "at": 1793262959000
+          },
+          {
+            "type": "compacted",
+            "before": null,
+            "after": null,
+            "at": 1793262959000
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-3",
+            "text": "QUEBEC full",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.start",
+            "part": "msg_mock0003",
+            "parent": null,
+            "text": "That was long.",
+            "local": false,
+            "quiet": false,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.end",
+            "part": "msg_mock0003",
+            "text": null,
+            "at": 1793262959000
+          },
+          {
+            "type": "compacted",
+            "before": null,
+            "after": null,
+            "at": 1793262959000
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-4",
+            "text": "QUEBEC after",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.start",
+            "part": "msg_mock0005",
+            "parent": null,
+            "text": "Still here.",
+            "local": false,
+            "quiet": false,
+            "at": 1793262959000
+          },
+          {
+            "type": "text.end",
+            "part": "msg_mock0005",
+            "text": null,
+            "at": 1793262959000
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": {
+      "id": "00000000-0000-7000-8000-000000000001",
+      "model": "gpt-5.5",
+      "permissionMode": "auto",
+      "cwd": "<root>/project",
+      "cliVersion": "0.165.0",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": "none"
+    },
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "turn-3",
+      "user-4",
+      "system-5",
+      "user-6",
+      "text-7",
+      "turn-8",
+      "user-9",
+      "system-10",
+      "text-11",
+      "turn-12"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "QUEBEC one",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Read it.",
+        "streaming": false
+      },
+      "turn-3": {
+        "kind": "turn-end",
+        "id": "turn-3",
+        "costUsd": 0,
+        "durationMs": 129,
+        "inputTokens": 1200,
+        "outputTokens": 180,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793262959546
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "/compact",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-2"
+      },
+      "system-5": {
+        "kind": "system",
+        "id": "system-5",
+        "text": "context compacted",
+        "level": "info",
+        "tokens": {
+          "before": 1380,
+          "after": 7900
+        }
+      },
+      "user-6": {
+        "kind": "user",
+        "id": "user-6",
+        "text": "QUEBEC full",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "text-7": {
+        "kind": "text",
+        "id": "text-7",
+        "markdown": "That was long.",
+        "streaming": false
+      },
+      "turn-8": {
+        "kind": "turn-end",
+        "id": "turn-8",
+        "costUsd": 0,
+        "durationMs": 31,
+        "inputTokens": 24000,
+        "outputTokens": 300,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793262959613
+      },
+      "user-9": {
+        "kind": "user",
+        "id": "user-9",
+        "text": "QUEBEC after",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-4"
+      },
+      "system-10": {
+        "kind": "system",
+        "id": "system-10",
+        "text": "context compacted",
+        "level": "info",
+        "tokens": {
+          "before": 24300,
+          "after": 7903
+        }
+      },
+      "text-11": {
+        "kind": "text",
+        "id": "text-11",
+        "markdown": "Still here.",
+        "streaming": false
+      },
+      "turn-12": {
+        "kind": "turn-end",
+        "id": "turn-12",
+        "costUsd": 0,
+        "durationMs": 74,
+        "inputTokens": 2400,
+        "outputTokens": 360,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793262959693
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 29820,
+      "costUsd": 0,
+      "context": {
+        "used": 1380,
+        "window": 258400
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": null,
+    "claudeTitle": null,
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "model": {
+      "provider": "mock",
+      "id": "gpt-5.5"
+    }
+  }
+}
