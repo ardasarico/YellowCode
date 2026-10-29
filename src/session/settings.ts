@@ -60,14 +60,21 @@ export function effortsOf(models: ModelRow[], model: string | null): EffortRow[]
   return (row ?? models[0])?.efforts ?? []
 }
 
-export type Settings = StoredSettings & {
-  model: string | null
-  effort: EffortId | null
-  ultracode: boolean
-}
+// Settings for the open session only; they are never saved.
+export type SessionSettings = { peerMessages: "run" | "ask"; peerVisible: "yes" | "no" }
+
+export const DEFAULT_SESSION_SETTINGS: SessionSettings = { peerMessages: "run", peerVisible: "yes" }
+
+export type Settings = StoredSettings &
+  SessionSettings & {
+    model: string | null
+    effort: EffortId | null
+    ultracode: boolean
+  }
 
 const [settings, setSettings] = createStore<Settings>({
   ...DEFAULT_SETTINGS,
+  ...DEFAULT_SESSION_SETTINGS,
   model: null,
   effort: "high",
   ultracode: false,
@@ -82,6 +89,10 @@ export function initSettings(stored: StoredSettings): void {
 // What the agent says the session uses, or nothing shown while that is unknown.
 export function setKnobs(knobs: Partial<Pick<Settings, "model" | "effort" | "ultracode">>): void {
   setSettings(knobs)
+}
+
+export function setSessionSettings(patch: Partial<SessionSettings>): void {
+  setSettings(patch)
 }
 
 export function setSetting<K extends keyof StoredSettings>(key: K, value: StoredSettings[K]): void {

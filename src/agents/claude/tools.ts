@@ -3,7 +3,7 @@ import { basename, join } from "node:path"
 import { z } from "zod"
 import type { TaskId, ToolId } from "../../agent/ids.ts"
 import type { FileChange, Image, SubagentCall, ToolKind } from "../../agent/tools.ts"
-import { OWN_ASK, type ProtocolMessage, type UserBlock } from "../../protocol/messages.ts"
+import { OWN_ASK, OWN_SESSIONS, type ProtocolMessage, type UserBlock } from "../../protocol/messages.ts"
 import { oneLine } from "../../session/tool-summary.ts"
 import { questionsOf } from "./ask-input.ts"
 import { type Draft, imagesOf } from "./draft.ts"
@@ -131,15 +131,30 @@ function countOf(name: string | undefined, result: string): Extract<Draft, { typ
 
 type Call = { name: string; kind: ToolKind; parent: ToolId | null; input: unknown }
 
+const OWN_TOOLS = OWN_SESSIONS.slice(0, OWN_SESSIONS.lastIndexOf("__") + 2)
+
+// Loading YellowCode's own session tools is a step of sending a message, not a call of its own.
+function loadsOwnTools(input: unknown): boolean {
+  const query = text(field(input, "query"))
+  if (!query?.startsWith("select:")) return false
+  const names = query.slice("select:".length).split(",")
+  return names.every((name) => name.trim().startsWith(OWN_TOOLS))
+}
+
 // Tool calls from stream events, assistant lines and tool results. Calls are kept by id for the whole conversation,
 // so a result can be read by its call's name and input.
 export function createTools(relay: Relay) {
   const calls = new Map<ToolId, Call>()
+  // Searches kept out of the chat until their input says what they load.
+  const searches = new Set<ToolId>()
 
   function start(id: ToolId, parent: ToolId | null, name: string): Draft[] {
     const kind = kindOf(name)
     calls.set(id, { name, kind, parent, input: undefined })
-    const quiet = parent === null && relay.tool(id, name)
+    const relayed = parent === null && relay.tool(id, name)
+    const searching = parent === null && !relayed && name === "ToolSearch"
+    if (searching) searches.add(id)
+    const quiet = relayed || searching
     return [{ type: "tool.start", id, parent, name, kind, title: titleOf(name), mcp: shownMcp(name), quiet }]
   }
 
@@ -168,6 +183,7 @@ export function createTools(relay: Relay) {
       message: messageOf(kind, input),
       todos: null,
     })
+    if (searches.delete(block.id) && !loadsOwnTools(input)) out.push({ type: "shown", parts: [], tools: [block.id] })
     out.push(...relay.called(block.id, input))
     return out
   }

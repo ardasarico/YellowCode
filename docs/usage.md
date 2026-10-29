@@ -74,12 +74,41 @@ yellowcode mod <command>
 Other commands go to your agent. YellowCode handles a few itself, such as `/model`, `/effort`, `/context` and `/plan`,
 and `/usage` with Claude Code. It leaves out the few of Claude Code's that only work in its own screen.
 
+## Sessions working together
+
+Every YellowCode session open on your machine can see the others and send them messages, whichever agent each one
+runs. Ask your agent to hand something over, for example "give the token tests to the session in ~/work/api", and it
+does the rest:
+
+- It lists the open sessions with their title, folder, agent and model, and whether each one is busy, those of the
+  same project first. Two sessions share a project when one's folder holds the other's. Inside a git repository the
+  repository's root folder counts, so `app/client` and `app/server` share one.
+- It sends a message to one session, in any project, or to every session of the same project. A message to every
+  session on the machine, such as "I'm shutting down", needs your OK each time. It can attach paths of files and
+  folders, images, and its project's `git diff`.
+- The message runs in the other session as a new turn, after the current one if that session is busy. The sender does
+  not wait. A reply comes back later as a message of its own.
+- A session that handles a message sent to everyone can only reply to its sender.
+
+Listing the sessions never asks for permission. Sending a message follows your agent's permission rules, like any other
+tool.
+
+Two settings under Other sessions in `/settings` apply to the open session only:
+
+- **Incoming messages**: Run, or Ask first. With Ask first, each message waits for you and is asked like a permission.
+- **Visible to them**: No hides the session from the others, and it takes no messages. It can still send.
+
+Only sessions open in YellowCode on this machine take part. Closed sessions, sessions started outside YellowCode and
+other machines do not.
+
 ## Files it writes
 
 - Settings: `~/.config/yellowcode/settings.json`. Themes, mods and mod data live next to it, in `themes/`, `mods/` and
   `mod-data/`. All of these follow `XDG_CONFIG_HOME`.
 - Log: `~/.yellowcode/logs/yellowcode.log`, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug
   lines, which can contain session text.
+- Open sessions: `~/.yellowcode/sessions/`, one record and one socket for each open session, in a folder only you can
+  read. A session removes its own when it closes.
 - Rewind snapshots: `~/.local/share/yellowcode/snapshots/`, following `XDG_DATA_HOME`. These are copies of files from
   your projects. Snapshots older than 30 days are deleted. When YellowCode starts with Claude Code, it uses Claude Code's
   `cleanupPeriodDays` instead.

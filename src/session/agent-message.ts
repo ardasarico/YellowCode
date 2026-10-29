@@ -3,7 +3,7 @@ export type AgentMessage = { id: string; name: string; text: string }
 const HEAD = /^<agent-message to="([^"]+)" name="([^"]*)">\n/
 const CLOSE = "\n</agent-message>\n\n"
 
-const oneLine = (name: string) => name.replace(/"/g, "").replace(/\s+/g, " ").trim()
+export const oneLine = (name: string) => name.replace(/"/g, "").replace(/\s+/g, " ").trim()
 
 export function agentMessage(id: string, name: string, text: string): string {
   const shown = oneLine(name)

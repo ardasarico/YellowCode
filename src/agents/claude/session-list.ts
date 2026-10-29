@@ -2,6 +2,7 @@ import { readdir, stat } from "node:fs/promises"
 import { basename, join } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
+import { readSessionMessage } from "../../peers/envelope.ts"
 import { agentMessageLabel } from "../../session/agent-message.ts"
 import { projectKey } from "../../project-key.ts"
 
@@ -75,7 +76,7 @@ export function commandPrompt(text: string): string {
   return args === "" ? command : `${command} ${args}`
 }
 
-const listPrompt = (text: string) => agentMessageLabel(text) ?? commandPrompt(text)
+const listPrompt = (text: string) => agentMessageLabel(text) ?? readSessionMessage(text)?.text ?? commandPrompt(text)
 
 function promptOf(line: Line): string | null {
   if (line.type !== "user" || line.isMeta || line.isCompactSummary) return null

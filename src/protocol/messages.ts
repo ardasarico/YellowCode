@@ -332,10 +332,13 @@ export const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool
 // over stdio.
 export const OWN_ASK_SERVER = "yellowcode"
 export const OWN_ASK = `mcp__${OWN_ASK_SERVER}__ask`
+// The tools for the other open sessions come as client tools of their own SDK server. Listing them never asks.
+export const OWN_SESSIONS_SERVER = "yellowcode-sessions"
+export const OWN_SESSIONS = `mcp__${OWN_SESSIONS_SERVER}__list`
 
-// That server is how the tool gets to claude, not one of the user's servers, so no server list shows it.
+// Those servers are how the tools get to claude, not the user's servers, so no server list shows them.
 export const isOwnAskServer = (server: { name: string; source?: string | null }) =>
-  server.name === OWN_ASK_SERVER && server.source === "sdk"
+  (server.name === OWN_ASK_SERVER || server.name === OWN_SESSIONS_SERVER) && server.source === "sdk"
 
 const askPage = z.looseObject({
   question: z.string(),

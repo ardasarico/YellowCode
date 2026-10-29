@@ -1,10 +1,13 @@
 import type { AgentKindId } from "../../agent/ids.ts"
 import type { ModeRow } from "../../agent/lists.ts"
 import {
+  DEFAULT_SESSION_SETTINGS,
   defaultModeOf,
   resetDefaultMode,
   resetSetting,
+  type SessionSettings,
   setDefaultMode,
+  setSessionSettings,
   setSetting,
   settings,
 } from "../../session/settings.ts"
@@ -145,6 +148,35 @@ const NOTIFICATIONS = stored({
   ],
 })
 
+function sessionSetting<K extends keyof SessionSettings>(
+  key: K,
+  label: string,
+  options: SettingOption<SessionSettings[K]>[],
+): SettingDefinition {
+  return {
+    key,
+    section: "Other sessions",
+    label,
+    options,
+    value: () => settings[key],
+    set(value) {
+      const option = options.find((candidate) => candidate.value === value)
+      if (option) setSessionSettings({ [key]: option.value })
+    },
+    reset: () => setSessionSettings({ [key]: DEFAULT_SESSION_SETTINGS[key] }),
+  }
+}
+
+const PEER_MESSAGES = sessionSetting("peerMessages", "Incoming messages", [
+  { value: "run", label: "Run" },
+  { value: "ask", label: "Ask first" },
+])
+
+const PEER_VISIBLE = sessionSetting("peerVisible", "Visible to them", [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+])
+
 // YellowCode's own settings, with what it keeps for the agent among them.
 export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
   THEME,
@@ -155,6 +187,8 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentO
   defaultMode(agent.id, modes),
   EDITOR,
   NOTIFICATIONS,
+  PEER_MESSAGES,
+  PEER_VISIBLE,
 ]
 
 export const LONG = 3

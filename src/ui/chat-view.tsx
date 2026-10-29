@@ -17,6 +17,7 @@ import { buildRows, REWOUND_ROW, type Row } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
 import { TodoRow } from "./todos/todo-row.tsx"
+import { isPeerSend, PeerSendRow } from "./peer-send-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { ToolGroupRow } from "./tool-group.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
@@ -74,6 +75,11 @@ function RowView(props: RowProps) {
     const found = props.session.byId[props.row.id]
     return found && isKind(found, kind) ? found : undefined
   }
+  const peerSend = () => {
+    const tool = item("tool")
+    return tool && isPeerSend(tool) ? tool : undefined
+  }
+
   const turnEnds = () =>
     props.row.kind === "end"
       ? props.row.turnEnds.flatMap((id) => {
@@ -116,6 +122,15 @@ function RowView(props: RowProps) {
               onOverflow={props.onOverflow}
               onToggle={props.onToggle}
               onOpenImage={props.onOpenImage}
+            />
+          )}
+        </Match>
+        <Match when={props.row.kind === "tool" && peerSend()}>
+          {(tool) => (
+            <PeerSendRow
+              item={tool()}
+              selected={props.selected === tool().id}
+              expanded={props.expanded[tool().id] === true}
             />
           )}
         </Match>

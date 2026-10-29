@@ -4,7 +4,8 @@ import { constants } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
-import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
+import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
+import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
 import type { AgentKindId } from "./agent/ids.ts"
 import { createRegistry, type SessionKind } from "./agent/registry.ts"
@@ -36,6 +37,7 @@ import {
   initSettings,
   setControlProblem,
   setKnobs,
+  setSessionSettings,
   settings,
 } from "./session/settings.ts"
 import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
@@ -66,6 +68,9 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { AgentChoice } from "./ui/agent-dialog.tsx"
 import { App, type KnobActions, type Message } from "./ui/app.tsx"
+import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
+import { sessionMessage } from "./peers/envelope.ts"
+import { startPeers } from "./peers/host.ts"
 import { themeTextSelection } from "./ui/text-selection.ts"
 import { removeViewedImages } from "./ui/dialog/image-view.tsx"
 import { forgetRefs } from "./ui/markdown/refs.ts"
@@ -379,13 +384,18 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   extraEffort: false,
   thinking: settings.thinking !== "hidden",
   instructions: [],
-  clientTools: mods.clientTools(),
+  clientTools: clientTools(),
   // Claude takes the mods' servers on its own path (syncModServers).
   mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
 })
 
+// What the agent is given beside its own tools: the mods' tools of the moment, and the tools for the other sessions.
+function clientTools(): ClientTool[] {
+  return [...mods.clientTools(), ...(peers?.tools ?? [])]
+}
+
 // An agent that takes tools mid-session gets the mods' tools of the moment.
-function giveTools(target: Live, tools = mods.clientTools()): void {
+function giveTools(target: Live, tools = clientTools()): void {
   if (target.agent.caps.clientTools !== "live") return
   void target.agent.setClientTools(tools).then((done) => {
     if (!done.ok) log.warn(`${target.runner.kind.id} did not take the mods' tools`, done.problem)
@@ -448,6 +458,21 @@ async function replayMode(file: string) {
   return { kind: "replay" as const, replay, recording, info, provider, preview }
 }
 
+// Live sessions on this machine see this one and can message it; a replay takes no part.
+const peers =
+  values.replay === undefined
+    ? await startPeers(cwd, {
+        session: null,
+        agent: firstRunner.kind.id,
+        title: "",
+        model: "",
+        status: "idle",
+        hidden: false,
+      }).catch((error: unknown) => {
+        log.warn("cannot open the session inbox", error)
+        return null
+      })
+    : null
 const mode = values.replay === undefined ? await liveMode() : await replayMode(values.replay)
 // Snapshots of the project around each prompt, for rewinding its files; a replay touches no files.
 const capture = mode.kind === "live" ? createCapture(cwd) : null
@@ -562,6 +587,7 @@ async function quit(code = 0): Promise<void> {
 const QUIT_SIGNALS = ["SIGINT", "SIGTERM", "SIGQUIT", "SIGABRT", "SIGPIPE", "SIGBUS"] as const
 
 process.on("exit", () => {
+  peers?.close()
   closeSource()
   stopOneShots()
   removeViewedImages()
@@ -610,9 +636,20 @@ createRoot(() => {
       { defer: true },
     ),
   )
+  createEffect(() => peers?.update({ hidden: settings.peerVisible === "no" }))
+  createEffect(() => {
+    if (!peers || mode.kind !== "live") return
+    const { state } = chat().session
+    peers.update({
+      session: state.info?.id ?? (live.agent.session.id || null),
+      agent: runningKind(),
+      model: state.info?.model ?? "",
+      status: state.status === "idle" ? "idle" : "busy",
+    })
+  })
   createEffect(
     on(
-      () => mods.clientTools(),
+      () => clientTools(),
       (tools) => {
         if (mode.kind === "live") giveTools(live, tools)
       },
@@ -878,6 +915,51 @@ function sendPrompt(
     .catch((error: unknown) => log.error("cannot send the message", error))
   if (startsTurn) turnSend = sending
 }
+
+// With "Ask first" a message waits for the user, asked the way a permission is.
+peers?.holdWith((id, message) => {
+  if (settings.peerMessages !== "ask") return false
+  live.store.event({ type: "ask.open", ask: peerAsk(id, message), at: Date.now() })
+  return true
+})
+
+// A broadcast to every session on the machine goes out only once the user lets it.
+const everywhereWaiting = new Map<string, (yes: boolean) => void>()
+peers?.confirmWith((message) => {
+  const id = crypto.randomUUID()
+  live.store.event({ type: "ask.open", ask: everywhereAsk(id, message), at: Date.now() })
+  return new Promise((resolve) => everywhereWaiting.set(id, resolve))
+})
+
+function answerEverywhere(id: string, ask: { requestId: string }, reply: AskReply): void {
+  const yes = reply.type === "option" && reply.option === "send"
+  live.store.event({
+    type: "ask.close",
+    id: ask.requestId,
+    outcome: yes ? { status: "allowed" } : { status: "denied", said: "", why: "declined", note: "" },
+    at: Date.now(),
+  })
+  everywhereWaiting.get(id)?.(yes)
+  everywhereWaiting.delete(id)
+}
+
+function answerHeld(id: string, ask: { requestId: string }, reply: AskReply): void {
+  const run = reply.type === "option" && reply.option !== "decline"
+  if (reply.type === "option" && reply.option === "always") setSessionSettings({ peerMessages: "run" })
+  live.store.event({
+    type: "ask.close",
+    id: ask.requestId,
+    outcome: run ? { status: "allowed" } : { status: "denied", said: "", why: "declined", note: "" },
+    at: Date.now(),
+  })
+  peers?.release(id, run)
+}
+
+// A message from another session goes out as a prompt of the session running now.
+peers?.sendWith((message) => {
+  const text = sessionMessage({ ...message.from, broadcast: message.broadcast, text: message.text })
+  return sendLive({ text, images: message.images, to: null }, () => {})
+})
 
 const [goingBack, setGoingBack] = createSignal(false)
 
@@ -1155,6 +1237,10 @@ function Main() {
                   : undefined
               }
               onAnswer={(ask, reply) => {
+                const held = heldOf(ask.requestId)
+                if (held !== null) return answerHeld(held, ask, reply)
+                const everywhere = everywhereOf(ask.requestId)
+                if (everywhere !== null) return answerEverywhere(everywhere, ask, reply)
                 if (ask.ownPlan) return current.session.settlePlan(ask.requestId, reply)
                 void (mode.kind === "replay" ? mode.replay : live.agent).answer(ask.requestId, reply)
               }}
@@ -1173,6 +1259,7 @@ function Main() {
               }
               tasks={mode.kind === "live" ? taskActions : undefined}
               onTitle={mode.kind === "live" ? (title) => rename(current.session, title) : undefined}
+              onShownTitle={mode.kind === "live" ? (title) => peers?.update({ title }) : undefined}
               knobs={mode.kind === "live" ? knobs : undefined}
               info={mode.kind === "live" ? infoReads : undefined}
               permissions={

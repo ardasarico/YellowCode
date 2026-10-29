@@ -79,7 +79,9 @@ export function createAskServer(
       }
     },
     serve(requestId, request) {
-      if (isModServer(request.server_name)) return serveModTools(send, requestId, request, clientTools())
+      const served =
+        request.server_name !== OWN_ASK_SERVER && clientTools().some((tool) => tool.server === request.server_name)
+      if (isModServer(request.server_name) || served) return serveModTools(send, requestId, request, clientTools())
       if (request.server_name !== OWN_ASK_SERVER)
         return send(errorResponse(requestId, "YellowCode does not support mcp_message"))
       const { id, method, params } = request.message

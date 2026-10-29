@@ -45,7 +45,7 @@ test("every spawn allows our own ask and turns the stock one off, each flag in o
   const spawns: Spawn[] = [{}, { resume: "a", at: "u" }, { resume: "a", fork: true, sessionId: "n" }]
   for (const spawn of spawns) {
     const args = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode: "plan" }), spawn)
-    expect(args).toContain("--allowedTools=mcp__yellowcode__ask")
+    expect(args).toContain("--allowedTools=mcp__yellowcode__ask,mcp__yellowcode-sessions__list")
     expect(args).toContain("--disallowedTools=AskUserQuestion")
   }
 })

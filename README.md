@@ -45,6 +45,9 @@ and logged in. See [Usage](docs/usage.md) for the rest.
 - **Rewind that brings your files back.** Go back to an earlier message and the whole project goes back with it: files
   changed by shell commands, formatters and background agents too, not only the agent's own edits. `/redo` undoes the
   rewind.
+- **Sessions that hand work to each other.** Every YellowCode session open on your machine can see the others and send
+  them work, whichever agent each one runs. One session asks another to write the tests, and the answer comes back as
+  a message.
 - **Mods.** Add your own commands, panes, sidebar sections and tools in TypeScript.
 
 ## Supported agents

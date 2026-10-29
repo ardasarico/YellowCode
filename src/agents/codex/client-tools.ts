@@ -18,7 +18,7 @@ export function dynamicTools(tools: readonly ClientTool[]): unknown[] {
     ...[...namespaces].map(([server, own]) => ({
       type: "namespace",
       name: server,
-      description: `Tools of the YellowCode mod ${server}`,
+      description: server.startsWith("mod-") ? `Tools of the YellowCode mod ${server}` : `YellowCode's ${server} tools`,
       tools: own.map(({ name, description, inputSchema }) => ({ type: "function", name, description, inputSchema })),
     })),
   ]

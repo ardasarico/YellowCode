@@ -43,6 +43,8 @@ quits. YellowCode never stops or restarts it. It needs opencode 2 or newer and i
   another start mode for each agent in `/settings`.
 - Thinking shown as a summary, or hidden if you set Thinking to hidden in `/settings`. The setting does not apply to
   opencode.
+- Three tools for your other open sessions, `list`, `send` and `broadcast`, given to the agent the same way as the mods'
+  tools. See [Sessions working together](usage.md#sessions-working-together).
 - The tools of the [mods](mods.md) you have turned on, and with Claude Code and Codex their MCP servers. Codex takes
   them when a session starts, so a change reaches it in the next session.
 
@@ -50,7 +52,8 @@ quits. YellowCode never stops or restarts it. It needs opencode 2 or newer and i
 
 - Read your credentials or API keys.
 - Talk to a model provider itself.
-- Send your prompts, files or sessions anywhere but to your agent.
+- Send your prompts, files or sessions anywhere but to your agent. When your agent messages another open session, the
+  message goes to that session on your machine and nowhere else.
 
 The only requests YellowCode makes on its own are for mods. It fetches the [mod list](mods.md) from GitHub at most once
 a day and updates listed mods in the background. When a mod is installed or updated, its code comes from GitHub and its

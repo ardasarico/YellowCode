@@ -3,6 +3,7 @@ import type { AgentEvent, TaskKind } from "../agent/events.ts"
 import type { EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { ModelGroup, ModeRow } from "../agent/lists.ts"
 import type { FileChange, Todo, ToolKind } from "../agent/tools.ts"
+import type { PeerFrom } from "../peers/envelope.ts"
 import type { Rewound } from "./rewind.ts"
 
 export type ItemId = string
@@ -19,6 +20,8 @@ export type UserMessage = {
   to: { id: string; name: string } | null
   // Set once the message was passed on to that agent.
   delivery?: "sent" | "resumed"
+  // Another YellowCode session sent it; `text` is then the message itself.
+  from?: PeerFrom & { broadcast: boolean }
   queue: "queued" | "not sent" | null
   uuid?: string
 }

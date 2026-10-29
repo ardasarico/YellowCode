@@ -220,6 +220,8 @@ export type AppProps = {
   knobs?: KnobActions
   // Each new title YellowCode's titler made, so the agent can keep it for the session.
   onTitle?: (title: string) => void
+  // The title the session shows, whatever its source.
+  onShownTitle?: (title: string) => void
   // The running agent's /context, /usage and settings; none in a replay or a saved conversation.
   info?: Pick<Agent, "context" | "usage" | "settings">
   // Live only: the rules the agent pushed (null until it does), for /permissions where caps.lists has "rules".
@@ -480,6 +482,7 @@ export function App(props: AppProps) {
     const name = renamed()
     return name ? { title: name, summary: sourceTitle()?.summary ?? "" } : sourceTitle()
   }
+  createEffect(() => props.onShownTitle?.(title()?.title ?? ""))
   const copyText = (text: string) => writeClipboard(text, (copied) => renderer.copyToClipboardOSC52(copied))
   if (!untrack(() => props.readOnly)) {
     useModEvents(

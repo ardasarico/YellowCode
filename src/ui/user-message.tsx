@@ -6,6 +6,7 @@ import type { Command } from "../input/commands.ts"
 import { highlightRanges } from "../input/token.ts"
 import type { UserMessage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { agentColor } from "./agent-color.ts"
 import { FoldHint } from "./fold-hint.tsx"
 import { printable } from "./format.ts"
 import { labelId } from "./image-label.tsx"
@@ -110,10 +111,17 @@ function UserMessageRowBase(props: UserMessageRowProps) {
         flexDirection="column"
         backgroundColor={(props.selected ? theme.selection : theme.band) ?? undefined}
         border={["left"]}
-        borderColor={theme.accent}
+        borderColor={props.item.from ? agentColor(props.item.from.agent) : theme.accent}
         customBorderChars={barChars}
         paddingLeft={1}
       >
+        <Show when={props.item.from}>
+          {(from) => (
+            <text fg={agentColor(from().agent)} wrapMode="none">
+              {`← ${from().title || from().id} · ${from().agent}${from().broadcast ? " · broadcast" : ""}`}
+            </text>
+          )}
+        </Show>
         <Show when={props.item.images.length > 0}>
           <box flexDirection="row" flexWrap="wrap" gap={1}>
             <Index each={props.item.images}>

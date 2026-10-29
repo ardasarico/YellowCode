@@ -1,6 +1,6 @@
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
-import { OWN_ASK } from "../protocol/messages.ts"
+import { OWN_ASK, OWN_SESSIONS } from "../protocol/messages.ts"
 import { APPEND_SYSTEM_PROMPT } from "./append-prompt.ts"
 
 export const CLAUDE_STREAM_ARGS = [
@@ -43,7 +43,7 @@ export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Lau
     ...CLAUDE_STREAM_ARGS,
     // Our own ask replaces the stock one and never waits on a permission ask. These flags take a list, so each is
     // one argument that cannot swallow the next.
-    `--allowedTools=${OWN_ASK}`,
+    `--allowedTools=${OWN_ASK},${OWN_SESSIONS}`,
     "--disallowedTools=AskUserQuestion",
     thinkingArg(stored.thinking),
     // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.

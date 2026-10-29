@@ -54,7 +54,8 @@ export function serveModTools(
   }
 }
 
-// The servers claude should have: our ask server, every running mod's tools, and its manifest's servers.
+// The servers claude should have: our ask server, every running mod's tools and its manifest's servers, and
+// YellowCode's other client tool servers.
 export function modServerConfigs(
   host: Pick<ModHost, "entries" | "servers">,
   tools: readonly ClientTool[],
@@ -69,6 +70,9 @@ export function modServerConfigs(
     if (withTools.has(name)) servers[name] = { type: "sdk", name }
     Object.assign(servers, host.servers(entry.id))
   }
+  // YellowCode's own tools may wait for the user, so claude gives them as long as its own ask.
+  for (const name of withTools)
+    if (!isModServer(name)) servers[name] = { type: "sdk", name, timeout: OWN_ASK_TIMEOUT_MS }
   return servers
 }
 

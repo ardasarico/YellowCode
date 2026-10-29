@@ -6,6 +6,7 @@ import type { AskId, PartId, PromptId, TaskId, ToolId } from "../agent/ids.ts"
 import type { Lists, McpServerRow } from "../agent/lists.ts"
 import type { SubagentCall } from "../agent/tools.ts"
 import { log } from "../log/log.ts"
+import { readSessionMessage } from "../peers/envelope.ts"
 import { hiddenSpan, type Rewound } from "./rewind.ts"
 import { messageSummary } from "./tool-summary.ts"
 import type {
@@ -1177,13 +1178,15 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const running = state.status === "running"
     const queued = (running || shownEarly) && prompt !== null && !user.history
     const to = user.to && { id: user.to.task, name: user.to.name }
+    const peer = readSessionMessage(user.text)
     add(
       {
         kind: "user",
         id,
-        text: user.text,
+        text: peer ? peer.text : user.text,
         images: user.images,
         to,
+        ...(peer && { from: { id: peer.id, title: peer.title, agent: peer.agent, broadcast: peer.broadcast } }),
         queue: queued && running ? "queued" : null,
         uuid: prompt ?? undefined,
       },
