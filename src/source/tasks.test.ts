@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { feed } from "../agents/claude/translate.ts"
 import { getTaskOutputRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
@@ -29,8 +30,8 @@ test("a running shell is read one at a time about once a second, once more after
   let clock = 0
   const { requests, sent, reads, settle } = fakeRequests()
   const session = createSession()
-  session.apply("in", started("b1"), 0)
-  session.apply("in", started("a1", "local_agent"), 0)
+  feed(session, "in", started("b1"), 0)
+  feed(session, "in", started("a1", "local_agent"), 0)
   const tasks = createTaskControls({ requests, session, now: () => clock })
 
   tasks.tick()
@@ -42,7 +43,7 @@ test("a running shell is read one at a time about once a second, once more after
   clock = 1000
   tasks.tick()
   await settle()
-  session.apply("in", ended("b1"), 0)
+  feed(session, "in", ended("b1"), 0)
   tasks.tick()
   await settle()
   tasks.tick()
@@ -56,18 +57,19 @@ test("a running shell is read one at a time about once a second, once more after
 test("a shell that ended before the controls were made is never read", () => {
   const { requests, reads } = fakeRequests()
   const session = createSession()
-  session.apply("in", started("b1"), 0)
-  session.apply("in", ended("b1"), 0)
+  feed(session, "in", started("b1"), 0)
+  feed(session, "in", ended("b1"), 0)
   createTaskControls({ requests, session }).tick()
   expect(reads()).toEqual([])
 })
 
 test("a late reply to an older read never replaces a newer tail", () => {
   const session = createSession()
-  session.apply("in", started("b1"), 0)
-  for (const id of ["r1", "r2"]) session.apply("out", parse(getTaskOutputRequest(id, "b1")), 0)
+  feed(session, "in", started("b1"), 0)
+  for (const id of ["r1", "r2"]) feed(session, "out", parse(getTaskOutputRequest(id, "b1")), 0)
   const reply = (id: string, output: string) =>
-    session.apply(
+    feed(
+      session,
       "in",
       parse(
         JSON.stringify({

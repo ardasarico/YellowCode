@@ -5,6 +5,14 @@ import { constants } from "node:os"
 import { basename, join } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
+import {
+  answerSession,
+  endSession,
+  interruptFailed,
+  prependLines,
+  restartSession,
+  showEarly,
+} from "./agents/claude/translate.ts"
 import { forgetFiles } from "./input/files.ts"
 import { type InputProvider, liveProvider, replayProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
@@ -367,7 +375,7 @@ async function start(): Promise<void> {
     return
   }
   await pump(mode.source, firstSession, null)
-  firstSession.end()
+  endSession(firstSession)
 }
 
 type View = {
@@ -450,7 +458,7 @@ async function openLive(entry: SessionEntry): Promise<void> {
   if (quitting || token !== opening || connection !== current || working()) return
   const spawn = copy ? { resume: entry.id, fork: true, sessionId: crypto.randomUUID() } : { resume: entry.id }
   const session = createSession({ starting: true })
-  session.prepend(part.events)
+  prependLines(session, part.events)
   const following = capture?.follow(session)
   // Prompts made in Claude Code itself rewind their Edit/Write files from its own backups.
   capture?.adopt(entry.path, entry.id)
@@ -488,7 +496,7 @@ function restart(text: string, images: OutgoingImage[], giveBack: () => void): b
   // One that stopped responding can still be running out its grace; a second claude must not write the same file
   // meanwhile, so the start waits for it, and Enter again only refuses to send.
   if (code === null && signal === null) {
-    ended.session.restart()
+    restartSession(ended.session)
     restarting = true
     void stop(ended).then(() => {
       restarting = false
@@ -527,10 +535,13 @@ function relaunch(
     connection = connect({ cwd, session, spawn, stored: settings, provider: claudeLists, carry, mode: goesOn })
   } catch (error) {
     log.error("cannot start claude", error)
-    session.end({ text: "Cannot start Claude Code", detail: [error instanceof Error ? error.message : String(error)] })
+    endSession(session, {
+      text: "Cannot start Claude Code",
+      detail: [error instanceof Error ? error.message : String(error)],
+    })
     return false
   }
-  session.restart()
+  restartSession(session)
   connection.start()
   if (!text.trim() && images.length === 0) return true
   // The resumed conversation still holds the prompts a rewind hid.
@@ -561,7 +572,7 @@ function sendPrompt(
   const uuid = crypto.randomUUID()
   const { sent: line, shown } = promptLines(text, images, uuid, told, after)
   const startsTurn = live.session.state.status !== "running"
-  live.session.showEarly(shown)
+  showEarly(live.session, shown)
   const ready = capture?.before(uuid, idOf(live) ?? null, live.session)
   const unsent = () => {
     capture?.drop(uuid)
@@ -845,7 +856,7 @@ async function loadEarlier(shown: View): Promise<void> {
   const cursor = shown.earlier()
   if (cursor === null) return
   const part = await readTranscript(shown.entry.path, cursor)
-  shown.session.prepend(part.events)
+  prependLines(shown.session, part.events)
   shown.setEarlier(part.earlier)
 }
 
@@ -934,11 +945,11 @@ function Main() {
                   const now = current.session.state.byId[ask.id]
                   if (now?.kind !== "ask" || now.status !== "pending") return log.info("dropped a late own ask answer")
                   const result = ownAskReply(ask, ask.mcp.rpcId, response)
-                  current.session.answer(result)
+                  answerSession(current.session, result)
                   source.send(result)
                   return
                 }
-                current.session.answer(response)
+                answerSession(current.session, response)
                 // A file outside the project is read before the call may change it.
                 const reading =
                   behavior === "allow" && !ask.agent ? capture?.asked(ask.toolUseId, ask.toolName, ask.input) : null
@@ -961,7 +972,7 @@ function Main() {
                           (reply) => log.info("interrupted", reply),
                           (error: unknown) => {
                             log.warn("interrupt failed", error instanceof Error ? error.message : error)
-                            current.session.interruptFailed()
+                            interruptFailed(current.session)
                           },
                         )
                     }

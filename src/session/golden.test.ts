@@ -15,6 +15,7 @@ import {
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { z } from "zod"
+import { feed, prependLines } from "../agents/claude/translate.ts"
 import { parseJson } from "../protocol/json.ts"
 import * as outgoing from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
@@ -169,7 +170,7 @@ for (const name of sessionNames) {
     const steps: string[] = []
     const fileOriginals = recordOriginals(session, steps)
     for (const entry of entries) {
-      session.apply(entry.dir, parse(entry.line), entry.t)
+      feed(session, entry.dir, parse(entry.line), entry.t)
       steps.push(hash(session))
     }
     checkReplay(`sessions/${name}.json`, { steps, fileOriginals, state: snapshot(session) }, (index) => {
@@ -192,7 +193,7 @@ for (const [name, { steps: script, emitted }] of Object.entries(scripted)) {
       else {
         const parsed = parse(step.line)
         if (parsed.kind !== "message") throw new Error(`step ${index} is no protocol message: ${step.line}`)
-        session.apply(step.dir, parsed, index * 1000)
+        feed(session, step.dir, parsed, index * 1000)
       }
       steps.push(hash(session))
     }
@@ -212,7 +213,7 @@ async function pages(path: string, open: (part: TranscriptPart) => SessionStore)
   while (part.earlier) {
     // oxlint-disable-next-line no-await-in-loop -- each part starts where the one before ended
     part = await readTranscript(path, part.earlier)
-    session.prepend(part.events)
+    prependLines(session, part.events)
     shown.push({ earlier: part.earlier, state: snapshot(session) })
   }
   return shown
@@ -227,7 +228,7 @@ async function opened(path: string) {
   })
   const continued = await pages(path, (part) => {
     const session = createSession({ starting: true })
-    session.prepend(part.events)
+    prependLines(session, part.events)
     return session
   })
   return { viewed, continued }

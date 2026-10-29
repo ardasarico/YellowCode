@@ -259,6 +259,7 @@ const user = z.looseObject({
     .union([
       z.looseObject({
         type: z.string().optional(),
+        filePath: z.string().optional(),
         structuredPatch: z.array(hunk).optional(),
         isAsync: z.boolean().optional(),
         agentId: z.string().optional(),
@@ -323,6 +324,9 @@ export const askUserQuestionInput = z.looseObject({
     }),
   ),
 })
+
+// claude's result for a call the user interrupted.
+export const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool use."
 
 // Our own ask reaches claude as the one tool of an SDK MCP server that YellowCode serves over stdio.
 export const OWN_ASK_SERVER = "yellowcode"

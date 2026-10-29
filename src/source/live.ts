@@ -1,3 +1,4 @@
+import { endSession, feed, openHeldAsk } from "../agents/claude/translate.ts"
 import type { LiveProvider } from "../input/provider.ts"
 import { log } from "../log/log.ts"
 import { commandRows, modelRows, OWN_ASK } from "../protocol/messages.ts"
@@ -64,7 +65,7 @@ export async function pump(
       const key = parsed.kind === "message" ? parsed.message.type : parsed.key
       try {
         try {
-          session.apply(event.dir, parsed, event.at)
+          feed(session, event.dir, parsed, event.at)
         } catch (error) {
           log.error(`cannot apply ${key}`, error)
         }
@@ -146,7 +147,7 @@ export function connect(options: {
   const tasks = createTaskControls({ requests, session })
   const asks = createAskServer(
     (line) => source.send(line),
-    (toolUseId) => session.openOwnAsk(toolUseId),
+    (toolUseId) => openHeldAsk(session, toolUseId),
   )
   log.info("claude flags", { permissionMode: launch.mode, thinking: stored.thinking, bypass: launch.bypass, ...spawn })
 
@@ -206,13 +207,16 @@ export function connect(options: {
     const exit = await Promise.race([source.exited, Bun.sleep(EXIT_WAIT_MS).then(() => source.exitNow())])
     if (closing) return
     if (silent)
-      session.end({ text: `Claude Code did not answer in ${INITIALIZE_TIMEOUT_MS / 1000} s`, detail: exit.stderr })
-    else if (exit.closed) session.end()
+      endSession(session, {
+        text: `Claude Code did not answer in ${INITIALIZE_TIMEOUT_MS / 1000} s`,
+        detail: exit.stderr,
+      })
+    else if (exit.closed) endSession(session)
     else if (exit.code === null && exit.signal === null) {
       log.warn("claude closed its output but still runs")
       source.close()
-      session.end({ text: "Claude Code stopped responding", detail: exit.stderr })
-    } else session.end(describeExit(exit))
+      endSession(session, { text: "Claude Code stopped responding", detail: exit.stderr })
+    } else endSession(session, describeExit(exit))
   }
 
   return {

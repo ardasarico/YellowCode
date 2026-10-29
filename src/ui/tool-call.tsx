@@ -3,7 +3,7 @@ import { extname } from "node:path"
 import { createComponent, createMemo, createSignal, ErrorBoundary, Index, Show } from "solid-js"
 import type { ModToolCall } from "../mods/api.ts"
 import { reportModError, rowPartsFor } from "../mods/registry.ts"
-import { askUserQuestionInput, OWN_ASK } from "../protocol/messages.ts"
+import { askUserQuestionInput, INTERRUPTED_CALL, OWN_ASK } from "../protocol/messages.ts"
 import { DECLINED_WITH_NOTE, NOT_SHOWN, QUESTION_TO_CHAT, SUBAGENT_ASK, TOOL_DECLINED } from "../protocol/outgoing.ts"
 import { answersInResult, askKeys, severe } from "../session/ask.ts"
 import type { Ask, Task, ToolCall } from "../session/types.ts"
@@ -81,9 +81,6 @@ export function toolLines(
 function backToChat(ask: Ask): boolean {
   return ask.status === "denied" && ask.denial === QUESTION_TO_CHAT
 }
-
-// claude's result for a call the user interrupted.
-const INTERRUPTED_CALL = "The user doesn't want to proceed with this tool use."
 
 function knownDenial(denial: string): string | null {
   if (denial.startsWith(NOT_SHOWN)) return `rejected · ${denial.slice(NOT_SHOWN.length).replace(/\.$/, "")}`

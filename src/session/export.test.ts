@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { feed } from "../agents/claude/translate.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { conversationMarkdown, freeExportName } from "./export.ts"
@@ -19,7 +20,7 @@ test("exports messages, replies and one line per tool call", () => {
   const session = createSession()
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "tools.jsonl")
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feed(session, entry.dir, parse(entry.line), entry.t)
   const text = conversationMarkdown(session.state, {
     title: "Port",
     model: "Opus 5.5",
@@ -41,7 +42,7 @@ test("a failed tool call carries the last lines of its output", () => {
   const session = createSession()
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "tools.jsonl")
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feed(session, entry.dir, parse(entry.line), entry.t)
   const { byId } = session.state
   const failed = Object.fromEntries(
     Object.entries(byId).map(([id, item]) => [

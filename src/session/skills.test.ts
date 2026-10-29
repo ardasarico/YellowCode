@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { feed } from "../agents/claude/translate.ts"
 import type { SettingsSource, SkillRow } from "../protocol/messages.ts"
 import { loadRecording, recordedInitLists, recordedSettingsSources, recordedSkillRows } from "../source/recording.ts"
 import { readFileSync } from "node:fs"
@@ -80,8 +81,8 @@ test("counts Claude's Skill calls and typed commands", () => {
   const session = createSession()
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "skill-call.jsonl")
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
-  session.apply("out", parse(userMessage("/user-skill-1 again", [])), 0)
+    feed(session, entry.dir, parse(entry.line), entry.t)
+  feed(session, "out", parse(userMessage("/user-skill-1 again", [])), 0)
   const skills = skillList([row("user-skill-1", "user"), row("other", "user")], null, [])
   expect([...skillUses(session.state, skills)]).toEqual([["user-skill-1", 2]])
 })

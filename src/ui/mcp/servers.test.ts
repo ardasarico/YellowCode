@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { feed } from "../../agents/claude/translate.ts"
 import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { McpServer } from "../../session/types.ts"
@@ -11,7 +12,7 @@ test("servers group by where they come from, problems first, with short names an
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", "mcp-states.jsonl")
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feed(session, entry.dir, parse(entry.line), entry.t)
   const info = session.state.info
   const rows = mcpEntries(info?.mcpServers ?? null, info?.tools ?? []).map((entry) => [
     entry.group,

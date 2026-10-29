@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { feed } from "../agents/claude/translate.ts"
 import { interruptRequest, userMessage } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
@@ -11,7 +12,7 @@ function rowsOf(name: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feed(session, entry.dir, parse(entry.line), entry.t)
   return buildRows(session.state).map((row) => (row.kind === "end" ? `end×${row.turnEnds.length}` : row.kind))
 }
 
@@ -44,8 +45,8 @@ const result = {
 // A turn with a tool and a message queued during it; `endFirst` ends that turn, then the queued message runs.
 function queuedRows(endFirst: (send: (line: string) => void, receive: (message: object) => void) => void) {
   const session = createSession()
-  const send = (line: string) => session.apply("out", parse(line), 0)
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (line: string) => feed(session, "out", parse(line), 0)
+  const receive = (message: object) => feed(session, "in", parse(JSON.stringify(message)), 0)
   send(userMessage("run it"))
   receive({
     type: "assistant",
@@ -70,12 +71,12 @@ test("an interrupted or failed turn keeps its end row when a queued message runs
 test("a finished turn keeps its own end row when the turn claude starts next is interrupted or fails", () => {
   const rowsWith = (second: object) => {
     const session = createSession()
-    const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
-    session.apply("out", parse(userMessage("run it")), 0)
+    const receive = (message: object) => feed(session, "in", parse(JSON.stringify(message)), 0)
+    feed(session, "out", parse(userMessage("run it")), 0)
     receive({ type: "assistant", message: { id: "a", content: [{ type: "text", text: "done here" }] } })
     receive(result)
     receive({ type: "system", subtype: "status", status: "requesting" })
-    session.apply("out", parse(interruptRequest("yc-1")), 0)
+    feed(session, "out", parse(interruptRequest("yc-1")), 0)
     receive({ type: "assistant", message: { id: "b", content: [{ type: "text", text: "a shell ended" }] } })
     receive(second)
     return buildRows(session.state).map((row) => (row.kind === "end" ? `end×${row.turnEnds.length}` : row.kind))
@@ -89,7 +90,7 @@ test("finished reads, searches and commands fold, and those in a row share one g
   expect(rowsOf("tools")).toEqual(["user", "brief", "tool", "brief", "markdown", "end×1"])
 
   const session = createSession()
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const receive = (message: object) => feed(session, "in", parse(JSON.stringify(message)), 0)
   let n = 0
   const assistant = (block: object) => receive({ type: "assistant", message: { id: `m${n++}`, content: [block] } })
   const call = (id: string, name: string, failed = false) => {
@@ -99,7 +100,7 @@ test("finished reads, searches and commands fold, and those in a row share one g
       message: { content: [{ type: "tool_result", tool_use_id: id, content: "out", is_error: failed }] },
     })
   }
-  session.apply("out", parse(userMessage("look around")), 0)
+  feed(session, "out", parse(userMessage("look around")), 0)
   call("t1", "Bash")
   assistant({ type: "thinking", thinking: "next" })
   call("t2", "Bash", true)

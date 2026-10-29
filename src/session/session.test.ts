@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { answerSession, endSession, feed as feedLine, showEarly } from "../agents/claude/translate.ts"
+import { stripShellContext } from "../agents/claude/user.ts"
 import {
   allowTool,
   answerQuestions,
@@ -13,8 +15,8 @@ import {
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { agentMessage } from "./agent-message.ts"
-import { LOGIN_HINT } from "./login.ts"
-import { createSession, stripShellContext, withoutOpenMarkers } from "./session.ts"
+import { LOGIN_HINT } from "../agents/claude/login.ts"
+import { createSession, withoutOpenMarkers } from "./session.ts"
 import { exitCode, runningShellCount, shellEndStatus, shellStartedBy } from "./shells.ts"
 import type { Item } from "./types.ts"
 
@@ -23,14 +25,14 @@ function replay(name: string, until?: string) {
   const session = createSession()
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries) {
     if (until && entry.line.includes(until)) break
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feedLine(session, entry.dir, parse(entry.line), entry.t)
   }
   return session
 }
 
 function feed(...messages: object[]) {
   const session = createSession()
-  for (const message of messages) session.apply("in", parse(JSON.stringify(message)), 0)
+  for (const message of messages) feedLine(session, "in", parse(JSON.stringify(message)), 0)
   return session
 }
 
@@ -72,7 +74,8 @@ test("partial tool input stays raw text until the block completes", () => {
   )
   expect(session.state.byId["t1"]).toMatchObject({ kind: "tool", inputText: '{"comm', input: undefined })
 
-  session.apply(
+  feedLine(
+    session,
     "in",
     parse(JSON.stringify(assistant("m1", { type: "tool_use", id: "t1", name: "Bash", input: { command: "ls" } }))),
     0,
@@ -107,7 +110,7 @@ const canUseTool = (extra: object) => ({
 test("allowing a tool whose own input has annotations settles its ask as allowed", () => {
   const input = { path: "a.ts", annotations: [{ line: 1, message: "x" }] }
   const session = feed(canUseTool({ tool_name: "mcp__fake__annotate", input }))
-  session.apply("out", parse(allowTool("r1", input)), 0)
+  feedLine(session, "out", parse(allowTool("r1", input)), 0)
   expect(rows(session)).toMatchObject([{ kind: "ask", status: "allowed" }])
 })
 
@@ -141,7 +144,7 @@ test("an ask offers no suggestion when always allow is suppressed", () => {
 const settle = (response: object, ask: object = {}) => {
   const session = feed(canUseTool(ask))
   const reply = { type: "control_response", response: { subtype: "success", request_id: "r1", response } }
-  session.apply("out", parse(JSON.stringify(reply)), 0)
+  feedLine(session, "out", parse(JSON.stringify(reply)), 0)
   return session.state.byId["ask-r1"]
 }
 
@@ -163,15 +166,20 @@ test("claude cancelling an ask closes it, unless the user answered first", () =>
   const cancel = { type: "control_cancel_request", request_id: "r1" }
   expect(feed(canUseTool({}), cancel).state.byId["ask-r1"]).toMatchObject({ status: "cancelled" })
   const answered = feed(canUseTool({}))
-  answered.answer(allowTool("r1", {}))
-  answered.apply("in", parse(JSON.stringify(cancel)), 0)
+  answerSession(answered, allowTool("r1", {}))
+  feedLine(answered, "in", parse(JSON.stringify(cancel)), 0)
   expect(answered.state.byId["ask-r1"]).toMatchObject({ status: "allowed" })
 })
 
 test("a recorded response does not overwrite the user's own answer", () => {
   const session = feed(canUseTool({}))
-  session.answer(denyTool("r1", QUESTION_TO_CHAT))
-  session.apply("out", parse(answerQuestions("r1", { questions: [{ question: "Which?" }] }, { "Which?": "A" }, {})), 0)
+  answerSession(session, denyTool("r1", QUESTION_TO_CHAT))
+  feedLine(
+    session,
+    "out",
+    parse(answerQuestions("r1", { questions: [{ question: "Which?" }] }, { "Which?": "A" }, {})),
+    0,
+  )
   expect(session.state.byId["ask-r1"]).toMatchObject({ status: "denied", answers: {}, denial: QUESTION_TO_CHAT })
 })
 
@@ -205,7 +213,7 @@ test("a result stops streaming even when the final message never arrived", () =>
   const session = streamingText()
   expect(streaming(session)).toHaveLength(1)
 
-  session.apply("in", parse(JSON.stringify(result)), 0)
+  feedLine(session, "in", parse(JSON.stringify(result)), 0)
   expect(streaming(session)).toEqual([])
   expect(items(session).some((item) => item.kind === "turn-end")).toBe(true)
 })
@@ -227,7 +235,7 @@ test("a result settles its tools without a result, but not background work", () 
 
 test("ending the session stops anything still streaming", () => {
   const session = streamingText()
-  session.end()
+  endSession(session)
   expect(streaming(session)).toEqual([])
   expect(session.state.status).toBe("ended")
 })
@@ -400,8 +408,8 @@ test("a failed login adds the sign-in hint after the turn, an invalid API key do
 
 test("an interrupted turn ends interrupted, not failed, with its tool stopped and claude's rejection hidden", () => {
   const session = createSession()
-  const send = (line: string) => session.apply("out", parse(line), 0)
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (line: string) => feedLine(session, "out", parse(line), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   send(userMessage("run it"))
   receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 20" } }))
   receive({ type: "system", subtype: "task_started", task_id: "k1", tool_use_id: "t1", task_type: "local_bash" })
@@ -448,7 +456,7 @@ test("an interrupted turn ends interrupted, not failed, with its tool stopped an
 
 test("an interrupt that goes out after its turn's result marks no later turn as interrupted", () => {
   const session = createSession()
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const ended = {
     type: "result",
     subtype: "success",
@@ -458,10 +466,10 @@ test("an interrupt that goes out after its turn's result marks no later turn as 
     usage: { input_tokens: 1, output_tokens: 1 },
     result: "ok",
   }
-  session.apply("out", parse(userMessage("hi")), 0)
+  feedLine(session, "out", parse(userMessage("hi")), 0)
   receive(assistant("a1", { type: "text", text: "first answer" }))
   receive(ended)
-  session.apply("out", parse(interruptRequest("yc-2")), 0)
+  feedLine(session, "out", parse(interruptRequest("yc-2")), 0)
   receive({ type: "control_response", response: { subtype: "success", request_id: "yc-2", response: {} } })
   expect(session.state.interrupting).toBe(false)
 
@@ -474,8 +482,8 @@ test("an interrupt that goes out after its turn's result marks no later turn as 
 
 test("a message sent during a turn waits as queued, outlives an interrupt and runs as the next turn", () => {
   const session = createSession()
-  const send = (line: string) => session.apply("out", parse(line), 0)
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (line: string) => feedLine(session, "out", parse(line), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const queued = () => rows(session).find((item) => item.kind === "user" && item.text === "also this")
   send(userMessage("run it"))
   receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 20" } }))
@@ -497,14 +505,14 @@ test("a message sent during a turn waits as queued, outlives an interrupt and ru
 
 test("only a turn in progress can be interrupted, and the session knows who started it", () => {
   const session = createSession()
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
-  session.apply("out", parse(userMessage("run it")), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
+  feedLine(session, "out", parse(userMessage("run it")), 0)
   receive(assistant("a", { type: "tool_use", id: "t1", name: "Bash", input: { command: "sleep 9" } }))
-  session.apply("out", parse(userMessage("also this", [], "u2")), 0)
+  feedLine(session, "out", parse(userMessage("also this", [], "u2")), 0)
   receive({ ...result, subtype: "success", is_error: false, queued_turn_count: 1 })
   // u2 is still waiting: the session stays running, but no turn is in progress to interrupt.
   expect(session.state).toMatchObject({ status: "running", turn: null })
-  session.apply("out", parse(interruptRequest("yc-1")), 0)
+  feedLine(session, "out", parse(interruptRequest("yc-1")), 0)
   expect(session.state.interrupting).toBe(false)
 
   receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
@@ -521,8 +529,8 @@ test("only a turn in progress can be interrupted, and the session knows who star
 
 test("/clear starts the chat over but keeps a message sent after it, and local commands get no turn end", () => {
   const session = createSession()
-  const send = (line: string) => session.apply("out", parse(line), 0)
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (line: string) => feedLine(session, "out", parse(line), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const done = { ...result, subtype: "success", is_error: false, total_cost_usd: 0.5 }
   const local = (command: string) => ({ ...done, usage: { input_tokens: 0, output_tokens: 0 }, local_command: command })
   send(userMessage("a", [], "u1"))
@@ -549,8 +557,8 @@ test("/clear starts the chat over but keeps a message sent after it, and local c
 
 test("/clear keeps a running background agent off the chat with its steps, and an ask still open", () => {
   const session = createSession()
-  const send = (line: string) => session.apply("out", parse(line), 0)
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (line: string) => feedLine(session, "out", parse(line), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const input = { description: "d", prompt: "p", subagent_type: "general-purpose", run_in_background: true }
   send(userMessage("start", [], "u1"))
   receive(assistant("m1", { type: "tool_use", id: "ag1", name: "Agent", input }))
@@ -580,8 +588,8 @@ const agentCall = (id: string, background: boolean) => ({
 
 test("/clear carries a background agent that a finished foreground agent started", () => {
   const session = createSession()
-  const receive = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
-  session.apply("out", parse(userMessage("start", [], "u1")), 0)
+  const receive = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
+  feedLine(session, "out", parse(userMessage("start", [], "u1")), 0)
   receive(assistant("m1", agentCall("outer", false)))
   receive({ type: "system", subtype: "task_started", task_id: "k1", tool_use_id: "outer" })
   receive(assistant("s1", agentCall("inner", true), "outer"))
@@ -728,7 +736,7 @@ test("a message sent after a rewind drops the rewound prompts, and a redo before
   expect(session.state.items.includes(third)).toBe(true)
   session.rewind({ userId: third, prompts: 3, files: [], keptFiles: false })
   const message = { type: "user", message: { role: "user", content: "Rename it, with a fallback" } }
-  session.apply("out", parse(JSON.stringify(message)), 0)
+  feedLine(session, "out", parse(JSON.stringify(message)), 0)
   const shown = session.state.items.filter((id) => session.state.byId[id]?.kind === "user")
   expect(shown).toHaveLength(3)
   expect(shown.includes(third)).toBe(false)
@@ -768,6 +776,23 @@ test("a resumed agent keeps its name and runs as a new row on the SendMessage ca
   expect(byId["t-send"]).toMatchObject({ summary: "kilo · second job", taskId: "a1" })
   expect(byId["t-send"]).toMatchObject({ agent: { name: "kilo", prompt: "second job", state: "running" } })
   expect(byId["t-agent"]).toMatchObject({ agent: { state: "completed" } })
+
+  for (const line of [
+    {
+      type: "system",
+      subtype: "task_notification",
+      task_id: "a1",
+      tool_use_id: "t-send",
+      status: "completed",
+      summary: "second report",
+    },
+    toolCall("t-again", "SendMessage", { to: "a1", message: "third job", summary: "relay" }),
+    taskStartedOn("t-again", "third job"),
+  ])
+    feedLine(session, "in", parse(JSON.stringify(line)), 0)
+
+  expect(session.state.tasks.a1).toMatchObject({ name: "kilo", toolUseId: "t-again", state: "running" })
+  expect(session.state.byId["t-again"]).toMatchObject({ agent: { name: "kilo", prompt: "third job" } })
 })
 
 test("an Agent call read back from a transcript takes its agent id from the result", () => {
@@ -787,7 +812,8 @@ test("a message to an agent shows as its text with the agent, live and replayed"
   const content = agentMessage("a1", "kilo", "hello")
   for (const isReplay of [false, true]) {
     const session = createSession()
-    session.apply(
+    feedLine(
+      session,
       "out",
       parse(
         JSON.stringify({
@@ -806,7 +832,8 @@ test("a message to an agent shows as its text with the agent, live and replayed"
 
 const forAgent = (reply: string) => {
   const session = createSession()
-  session.apply(
+  feedLine(
+    session,
     "out",
     parse(
       JSON.stringify({
@@ -827,7 +854,7 @@ const forAgent = (reply: string) => {
     },
     assistant("m3", { type: "text", text: "Passed it on." }),
   ])
-    session.apply("in", parse(JSON.stringify(message)), 0)
+    feedLine(session, "in", parse(JSON.stringify(message)), 0)
   return session.state.byId
 }
 
@@ -848,8 +875,8 @@ test("a refused message to an agent shows the turn in full", () => {
 
 function wrapperTurn(sendWhileRunning: boolean, plainAfter?: string) {
   const session = createSession()
-  const send = (message: object) => session.apply("out", parse(JSON.stringify(message)), 0)
-  const take = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const send = (message: object) => feedLine(session, "out", parse(JSON.stringify(message)), 0)
+  const take = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const turnResult = {
     type: "result",
     subtype: "success",
@@ -878,7 +905,8 @@ test("a real answer in a turn the message was folded into is never hidden", () =
 test("nothing stays quiet after the turn ends", () => {
   const { session, take, turnResult } = wrapperTurn(false)
   take(turnResult)
-  session.apply(
+  feedLine(
+    session,
     "out",
     parse(JSON.stringify({ type: "user", uuid: "u2", message: { role: "user", content: "time?" } })),
     0,
@@ -897,7 +925,7 @@ test("a `!` command rides along after the next message and is told", () => {
   const session = createSession()
   const id = session.startShell("git status", false)
   session.endShell(id, "clean\n", 0, false)
-  session.apply("out", parse(userMessage(`what changed?\n\n${shellContext("git status", "clean\n")}`)), 0)
+  feedLine(session, "out", parse(userMessage(`what changed?\n\n${shellContext("git status", "clean\n")}`)), 0)
   const tool = session.state.byId[id]
   expect(tool?.kind === "tool" && tool.local?.told).toBe(true)
   const user = session.state.items.map((item) => session.state.byId[item]).find((item) => item?.kind === "user")
@@ -917,7 +945,7 @@ const agentLine = (uuid: string, text: string) =>
 
 test("a message to an agent settles only its own delivery, and a message that was not sent leaves none behind", () => {
   const session = createSession()
-  const take = (message: object) => session.apply("in", parse(JSON.stringify(message)), 0)
+  const take = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
   const settleTo = (id: string, to: string) => {
     take(assistant(`m-${id}`, { type: "tool_use", id, name: "SendMessage", input: { to, message: "x" } }))
     take({
@@ -926,9 +954,9 @@ test("a message to an agent settles only its own delivery, and a message that wa
     })
   }
   const deliveries = () => items(session).flatMap((item) => (item.kind === "user" ? [item.delivery] : []))
-  session.showEarly(agentLine("u1", "lost"))
+  showEarly(session, agentLine("u1", "lost"))
   session.notSent("u1")
-  session.apply("out", parse(agentLine("u2", "kept")), 0)
+  feedLine(session, "out", parse(agentLine("u2", "kept")), 0)
   settleTo("t1", "other")
   expect(deliveries()).toEqual([undefined, undefined])
   settleTo("t2", "a1")

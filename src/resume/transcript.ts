@@ -1,8 +1,8 @@
 import { z } from "zod"
+import { endSession, feedLines, stopRunning } from "../agents/claude/translate.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../protocol/json.ts"
 import { interruptRequest } from "../protocol/outgoing.ts"
-import { parse } from "../protocol/parse.ts"
 import type { SessionStore } from "../session/session.ts"
 import type { SourceEvent } from "../source/source.ts"
 import { readLinesBackward } from "./reverse-lines.ts"
@@ -248,7 +248,7 @@ export async function readTranscript(path: string, cursor?: TranscriptCursor): P
 }
 
 export function loadTranscript(session: SessionStore, part: TranscriptPart): void {
-  for (const event of part.events) session.apply(event.dir, parse(event.line), event.at)
-  session.stopRunning()
-  session.end()
+  feedLines(session, part.events)
+  stopRunning(session)
+  endSession(session)
 }

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { initInfo } from "../agents/claude/system.ts"
 import { shownCommands } from "../input/commands.ts"
 import { parseJson, rowsOf } from "../protocol/json.ts"
 import {
@@ -16,7 +17,7 @@ import {
   type SlashCommand,
 } from "../protocol/messages.ts"
 import { parse } from "../protocol/parse.ts"
-import { initInfo } from "../session/session.ts"
+import { sessionInfo } from "../session/session.ts"
 import type { SessionInfo } from "../session/types.ts"
 
 const headerSchema = z.object({ cliVersion: z.string(), scenario: z.string(), recordedAt: z.string() })
@@ -69,7 +70,7 @@ export function recordedInfo(recording: Recording): SessionInfo | null {
     if (entry.dir !== "in") continue
     const parsed = parse(entry.line)
     if (parsed.kind === "message" && parsed.message.type === "system" && parsed.message.subtype === "init")
-      return initInfo(parsed.message)
+      return sessionInfo(initInfo(parsed.message))
   }
   return null
 }

@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { prependLines } from "../agents/claude/translate.ts"
 import { createSession, type SessionStore } from "../session/session.ts"
 import { listSessions } from "./session-list.ts"
 import { loadTranscript, readTranscript } from "./transcript.ts"
@@ -70,7 +71,7 @@ test("long: earlier parts load from the cursor and go in front", async () => {
   loadTranscript(part, earlier)
   expect(rows(part)).toEqual(prompts(1, 5))
 
-  session.prepend(earlier.events)
+  prependLines(session, earlier.events)
   expect(rows(session)).toEqual(prompts(1, 25))
 })
 
@@ -183,7 +184,7 @@ const unfinished = (prefix: string) => [
 test("work with no recorded outcome shows as stopped, in the first part and in earlier ones", () => {
   const session = createSession()
   loadTranscript(session, { events: unfinished("a"), earlier: null })
-  session.prepend(unfinished("b"))
+  prependLines(session, unfinished("b"))
   const tools = Object.values(session.state.byId).flatMap((item) => (item.kind === "tool" ? [item] : []))
   expect(tools.map((tool) => [tool.name, tool.status, tool.agent?.state ?? null])).toEqual([
     ["Bash", "stopped", null],

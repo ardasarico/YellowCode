@@ -1,4 +1,5 @@
 // The hand-written inputs of golden.test.ts: lines and calls no recording holds.
+import { endSession, interruptFailed, openHeldAsk, restartSession, showEarly } from "../agents/claude/translate.ts"
 import packageJson from "../../package.json"
 import { liveProvider } from "../input/provider.ts"
 import { OWN_ASK, type McpMessage } from "../protocol/messages.ts"
@@ -570,7 +571,7 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
       ),
     ),
     recv(ownAskCall("req-a3", 3, "toolu-a3", PAGES)),
-    call('openOwnAsk("toolu-a3")', (session) => session.openOwnAsk("toolu-a3")),
+    call('openHeldAsk("toolu-a3")', (session) => openHeldAsk(session, "toolu-a3")),
     recv({
       type: "control_request",
       request_id: "req-c",
@@ -578,7 +579,7 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
     }),
     recv(ownAskCall("req-a4", 4, "toolu-a4", PAGES)),
     sent(outgoing.mcpToolError("req-a4", 4, outgoing.SUBAGENT_ASK)),
-    call('openOwnAsk("toolu-a4")', (session) => session.openOwnAsk("toolu-a4")),
+    call('openHeldAsk("toolu-a4")', (session) => openHeldAsk(session, "toolu-a4")),
     recv({
       type: "control_request",
       request_id: "req-m",
@@ -655,10 +656,10 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
   const hidden = (session: SessionStore) => session.hideTurnsOf(["task-h1"], () => emitted.push("hidden turn started"))
   const store: Step[] = [
     recv(init("session-5")),
-    call("showEarly", (session) => session.showEarly(outgoing.promptLines("Plan the release", [], "uuid-1").shown)),
+    call("showEarly", (session) => showEarly(session, outgoing.promptLines("Plan the release", [], "uuid-1").shown)),
     sent(outgoing.promptLines("Plan the release", [], "uuid-1").sent),
     recv(requesting(["uuid-1"])),
-    call("showEarly while running", (session) => session.showEarly(outgoing.userMessage("And notes", [], "uuid-2"))),
+    call("showEarly while running", (session) => showEarly(session, outgoing.userMessage("And notes", [], "uuid-2"))),
     call('notSent("uuid-2")', (session) => session.notSent("uuid-2")),
     recv(reply("msg-1", [text("Here is the plan.")])),
     recv(result({ user_message_uuids: ["uuid-1"] })),
@@ -670,13 +671,13 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
     call('startShell("sleep 10")', (session) => (shell = session.startShell("sleep 10", true))),
     call("endShell stopped", (session) => session.endShell(shell, "", null, true)),
     call("showEarly with shells", (session) =>
-      session.showEarly(outgoing.promptLines("What did ls show?", [], "uuid-3", [], [SHELL]).shown),
+      showEarly(session, outgoing.promptLines("What did ls show?", [], "uuid-3", [], [SHELL]).shown),
     ),
     sent(outgoing.promptLines("What did ls show?", [], "uuid-3", [], [SHELL]).sent),
     recv(requesting(["uuid-3"])),
     recv(reply("msg-2", [text("It shows **two")])),
     call("interrupting", (session) => session.interrupting()),
-    call("interruptFailed", (session) => session.interruptFailed()),
+    call("interruptFailed", interruptFailed),
     sent(outgoing.interruptRequest("req-int")),
     recv(result({ subtype: "error_during_execution", is_error: true, errors: ["[ede_diagnostic] stopped"] })),
     recv({ type: "control_response", response: { subtype: "success", request_id: "req-int" } }),
@@ -699,7 +700,7 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
     recv(requesting()),
     recv(reply("msg-4", [text("The build finished.")])),
     recv(result()),
-    call("restart", (session) => session.restart()),
+    call("restart", restartSession),
     recv(init("session-5")),
     sent(outgoing.userMessage("Continue", [], "uuid-5")),
     recv(requesting(["uuid-5"])),
@@ -714,7 +715,9 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
       parent_tool_use_id: null,
       event: { type: "content_block_start", index: 0, content_block: { type: "text", text: "Working" } },
     }),
-    call("end with a problem", (session) => session.end({ text: "Claude Code stopped", detail: ["exit code 1"] })),
+    call("end with a problem", (session) =>
+      endSession(session, { text: "Claude Code stopped", detail: ["exit code 1"] }),
+    ),
   ]
 
   return {

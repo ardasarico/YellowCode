@@ -261,7 +261,8 @@ type Events =
       tokens: number | null
     }
   | { type: "task.update"; id: TaskId; error: string | null; background: boolean }
-  // `call` names the starting call for a task this session never saw start.
+  // `call` names the starting call for a task this session never saw start. Every task ends with exactly one
+  // `task.end` that has a report; `report: null` says the end is known early and its report follows in a later one.
   | {
       type: "task.end"
       id: TaskId
@@ -290,7 +291,7 @@ type Events =
   | { type: "compaction"; running: boolean }
   | { type: "compacted"; before: number | null; after: number | null }
   | { type: "notice"; level: "info" | "warning" | "error"; text: string }
-  // Something the agent sent could not be read; `what` names its kind.
+  // A line to or from the agent could not be read; `what` names its kind.
   | { type: "unreadable"; what: string }
   // Another client cut the conversation back to before `before`, or took its cut back. YellowCode's own cuts show at
   // once through the store and do not come back as these.

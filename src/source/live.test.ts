@@ -29,7 +29,7 @@ test("a line that cannot be applied is logged and the next line is still handled
   }
   const session = createSession()
   let applied = 0
-  session.apply = () => {
+  session.event = () => {
     if (applied++ === 0) throw new Error("boom")
   }
   const settled: unknown[] = []

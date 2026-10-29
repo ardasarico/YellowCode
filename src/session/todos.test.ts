@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import { feed } from "../agents/claude/translate.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { createSession } from "./session.ts"
@@ -10,7 +11,7 @@ test("follows Claude's task list and says what each call changed", () => {
   const session = createSession()
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", "tasks.jsonl")
   for (const entry of parseRecording(readFileSync(path, "utf8")).entries)
-    session.apply(entry.dir, parse(entry.line), entry.t)
+    feed(session, entry.dir, parse(entry.line), entry.t)
   expect(todoList(session.state).map((todo) => `${todo.id} ${todo.state} ${todo.text}`)).toEqual([
     "1 done Write the parser",
     "2 active Add tests",

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { Agent, Task, ToolCall } from "./types.ts"
+import type { Task, ToolCall } from "./types.ts"
 
 const fields = z.looseObject({
   file_path: z.string().optional(),
@@ -41,41 +41,12 @@ export function summarizeToolInput(input: unknown): string {
   return `${line.slice(0, MAX_LENGTH - 1)}…`
 }
 
-const agentFields = z.looseObject({
-  name: z.string().optional(),
-  subagent_type: z.string().optional(),
-  description: z.string().optional(),
-  prompt: z.string().optional(),
-  model: z.string().optional(),
-})
-
 // A name is drawn on one row, so it keeps no escapes, line breaks or tabs.
-const oneLine = (text: string | undefined) =>
+export const oneLine = (text: string | undefined) =>
   Bun.stripANSI(text ?? "")
     .replace(/\p{Cc}/gu, " ")
     .replace(/\s+/g, " ")
     .trim()
-
-export function agentOf(toolName: string, input: unknown): Agent | null {
-  if (toolName !== "Agent") return null
-  const parsed = agentFields.safeParse(input)
-  if (!parsed.success) return null
-  return {
-    name: oneLine(parsed.data.name) || oneLine(parsed.data.subagent_type) || "agent",
-    task: parsed.data.description ?? "",
-    prompt: parsed.data.prompt ?? "",
-    type: parsed.data.subagent_type ?? "",
-    model: parsed.data.model ?? "",
-    tokens: 0,
-    state: "running",
-    toolUses: 0,
-    durationMs: 0,
-    report: "",
-    error: null,
-    activity: "",
-    stoppedByUser: false,
-  }
-}
 
 const writeFields = z.looseObject({ content: z.string() })
 
@@ -84,13 +55,9 @@ export function writtenContent(input: unknown): string | null {
   return parsed.success ? parsed.data.content : null
 }
 
-const messageFields = z.looseObject({ to: z.string().optional(), message: z.string().optional() })
-
-export function sendMessageSummary(input: unknown, tasks: Record<string, { name: string } | undefined>): string {
-  const parsed = messageFields.safeParse(input)
-  if (!parsed.success || !parsed.data.to) return ""
-  const to = parsed.data.to
-  const line = oneLine((parsed.data.message ?? "").split("\n")[0])
+// A message to a subagent, named after it.
+export function messageSummary(to: string, text: string, tasks: Record<string, { name: string } | undefined>): string {
+  const line = oneLine(text.split("\n")[0])
   const summary = line ? `${tasks[to]?.name || to} · ${line}` : tasks[to]?.name || to
   return summary.length <= MAX_LENGTH ? summary : `${summary.slice(0, MAX_LENGTH - 1)}…`
 }
