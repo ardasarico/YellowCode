@@ -82,6 +82,7 @@ import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
 import { ChatView, type ScrollState } from "./chat-view.tsx"
+import { AgentOfChat } from "./turn-end.tsx"
 import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
 import { type CodeRef, CodeView } from "./dialog/code-view.tsx"
@@ -265,6 +266,7 @@ type DialogName =
 export function App(props: AppProps) {
   // The agent's name in short texts, such as the ask bands' notes.
   const called = () => props.agent.shortName ?? props.agent.name
+  const agentId = () => props.agent.id
   const [focus, setFocus] = createSignal<Focus>("input")
   const [listOpen, setListOpen] = createSignal(false)
   const [dialog, setDialog] = createSignal<DialogName | null>(null)
@@ -1955,28 +1957,30 @@ export function App(props: AppProps) {
           }}
         >
           <box flexDirection="column" width={chatWidth()} onMouseDown={() => setFocusedPane(null)}>
-            <ChatView
-              session={props.session}
-              workspace={props.workspace}
-              model={settings.model ?? props.model()}
-              commands={props.provider.commands()}
-              settingChange={props.agent.settingChange}
-              width={chatWidth()}
-              selected={focus() === "chat" ? selected() : null}
-              expanded={expanded}
-              onOverflow={(id, value) => setOverflowing(id, value)}
-              onToggle={(id) => setExpanded(id, (open) => !open)}
-              onOpenAgent={openAgentView}
-              onOpenImage={openImage}
-              onOpenRef={openRef}
-              docked={(id) => docked().has(id)}
-              imagesBefore={imagesOf}
-              earlier={props.earlier ?? false}
-              onReachTop={() => props.onEarlier?.()}
-              onScrollState={setScrollState}
-              scrollRef={(element) => (scroll = element)}
-              onRedo={redo}
-            />
+            <AgentOfChat.Provider value={agentId}>
+              <ChatView
+                session={props.session}
+                workspace={props.workspace}
+                model={settings.model ?? props.model()}
+                commands={props.provider.commands()}
+                settingChange={props.agent.settingChange}
+                width={chatWidth()}
+                selected={focus() === "chat" ? selected() : null}
+                expanded={expanded}
+                onOverflow={(id, value) => setOverflowing(id, value)}
+                onToggle={(id) => setExpanded(id, (open) => !open)}
+                onOpenAgent={openAgentView}
+                onOpenImage={openImage}
+                onOpenRef={openRef}
+                docked={(id) => docked().has(id)}
+                imagesBefore={imagesOf}
+                earlier={props.earlier ?? false}
+                onReachTop={() => props.onEarlier?.()}
+                onScrollState={setScrollState}
+                scrollRef={(element) => (scroll = element)}
+                onRedo={redo}
+              />
+            </AgentOfChat.Provider>
             <PromptBar
               {...input()}
               draft={heldDraft.current}
