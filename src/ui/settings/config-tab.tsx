@@ -1,12 +1,15 @@
+import { isAbsolute } from "node:path"
 import { batch, createEffect, createMemo, createSignal, on, onCleanup, Show, untrack } from "solid-js"
-import type { AgentKindId, Outcome } from "../../agent/ids.ts"
+import type { Outcome } from "../../agent/ids.ts"
 import type { ModeRow } from "../../agent/lists.ts"
 import type { SettingRow, SettingValue } from "../../agent/settings.ts"
+import { tildePath } from "../../rewind/common.ts"
 import { settings } from "../../session/settings.ts"
 import { reloadThemes, theme } from "../../theme/theme.ts"
 import { searchFooter, type TabApi } from "../dialog/tabbed-dialog.tsx"
 import { type DialogSection, dialogLines, filterSections, moveSelection, selectableIds } from "../dialog/list.ts"
 import { type FooterAction, ListView, PAD_X, printable } from "../dialog/list-view.tsx"
+import { openFile } from "../dialog/open-file.ts"
 import { SearchField } from "../dialog/search-field.tsx"
 import {
   type AgentOption,
@@ -49,6 +52,14 @@ const AGENT_PREFIX = "agent:"
 // Each change may go to the agent as a command, so ←→ sends only where the presses stop.
 const STEP_SEND_MS = 600
 const choicesOf = (row: SettingRow) => (row.control.type === "choice" ? row.control.options : [])
+const changeable = (row: SettingRow) => row.writable && choicesOf(row).length > 0
+// The file a row's value comes from, when it is one the editor can open.
+const fileOf = (row: SettingRow) => (row.origin && isAbsolute(row.origin.file) ? row.origin.file : null)
+const remarkOf = (row: SettingRow) => {
+  if (!row.writable) return "read-only"
+  if (row.overriddenBy) return `set in ${row.overriddenBy}`
+  return row.applies === "new-session" ? "new session" : undefined
+}
 
 const mainSections = (definitions: SettingDefinition[]): DialogSection[] =>
   [...new Set(definitions.map((setting) => setting.section))].map((section) => ({
@@ -66,7 +77,7 @@ const mainSections = (definitions: SettingDefinition[]): DialogSection[] =>
 // `agentSettings` its own, on a live session.
 export function ConfigTab(props: {
   api: TabApi
-  agent: AgentKindId
+  agent: AgentOption
   modes: ModeRow[]
   agents: AgentOption[]
   agentSettings?: AgentSettings
@@ -89,15 +100,25 @@ export function ConfigTab(props: {
     if (pending?.row.id === row.id) return pending.value
     return props.agentSettings?.sent.get(row.id) ?? row.value
   }
+  // A choice not read yet shows "…"; any other row without a value has the agent's own default.
   const agentLabel = (row: SettingRow) => {
     const value = agentValue(row)
-    if (value === null) return "…"
-    return choicesOf(row).find((option) => option.value === value)?.label ?? String(value)
+    const { control } = row
+    if (control.type === "choice")
+      return value === null ? "…" : (choicesOf(row).find((option) => option.value === value)?.label ?? String(value))
+    if (value === null) return "default"
+    if (value === "") return "none"
+    if (control.type === "toggle") return value === true ? "on" : "off"
+    return control.type === "number" && control.unit ? `${value} ${control.unit}` : String(value)
   }
-  // Interim until owner questions 7 and 8 say how read-only rows, number and text rows, `applies` and `origin` are
-  // drawn: only writable rows with choices.
+  // Under the selected row: its own note, then the file its value comes from.
+  const agentNote = (row: SettingRow) => {
+    const file = fileOf(row)
+    const where = file && `${tildePath(file)}${query() ? "" : " · e open in editor"}`
+    return [row.note, where].filter(Boolean).join("\n") || undefined
+  }
   const agentSections = (): DialogSection[] => {
-    const rows = (props.agentSettings?.rows ?? []).filter((row) => row.writable && row.control.type === "choice")
+    const rows = props.agentSettings?.rows ?? []
     return [...new Set(rows.map((row) => row.section))].map((section) => ({
       title: section || (props.agentSettings?.name ?? ""),
       rows: rows
@@ -105,7 +126,9 @@ export function ConfigTab(props: {
         .map((row) => ({
           id: `${AGENT_PREFIX}${row.id}`,
           label: row.label,
-          value: choicesOf(row).length > LONG ? `${agentLabel(row)} →` : agentLabel(row),
+          value: changeable(row) && choicesOf(row).length > LONG ? `${agentLabel(row)} →` : agentLabel(row),
+          tag: remarkOf(row),
+          note: agentNote(row),
         })),
     }))
   }
@@ -221,7 +244,7 @@ export function ConfigTab(props: {
       if (waiting()) return [CLOSE]
       const agentRow = agentFor(id)
       if (agentRow) {
-        const count = choicesOf(agentRow).length
+        const count = changeable(agentRow) ? choicesOf(agentRow).length : 0
         return [SELECT, ...(count > 0 ? [CHANGE] : []), ...(count > LONG ? [OPEN] : []), CLOSE]
       }
       const setting = settingFor(id)
@@ -243,7 +266,14 @@ export function ConfigTab(props: {
       }
       const agentRow = id && !open ? agentFor(id) : undefined
       if (agentRow) {
-        if (key.name === "left" || key.name === "right") stepAgent(agentRow, key.name === "left" ? -1 : 1)
+        const file = fileOf(agentRow)
+        if (file && key.name === "e" && !key.shift && printable(key) && !query()) {
+          void openFile(file)
+          return true
+        }
+        if (!changeable(agentRow)) {
+          if (key.name === "left" || key.name === "right" || key.name === "return") return true
+        } else if (key.name === "left" || key.name === "right") stepAgent(agentRow, key.name === "left" ? -1 : 1)
         else if (key.name === "return") {
           if (choicesOf(agentRow).length > LONG)
             batch(() => {

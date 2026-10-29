@@ -84,9 +84,7 @@ export const cutElsewhere: AgentScenario = {
     await a.http("POST", `${revert}/stage`, { messageID: "msg_elsewhere", files: false })
     await a.until("cut")
     await a.http("POST", `${revert}/commit`)
-    // The commit tells nothing; its event is only seen.
-    await a.pause(500)
-    await a.until("seen")
+    await a.until("cut.committed")
     await turn(a, "LIMA last")
     await a.history(a.session())
     await a.close()

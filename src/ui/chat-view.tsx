@@ -256,7 +256,7 @@ export function ChatView(props: ChatViewProps) {
   const waitingAgents = createMemo(
     () =>
       Object.values(props.session.tasks).filter(
-        (task) => task.type === "local_agent" && task.background && task.parentId === null && task.state === "running",
+        (task) => task.kind === "agent" && task.background && task.parentId === null && task.state === "running",
       ).length,
   )
   // The end of the latest turn, unless a new message went out after it.

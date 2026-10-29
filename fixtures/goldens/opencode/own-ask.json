@@ -94,6 +94,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
       },
@@ -106,6 +107,109 @@
       "message": null,
       "todos": null,
       "at": 1793234396178
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": "question",
+      "name": "yellowcode.ask",
+      "title": "ask",
+      "mcp": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          },
+          {
+            "question": "Which sizes?",
+            "header": "Sizes",
+            "multiSelect": true,
+            "options": [
+              {
+                "label": "S"
+              },
+              {
+                "label": "M"
+              },
+              {
+                "label": "L"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "Color, Sizes",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "Which color?",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          },
+          {
+            "key": "Which sizes?",
+            "header": "Sizes",
+            "question": "Which sizes?",
+            "multi": true,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "S",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "M",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "L",
+                "description": null,
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396182
     },
     {
       "type": "ask.open",
@@ -358,6 +462,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools.yellowcode.ask({\"matrix\":{\"question\":\"How sure are you?\",\"header\":\"Sure\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs are right\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}})"
       },
@@ -370,6 +475,56 @@
       "message": null,
       "todos": null,
       "at": 1793234396238
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": "question",
+      "name": "yellowcode.ask",
+      "title": "ask",
+      "mcp": null,
+      "input": {
+        "matrix": {
+          "question": "How sure are you?",
+          "header": "Sure",
+          "rows": [
+            {
+              "label": "Tests pass"
+            },
+            {
+              "label": "Docs are right"
+            }
+          ],
+          "scale": [
+            "Yes",
+            "No",
+            "Unsure"
+          ]
+        }
+      },
+      "summary": "Sure",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "matrix": {
+          "header": "Sure",
+          "question": "How sure are you?",
+          "rows": [
+            "Tests pass",
+            "Docs are right"
+          ],
+          "scale": [
+            "Yes",
+            "No",
+            "Unsure"
+          ]
+        }
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396240
     },
     {
       "type": "ask.open",
@@ -447,7 +602,7 @@
     {
       "type": "tool.end",
       "id": "toolu_mock0002",
-      "status": "done",
+      "status": "error",
       "result": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
       "images": [],
       "patch": null,
@@ -564,6 +719,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "agent": "general",
         "description": "Ask for me",
@@ -589,7 +745,7 @@
       "type": "task.start",
       "id": "ses_2",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "toolu_mock0003",
       "parent": null,
       "depth": null,
@@ -624,6 +780,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
       },
@@ -648,9 +805,112 @@
       "at": 1793234396304
     },
     {
+      "type": "tool.called",
+      "id": "toolu_mock0004",
+      "kind": "question",
+      "name": "yellowcode.ask",
+      "title": "ask",
+      "mcp": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          },
+          {
+            "question": "Which sizes?",
+            "header": "Sizes",
+            "multiSelect": true,
+            "options": [
+              {
+                "label": "S"
+              },
+              {
+                "label": "M"
+              },
+              {
+                "label": "L"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "Color, Sizes",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "Which color?",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          },
+          {
+            "key": "Which sizes?",
+            "header": "Sizes",
+            "question": "Which sizes?",
+            "multi": true,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "S",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "M",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "L",
+                "description": null,
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396305
+    },
+    {
       "type": "tool.end",
       "id": "toolu_mock0004",
-      "status": "done",
+      "status": "error",
       "result": "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final report, so the main agent can ask it.",
       "images": [],
       "patch": null,
@@ -698,7 +958,8 @@
           "durationMs": 57,
           "tokens": 2760
         },
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": null
       },
       "call": "toolu_mock0003",
       "at": 1793234396349
@@ -823,6 +1084,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Sure?\",\"header\":\"Sure\",\"options\":[{\"label\":\"Yes\"}]}]})"
       },
@@ -837,9 +1099,58 @@
       "at": 1793234396445
     },
     {
+      "type": "tool.called",
+      "id": "toolu_mock0005",
+      "kind": "question",
+      "name": "yellowcode.ask",
+      "title": "ask",
+      "mcp": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Sure?",
+            "header": "Sure",
+            "options": [
+              {
+                "label": "Yes"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "Sure",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "Sure?",
+            "header": "Sure",
+            "question": "Sure?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Yes",
+                "description": null,
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396446
+    },
+    {
       "type": "tool.end",
       "id": "toolu_mock0005",
-      "status": "done",
+      "status": "error",
       "result": "Invalid arguments for tool \"yellowcode_ask\":\n- questions[0].options: Expected a value with a length of at least 2\n\nArguments provided:\n{\n  \"questions\": [\n    {\n      \"question\": \"Sure?\",\n      \"header\": \"Sure\",\n      \"options\": [\n        {\n          \"label\": \"Yes\"\n        }\n      ]\n    }\n  ]\n}\n\nUpdate the arguments and call the tool again.",
       "images": [],
       "patch": null,
@@ -956,6 +1267,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
       },
@@ -968,6 +1280,109 @@
       "message": null,
       "todos": null,
       "at": 1793234396489
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0006",
+      "kind": "question",
+      "name": "yellowcode.ask",
+      "title": "ask",
+      "mcp": null,
+      "input": {
+        "questions": [
+          {
+            "question": "Which color?",
+            "header": "Color",
+            "options": [
+              {
+                "label": "Blue"
+              },
+              {
+                "label": "Green",
+                "description": "Like grass"
+              }
+            ]
+          },
+          {
+            "question": "Which sizes?",
+            "header": "Sizes",
+            "multiSelect": true,
+            "options": [
+              {
+                "label": "S"
+              },
+              {
+                "label": "M"
+              },
+              {
+                "label": "L"
+              }
+            ]
+          }
+        ]
+      },
+      "summary": "Color, Sizes",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": {
+        "pages": [
+          {
+            "key": "Which color?",
+            "header": "Color",
+            "question": "Which color?",
+            "multi": false,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "Blue",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "Green",
+                "description": "Like grass",
+                "preview": null,
+                "image": null
+              }
+            ]
+          },
+          {
+            "key": "Which sizes?",
+            "header": "Sizes",
+            "question": "Which sizes?",
+            "multi": true,
+            "gallery": false,
+            "custom": true,
+            "options": [
+              {
+                "label": "S",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "M",
+                "description": null,
+                "preview": null,
+                "image": null
+              },
+              {
+                "label": "L",
+                "description": null,
+                "preview": null,
+                "image": null
+              }
+            ]
+          }
+        ]
+      },
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234396490
     },
     {
       "type": "ask.open",
@@ -1259,15 +1674,45 @@
       "toolu_mock0001": {
         "kind": "tool",
         "id": "toolu_mock0001",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
+        "name": "yellowcode.ask",
+        "toolKind": "question",
+        "title": "ask",
         "server": null,
-        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]}",
         "input": {
-          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
         },
-        "summary": "",
+        "summary": "Color, Sizes",
         "detail": null,
         "background": false,
         "status": "done",
@@ -1280,7 +1725,60 @@
         "unchanged": false,
         "count": null,
         "files": [],
-        "questions": null,
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
         "outcome": null,
         "agent": null,
         "taskId": null
@@ -1435,18 +1933,34 @@
       "toolu_mock0002": {
         "kind": "tool",
         "id": "toolu_mock0002",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
+        "name": "yellowcode.ask",
+        "toolKind": "question",
+        "title": "ask",
         "server": null,
-        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"matrix\\\":{\\\"question\\\":\\\"How sure are you?\\\",\\\"header\\\":\\\"Sure\\\",\\\"rows\\\":[{\\\"label\\\":\\\"Tests pass\\\"},{\\\"label\\\":\\\"Docs are right\\\"}],\\\"scale\\\":[\\\"Yes\\\",\\\"No\\\",\\\"Unsure\\\"]}})\"}",
+        "inputText": "{\"matrix\":{\"question\":\"How sure are you?\",\"header\":\"Sure\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs are right\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}}",
         "input": {
-          "code": "return await tools.yellowcode.ask({\"matrix\":{\"question\":\"How sure are you?\",\"header\":\"Sure\",\"rows\":[{\"label\":\"Tests pass\"},{\"label\":\"Docs are right\"}],\"scale\":[\"Yes\",\"No\",\"Unsure\"]}})"
+          "matrix": {
+            "question": "How sure are you?",
+            "header": "Sure",
+            "rows": [
+              {
+                "label": "Tests pass"
+              },
+              {
+                "label": "Docs are right"
+              }
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
         },
-        "summary": "",
+        "summary": "Sure",
         "detail": null,
         "background": false,
-        "status": "done",
+        "status": "error",
         "result": "The user wants to talk this over in the chat instead of answering. Stop and wait for their message.",
         "children": [],
         "patch": null,
@@ -1456,7 +1970,21 @@
         "unchanged": false,
         "count": null,
         "files": [],
-        "questions": null,
+        "questions": {
+          "matrix": {
+            "header": "Sure",
+            "question": "How sure are you?",
+            "rows": [
+              "Tests pass",
+              "Docs are right"
+            ],
+            "scale": [
+              "Yes",
+              "No",
+              "Unsure"
+            ]
+          }
+        },
         "outcome": null,
         "agent": null,
         "taskId": null
@@ -1600,18 +2128,48 @@
       "toolu_mock0004": {
         "kind": "tool",
         "id": "toolu_mock0004",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
+        "name": "yellowcode.ask",
+        "toolKind": "question",
+        "title": "ask",
         "server": null,
-        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]}",
         "input": {
-          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
         },
-        "summary": "",
+        "summary": "Color, Sizes",
         "detail": null,
         "background": false,
-        "status": "done",
+        "status": "error",
         "result": "Only the main agent can ask the user. Do not ask again: finish your task and put this question in your final report, so the main agent can ask it.",
         "children": [],
         "patch": null,
@@ -1621,7 +2179,60 @@
         "unchanged": false,
         "count": null,
         "files": [],
-        "questions": null,
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
         "outcome": null,
         "agent": null,
         "taskId": null
@@ -1662,18 +2273,28 @@
       "toolu_mock0005": {
         "kind": "tool",
         "id": "toolu_mock0005",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
+        "name": "yellowcode.ask",
+        "toolKind": "question",
+        "title": "ask",
         "server": null,
-        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Sure?\\\",\\\"header\\\":\\\"Sure\\\",\\\"options\\\":[{\\\"label\\\":\\\"Yes\\\"}]}]})\"}",
+        "inputText": "{\"questions\":[{\"question\":\"Sure?\",\"header\":\"Sure\",\"options\":[{\"label\":\"Yes\"}]}]}",
         "input": {
-          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Sure?\",\"header\":\"Sure\",\"options\":[{\"label\":\"Yes\"}]}]})"
+          "questions": [
+            {
+              "question": "Sure?",
+              "header": "Sure",
+              "options": [
+                {
+                  "label": "Yes"
+                }
+              ]
+            }
+          ]
         },
-        "summary": "",
+        "summary": "Sure",
         "detail": null,
         "background": false,
-        "status": "done",
+        "status": "error",
         "result": "Invalid arguments for tool \"yellowcode_ask\":\n- questions[0].options: Expected a value with a length of at least 2\n\nArguments provided:\n{\n  \"questions\": [\n    {\n      \"question\": \"Sure?\",\n      \"header\": \"Sure\",\n      \"options\": [\n        {\n          \"label\": \"Yes\"\n        }\n      ]\n    }\n  ]\n}\n\nUpdate the arguments and call the tool again.",
         "children": [],
         "patch": null,
@@ -1683,7 +2304,26 @@
         "unchanged": false,
         "count": null,
         "files": [],
-        "questions": null,
+        "questions": {
+          "pages": [
+            {
+              "key": "Sure?",
+              "header": "Sure",
+              "question": "Sure?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Yes",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
         "outcome": null,
         "agent": null,
         "taskId": null
@@ -1718,15 +2358,45 @@
       "toolu_mock0006": {
         "kind": "tool",
         "id": "toolu_mock0006",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
+        "name": "yellowcode.ask",
+        "toolKind": "question",
+        "title": "ask",
         "server": null,
-        "inputText": "{\"code\":\"return await tools.yellowcode.ask({\\\"questions\\\":[{\\\"question\\\":\\\"Which color?\\\",\\\"header\\\":\\\"Color\\\",\\\"options\\\":[{\\\"label\\\":\\\"Blue\\\"},{\\\"label\\\":\\\"Green\\\",\\\"description\\\":\\\"Like grass\\\"}]},{\\\"question\\\":\\\"Which sizes?\\\",\\\"header\\\":\\\"Sizes\\\",\\\"multiSelect\\\":true,\\\"options\\\":[{\\\"label\\\":\\\"S\\\"},{\\\"label\\\":\\\"M\\\"},{\\\"label\\\":\\\"L\\\"}]}]})\"}",
+        "inputText": "{\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]}",
         "input": {
-          "code": "return await tools.yellowcode.ask({\"questions\":[{\"question\":\"Which color?\",\"header\":\"Color\",\"options\":[{\"label\":\"Blue\"},{\"label\":\"Green\",\"description\":\"Like grass\"}]},{\"question\":\"Which sizes?\",\"header\":\"Sizes\",\"multiSelect\":true,\"options\":[{\"label\":\"S\"},{\"label\":\"M\"},{\"label\":\"L\"}]}]})"
+          "questions": [
+            {
+              "question": "Which color?",
+              "header": "Color",
+              "options": [
+                {
+                  "label": "Blue"
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass"
+                }
+              ]
+            },
+            {
+              "question": "Which sizes?",
+              "header": "Sizes",
+              "multiSelect": true,
+              "options": [
+                {
+                  "label": "S"
+                },
+                {
+                  "label": "M"
+                },
+                {
+                  "label": "L"
+                }
+              ]
+            }
+          ]
         },
-        "summary": "",
+        "summary": "Color, Sizes",
         "detail": null,
         "background": false,
         "status": "stopped",
@@ -1739,7 +2409,60 @@
         "unchanged": false,
         "count": null,
         "files": [],
-        "questions": null,
+        "questions": {
+          "pages": [
+            {
+              "key": "Which color?",
+              "header": "Color",
+              "question": "Which color?",
+              "multi": false,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "Blue",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "Green",
+                  "description": "Like grass",
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            },
+            {
+              "key": "Which sizes?",
+              "header": "Sizes",
+              "question": "Which sizes?",
+              "multi": true,
+              "gallery": false,
+              "custom": true,
+              "options": [
+                {
+                  "label": "S",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "M",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                },
+                {
+                  "label": "L",
+                  "description": null,
+                  "preview": null,
+                  "image": null
+                }
+              ]
+            }
+          ]
+        },
         "outcome": null,
         "agent": null,
         "taskId": null
@@ -1901,7 +2624,8 @@
     "tasks": {
       "ses_2": {
         "id": "ses_2",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "toolu_mock0003",
         "parentId": null,
         "depth": 1,
@@ -1919,6 +2643,7 @@
         "tokens": 2760,
         "summary": "I will put it in my report.",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",

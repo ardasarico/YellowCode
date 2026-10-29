@@ -108,7 +108,7 @@ export function settingsFacts(
     ["Thinking", settings.thinking],
     ["Session title", settings.sessionTitle],
     ["Default agent", named(settings.defaultAgent)],
-    ["Permission mode", mode === null ? null : modeLabel(running.modes, mode)],
+    [`${running.name} mode`, mode === null ? null : modeLabel(running.modes, mode)],
     ...others.map((id): Row => [`${named(id)} mode`, settings.agents[id]?.defaultMode]),
     ["Editor", settings.editor],
     ["Notifications", settings.notifications],

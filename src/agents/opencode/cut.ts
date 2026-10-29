@@ -1,7 +1,7 @@
 // opencode cuts a conversation in two steps: a stage hides a prompt and what follows it and can be cleared, and a
 // commit deletes them. YellowCode stages at once and commits with the next send; the files are YellowCode's own
-// rewind's. Its own requests come back as events, which are dropped here; another client's become `cut` and
-// `cut.undone`.
+// rewind's. Its own requests come back as events, which are dropped here; another client's become `cut`, `cut.undone`
+// and `cut.committed`.
 import type { AgentEvent } from "../../agent/events.ts"
 import { promptOf } from "./prompts.ts"
 import type { OpencodeEvent } from "./wire/events.ts"
@@ -70,8 +70,9 @@ export function createCuts(forget: (message: string) => string[]) {
     if (event.type === "session.revert.committed") {
       const message = event.data.to
       committed(message)
-      if (mine({ type: "committed", message }) || known === message) return []
-      return [{ type: "cut", before: promptOf(message), at }]
+      if (mine({ type: "committed", message })) return []
+      const final = { type: "cut.committed", at } as const
+      return known === message ? [final] : [{ type: "cut", before: promptOf(message), at }, final]
     }
     return []
   }
@@ -108,8 +109,10 @@ export function createCuts(forget: (message: string) => string[]) {
       opened = message
     },
     // A session read again: the stage known was committed while the stream was down.
-    committedElsewhere(): void {
-      if (staged !== null) committed(staged)
+    committedElsewhere(at: number): AgentEvent[] {
+      if (staged === null) return []
+      committed(staged)
+      return [{ type: "cut.committed", at }]
     },
     // A session read again says what it holds staged.
     found(message: string | null, at: number): AgentEvent[] {

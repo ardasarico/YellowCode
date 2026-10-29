@@ -315,36 +315,47 @@ const detect = (kind: Runner["kind"]): Promise<Detection> =>
     return { installed: false }
   })
 
-async function runsHere(runner: Runner): Promise<boolean> {
-  const found = await detect(runner.kind)
-  return found.installed && found.blocked === null
-}
-
 const runnerById = (id: AgentKindId | undefined) => runners.find((runner) => runner.kind.id === id)
 
-// The saved default agent when it runs here. With none running, Claude starts and says why it cannot.
-async function pickFirst(): Promise<Runner> {
-  const asked = new Set<AgentKindId>()
+// The saved default agent when it runs here, else the first that does, with a notice saying why the saved one did not
+// open. With none running, Claude starts and says why it cannot.
+async function pickFirst(): Promise<{ runner: Runner; notice: string | null }> {
+  const found = new Map<AgentKindId, Detection>()
+  const runsHere = async (runner: Runner) => {
+    const detection = await detect(runner.kind)
+    found.set(runner.kind.id, detection)
+    return detection.installed && detection.blocked === null
+  }
   const first = await pickAgent(
     stored.defaultAgent,
     runners.map((runner) => runner.kind.id),
-    (id) => {
-      asked.add(id)
-      return runsHere(runnerById(id) ?? claudeRunner)
-    },
+    (id) => runsHere(runnerById(id) ?? claudeRunner),
   )
-  const picked = runnerById(first) ?? claudeRunner
+  const candidate = runnerById(first) ?? claudeRunner
   // pickAgent leaves the last candidate unasked; only Claude starts unchecked.
-  return picked === claudeRunner || asked.has(picked.kind.id) || (await runsHere(picked)) ? picked : claudeRunner
+  const runner =
+    candidate === claudeRunner || found.has(candidate.kind.id) || (await runsHere(candidate)) ? candidate : claudeRunner
+  const saved = runnerById(stored.defaultAgent)
+  const why = saved && saved !== runner ? found.get(saved.kind.id) : undefined
+  const reason = why === undefined ? null : why.installed ? why.blocked : "is not installed"
+  return {
+    runner,
+    notice: saved && reason !== null ? `${saved.kind.name} ${reason} · opened ${runner.kind.name}` : null,
+  }
 }
 
 // A replay is a Claude recording.
-const firstRunner = values.replay === undefined ? await pickFirst() : claudeRunner
-await startMods(values["no-mods"], { id: firstRunner.kind.id, caps: firstRunner.kind.caps })
+const picked = values.replay === undefined ? await pickFirst() : { runner: claudeRunner, notice: null }
+const firstRunner = picked.runner
+await startMods(values["no-mods"], {
+  id: firstRunner.kind.id,
+  name: firstRunner.kind.name,
+  caps: firstRunner.kind.caps,
+})
 
 async function startLive(runner: Runner, options: StartOptions, store: SessionStore): Promise<Live> {
   const { agent, hooks, goBack } = await runner.start(options, store)
-  void follow(agent.events, store)
+  void follow(agent.events, store, runner.kind.name)
   return { runner, agent, store, hooks, goBack }
 }
 
@@ -1133,7 +1144,9 @@ function Main() {
               }}
               onClear={mode.kind === "live" && !live.runner.clears ? clearLive : undefined}
               onRestart={
-                mode.kind === "live" && live.agent.caps.restart && restartRefused() !== live ? restart : undefined
+                mode.kind === "live" && live.agent.caps.restart && restartRefused() !== live && !live.store.state.final
+                  ? restart
+                  : undefined
               }
               onAnswer={(ask, reply) => {
                 if (ask.ownPlan) return current.session.settlePlan(ask.requestId, reply)
@@ -1234,6 +1247,11 @@ function Main() {
   )
 }
 
+// Why the saved default agent did not open, once the App shows.
+function tellPicked(): void {
+  if (picked.notice !== null) setControlProblem({ text: picked.notice })
+}
+
 themeTextSelection()
 await render(
   () => (
@@ -1244,6 +1262,7 @@ await render(
           onContinue={() => {
             setChecking(false)
             start()
+            tellPicked()
           }}
           onQuit={() => void quit()}
         />
@@ -1252,5 +1271,6 @@ await render(
   ),
   renderer,
 )
+if (terminal === null) tellPicked()
 // After the first frame, or a second when the renderer stays busy, so the network never holds up the start.
 void Promise.race([renderer.idle(), Bun.sleep(1000)]).then(() => startModUpdates(values["no-mods"]))

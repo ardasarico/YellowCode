@@ -3,7 +3,7 @@ import { shownItems } from "./rewind.ts"
 import type { ItemId, Session, Task } from "./types.ts"
 
 export function isShell(task: Task): boolean {
-  return task.type === "local_bash" && task.background
+  return task.kind === "shell" && task.background
 }
 
 // The tool calls the chat still shows, subagents' included: none from a rewind's prompt on, none a later send dropped.
@@ -62,13 +62,11 @@ export function runningShellCount(session: Session): number {
   return shownShells(session).filter((task) => task.state === "running").length
 }
 
-// The model-written description inside the summary can itself say "exit code N", so only the summary's end counts.
-// A stopped shell has no code, and its summary is only that description.
+// A stopped shell has no code.
 export function exitCode(task: Task): number | null {
   if (task.state === "stopped") return null
-  const code =
-    task.summary.trim().match(/exit code (\d+)\)?$/)?.[1] ??
-    lastCapture(task.output ?? "", /\[exited with code (\d+)\]/g)
+  if (task.exitCode !== null) return task.exitCode
+  const code = lastCapture(task.output ?? "", /\[exited with code (\d+)\]/g)
   return code === undefined ? null : Number(code)
 }
 

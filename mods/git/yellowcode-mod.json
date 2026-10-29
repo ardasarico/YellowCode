@@ -2,7 +2,7 @@
   "id": "git",
   "name": "Git",
   "version": "0.1.0",
-  "description": "The files you and Claude changed, in the sidebar.",
+  "description": "The files changed in this session, in the sidebar.",
   "api": "^0.2",
   "agents": "any",
   "entry": "index.tsx"

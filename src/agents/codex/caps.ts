@@ -38,7 +38,7 @@ export const CODEX_CAPS: Capabilities = {
   lists: ["models", "modes", "commands", "skills", "mcp", "plugins", "hooks"],
   // A reconnect reloads every server's config; a server is turned on and off only in config.toml. Plugins have no
   // switch in app-server.
-  mcp: { toggle: false, reconnect: true, login: true },
+  mcp: { toggle: false, reconnect: true, login: true, reach: null, failNotice: false },
   skills: { toggle: true, reload: true },
   plugins: { toggle: false, reload: false },
   settings: true,

@@ -143,10 +143,34 @@ export function stepEffort(levels: EffortId[], step: 1 | -1): EffortId | null {
   return next === undefined ? null : pickEffort(next)
 }
 
-export function stepModel(step: 1 | -1, current: string | null): string | null {
+// A model as favorites keep it: the listed row it is picked by, which stays when the model behind an alias changes.
+export function favoriteKey(id: string): string {
+  const ref = modelRef(id)
+  return ref.provider === null ? ref.id : providerModelId(ref.provider, ref.id)
+}
+
+export const favoritesOf = (agent: AgentKindId): string[] => settings.agents[agent]?.favoriteModels ?? []
+
+export function toggleFavorite(agent: AgentKindId, id: string): void {
+  const key = favoriteKey(id)
+  const saved = favoritesOf(agent)
+  const next = saved.includes(key) ? saved.filter((one) => one !== key) : [...saved, key]
+  setSettings({
+    agents: {
+      ...settings.agents,
+      [agent]: { ...settings.agents[agent], favoriteModels: next.length > 0 ? next : undefined },
+    },
+  })
+  saveSettings(settings)
+}
+
+// Steps through the favorites that are listed, or every model when none is.
+export function stepModel(step: 1 | -1, current: string | null, favorites: string[] = []): string | null {
   const model = settings.model ?? current
   if (model === null) return null
-  const ids = choices.length > 0 ? choices.map(({ id }) => id) : MODELS
+  const all = choices.length > 0 ? choices.map(({ id }) => id) : MODELS
+  const marked = all.filter((id) => favorites.includes(favoriteKey(id)))
+  const ids = marked.length > 0 ? marked : all
   // A dated or suffixed id such as claude-opus-5-5-20261001[1m] steps from its plain model, unless it is a choice.
   const plain = model.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
   const index = ids.includes(model) ? ids.indexOf(model) : ids.indexOf(plain)

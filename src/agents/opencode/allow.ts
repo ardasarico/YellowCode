@@ -32,8 +32,10 @@ const modelChoice = z.union([
 const field = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined)
 const whole = z.number().int()
 
-// The settings /settings shows. Providers, MCP servers, agents and the rest stay out: they hold keys, headers and
-// environments, or are shown elsewhere.
+const rule = z.object({ action: z.string(), resource: z.string(), effect: z.string() })
+
+// The settings /settings shows, and the rules /permissions lists. Providers, MCP servers, agents and the rest stay
+// out: they hold keys, headers and environments, or are shown elsewhere. Warming's own prompt is not kept.
 export const configInfo = z.object({
   shell: field(z.string()),
   model: field(modelChoice),
@@ -59,6 +61,16 @@ export const configInfo = z.object({
       ),
     }),
   ),
+  permissions: field(z.array(rule)),
+  policies: field(z.array(rule)),
+  watcher: field(z.object({ ignore: field(z.array(z.string())) })),
+  worktree: field(z.object({ directory: field(z.string()) })),
+  warming: field(z.union([z.boolean(), z.object({ interval: field(z.string()), duration: field(z.string()) })])),
+  mcp: field(
+    z.object({
+      timeout: field(z.object({ startup: field(whole), catalog: field(whole), execution: field(whole) })),
+    }),
+  ),
 })
 
 export const configEntry = z.object({
@@ -68,8 +80,6 @@ export const configEntry = z.object({
 })
 
 export const shellOption = z.object({ path: z.string(), name: z.string(), acceptable: z.boolean() })
-
-const rule = z.object({ action: z.string(), resource: z.string(), effect: z.string() })
 
 // An agent's `request` carries provider settings, headers and bodies, and `system` its prompt; neither is kept. `model`:
 // the one it runs while the session has no pick of its own.
@@ -105,6 +115,12 @@ export const pluginInfo = z.object({
   state: z.object({ status: z.string() }),
 })
 
+// The Go allowance's windows; the workspace and its budgets are not kept.
+const meter = z.object({ percent: z.number(), limited: z.boolean(), resetsAt: z.number() })
+export const usageLimits = z.object({
+  go: z.object({ rolling: meter, weekly: meter, monthly: meter }).optional(),
+})
+
 const failure = z.object({ _tag: z.string(), message: z.string().optional() })
 
 const list = (row: z.ZodType) => (body: unknown) => {
@@ -130,6 +146,7 @@ const PROJECTIONS: [RegExp, (body: unknown) => unknown][] = [
   [/^\/api\/mcp$/, wrapped(mcpServer, true)],
   [/^\/api\/skill$/, wrapped(skillInfo, true)],
   [/^\/api\/plugin$/, wrapped(pluginInfo, true)],
+  [/^\/api\/experimental\/usage\/limits$/, wrapped(usageLimits, false)],
 ]
 
 // The projection for a GET answer of `path`, or undefined when the path needs none. An error answer keeps only its

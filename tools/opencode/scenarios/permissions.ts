@@ -9,7 +9,7 @@ const after = (steps: number, blocks: Block[][]) => [...Array.from({ length: ste
 
 // One turn: a shell call allowed once, one allowed always (the same command later runs without asking), an edit
 // turned down with a note (the turn goes on) and a write allowed once. Then a call turned down without a note, which
-// stops the turn, and one another client answers. Last, the saved rule is removed.
+// stops the turn, and one another client answers. Last, the saved rule is removed; the config's rules stay.
 export const permissions: AgentScenario = {
   name: "permissions",
   config: {
@@ -45,7 +45,7 @@ export const permissions: AgentScenario = {
     await a.answer(ask.id, pick("once"))
     ;({ ask } = await a.until("ask.open"))
     await a.answer(ask.id, pick("always"))
-    const { lists } = await a.until("lists", (event) => (event.lists.rules?.length ?? 0) > 0)
+    const { lists } = await a.until("lists", (event) => event.lists.rules?.some((rule) => rule.removable) === true)
     ;({ ask } = await a.until("ask.open"))
     await a.answer(ask.id, pick("reject", "Keep the greeting as it is."))
     ;({ ask } = await a.until("ask.open"))
@@ -63,10 +63,10 @@ export const permissions: AgentScenario = {
     await a.until("ask.close")
     await a.until("turn.end")
 
-    const rule = lists.rules?.[0]
+    const rule = lists.rules?.find((one) => one.removable)
     if (!rule) throw new Error("no saved rule")
     await a.removeRule(rule.id)
-    await a.until("lists", (event) => event.lists.rules?.length === 0)
+    await a.until("lists", (event) => event.lists.rules?.every((one) => !one.removable) === true)
     await a.close()
   },
 }

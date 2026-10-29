@@ -1,7 +1,7 @@
 import { type Accessor, createSignal } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import type { Ask as AgentAsk, AskOption, AskOutcome, AskReply } from "../agent/ask.ts"
-import type { AgentEvent, BackgroundTask, SessionInfo as AgentInfo, TaskKind } from "../agent/events.ts"
+import type { AgentEvent, BackgroundTask, SessionInfo as AgentInfo } from "../agent/events.ts"
 import type { AskId, PartId, PromptId, TaskId, ToolId } from "../agent/ids.ts"
 import type { Lists, McpServerRow } from "../agent/lists.ts"
 import type { SubagentCall } from "../agent/tools.ts"
@@ -152,6 +152,7 @@ function blankTask(id: string): Task {
   return {
     id,
     type: "",
+    kind: "other",
     toolUseId: null,
     parentId: null,
     depth: 1,
@@ -169,6 +170,7 @@ function blankTask(id: string): Task {
     tokens: 0,
     summary: "",
     outputFile: null,
+    exitCode: null,
     error: null,
     workflow: null,
     command: "",
@@ -244,8 +246,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   let shift = 0
   // The background tasks running now, by the latest `tasks.background`.
   let live = new Set<TaskId>()
-  // What each task is; a background shell's end gets a row of its own.
-  const taskKinds = new Map<TaskId, TaskKind>()
   // The shell command each call runs, for the task it starts.
   const commands = new Map<ToolId, string>()
   // Messages sent during a turn that the agent has not taken in yet, with their user items.
@@ -358,6 +358,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       if (event.kind !== null) item.toolKind = event.kind
       if (event.name !== null) item.name = event.name
       if (event.title !== null) item.title = event.title
+      if (event.mcp !== null) item.server = event.mcp.server
       item.input = event.input
       item.inputText = JSON.stringify(event.input)
       item.summary = summary || event.summary
@@ -573,6 +574,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       case "starting":
         return restart()
       case "ended":
+        if (event.final) setState("final", true)
         return end(event.problem)
       case "seen":
         return
@@ -605,6 +607,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return cutElsewhere(event.before)
       case "cut.undone":
         return redo()
+      case "cut.committed":
+        return commitCut()
     }
   }
 
@@ -624,6 +628,13 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     if (userId === undefined || userId === state.rewound?.userId) return
     const kept = state.rewound ?? { files: [], keptFiles: true, last: state.items.at(-1) }
     setState("rewound", { ...kept, userId, prompts: count })
+  }
+
+  // The hidden prompts go for good.
+  function commitCut(): void {
+    const span = hiddenSpan(state.items, state.rewound)
+    if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
+    if (state.rewound) setState("rewound", null)
   }
 
   function redo(): void {
@@ -958,6 +969,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const task = {
       ...known,
       type: event.taskType,
+      kind: event.kind,
       toolUseId: event.call,
       parentId,
       depth: event.depth ?? (parentId ? (state.tasks[parentId]?.depth ?? 0) + 1 : 1),
@@ -973,7 +985,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       command: (tool && commands.get(tool.id)) || known.command,
     }
     task.background ||= event.background || resumes
-    taskKinds.set(event.id, event.kind)
     setState("tasks", event.id, task)
     const agentType = event.agentType
     updateTool(task, (item) => {
@@ -1043,6 +1054,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       setTask(id, (task) => {
         task.summary = report.summary
         task.outputFile = report.outputFile
+        task.exitCode = report.exitCode
         if (usage) {
           task.toolUses = usage.toolUses
           task.durationMs = usage.durationMs
@@ -1075,7 +1087,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         item.agent.report = report.summary
       })
     const task = state.tasks[id]
-    if (task?.background && taskKinds.get(id) === "shell" && !shellEnds.has(id)) {
+    // A background shell's end gets a row of its own.
+    if (task?.background && task.kind === "shell" && !shellEnds.has(id)) {
       shellEnds.add(id)
       add({ kind: "shell-end", id: newId("shell-end"), taskId: id }, null)
     }
@@ -1116,10 +1129,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const entry of tasks) {
       next.add(entry.id)
       const known = state.tasks[entry.id]
-      if (!known) taskKinds.set(entry.id, entry.kind)
       const task = known ?? {
         ...blankTask(entry.id),
         type: entry.taskType,
+        kind: entry.kind,
         name: entry.description,
         description: entry.description,
       }
@@ -1149,10 +1162,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
       early.delete(prompt)
       return
     }
-    // A message sent after a rewind makes it final: the hidden prompts go for good.
-    const span = hiddenSpan(state.items, state.rewound)
-    if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
-    if (state.rewound) setState("rewound", null)
+    // A message sent after a rewind makes it final.
+    commitCut()
     for (const shown of state.items) {
       const item = state.byId[shown]
       if (item?.kind === "tool" && item.local && !item.local.told)
@@ -1254,7 +1265,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const id of carried) keep(id)
     for (const id of toolParents.keys()) if (!kept.has(id)) toolParents.delete(id)
     for (const id of commands.keys()) if (!kept.has(id)) commands.delete(id)
-    for (const [id, task] of Object.entries(state.tasks)) if (task.state !== "running") taskKinds.delete(id)
     for (const id of thinkingSince.keys()) if (!kept.has(id)) thinkingSince.delete(id)
     for (const [part, known] of parts) if (!kept.has(known.id)) parts.delete(part)
     for (const [prompt, id] of prompts) if (!kept.has(id)) prompts.delete(prompt)

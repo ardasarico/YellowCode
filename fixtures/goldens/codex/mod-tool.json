@@ -78,6 +78,7 @@
       "kind": "mcp",
       "name": "echo",
       "title": "echo",
+      "mcp": null,
       "input": {
         "text": "hi"
       },
@@ -252,6 +253,7 @@
       "kind": "mcp",
       "name": "echo",
       "title": "echo",
+      "mcp": null,
       "input": {
         "text": "again"
       },

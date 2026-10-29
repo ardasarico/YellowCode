@@ -35,6 +35,16 @@ test("the rows come from both config files, and the shell written lands in the u
     "images.width": [null, false, null],
     "images.height": [null, false, null],
     "images.size": [null, false, null],
+    // The user's file sets enabled_providers, which opencode turns into policies; the project's come first.
+    policies: ["deny provider.use openai, deny provider.use *, allow provider.use anthropic", false, "project"],
+    "watcher.ignore": ["dist/**, build/**", false, "user"],
+    "worktree.directory": ["../trees", false, "project"],
+    warming: [false, false, "user"],
+    "warming.interval": [null, false, null],
+    "warming.duration": [null, false, null],
+    "mcp.startup": [20000, false, "user"],
+    "mcp.catalog": [null, false, null],
+    "mcp.execution": [null, false, null],
   })
   expect(before.find((row) => row.id === "compaction.threshold")?.origin).toEqual(PROJECT)
   const shell = after.find((row) => row.id === "shell")
@@ -89,7 +99,11 @@ test("keys, headers and environments in the config reach no row, and no row hold
         shell: "/bin/zsh",
         compaction: { auto: false, buffer: 20000, headers },
         providers: { anthropic: { settings: { apiKey: MOCK_KEY, baseURL: "http://127.0.0.1:1" }, headers } },
-        mcp: { servers: { s: { type: "local", command: ["x"], environment: { TOKEN: MOCK_KEY } } } },
+        mcp: {
+          timeout: { catalog: 5000, headers },
+          servers: { s: { type: "local", command: ["x"], environment: { TOKEN: MOCK_KEY } } },
+        },
+        warming: { prompt: MOCK_KEY, interval: "2 minutes" },
         agents: { build: { options: { apiKey: MOCK_KEY } } },
         websearch: { provider: "exa", apiKey: MOCK_KEY },
       },
@@ -103,6 +117,8 @@ test("keys, headers and environments in the config reach no row, and no row hold
   expect(JSON.stringify(rows)).not.toContain("127.0.0.1")
   expect(valuesOf(rows)["web-search"]).toEqual(["exa", false, "user"])
   expect(valuesOf(rows)["compaction.threshold"]).toEqual([20000, false, "user"])
+  expect(valuesOf(rows)["mcp.catalog"]).toEqual([5000, false, "user"])
+  expect(valuesOf(rows)["warming.interval"]).toEqual(["2 minutes", false, "user"])
   // What the allowlist keeps is all any other code sees of the answer; the rest is no longer reachable from it.
   const answer = objectsIn(bodies)
   for (const [path, body] of Object.entries(bodies)) {

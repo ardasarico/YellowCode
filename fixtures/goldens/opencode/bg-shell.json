@@ -94,6 +94,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "sleep 1; echo bg done",
         "background": true
@@ -112,7 +113,7 @@
       "type": "task.start",
       "id": "sh_1",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0001",
       "parent": null,
       "depth": null,
@@ -200,10 +201,11 @@
       "id": "sh_1",
       "state": "completed",
       "report": {
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 0
       },
       "call": "toolu_mock0001",
       "at": 1793234380205
@@ -321,6 +323,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "echo first; sleep 2; echo second; sleep 30; echo late"
       },
@@ -338,7 +341,7 @@
       "type": "task.start",
       "id": "sh_2",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0002",
       "parent": null,
       "depth": null,
@@ -447,7 +450,8 @@
         "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": true
+        "stoppedByUser": true,
+        "exitCode": null
       },
       "call": "toolu_mock0002",
       "at": 1793234380329
@@ -552,6 +556,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "command": "sleep 1; echo bg done",
               "background": true
@@ -695,6 +700,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "command": "echo first; sleep 2; echo second; sleep 30; echo late"
             },
@@ -983,7 +989,8 @@
     "tasks": {
       "sh_1": {
         "id": "sh_1",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0001",
         "parentId": null,
         "depth": 1,
@@ -999,8 +1006,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 0,
         "error": null,
         "workflow": null,
         "command": "sleep 1; echo bg done",
@@ -1011,7 +1019,8 @@
       },
       "sh_2": {
         "id": "sh_2",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0002",
         "parentId": null,
         "depth": 1,
@@ -1029,6 +1038,7 @@
         "tokens": 0,
         "summary": "",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "echo first; sleep 2; echo second; sleep 30; echo late",

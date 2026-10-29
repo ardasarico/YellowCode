@@ -141,7 +141,7 @@ test("a background shell ends in a turn of its own; Ctrl+B and a stop reach open
   expect(told(events, "turn.open").map((open) => open.endedTasks)).toEqual([[], ["sh_1"], [], []])
   expect(told(events, "task.update")).toMatchObject([{ id: second?.id, background: true }])
   expect(told(events, "task.end")).toMatchObject([
-    { id: first?.id, state: "completed", report: { summary: "exit code 0" } },
+    { id: first?.id, state: "completed", report: { summary: "", exitCode: 0 } },
     { id: second?.id, state: "stopped", report: { stoppedByUser: true } },
   ])
   const asked = requests("bg-shell")
@@ -241,7 +241,7 @@ test("a resync ends a background shell whose exit the stream missed", async () =
     3,
   )
   expect(events.filter((event) => event.type.startsWith("task."))).toMatchObject([
-    { type: "task.end", id: "sh_1", state: "completed", report: { summary: "exit code 0" } },
+    { type: "task.end", id: "sh_1", state: "completed", report: { summary: "", exitCode: 0 } },
     { type: "task.output", id: "sh_1", text: "bg done\n" },
   ])
   expect(translator.runningShells()).toEqual([])

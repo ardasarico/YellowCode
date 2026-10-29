@@ -728,8 +728,9 @@ a live session; a replay has no agent to call them.
 
 ## MCP servers in the manifest
 
-A mod can also bring ordinary MCP servers. List them in the manifest under `mcpServers`, in the same shape as Claude
-Code's `.mcp.json`:
+A mod can also bring ordinary MCP servers. List them in the manifest under `mcpServers`, with only the fields every
+agent takes: `command`, `args` and `env` for a process, or `type` `"http"` or `"sse"` with `url` and `headers` for a
+remote server. Any other field fails the manifest.
 
 ```json
 {
@@ -747,9 +748,9 @@ Code's `.mcp.json`:
 ```
 
 A server name may use letters, digits, `_` and `-`. Each one is given to the agent as `mod-<id>--<name>`, here
-`mod-dice--memory`, while the mod is on. YellowCode passes the entry to Claude Code as written, so a `command` is not
-resolved against the mod's folder. If a server cannot connect, `/mods` shows the error on the mod's page. An agent that
-takes no MCP servers from YellowCode gets none of them.
+`mod-dice--memory`, while the mod is on. A `command` is not resolved against the mod's folder. If a server cannot
+connect, `/mods` shows the error on the mod's page. On an agent that takes no MCP servers or tools from YellowCode, a mod
+that adds them does not load, and `/mods` says why.
 
 ## Events
 
@@ -816,11 +817,12 @@ files:
   "version": "0.1.0",
   "sha": "<the full 40-character commit SHA>",
   "treeHash": "sha256-...",
-  "api": "^0.2"
+  "api": "^0.2",
+  "agents": "any"
 }
 ```
 
-`id`, `version` and `api` must equal the ones in the mod's manifest at that commit. The list holds one version of each
+`id`, `version`, `api` and `agents` must equal the ones in the mod's manifest at that commit. The list holds one version of each
 mod; there is no list of older versions.
 
 To get listed:

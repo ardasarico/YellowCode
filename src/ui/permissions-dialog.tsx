@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js"
 import type { Outcome } from "../agent/ids.ts"
 import type { RuleRow } from "../agent/lists.ts"
+import { tildePath } from "../rewind/common.ts"
 import { Dialog } from "./dialog/dialog.tsx"
 import type { DialogRow } from "./dialog/list.ts"
 
@@ -14,7 +15,9 @@ const rowOf = (rule: RuleRow): DialogRow => ({
   id: rule.id,
   label: rule.pattern === null ? rule.subject : `${rule.subject} ${rule.pattern}`,
   value: rule.effect,
-  note: [LASTS[rule.lasts], rule.mode === null ? null : `in ${rule.mode}`, rule.origin].filter(Boolean).join(" · "),
+  note: [LASTS[rule.lasts], rule.mode === null ? null : `in ${rule.mode}`, rule.origin && tildePath(rule.origin)]
+    .filter(Boolean)
+    .join(" · "),
 })
 
 // /permissions: the rules the agent keeps, each removable one with Delete. The list follows what the agent pushes;

@@ -33,13 +33,13 @@ A mod taken off the list stops loading, and `/mods` shows why. Its folder stays 
 
 ## Managing mods
 
-`/mods` lists your mods with a mark: ● on, ◯ off, ✕ failed, ! needs a newer YellowCode, ⊘ taken off the list. A mod from
-GitHub that is not on the list is tagged "Unlisted", and one you copied in by hand "Local". The selected mod shows what
-it adds, its settings and its last error.
+`/mods` lists your mods with a mark: ● on, ◯ off, ✕ failed, ! needs a newer YellowCode or a newer version of the mod,
+⊘ taken off the list. A mod from GitHub that is not on the list is tagged "Unlisted", and one you copied in by hand
+"Local". The selected mod shows what it adds, its settings and its last error.
 
 Each mod names the agents it is made for, or works with any agent. With an agent it was not made for, it stays off and
-`/mods` shows it as "not for this agent". A mod that names no agents at all was made for an older YellowCode and does
-not load until it is updated.
+`/mods` shows it as "not for this agent"; a listed mod shows its agents under Available before you install it. A mod
+that names no agents at all was made for an older YellowCode and does not load until it is updated.
 
 - Space turns a mod on or off.
 - → opens its settings.

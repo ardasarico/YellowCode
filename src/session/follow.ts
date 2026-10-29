@@ -4,7 +4,7 @@ import { log } from "../log/log.ts"
 import type { SessionStore } from "./session.ts"
 
 // Feeds the store from an agent's events until they end. Claude's agent still feeds its store itself and gives none.
-export async function follow(events: AsyncIterable<AgentEvent>, store: SessionStore): Promise<void> {
+export async function follow(events: AsyncIterable<AgentEvent>, store: SessionStore, agent: string): Promise<void> {
   try {
     for await (const event of events) {
       try {
@@ -17,7 +17,7 @@ export async function follow(events: AsyncIterable<AgentEvent>, store: SessionSt
     log.error("the agent's events failed", error)
     // The message stays in the log: a transport error could name the service's address.
     if (store.state.status !== "ended")
-      store.event({ type: "ended", problem: { text: "The agent stopped", detail: [] }, at: Date.now() })
+      store.event({ type: "ended", problem: { text: `${agent} stopped`, detail: [] }, at: Date.now() })
   }
 }
 

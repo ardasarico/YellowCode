@@ -1,5 +1,5 @@
 import type { Ask as AgentAsk, AskOption, AskOutcome, Denial, Questions } from "../agent/ask.ts"
-import type { AgentEvent } from "../agent/events.ts"
+import type { AgentEvent, TaskKind } from "../agent/events.ts"
 import type { EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { ModelGroup, ModeRow } from "../agent/lists.ts"
 import type { FileChange, Todo, ToolKind } from "../agent/tools.ts"
@@ -97,6 +97,7 @@ export type TaskState = "running" | "completed" | "failed" | "stopped"
 export type Task = {
   id: string
   type: string
+  kind: TaskKind
   toolUseId: string | null
   parentId: string | null
   depth: number
@@ -114,6 +115,7 @@ export type Task = {
   tokens: number
   summary: string
   outputFile: string | null
+  exitCode: number | null
   error: string | null
   workflow: WorkflowProgress | null
   // The Bash command of a shell; "" for other tasks.
@@ -301,4 +303,6 @@ export type Session = {
   compacting: boolean
   // Agent and workflow calls from before a /clear whose task still ran then: off the chat, still in the agent panel.
   carried: ItemId[]
+  // The session itself is gone, so it cannot restart; absent otherwise.
+  final?: true
 }

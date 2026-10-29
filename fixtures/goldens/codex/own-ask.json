@@ -75,6 +75,7 @@
       "kind": "question",
       "name": "ask",
       "title": "ask",
+      "mcp": null,
       "input": {
         "questions": [
           {
@@ -261,6 +262,7 @@
       "kind": "question",
       "name": "ask",
       "title": "ask",
+      "mcp": null,
       "input": {
         "questions": [
           {
@@ -435,6 +437,7 @@
       "kind": "question",
       "name": "ask",
       "title": "ask",
+      "mcp": null,
       "input": {
         "questions": [
           {

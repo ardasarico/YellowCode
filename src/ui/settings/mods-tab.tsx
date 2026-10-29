@@ -4,8 +4,8 @@ import type { ModSettingDefinition, ModSettingValue } from "../../mods/api.ts"
 import type { ModEntry, ModHost, ModStatus } from "../../mods/host.ts"
 import { keyText } from "../../mods/keys.ts"
 import { apiMatches, revokedListing } from "../../mods/install/checks.ts"
-import { INCOMPATIBLE } from "../../mods/install/install.ts"
 import type { ListedMod } from "../../mods/install/list.ts"
+import { forAgent, incompatibleText } from "../../mods/manifest.ts"
 import { installedNow, installListed, modList, refreshModList, updatedTo } from "../../mods/mods.ts"
 import { counts, modKeys, modPanes, modServerErrors } from "../../mods/registry.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
@@ -22,6 +22,7 @@ import { printable } from "../dialog/list-view.tsx"
 import { crowded } from "../mod-pane.tsx"
 import { cut } from "../format.ts"
 import type { Span } from "../notice.ts"
+import type { AgentOption } from "./options.ts"
 
 const STACK_LINES = 8
 const SETTING = "setting:"
@@ -64,30 +65,45 @@ function listRow(entry: ModEntry): DialogRow {
   }
 }
 
-function listedRow(mod: ListedMod, installing: boolean): DialogRow {
+function listedRow(mod: ListedMod, installing: boolean, agent: AgentOption): DialogRow {
   const installed = installedNow[mod.id] !== undefined
   const fits = apiMatches(mod.api)
+  const value = installed
+    ? RESTART
+    : installing
+      ? "installing…"
+      : !fits
+        ? (incompatibleText(mod.api).split(" · ")[0] ?? "")
+        : forAgent(mod, agent.id)
+          ? mod.version
+          : "not for this agent"
   return {
     id: `${LISTED}${mod.id}`,
     label: mod.name,
     search: `${mod.id} ${mod.name} ${mod.description}`,
     marker: installed ? { text: "●", fg: theme.accent } : undefined,
-    value: installed ? RESTART : installing ? "installing…" : fits ? mod.version : "needs a newer YellowCode",
+    value,
     valueColor: installed || installing ? theme.accent : fits ? theme.panelFaint : theme.warning,
   }
 }
 
-function listedDetail(mod: ListedMod, width: number): DialogItem[] {
+const agentsText = (mod: ListedMod, agents: AgentOption[]) =>
+  mod.agents === "any"
+    ? "any agent"
+    : mod.agents.map((id) => agents.find((agent) => agent.id === id)?.name ?? id).join(", ")
+
+function listedDetail(mod: ListedMod, width: number, agent: AgentOption, agents: AgentOption[]): DialogItem[] {
   const installed = installedNow[mod.id] !== undefined
   const fits = apiMatches(mod.api)
   const state: Span = installed
     ? { text: RESTART, fg: theme.accent }
     : fits
       ? { text: "not installed", fg: theme.panelFaint }
-      : { text: INCOMPATIBLE, fg: theme.warning }
+      : { text: incompatibleText(mod.api), fg: theme.warning }
   return [
     header(`${mod.name} ${mod.version}`, state),
     ...(mod.description ? [text("description", [{ text: mod.description, fg: theme.text }])] : []),
+    ...fact("agents", "Agents", agentsText(mod, agents), width, forAgent(mod, agent.id) ? theme.text : theme.warning),
     ...(installed ? fact("source", "Source", tildePath(`${configPath("mods")}/${mod.id}`), width) : []),
     ...fact("repo", "Repo", `github.com/${mod.repo}`, width),
     ...fact("commit", "Commit", mod.sha.slice(0, 7), width),
@@ -275,7 +291,8 @@ const RETRY_FOOTER: FooterAction[] = [
   { key: "esc", action: "close" },
 ]
 
-export function ModsTab(props: { api: TabApi; host: ModHost }) {
+// `agent` is the one the mods load for; `agents` gives the names of the others a listed mod names.
+export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption; agents: AgentOption[] }) {
   const [editing, setEditing] = createSignal<Editing | null>(null)
   onMount(refreshModList)
 
@@ -339,12 +356,12 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
     if (!state.list) return [text("list-loading", [{ text: "Getting the mod list…", fg: theme.panelMuted }])]
     return available()
       .toSorted(byName)
-      .map((mod) => listedRow(mod, installing() === mod.id))
+      .map((mod) => listedRow(mod, installing() === mod.id, props.agent))
   }
   const sections = (): DialogSection[] => {
     const mine: DialogItem[] = props.host.entries
       .map((entry) => ({ name: nameOf(entry), row: listRow(entry) }))
-      .concat(installed().map((mod) => ({ name: mod.name, row: listedRow(mod, false) })))
+      .concat(installed().map((mod) => ({ name: mod.name, row: listedRow(mod, false, props.agent) })))
       .toSorted(byName)
       .map(({ row }) => row)
     const offered = availableRows()
@@ -421,7 +438,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost }) {
         const entry = entryFor(row)
         if (entry) return detailItems(entry, width, props.host.settings(entry.id), editing())
         const mod = listedFor(row)
-        if (mod) return listedDetail(mod, width)
+        if (mod) return listedDetail(mod, width, props.agent, props.agents)
         return row.id === RETRY
           ? [text("retry", [{ text: "The mod list could not be fetched and none is cached.", fg: theme.text }])]
           : []

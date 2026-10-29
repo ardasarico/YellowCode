@@ -72,6 +72,7 @@
         "kind": null,
         "name": null,
         "title": null,
+        "mcp": null,
         "input": {
           "path": "README.md"
         },

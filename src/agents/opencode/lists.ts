@@ -14,7 +14,7 @@ import type {
 } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
 import { mcpServer, model, pluginInfo, provider, readAllowed, skillInfo } from "./allow.ts"
-import { inFolder } from "./settings.ts"
+import { configRules, inFolder } from "./settings.ts"
 import type { Transport } from "./transport.ts"
 import { answerOf, dataOf, rowsOf } from "./wire/envelope.ts"
 
@@ -30,7 +30,8 @@ async function folderProject(transport: Transport, directory: string): Promise<s
   return answer?.kind === "ok" ? answer.value.project.id : null
 }
 
-// What "always" saved for the session's folder; each rule can be removed. Null when opencode did not answer.
+// What "always" saved for the session's folder, each removable, then the config files' rules. Null when opencode did
+// not answer.
 export async function savedRules(transport: Transport, directory: string): Promise<RuleRow[] | null> {
   const path = "/api/permission/saved"
   const project = await folderProject(transport, directory)
@@ -45,7 +46,8 @@ export async function savedRules(transport: Transport, directory: string): Promi
     )
     return null
   }
-  return rowsOf(answer.value.data, saved, "saved permission").map((rule) => ({
+  const written = await configRules(transport, directory)
+  const rows = rowsOf(answer.value.data, saved, "saved permission").map((rule): RuleRow => ({
     id: rule.id,
     subject: rule.action,
     pattern: rule.resource,
@@ -55,6 +57,7 @@ export async function savedRules(transport: Transport, directory: string): Promi
     mode: null,
     removable: true,
   }))
+  return [...rows, ...(written ?? [])]
 }
 
 // opencode's name for a model's own settings, which the session has while no variant is picked.

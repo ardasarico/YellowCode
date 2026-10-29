@@ -46,6 +46,8 @@ async function check(mod: ListedMod): Promise<string | null> {
       return `version is ${mod.version} in the list but ${manifest.manifest.version} in the manifest`
     if (manifest.manifest.api !== mod.api)
       return `api is ${mod.api} in the list but ${manifest.manifest.api} in the manifest`
+    if (JSON.stringify(manifest.manifest.agents) !== JSON.stringify(mod.agents))
+      return `agents is ${JSON.stringify(mod.agents)} in the list but ${JSON.stringify(manifest.manifest.agents)} in the manifest`
     return null
   } finally {
     rmSync(folder, { recursive: true, force: true })

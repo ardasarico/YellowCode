@@ -31,12 +31,14 @@ export function permissionAsk(request: PermissionRequest, from: AskFrom): Ask {
   const name = from.tool ?? request.action
   const kind = kindOf(name)
   const writes = [kind, kindOf(request.action)].some((known) => known === "edit" || known === "write")
+  // opencode saves "*" for an edit's or a write's always, which allows every edit and write in the project.
+  const subject = writes && save.includes("*") ? "edits" : save.join(", ")
   const option = (id: Decision, effect: "allow" | "deny", lasts: "once" | "project") => ({
     id,
     effect,
     lasts,
     label: null,
-    subject: id === "always" ? save.join(", ") : null,
+    subject: id === "always" ? subject : null,
     note: id === "reject",
     endsTurn: false,
     mode: null,

@@ -94,6 +94,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools[\"mod-demo\"].echo({ text: \"hi\" })"
       },
@@ -106,6 +107,29 @@
       "message": null,
       "todos": null,
       "at": 1793234404735
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": "mcp",
+      "name": "mod-demo.echo",
+      "title": "echo",
+      "mcp": {
+        "server": "mod-demo",
+        "tool": "echo"
+      },
+      "input": {
+        "text": "hi"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234404737
     },
     {
       "type": "tool.end",
@@ -227,6 +251,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return [await tools[\"mod-demo\"].shout({ text: \"hey\" }), await tools[\"mod-other\"].count({})]"
       },
@@ -239,6 +264,29 @@
       "message": null,
       "todos": null,
       "at": 1793234405297
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0002",
+      "kind": "mcp",
+      "name": "mod-demo.shout",
+      "title": "shout",
+      "mcp": {
+        "server": "mod-demo",
+        "tool": "shout"
+      },
+      "input": {
+        "text": "hey"
+      },
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234405298
     },
     {
       "type": "tool.end",
@@ -360,6 +408,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "code": "return await tools[\"mod-demo\"].broken({})"
       },
@@ -374,9 +423,30 @@
       "at": 1793234405888
     },
     {
+      "type": "tool.called",
+      "id": "toolu_mock0003",
+      "kind": "mcp",
+      "name": "mod-demo.broken",
+      "title": "broken",
+      "mcp": {
+        "server": "mod-demo",
+        "tool": "broken"
+      },
+      "input": {},
+      "summary": "",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793234405889
+    },
+    {
       "type": "tool.end",
       "id": "toolu_mock0003",
-      "status": "done",
+      "status": "error",
       "result": "no luck",
       "images": [],
       "patch": null,
@@ -555,13 +625,13 @@
       "toolu_mock0001": {
         "kind": "tool",
         "id": "toolu_mock0001",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
-        "server": null,
-        "inputText": "{\"code\":\"return await tools[\\\"mod-demo\\\"].echo({ text: \\\"hi\\\" })\"}",
+        "name": "mod-demo.echo",
+        "toolKind": "mcp",
+        "title": "echo",
+        "server": "mod-demo",
+        "inputText": "{\"text\":\"hi\"}",
         "input": {
-          "code": "return await tools[\"mod-demo\"].echo({ text: \"hi\" })"
+          "text": "hi"
         },
         "summary": "",
         "detail": null,
@@ -611,13 +681,13 @@
       "toolu_mock0002": {
         "kind": "tool",
         "id": "toolu_mock0002",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
-        "server": null,
-        "inputText": "{\"code\":\"return [await tools[\\\"mod-demo\\\"].shout({ text: \\\"hey\\\" }), await tools[\\\"mod-other\\\"].count({})]\"}",
+        "name": "mod-demo.shout",
+        "toolKind": "mcp",
+        "title": "shout",
+        "server": "mod-demo",
+        "inputText": "{\"text\":\"hey\"}",
         "input": {
-          "code": "return [await tools[\"mod-demo\"].shout({ text: \"hey\" }), await tools[\"mod-other\"].count({})]"
+          "text": "hey"
         },
         "summary": "",
         "detail": null,
@@ -667,18 +737,16 @@
       "toolu_mock0003": {
         "kind": "tool",
         "id": "toolu_mock0003",
-        "name": "execute",
-        "toolKind": "other",
-        "title": "execute",
-        "server": null,
-        "inputText": "{\"code\":\"return await tools[\\\"mod-demo\\\"].broken({})\"}",
-        "input": {
-          "code": "return await tools[\"mod-demo\"].broken({})"
-        },
+        "name": "mod-demo.broken",
+        "toolKind": "mcp",
+        "title": "broken",
+        "server": "mod-demo",
+        "inputText": "{}",
+        "input": {},
         "summary": "",
         "detail": null,
         "background": false,
-        "status": "done",
+        "status": "error",
         "result": "no luck",
         "children": [],
         "patch": null,

@@ -3,7 +3,7 @@ import { homedir } from "node:os"
 import { dirname, isAbsolute, join } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
-import { MOD_ID } from "../manifest.ts"
+import { Agents, MOD_ID } from "../manifest.ts"
 
 const LIST_URL = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/mods.json"
 
@@ -19,6 +19,7 @@ const ListedMod = z.object({
   sha: z.string().regex(SHA, "must be a full 40-character commit SHA"),
   treeHash: z.string().regex(/^sha256-[A-Za-z0-9+/]{43}=$/, "must be sha256-<base64>"),
   api: z.string().min(1),
+  agents: Agents,
 })
 
 const Revoked = z.object({

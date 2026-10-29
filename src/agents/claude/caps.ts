@@ -38,7 +38,7 @@ export const CLAUDE_CAPS: Capabilities = {
   cost: true,
   heldElsewhere: { atOpen: true, live: false },
   lists: LISTS,
-  mcp: { toggle: true, reconnect: true, login: true },
+  mcp: { toggle: true, reconnect: true, login: true, reach: null, failNotice: false },
   skills: { toggle: true, reload: true },
   plugins: { toggle: true, reload: true },
   settings: true,

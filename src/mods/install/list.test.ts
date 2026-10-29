@@ -13,6 +13,7 @@ const entry = {
   sha: "a".repeat(40),
   treeHash: `sha256-${"A".repeat(43)}=`,
   api: "^0.2",
+  agents: "any",
 }
 const list = { mods: [entry], revoked: [{ id: "old", versions: "all", reason: "broken" }] }
 

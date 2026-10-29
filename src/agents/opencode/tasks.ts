@@ -8,9 +8,6 @@ import type { TaskId, ToolId } from "../../agent/ids.ts"
 type Events = AgentEvent[]
 type TaskState = Extract<AgentEvent, { type: "task.end" }>["state"]
 
-// The chat still tells shells and subagents by Claude's task types, so opencode's tasks carry them.
-const TYPES = { shell: "local_bash", agent: "local_agent" }
-
 type Task = { call: ToolId; background: boolean; stopping: boolean; ended: boolean }
 
 export type Child = Task & {
@@ -53,6 +50,7 @@ export function createTasks() {
     child: Child | null,
     at: number,
     open: boolean,
+    exitCode: number | null = null,
   ): Events {
     if (task.ended) return []
     task.ended = true
@@ -62,7 +60,8 @@ export function createTasks() {
       durationMs: Math.max(0, at - child.startedAt),
       tokens: child.tokens,
     }
-    const report = { summary, outputFile: null, usage, stoppedByUser: task.stopping && state === "stopped" }
+    const stoppedByUser = task.stopping && state === "stopped"
+    const report = { summary, outputFile: null, usage, stoppedByUser, exitCode }
     return [{ type: "task.end", id, state, report, call: task.call, at: 0 }]
   }
 
@@ -72,7 +71,7 @@ export function createTasks() {
       type: "task.start" as const,
       id,
       kind,
-      taskType: TYPES[kind],
+      taskType: "",
       call: call.id,
       parent,
       depth: null,
@@ -153,8 +152,7 @@ export function createTasks() {
       const task = shells.get(id)?.task
       if (!task) return []
       const state = status === "killed" ? "stopped" : status === "exited" && exit === 0 ? "completed" : "failed"
-      // The chat reads a shell's exit code from the end of its summary.
-      return end(id, task, state, exit === undefined ? "" : `exit code ${exit}`, null, 0, open)
+      return end(id, task, state, "", null, 0, open, exit ?? null)
     },
 
     // A call that ended in the foreground ends its task, if the task's own end was missed (a resync).

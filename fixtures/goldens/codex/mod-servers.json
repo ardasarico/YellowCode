@@ -115,6 +115,7 @@
       "kind": "mcp",
       "name": "echo",
       "title": "echo",
+      "mcp": null,
       "input": {
         "text": "from the mod"
       },

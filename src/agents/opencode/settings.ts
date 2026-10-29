@@ -3,6 +3,7 @@
 import { isAbsolute, relative } from "node:path"
 import { z } from "zod"
 import type { Outcome } from "../../agent/ids.ts"
+import type { RuleRow } from "../../agent/lists.ts"
 import type { SettingControl, SettingRow, SettingValue } from "../../agent/settings.ts"
 import { log } from "../../log/log.ts"
 import { configEntry, readAllowed, shellOption } from "./allow.ts"
@@ -21,6 +22,8 @@ type Setting = {
   read: (info: Info) => SettingValue | undefined
   // The value a writable row has when no document sets it.
   unset?: SettingValue
+  // opencode adds up every document's list instead of taking the last one.
+  combined?: true
 }
 
 const toggle: SettingControl = { type: "toggle" }
@@ -38,10 +41,13 @@ const shell = (options: { value: string; label: string }[]): Setting => ({
   unset: OWN_SHELL,
 })
 
+const ruleList = (rules: { action: string; resource: string; effect: string }[] | undefined) =>
+  rules?.map((rule) => `${rule.effect} ${rule.action} ${rule.resource}`).join(", ")
+
 // Every other key of opencode's config is left out: providers and MCP servers hold keys, headers and environments;
-// the model, default agent, plugins and skills are shown elsewhere; username is opencode's screen only; share,
-// snapshots, instructions, agents, commands, LSP, formatters and experimental ones are not added. The keys still to
-// be decided (owner question J) are left out too.
+// the model, default agent, permissions, plugins and skills are shown elsewhere; username is opencode's screen only;
+// update, enterprise, share, snapshots, instructions, references, agents, commands, LSP, formatters and experimental
+// ones are not added.
 const READ_ONLY: Setting[] = [
   {
     id: "web-search",
@@ -108,6 +114,71 @@ const READ_ONLY: Setting[] = [
     control: amount("bytes", 1),
     read: (info) => info.media?.image?.max_base64_bytes,
   },
+  {
+    id: "policies",
+    label: "Policies",
+    note: "Providers, tools and integrations allowed or denied",
+    control: { type: "text" },
+    read: (info) => ruleList(info.policies),
+    combined: true,
+  },
+  {
+    id: "watcher.ignore",
+    label: "Watcher ignores",
+    note: "Files the file watcher skips",
+    control: { type: "text" },
+    read: (info) => info.watcher?.ignore?.join(", "),
+    combined: true,
+  },
+  {
+    id: "worktree.directory",
+    label: "Worktree folder",
+    note: "Where new worktrees go",
+    control: { type: "text" },
+    read: (info) => info.worktree?.directory,
+  },
+  {
+    id: "warming",
+    label: "Cache warming",
+    note: "Keeps the prompt cache warm between requests",
+    control: toggle,
+    read: (info) => (typeof info.warming === "object" ? true : info.warming),
+  },
+  {
+    id: "warming.interval",
+    label: "Warming interval",
+    note: "Idle time between keep-alive requests",
+    control: { type: "text" },
+    read: (info) => (typeof info.warming === "object" ? info.warming.interval : undefined),
+  },
+  {
+    id: "warming.duration",
+    label: "Warming duration",
+    note: "How long a session stays warm after its last request",
+    control: { type: "text" },
+    read: (info) => (typeof info.warming === "object" ? info.warming.duration : undefined),
+  },
+  {
+    id: "mcp.startup",
+    label: "MCP startup timeout",
+    note: null,
+    control: amount("ms", 1),
+    read: (info) => info.mcp?.timeout?.startup,
+  },
+  {
+    id: "mcp.catalog",
+    label: "MCP catalog timeout",
+    note: "Listing a server's tools and prompts",
+    control: amount("ms", 1),
+    read: (info) => info.mcp?.timeout?.catalog,
+  },
+  {
+    id: "mcp.execution",
+    label: "MCP call timeout",
+    note: null,
+    control: amount("ms", 1),
+    read: (info) => info.mcp?.timeout?.execution,
+  },
 ]
 
 // A document inside the project's folder is the project's; any other is the user's. The project's folder is the
@@ -130,8 +201,17 @@ export async function projectFolder(transport: Transport, directory: string): Pr
 
 // Each row has the value of the last document that sets it (opencode lists them lowest first) and that file; a key
 // no document sets has opencode's own default, which /api/config does not say, so its value and origin are null.
+// A combined row lists every document's values, highest first as opencode weighs policies.
 function rowOf(setting: Setting, documents: Document[], project: string, writable: boolean): SettingRow {
-  const winner = documents.findLast((document) => setting.read(document.info) !== undefined)
+  const setters = documents.filter((document) => setting.read(document.info) !== undefined)
+  const winner = setters.at(-1)
+  const value = setting.combined
+    ? setters
+        .toReversed()
+        .map((document) => setting.read(document.info))
+        .filter((part) => part !== "")
+        .join(", ")
+    : winner && setting.read(winner.info)
   const layer = winner?.path ? layerOf(winner.path, project) : null
   return {
     id: setting.id,
@@ -139,7 +219,7 @@ function rowOf(setting: Setting, documents: Document[], project: string, writabl
     section: "",
     note: setting.note,
     control: setting.control,
-    value: winner ? (setting.read(winner.info) ?? null) : (setting.unset ?? null),
+    value: winner ? (value ?? null) : (setting.unset ?? null),
     writable,
     applies: "now",
     origin: winner?.path && layer ? { file: winner.path, layer } : null,
@@ -157,13 +237,47 @@ function shellChoices(listed: z.output<typeof shellOption>[]) {
   }))
 }
 
-// Null when opencode did not give its config.
-export async function settingRows(transport: Transport, directory: string): Promise<SettingRow[] | null> {
+async function readDocuments(transport: Transport): Promise<Document[] | null> {
   const entries = await readAllowed(transport, "/api/config", "the config")
   if (!Array.isArray(entries)) return null
-  const documents = rowsOf(entries, configEntry, "config entry").flatMap((entry): Document[] =>
+  return rowsOf(entries, configEntry, "config entry").flatMap((entry): Document[] =>
     entry.type === "document" && entry.info ? [{ path: entry.path ?? null, info: entry.info }] : [],
   )
+}
+
+const EFFECTS = new Set<string>(["allow", "ask", "deny"] satisfies RuleRow["effect"][])
+const isEffect = (effect: string): effect is RuleRow["effect"] => EFFECTS.has(effect)
+
+// The rules written in the config files, lowest first as opencode reads them; they are changed in the files only.
+export async function configRules(transport: Transport, directory: string): Promise<RuleRow[] | null> {
+  const documents = await readDocuments(transport)
+  if (documents === null) return null
+  if (!documents.some((document) => document.info.permissions?.length)) return []
+  const project = await projectFolder(transport, directory)
+  return documents.flatMap(({ path, info }, position) =>
+    (info.permissions ?? []).flatMap((rule, index): RuleRow[] =>
+      isEffect(rule.effect)
+        ? [
+            {
+              id: `config:${path ?? position}:${index}`,
+              subject: rule.action,
+              pattern: rule.resource,
+              effect: rule.effect,
+              lasts: path && layerOf(path, project) === "project" ? "project" : "everywhere",
+              origin: path,
+              mode: null,
+              removable: false,
+            },
+          ]
+        : [],
+    ),
+  )
+}
+
+// Null when opencode did not give its config.
+export async function settingRows(transport: Transport, directory: string): Promise<SettingRow[] | null> {
+  const documents = await readDocuments(transport)
+  if (documents === null) return null
   const shells = await readAllowed(transport, "/api/config/shell", "the shells")
   const choices = shellChoices(Array.isArray(shells) ? rowsOf(shells, shellOption, "shell") : [])
   const project = await projectFolder(transport, directory)

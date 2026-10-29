@@ -17,6 +17,7 @@ type ResultContent = Extract<UserBlock, { type: "tool_result" }>["content"]
 const KINDS = new Map<string, ToolKind>(
   Object.entries({
     Bash: "shell",
+    PowerShell: "shell",
     Read: "read",
     Glob: "search",
     Grep: "search",
@@ -42,7 +43,7 @@ const KINDS = new Map<string, ToolKind>(
   }),
 )
 
-// PowerShell and Monitor take a command like Bash, but their rows stay plain, so they are not kind shell.
+// Monitor takes a command like Bash, but its row stays plain, so it is not kind shell.
 const COMMAND_TOOLS = new Set(["Bash", "PowerShell", "Monitor"])
 
 export function mcpOf(name: string): { server: string; tool: string } | null {
@@ -156,6 +157,7 @@ export function createTools(relay: Relay) {
       kind: null,
       name: null,
       title: null,
+      mcp: null,
       input,
       summary: summarizeToolInput(input),
       detail: commanded ? text(field(input, "description")) : null,

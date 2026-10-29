@@ -216,7 +216,8 @@ export function ListView(props: ListViewProps) {
     const index = props.lines.findIndex((line) => line.kind === "row" && line.row.id === props.selected)
     if (index === -1) return { from: 0, to: 0 }
     const from = props.lines[index - 1]?.kind === "title" ? index - 1 : index
-    const to = props.lines[index + 1]?.kind === "note" ? index + 1 : index
+    let to = index
+    while (props.lines[to + 1]?.kind === "note") to++
     const last = props.lines.findLastIndex((line) => line.kind === "row") === index
     return { from, to: last ? Math.max(to, Math.min(props.lines.length - 1, from + props.rows - 2)) : to }
   }

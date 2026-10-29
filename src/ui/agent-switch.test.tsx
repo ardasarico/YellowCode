@@ -48,7 +48,7 @@ test("/agent lists the installed agents, skips a blocked one, and picks another"
     { id: "old", name: "Old agent", version: "1.4.3", blocked: "needs old agent 2" },
   ]
   const store = createSession({ starting: true })
-  void follow((await first.kind.start(options)).events, store)
+  void follow((await first.kind.start(options)).events, store, "First agent")
   const picked: string[] = []
   // The theme needs the renderer, so the app shows once it has started.
   const [themed, setThemed] = createSignal(false)

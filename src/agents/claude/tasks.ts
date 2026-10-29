@@ -18,6 +18,13 @@ const KINDS = new Map<string, TaskKind>(
 
 const taskKind = (type: string): TaskKind => KINDS.get(type) ?? "other"
 
+// Claude ends a shell's summary with its exit code. The description before it is the model's and can itself say
+// "exit code N", so only the end counts.
+function exitCodeOf(summary: string): number | null {
+  const code = summary.trim().match(/exit code (\d+)\)?$/)?.[1]
+  return code === undefined ? null : Number(code)
+}
+
 // Claude words a Bash step as "Running " plus its description or command, and a description starts with a verb.
 function activityOf(message: System<"task_progress">): string {
   const text = message.description ?? ""
@@ -168,6 +175,7 @@ export function createTasks(tools: Tools) {
             ? { toolUses: usage.tool_uses, durationMs: usage.duration_ms, tokens: usage.total_tokens ?? null }
             : null,
           stoppedByUser: message.stopped_by_user === true,
+          exitCode: task?.kind === "shell" ? exitCodeOf(message.summary) : null,
         },
         call: message.tool_use_id ?? null,
       },

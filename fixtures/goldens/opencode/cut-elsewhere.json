@@ -278,6 +278,10 @@
       "at": 1793234419262
     },
     {
+      "type": "cut.committed",
+      "at": 1793234419264
+    },
+    {
       "type": "user",
       "prompt": "elsewhere",
       "text": "LIMA from elsewhere",
@@ -352,6 +356,10 @@
       "type": "cut",
       "before": "elsewhere",
       "at": 1793234419311
+    },
+    {
+      "type": "cut.committed",
+      "at": 1793234419313
     },
     {
       "type": "user",

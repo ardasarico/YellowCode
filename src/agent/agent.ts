@@ -109,7 +109,7 @@ export type AgentKind = {
   // and `fileHistory` come from `sessions()`.
   history(ref: SessionRef, cursor: HistoryCursor | null): Promise<HistoryPage>
   heldElsewhere?(ref: SessionRef): Promise<boolean>
-  // One answer from the agent's small model, for titles when caps.titles is "none".
+  // One answer from the agent's model, outside the session, for YellowCode's own titles.
   oneShot?(prompt: string, cwd: string): Promise<string | null>
   // The agent's own file backups of a session (feature fileHistory), for the prompts `wanted` says yes to.
   fileHistory?(ref: SessionRef, wanted: (prompt: PromptId) => boolean): Promise<FileBackup[]>

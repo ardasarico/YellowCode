@@ -8,6 +8,24 @@ import { apiVersion } from "./version.ts"
 export const MANIFEST = "yellowcode-mod.json"
 export const MOD_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+// The agents a mod is made for, or "any" for one that uses no agent-bound API.
+export const Agents = z.union([z.literal("any"), z.array(z.string().min(1)).min(1)])
+
+const strings = z.record(z.string(), z.string())
+
+// Only the fields every agent takes: a process with its arguments and environment, or a remote server with its headers.
+const McpServer = z.union([
+  z.strictObject({
+    type: z.literal("stdio").optional(),
+    command: z.string().min(1),
+    args: z.array(z.string()).optional(),
+    env: strings.optional(),
+  }),
+  z.strictObject({ type: z.enum(["http", "sse"]), url: z.string().min(1), headers: strings.optional() }),
+])
+
+export type McpServer = z.output<typeof McpServer>
+
 const Manifest = z.object({
   id: z.string().regex(MOD_ID),
   name: z.string().min(1),
@@ -15,17 +33,10 @@ const Manifest = z.object({
   description: z.string().default(""),
   // A semver range of mod API versions, like "^0.2".
   api: z.string().min(1),
-  // The agents the mod is made for, or "any" for one that uses no agent-bound API.
-  agents: z.union([z.literal("any"), z.array(z.string().min(1)).min(1)]),
+  agents: Agents,
   entry: z.string().regex(/\.tsx?$/),
-  // Process or remote MCP servers in the .mcp.json shape, given to the agent while the mod is on.
-  // An "sdk" server would be routed to YellowCode itself; mods add those with mod.tools.
-  mcpServers: z
-    .record(
-      z.string().regex(/^[a-zA-Z0-9_-]+$/),
-      z.looseObject({}).refine((server) => server.type !== "sdk", "sdk servers come from mod.tools"),
-    )
-    .optional(),
+  // Given to the agent while the mod is on. Tools served by YellowCode itself come from mod.tools.
+  mcpServers: z.record(z.string().regex(/^[a-zA-Z0-9_-]+$/), McpServer).optional(),
 })
 
 export type Manifest = z.output<typeof Manifest>
@@ -49,6 +60,12 @@ export function readManifest(folder: string): ManifestResult {
   const noAgents = typeof value === "object" && value !== null && !("agents" in value)
   if (!parsed.success && noAgents && parsed.error.issues.every((issue) => issue.path[0] === "agents"))
     return { ok: false, problem: `${MANIFEST}: needs an "agents" list, like "agents": ["claude"], or "any"` }
+  const server = parsed.error?.issues.find((issue) => issue.path[0] === "mcpServers" && issue.path.length > 1)
+  if (server)
+    return {
+      ok: false,
+      problem: `${MANIFEST}: mcpServers.${String(server.path[1])} takes command, args and env, or type "http" or "sse" with url and headers`,
+    }
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "manifest"))]
     return { ok: false, problem: `${MANIFEST}: invalid ${fields.join(", ")}` }
@@ -70,6 +87,14 @@ export function compatible(manifest: Manifest, version = apiVersion): boolean {
   }
 }
 
-export function forAgent(manifest: Manifest, agent: AgentKindId): boolean {
+// Which side is behind for an api range that does not match: one that starts above the running API needs a newer
+// YellowCode, any other a newer mod.
+export function incompatibleText(range: string, version = apiVersion): string {
+  const lowest = /(\d+)(?:\.(\d+))?(?:\.(\d+))?/.exec(range)
+  const newerApi = lowest !== null && Bun.semver.order(`${lowest[1]}.${lowest[2] ?? 0}.${lowest[3] ?? 0}`, version) > 0
+  return newerApi ? "needs a newer YellowCode · update YellowCode" : "needs a newer version of this mod"
+}
+
+export function forAgent(manifest: Pick<Manifest, "agents">, agent: AgentKindId): boolean {
   return manifest.agents === "any" || manifest.agents.includes(agent)
 }

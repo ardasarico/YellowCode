@@ -10,7 +10,7 @@ import { linkRuntime } from "./runtime.ts"
 const calls: string[] = []
 Object.assign(globalThis, { modTestCalls: calls })
 
-const claude: ModAgent = { id: "claude", caps: { clientTools: "live", mcpServers: "live" } }
+const claude: ModAgent = { id: "claude", name: "Claude Code", caps: { clientTools: "live", mcpServers: "live" } }
 
 // `agents` null leaves the field out.
 function writeMod(folder: string, id: string, api: string, source: string, agents: unknown = "any"): void {
@@ -49,6 +49,7 @@ export default defineMod({ setup() { throw new Error("broken setup") } })`,
 const calls = (globalThis as any).modTestCalls
 export default defineMod({ setup() { calls.push("should not run") } })`
   writeMod(folder, "too-new", "^0.3", setupRan)
+  writeMod(folder, "too-old", "^0.1", setupRan)
   writeMod(folder, "pulled", "^0.2", setupRan)
   writeMod(folder, "unlisted-agents", "^0.2", setupRan, null)
   writeMod(folder, "other-agent", "^0.2", setupRan, ["codex"])
@@ -70,6 +71,7 @@ export default defineMod({ setup() { calls.push("should not run") } })`
     works: "on",
     throws: "failed",
     "too-new": "incompatible",
+    "too-old": "incompatible",
     pulled: "revoked",
     "unlisted-agents": "failed",
     "other-agent": "elsewhere",
@@ -81,9 +83,10 @@ export default defineMod({ setup() { calls.push("should not run") } })`
   expect(host.entries.find((entry) => entry.id === "too-new")?.problem).toBe(
     "needs a newer YellowCode · update YellowCode",
   )
+  expect(host.entries.find((entry) => entry.id === "too-old")?.problem).toBe("needs a newer version of this mod")
   expect(host.entries.find((entry) => entry.id === "pulled")?.problem).toBe("Revoked: steals tokens")
   expect(host.entries.find((entry) => entry.id === "throws")?.error?.message).toBe("Error: broken setup")
-  expect(failures.toSorted()).toEqual(["pulled", "throws", "too-new", "unlisted-agents"])
+  expect(failures.toSorted()).toEqual(["pulled", "throws", "too-new", "too-old", "unlisted-agents"])
   expect(calls).not.toContain("should not run")
 
   await host.setEnabled("works", false)
@@ -212,7 +215,7 @@ test("another agent loads the mods again: a mod for Claude only is elsewhere the
     ["mod-claude-only", "claude_tool"],
   ])
 
-  host.discover({ id: "second", caps: { clientTools: "live", mcpServers: "none" } })
+  host.discover({ id: "second", name: "Second", caps: { clientTools: "live", mcpServers: "none" } })
   await host.loadAll()
   const status = Object.fromEntries(host.entries.map((entry) => [entry.id, entry.status]))
   expect(status).toEqual({ anywhere: "on", "claude-only": "elsewhere" })
@@ -231,7 +234,7 @@ test("another agent loads the mods again: a mod for Claude only is elsewhere the
   host.unloadAll()
 })
 
-test("manifest servers become launches for an agent that takes them, and a shape a launch cannot carry is left out", async () => {
+test("manifest servers become launches, other fields fail the manifest, and an agent without servers does not load the mod", async () => {
   const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
   mkdirSync(folder, { recursive: true })
   linkRuntime(folder)
@@ -242,22 +245,30 @@ test("manifest servers become launches for an agent that takes them, and a shape
     `import { defineMod } from "yellowcode/mod"\nexport default defineMod({ setup() {} })`,
   )
   const mcpServers = {
-    local: { command: "node", args: ["s.js", 1], env: { A: "b" }, cwd: "/elsewhere" },
+    local: { command: "node", args: ["s.js"], env: { A: "b" } },
     remote: { type: "http", url: "https://example.test/mcp", headers: { X: "y" } },
-    odd: { type: "ws", url: "wss://example.test" },
   }
   const manifest = { id: "served", name: "served", version: "1.0.0", api: "^0.2", agents: "any", entry: "index.ts" }
-  writeFileSync(join(folder, "served", "yellowcode-mod.json"), JSON.stringify({ ...manifest, mcpServers }))
+  const write = (servers: unknown) =>
+    writeFileSync(join(folder, "served", "yellowcode-mod.json"), JSON.stringify({ ...manifest, mcpServers: servers }))
+  write(mcpServers)
   const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {} })
-  host.discover({ id: "second", caps: { clientTools: "start", mcpServers: "start" } })
+  host.discover({ id: "second", name: "Second", caps: { clientTools: "start", mcpServers: "start" } })
   await host.loadAll()
   expect(host.launches()).toEqual([
     { name: "mod-served--local", command: "node", args: ["s.js"], env: { A: "b" } },
     { name: "mod-served--remote", url: "https://example.test/mcp", headers: { X: "y" } },
   ])
-  host.discover({ id: "third", caps: { clientTools: "start", mcpServers: "none" } })
+  host.discover({ id: "third", name: "Third", caps: { clientTools: "start", mcpServers: "none" } })
   await host.loadAll()
+  expect(host.entries[0]).toMatchObject({ status: "elsewhere", problem: "Third takes no MCP servers from mods" })
   expect(host.launches()).toEqual([])
+  write({ ...mcpServers, local: { ...mcpServers.local, cwd: "/elsewhere" } })
+  expect(readManifest(join(folder, "served"))).toEqual({
+    ok: false,
+    problem:
+      'yellowcode-mod.json: mcpServers.local takes command, args and env, or type "http" or "sse" with url and headers',
+  })
   host.unloadAll()
 })
 

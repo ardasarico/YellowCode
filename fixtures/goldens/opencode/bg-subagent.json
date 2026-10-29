@@ -94,6 +94,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "agent": "general",
         "description": "Read the readme",
@@ -120,7 +121,7 @@
       "type": "task.start",
       "id": "ses_2",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "toolu_mock0001",
       "parent": null,
       "depth": null,
@@ -226,6 +227,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "README.md"
       },
@@ -303,7 +305,8 @@
           "durationMs": 581,
           "tokens": 2760
         },
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": null
       },
       "call": "toolu_mock0001",
       "at": 1793234383195
@@ -413,6 +416,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "agent": "general",
         "description": "Read slowly",
@@ -438,7 +442,7 @@
       "type": "task.start",
       "id": "ses_3",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "toolu_mock0003",
       "parent": null,
       "depth": null,
@@ -473,6 +477,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts"
       },
@@ -628,7 +633,8 @@
           "durationMs": 2552,
           "tokens": 2760
         },
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": null
       },
       "call": "toolu_mock0003",
       "at": 1793234385789
@@ -741,6 +747,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "agent": "general",
               "description": "Read the readme",
@@ -780,6 +787,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "README.md"
             },
@@ -958,6 +966,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "agent": "general",
               "description": "Read slowly",
@@ -996,6 +1005,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/a.ts"
             },
@@ -1422,7 +1432,8 @@
     "tasks": {
       "ses_2": {
         "id": "ses_2",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "toolu_mock0001",
         "parentId": null,
         "depth": 1,
@@ -1440,6 +1451,7 @@
         "tokens": 2760,
         "summary": "A demo.",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",
@@ -1450,7 +1462,8 @@
       },
       "ses_3": {
         "id": "ses_3",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "toolu_mock0003",
         "parentId": null,
         "depth": 1,
@@ -1468,6 +1481,7 @@
         "tokens": 2760,
         "summary": "Says hello.",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",

@@ -163,6 +163,7 @@ export function McpTab(props: {
         return entry ? detailItems(entry, width, opened() === entry.row.name) : []
       }}
       actions={(row) => offeredActions(entryFor(row)?.row.state ?? "off", props.can)}
+      actionsNote={props.can.reach ?? undefined}
       onAction={(row, action) => {
         const entry = entryFor(row)
         if (!entry) return

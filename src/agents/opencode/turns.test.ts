@@ -142,5 +142,7 @@ test("a resync that finds the session deleted ends it", async () => {
       createCuts(() => []),
       5,
     ),
-  ).toEqual([{ type: "ended", problem: { text: "This session was deleted in opencode", detail: [] }, at: 5 }])
+  ).toEqual([
+    { type: "ended", problem: { text: "This session was deleted in opencode", detail: [] }, final: true, at: 5 },
+  ])
 })

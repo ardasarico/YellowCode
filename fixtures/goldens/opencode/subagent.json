@@ -115,6 +115,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "agent": "general",
         "description": "Change the greeting",
@@ -140,7 +141,7 @@
       "type": "task.start",
       "id": "ses_2",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "toolu_mock0001",
       "parent": null,
       "depth": null,
@@ -175,6 +176,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts"
       },
@@ -236,6 +238,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts",
         "oldString": "\"hello\"",
@@ -342,7 +345,8 @@
           "durationMs": 109,
           "tokens": 4140
         },
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": null
       },
       "call": "toolu_mock0001",
       "at": 1793234376715
@@ -467,6 +471,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "agent": "general",
         "description": "Wait for ever",
@@ -492,7 +497,7 @@
       "type": "task.start",
       "id": "ses_3",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "toolu_mock0004",
       "parent": null,
       "depth": null,
@@ -527,6 +532,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "README.md"
       },
@@ -588,7 +594,8 @@
           "durationMs": 22,
           "tokens": 1380
         },
-        "stoppedByUser": true
+        "stoppedByUser": true,
+        "exitCode": null
       },
       "call": "toolu_mock0004",
       "at": 1793234376834
@@ -731,6 +738,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "agent": "general",
               "description": "Change the greeting",
@@ -769,6 +777,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/a.ts"
             },
@@ -820,6 +829,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/a.ts",
               "oldString": "\"hello\"",
@@ -992,6 +1002,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "agent": "general",
               "description": "Wait for ever",
@@ -1030,6 +1041,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "README.md"
             },
@@ -1427,7 +1439,8 @@
     "tasks": {
       "ses_2": {
         "id": "ses_2",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "toolu_mock0001",
         "parentId": null,
         "depth": 1,
@@ -1445,6 +1458,7 @@
         "tokens": 4140,
         "summary": "The greeting now says hey.",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",
@@ -1455,7 +1469,8 @@
       },
       "ses_3": {
         "id": "ses_3",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "toolu_mock0004",
         "parentId": null,
         "depth": 1,
@@ -1473,6 +1488,7 @@
         "tokens": 1380,
         "summary": "",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",

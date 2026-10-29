@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { apiVersion } from "../version.ts"
-import { INCOMPATIBLE } from "./install.ts"
+import { incompatibleText } from "../manifest.ts"
 import type { ListedMod, ModList } from "./list.ts"
 import type { InstallRecord } from "./record.ts"
 import { dirEntries, hashEntries } from "./tree-hash.ts"
@@ -22,7 +22,7 @@ export function listedEntry(list: ModList, id: string): ListedMod | string {
   const revoked = revokedListing(list, id, entry?.version)
   if (revoked !== null) return `${id}: Revoked: ${revoked}`
   if (!entry) return `${id} is not on the YellowCode list; for a mod on GitHub use yellowcode mod add github:owner/repo`
-  if (!apiMatches(entry.api)) return `${id} ${entry.version} ${INCOMPATIBLE}`
+  if (!apiMatches(entry.api)) return `${id} ${entry.version} ${incompatibleText(entry.api)}`
   return entry
 }
 

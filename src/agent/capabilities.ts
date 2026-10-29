@@ -59,7 +59,9 @@ export type Capabilities = {
   heldElsewhere: { atOpen: boolean; live: boolean }
   // The lists the agent fills; the UI hides the rest.
   lists: readonly ListName[]
-  mcp: { toggle: boolean; reconnect: boolean; login: boolean }
+  // `reach`: who else the server actions reach, said under them; null when it is this session alone.
+  // `failNotice`: a server that turns failed in the MCP list raises a notice while the sidebar is hidden.
+  mcp: { toggle: boolean; reconnect: boolean; login: boolean; reach: string | null; failNotice: boolean }
   skills: { toggle: boolean; reload: boolean }
   plugins: { toggle: boolean; reload: boolean }
   settings: boolean

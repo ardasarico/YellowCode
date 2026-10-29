@@ -35,9 +35,11 @@ const HINTS: [string, string][] = [
 
 const HINT_GAP = "   "
 
-// The hints stay on one row; the ones that do not fit drop from the end.
-function hintParts(recent: boolean, room: number) {
-  const hints = HINTS.filter(([key]) => recent || key !== "↓")
+// The hints stay on one row; the ones that do not fit drop from the end. `agent` is the running agent's name, which
+// Tab changes.
+function hintParts(recent: boolean, room: number, agent: string | null) {
+  const hints: [string, string][] = HINTS.filter(([key]) => recent || key !== "↓")
+  if (agent) hints.push(["tab", agent])
   const width = (count: number) =>
     hints.slice(0, count).reduce((sum, [key, label]) => sum + Bun.stringWidth(`${key} ${label}`), 0) +
     HINT_GAP.length * Math.max(0, count - 1)
@@ -161,10 +163,10 @@ export function CatOrBlank(props: { width: number; height: number }) {
   )
 }
 
-function Hints(props: { recent: boolean; width: number }) {
+function Hints(props: { recent: boolean; width: number; agent: string | null }) {
   return (
     <text wrapMode="none">
-      <Index each={hintParts(props.recent, props.width)}>
+      <Index each={hintParts(props.recent, props.width, props.agent)}>
         {(part) => <span style={{ fg: part().isKey ? theme.text : theme.muted }}>{part().text}</span>}
       </Index>
     </text>
@@ -193,6 +195,8 @@ export function wordmarkPalette(): Record<string, RGBA> {
 export function Welcome(props: {
   input: Omit<InputBlockProps, "width">
   workspace: Workspace
+  // Named with its key while another agent can be picked.
+  agent?: string | null
   notice: Span | null
   onNotice?: (() => void) | undefined
   recent: { entries: SessionEntry[]; names: SessionList["names"]; selected: number | null }
@@ -221,7 +225,7 @@ export function Welcome(props: {
         <InputBlock {...props.input} width={width()} />
         <box height={1} />
         <box width={width()} flexDirection="row" justifyContent="center">
-          <Hints recent={parts().recent} width={width()} />
+          <Hints recent={parts().recent} width={width()} agent={props.agent ?? null} />
         </box>
         <Show when={parts().recent}>
           <box height={1} />

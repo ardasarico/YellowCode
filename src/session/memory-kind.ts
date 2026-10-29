@@ -34,7 +34,7 @@ export const memoryCaps: Capabilities = {
   cost: false,
   heldElsewhere: { atOpen: false, live: false },
   lists: [],
-  mcp: { toggle: false, reconnect: false, login: false },
+  mcp: { toggle: false, reconnect: false, login: false, reach: null, failNotice: false },
   skills: { toggle: false, reload: false },
   plugins: { toggle: false, reload: false },
   settings: false,

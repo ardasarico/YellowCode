@@ -1,7 +1,6 @@
 import { createMemo } from "solid-js"
 import type { Agent } from "../../agent/agent.ts"
 import type { Capabilities } from "../../agent/capabilities.ts"
-import type { AgentKindId } from "../../agent/ids.ts"
 import type { InputProvider } from "../../input/provider.ts"
 import { modeLabel, settings } from "../../session/settings.ts"
 import type { McpServerRow } from "../../agent/lists.ts"
@@ -22,7 +21,7 @@ export function SettingsDialog(props: {
   // The row the Config tab opens on, as /config, /output-style and /autocompact ask.
   row?: string
   // The agent whose session this is.
-  agent: AgentKindId
+  agent: AgentOption
   // The agents installed here, for the default agent.
   agents: AgentOption[]
   // Live only.
@@ -99,7 +98,11 @@ export function SettingsDialog(props: {
         />
       ),
     },
-    { id: "mods", label: "Mods", render: (api) => <ModsTab api={api} host={mods} /> },
+    {
+      id: "mods",
+      label: "Mods",
+      render: (api) => <ModsTab api={api} host={mods} agent={props.agent} agents={props.agents} />,
+    },
   ]
 
   return <TabbedDialog title="Settings" tabs={tabs} tab={props.tab} onTab={props.onTab} onClose={props.onClose} />

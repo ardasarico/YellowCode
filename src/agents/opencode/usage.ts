@@ -2,7 +2,8 @@
 // through the allowlist.
 import { z } from "zod"
 import type { ContextReport } from "../../agent/agent.ts"
-import { readAllowed } from "./allow.ts"
+import type { AgentEvent, LimitWindow } from "../../agent/events.ts"
+import { readAllowed, usageLimits } from "./allow.ts"
 import type { Transport } from "./transport.ts"
 import { rowsOf } from "./wire/envelope.ts"
 
@@ -36,6 +37,39 @@ export async function defaultModel(transport: Transport): Promise<{ model: strin
 export async function defaultRef(transport: Transport): Promise<{ providerID: string; id: string } | null> {
   const found = await readDefault(transport)
   return found ? { providerID: found.providerID, id: found.id } : null
+}
+
+// OpenCode Go's windows by their length in minutes, under the names the chat's limit notice reads; the session keeps
+// the 5-hour and weekly ones.
+const GO_WINDOWS = [
+  { key: "rolling", minutes: 300, type: "five_hour" },
+  { key: "weekly", minutes: 10080, type: "seven_day" },
+  { key: "monthly", minutes: 43200, type: "monthly" },
+] as const
+
+// The Go allowance of the workspace opencode is signed in to; null when it is not, or opencode did not say.
+export async function readLimits(transport: Transport): Promise<AgentEvent | null> {
+  const go = usageLimits.safeParse(await readAllowed(transport, "/api/experimental/usage/limits", "the usage limits"))
+    .data?.go
+  if (!go) return null
+  const windows: LimitWindow[] = GO_WINDOWS.map(({ key, minutes }) => ({
+    minutes,
+    model: null,
+    utilization: go[key].percent / 100,
+    resetsAt: go[key].resetsAt,
+  }))
+  const full = GO_WINDOWS.find(({ key }) => go[key].limited)
+  const warning = full
+    ? {
+        reached: true,
+        minutes: full.minutes,
+        model: null,
+        resetsAt: go[full.key].resetsAt,
+        status: "rejected",
+        type: full.type,
+      }
+    : null
+  return { type: "limits", windows, warning, at: 0 }
 }
 
 // opencode has no categories, only the total.

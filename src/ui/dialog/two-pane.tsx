@@ -33,6 +33,8 @@ export type TwoPaneProps = {
   footer: (row: DialogRow) => FooterAction[]
   // The actions go under the detail's first line instead of at the bottom.
   actionsOnTop?: boolean
+  // A muted line under the actions at the bottom, while there are any.
+  actionsNote?: string
   // Sees the keys of the detail pane first, with the row or action that has the focus there.
   onDetailKey?: (key: KeyEvent, row: DialogRow, focused: DialogRow | undefined) => boolean
   detailFooter?: (row: DialogRow, focused: DialogRow | undefined) => FooterAction[] | null
@@ -96,6 +98,7 @@ export function TwoPane(props: TwoPaneProps) {
     return row ? props.actions(row) : []
   })
   const actionIds = () => actions().map((action) => action.id)
+  const note = () => (actions().length > 0 ? props.actionsNote : undefined)
   const bodyIds = createMemo(() => selectableIds(detailSections()))
   const focusId = () => {
     const id = focus()
@@ -276,7 +279,7 @@ export function TwoPane(props: TwoPaneProps) {
                 lines={detailLines()}
                 selected={bodySelected()}
                 view={selectedId() ?? ""}
-                rows={Math.max(0, props.api.rows() - ACTION_ROWS)}
+                rows={Math.max(0, props.api.rows() - ACTION_ROWS - (note() ? 1 : 0))}
                 width={detailList()}
                 pad={detailProps.pad}
                 inset
@@ -286,6 +289,15 @@ export function TwoPane(props: TwoPaneProps) {
               <box height={1} paddingLeft={detailProps.pad}>
                 <Actions />
               </box>
+              <Show when={note()}>
+                {(text) => (
+                  <box height={1} paddingLeft={detailProps.pad}>
+                    <text fg={theme.panelMuted} wrapMode="none">
+                      {text()}
+                    </text>
+                  </box>
+                )}
+              </Show>
             </>
           }
         >

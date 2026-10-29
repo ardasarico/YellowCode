@@ -75,6 +75,7 @@
       "kind": "edit",
       "name": "apply_patch",
       "title": "edit",
+      "mcp": null,
       "input": {
         "changes": [
           {
@@ -308,6 +309,7 @@
       "kind": "delete",
       "name": "apply_patch",
       "title": "delete",
+      "mcp": null,
       "input": {
         "changes": [
           {
@@ -480,6 +482,7 @@
       "kind": "write",
       "name": "apply_patch",
       "title": "write",
+      "mcp": null,
       "input": {
         "changes": [
           {
@@ -642,6 +645,7 @@
       "kind": "edit",
       "name": "apply_patch",
       "title": "edit",
+      "mcp": null,
       "input": {
         "changes": [
           {

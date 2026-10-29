@@ -75,6 +75,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'sleep 1; echo slept'",
         "cwd": "<root>/project",

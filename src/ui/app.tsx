@@ -19,7 +19,7 @@ import {
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { findModCommand, untitledCommand } from "../input/commands.ts"
+import { findCommand, findModCommand, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
@@ -41,6 +41,8 @@ import {
   controlProblem,
   defaultModeOf,
   effortsOf,
+  favoriteKey,
+  favoritesOf,
   modelChoices,
   modelFor,
   modelIds,
@@ -57,6 +59,7 @@ import {
   settings,
   stepEffort,
   stepModel,
+  toggleFavorite,
   toggleUltracode,
 } from "../session/settings.ts"
 import { type ChoiceGroup, ChoiceDialog } from "./dialog/choice-dialog.tsx"
@@ -303,6 +306,9 @@ export function App(props: AppProps) {
       },
     ),
   )
+  // The welcome screen names the agent, and Tab opens /agent, once there is another agent to pick.
+  const agentHint = () =>
+    (props.agents?.installed()?.filter((agent) => agent.blocked === null).length ?? 0) > 1 ? props.agent.name : null
   // What the default agent can be: the installed agents, or the running one before they were looked for.
   const agentOptions = (): AgentOption[] => {
     const { id, name } = props.agent
@@ -462,9 +468,10 @@ export function App(props: AppProps) {
   // A resumed session shows the title it was listed under until claude reports one, or a /clear starts over.
   const listedTitle = untrack(() => props.title) ?? null
   // claude carries a title over into the session a /clear starts, so YellowCode's own source shows only its own.
-  // An agent that titles its own sessions shows its titles whatever the setting says (owner question D).
+  // An agent that titles its own sessions shows its titles when YellowCode cannot make them.
   const sourceTitle = () =>
-    props.readOnly || (settings.sessionTitle === "yellowcode" && props.caps.titles === "none")
+    props.readOnly ||
+    (settings.sessionTitle === "yellowcode" && (props.caps.titles === "none" || props.oneShot !== undefined))
       ? haikuTitle()
       : (claudeTitle() ?? (props.session.conversation === 0 ? listedTitle : null))
   const title = () => {
@@ -606,7 +613,8 @@ export function App(props: AppProps) {
   const failedServers = new Set<string>()
 
   createEffect(() => {
-    for (const server of props.lists().infoServers ?? []) {
+    const lists = props.lists()
+    for (const server of (props.caps.mcp.failNotice ? lists.mcp : lists.infoServers) ?? []) {
       if (server.state !== "failed") {
         failedServers.delete(server.name)
         continue
@@ -1053,16 +1061,13 @@ export function App(props: AppProps) {
 
   const interruptible = () =>
     props.onInterrupt !== undefined && props.session.turn !== null && !props.session.interrupting
-  // The hint waits until a foreground command or agent has run a few seconds. Claude Code reports a command as a task
-  // only about that long after it starts, so a shell shows the hint as soon as it is a task.
+  // The hint waits until a foreground command or agent has run a few seconds as a task.
   const foreground = () => (props.caps.backgroundNow ? foregroundTasks(props.session) : [])
   const backgroundTick = useTicker(() => foreground().length > 0, 500)
   const backgroundable = () => {
     backgroundTick()
     const now = Date.now()
-    return foreground().some(
-      (task) => task.type === "local_bash" || (task.startedAt !== null && now - task.startedAt >= BACKGROUND_HINT_MS),
-    )
+    return foreground().some((task) => task.startedAt !== null && now - task.startedAt >= BACKGROUND_HINT_MS)
   }
   // Ctrl+C interrupts once per turn, so a claude that refuses the interrupt can still be quit; Esc can try again.
   let interruptedByCtrlC = false
@@ -1433,6 +1438,11 @@ export function App(props: AppProps) {
       key.preventDefault()
       return
     }
+    // A saved conversation goes to no agent, so its model and ultracode stay as they are.
+    if (props.readOnly && ((key.shift && (key.name === "left" || key.name === "right")) || key.name === "f4")) {
+      key.preventDefault()
+      return
+    }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
       if (props.caps.effort)
@@ -1446,7 +1456,7 @@ export function App(props: AppProps) {
     }
     if (key.shift && (key.name === "left" || key.name === "right")) {
       key.preventDefault()
-      toModel(stepModel(key.name === "right" ? 1 : -1, props.model()))
+      toModel(stepModel(key.name === "right" ? 1 : -1, props.model(), favoritesOf(props.agent.id)))
       return
     }
     if (key.name === "f4") {
@@ -1467,7 +1477,13 @@ export function App(props: AppProps) {
       return
     }
     if (key.name === "tab") {
-      if (welcome() || listOpen()) return
+      if (listOpen()) return
+      if (welcome()) {
+        if (agentHint() === null) return
+        key.preventDefault()
+        setDialog({ name: "agent" })
+        return
+      }
       key.preventDefault()
       const next = focus() === "input" ? "chat" : "input"
       setFocus(next)
@@ -1596,7 +1612,8 @@ export function App(props: AppProps) {
       setDialog({ name: "settings", tab: "config", row: `agent:${setting}` })
       return true
     }
-    if (command === "/clear" && props.onClear) return props.onClear()
+    const named = command === `/${commandName}` ? findCommand(props.provider.commands(), commandName) : null
+    if ((command === "/clear" || named?.name === "clear") && props.onClear) return props.onClear()
     // An agent that fills the rules list has the dialog, which reads them again as it opens.
     if (command === "/permissions" && props.caps.lists.includes("rules") && props.permissions) {
       props.permissions.refresh()
@@ -1644,6 +1661,12 @@ export function App(props: AppProps) {
         return false
       }
       const planned = command.startsWith("/plan ") ? command.slice("/plan ".length).trim() : null
+      // A name with a slash in it is a path, which goes out as text.
+      const notListed = /^[^/]+$/.test(typed) && findCommand(props.provider.commands(), typed) === null
+      if (props.provider.listedOnly?.() && planned === null && notListed) {
+        waitNotice(`${props.agent.name} has no /${typed} command`)
+        return false
+      }
       // The mode changes before the message goes out, so the message runs in it; a refused send puts it back,
       // except a default-kind mode, which stays in plan.
       const modeBefore = props.provider
@@ -1796,7 +1819,7 @@ export function App(props: AppProps) {
       backgroundable: backgroundable(),
       modes: props.onInterrupt !== undefined,
       planHint: planHint(),
-      extraEffort: props.caps.extraEffort,
+      extraEffort: props.readOnly ? null : props.caps.extraEffort,
       limits: props.caps.limits,
       now: Date.now(),
     })
@@ -1871,6 +1894,7 @@ export function App(props: AppProps) {
                   history,
                 }}
                 workspace={props.workspace}
+                agent={agentHint()}
                 notice={welcomeNotice()}
                 onNotice={openBackup()}
                 recent={{ entries: recents(), names: listed().names, selected: recent() }}
@@ -2008,7 +2032,7 @@ export function App(props: AppProps) {
             version={props.workspace.version}
             provider={props.provider}
             row={settingsRow()}
-            agent={props.agent.id}
+            agent={{ id: props.agent.id, name: props.agent.name }}
             agents={agentOptions()}
             agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}
@@ -2088,6 +2112,10 @@ export function App(props: AppProps) {
           title="Model"
           groups={modelGroups()}
           current={settings.model ?? props.model()}
+          favorites={{
+            has: (id) => favoritesOf(props.agent.id).includes(favoriteKey(id)),
+            toggle: (id) => toggleFavorite(props.agent.id, id),
+          }}
           onChoose={(id) => toModel(pickModel(id))}
           onClose={() => setDialog(null)}
         />

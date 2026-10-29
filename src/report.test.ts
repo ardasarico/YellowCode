@@ -20,7 +20,7 @@ test("a row with no value is left out", () => {
   expect(text).not.toContain("Device")
 })
 
-test("the running agent's mode keeps its row, and another agent's saved mode goes under its name", () => {
+test("each agent's saved mode goes under its name", () => {
   const settings = {
     ...DEFAULT_SETTINGS,
     defaultAgent: "claude",
@@ -33,7 +33,7 @@ test("the running agent's mode keeps its row, and another agent's saved mode goe
     { id: "other", name: "Other" },
   ]
   const rows = settingsFacts(settings, { id: "claude", name: "Claude Code", modes }, names, null)
-  expect(rows).toContainEqual(["Permission mode", "Plan"])
+  expect(rows).toContainEqual(["Claude Code mode", "Plan"])
   expect(rows).toContainEqual(["Other mode", "build"])
   expect(rows).toContainEqual(["gone mode", "ask"])
   expect(rows).toContainEqual(["Default agent", "Claude Code"])

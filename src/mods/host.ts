@@ -7,7 +7,7 @@ import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId } from "../agent/ids.ts"
 import { log } from "../log/log.ts"
 import type { DefinedMod, Dispose, ModApi, ModSettingDefinitions, ModTool, ModToolResult } from "./api.ts"
-import { compatible, forAgent, type Manifest, readManifest } from "./manifest.ts"
+import { compatible, forAgent, incompatibleText, type Manifest, type McpServer, readManifest } from "./manifest.ts"
 import {
   addCommand,
   addFence,
@@ -26,13 +26,13 @@ import {
   modTools,
   setLoadOrder,
 } from "./registry.ts"
-import { INCOMPATIBLE } from "./install/install.ts"
 import type { ModList } from "./install/list.ts"
 import { type InstallRecord, readRecord } from "./install/record.ts"
 import { createSettings, type SettingsHandle } from "./settings.ts"
 import { modFacingStorage, modStorage } from "./storage.ts"
 
-// "elsewhere": the manifest does not list the agent YellowCode runs.
+// "elsewhere": the mod cannot run on the agent YellowCode runs: the manifest does not list it, or the mod adds tools or
+// MCP servers the agent does not take.
 export type ModStatus = "on" | "off" | "failed" | "incompatible" | "revoked" | "elsewhere"
 
 const NOT_FOR_AGENT = "not for this agent"
@@ -41,7 +41,7 @@ const NOT_FOR_AGENT = "not for this agent"
 export const MOD_SERVER_PREFIX = "mod-"
 
 // The agent mods load for, and what it takes from them.
-export type ModAgent = { id: AgentKindId; caps: Pick<Capabilities, "clientTools" | "mcpServers"> }
+export type ModAgent = { id: AgentKindId; name: string; caps: Pick<Capabilities, "clientTools" | "mcpServers"> }
 
 // A mod with no install record was put in the folder by hand.
 export type ModSource = "listed" | "unlisted" | "local"
@@ -80,35 +80,17 @@ export type ModHost = {
   clientTools(): ClientTool[]
   // The settings of a running mod.
   settings(id: string): SettingsHandle | null
-  // A running mod's manifest servers by the name the agent gets, mod-<id>--<name>; none for an agent that takes no MCP
-  // servers.
-  servers(id: string): Record<string, unknown>
+  // A running mod's manifest servers by the name the agent gets, mod-<id>--<name>.
+  servers(id: string): Record<string, McpServer>
   // Every running mod's manifest servers, for an agent that takes them as launches.
   launches(): McpLaunch[]
   onFailure(listener: (failure: ModFailure) => void): () => void
 }
 
-const strings = (value: unknown): Record<string, string> =>
-  typeof value === "object" && value !== null
-    ? Object.fromEntries(
-        Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-      )
-    : {}
-
-// A manifest server in the .mcp.json shape as the neutral launch. Fields a launch has no room for are dropped (owner
-// question 17), and a server with neither a command nor a url is left out.
-function launchOf(name: string, config: Record<string, unknown>): McpLaunch | null {
-  const { type, command, url, args, env, headers, ...rest } = config
-  const dropped = Object.keys(rest)
-  if (dropped.length > 0) log.info(`mod server ${name}: ${dropped.join(", ")} not passed to the agent`)
-  if (typeof url === "string" && (type === "http" || type === "sse")) return { name, url, headers: strings(headers) }
-  if (typeof command === "string" && (type === undefined || type === "stdio")) {
-    const list = Array.isArray(args) ? args.filter((arg): arg is string => typeof arg === "string") : []
-    return { name, command, args: list, env: strings(env) }
-  }
-  log.warn(`mod server ${name} has neither a command nor an http url, not passed to the agent`)
-  return null
-}
+const launchOf = (name: string, server: McpServer): McpLaunch =>
+  "url" in server
+    ? { name, url: server.url, headers: server.headers ?? {} }
+    : { name, command: server.command, args: server.args ?? [], env: server.env ?? {} }
 
 function textOf(result: ModToolResult): { text: string; error: boolean } {
   const { text, isError } = typeof result === "string" ? { text: result, isError: false } : result
@@ -248,9 +230,12 @@ export function createModHost(options: {
     const { manifest } = read
     const reason = options.revoked?.(id, manifest, record) ?? null
     if (reason !== null) return { ...base, manifest, status: "revoked", problem: `Revoked: ${reason}` }
-    if (!compatible(manifest)) return { ...base, manifest, status: "incompatible", problem: INCOMPATIBLE }
+    if (!compatible(manifest))
+      return { ...base, manifest, status: "incompatible", problem: incompatibleText(manifest.api) }
     if (!agent || !forAgent(manifest, agent.id))
       return { ...base, manifest, status: "elsewhere", problem: NOT_FOR_AGENT }
+    if (Object.keys(manifest.mcpServers ?? {}).length > 0 && agent.caps.mcpServers === "none")
+      return { ...base, manifest, status: "elsewhere", problem: `${agent.name} takes no MCP servers from mods` }
     const off = options.disabled().includes(id)
     return { ...base, manifest, status: off ? "off" : "on", problem: null }
   }
@@ -325,7 +310,8 @@ export function createModHost(options: {
             if (modTools().some((other) => other.mod === id && other.name === tool.name))
               throw new Error(`tool "${tool.name}" is already added`)
             if (agent?.caps.clientTools === "none") {
-              log.info(`mod ${id}: tool ${tool.name} not added, the agent takes no tools`)
+              unload(id)
+              update(id, { status: "elsewhere", problem: `${agent.name} takes no tools from mods`, loadMs: null })
               return () => {}
             }
             return own(addTool({ ...tool, mod: id }))
@@ -395,10 +381,10 @@ export function createModHost(options: {
     await load(id)
   }
 
-  function serversOf(id: string): Record<string, Record<string, unknown>> {
+  function serversOf(id: string): Record<string, McpServer> {
     const entry = entries[indexOf(id)]
-    if (entry?.status !== "on" || agent?.caps.mcpServers === "none") return {}
-    const servers: Record<string, Record<string, unknown>> = {}
+    if (entry?.status !== "on") return {}
+    const servers: Record<string, McpServer> = {}
     // Ids never hold "--", so a manifest server cannot take another mod's name.
     for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
       servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = config
@@ -436,10 +422,7 @@ export function createModHost(options: {
     servers: serversOf,
     launches() {
       return entries.flatMap((entry) =>
-        Object.entries(serversOf(entry.id)).flatMap(([name, config]) => {
-          const launch = launchOf(name, config)
-          return launch ? [launch] : []
-        }),
+        Object.entries(serversOf(entry.id)).map(([name, server]) => launchOf(name, server)),
       )
     },
     fail(id, error) {

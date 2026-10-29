@@ -28,19 +28,50 @@
           }
         ]
       },
-      "at": 1793248733994
+      "at": 1793294548160
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793248733994
+      "at": 1793294548160
     },
     {
       "type": "lists",
       "lists": {
-        "rules": []
+        "rules": [
+          {
+            "id": "config:<root>/config/opencode/opencode.json:0",
+            "subject": "shell",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:1",
+            "subject": "edit",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:2",
+            "subject": "write",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          }
+        ]
       },
-      "at": 1793248733996
+      "at": 1793294548208
     },
     {
       "type": "user",
@@ -50,46 +81,77 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793248734483
+      "at": 1793294548748
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793248734485
+      "at": 1793294548749
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793248734491
+      "at": 1793294548759
     },
     {
       "type": "title",
       "title": "Asking first",
-      "at": 1793248734511
+      "at": 1793294548792
     },
     {
       "type": "lists",
       "lists": {
-        "rules": []
+        "rules": [
+          {
+            "id": "config:<root>/config/opencode/opencode.json:0",
+            "subject": "shell",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:1",
+            "subject": "edit",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:2",
+            "subject": "write",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          }
+        ]
       },
-      "at": 1793248734511
+      "at": 1793294548792
     },
     {
       "type": "reply",
-      "at": 1793248734805
+      "at": 1793294549083
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248734805
+      "at": 1793294549083
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793248734805
+      "at": 1793294549083
     },
     {
       "type": "text.start",
@@ -98,19 +160,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793248734807
+      "at": 1793294549084
     },
     {
       "type": "text.delta",
       "part": "msg_1:text:0",
       "text": "Listing first.",
-      "at": 1793248734816
+      "at": 1793294549094
     },
     {
       "type": "text.end",
       "part": "msg_1:text:0",
       "text": "Listing first.",
-      "at": 1793248734816
+      "at": 1793294549094
     },
     {
       "type": "tool.start",
@@ -121,7 +183,7 @@
       "title": "shell",
       "mcp": null,
       "quiet": false,
-      "at": 1793248734817
+      "at": 1793294549095
     },
     {
       "type": "tool.called",
@@ -129,6 +191,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "ls"
       },
@@ -140,7 +203,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248734822
+      "at": 1793294549100
     },
     {
       "type": "ask.open",
@@ -206,7 +269,7 @@
           }
         ]
       },
-      "at": 1793248734837
+      "at": 1793294549155
     },
     {
       "type": "ask.close",
@@ -214,13 +277,13 @@
       "outcome": {
         "status": "allowed"
       },
-      "at": 1793248734841
+      "at": 1793294549159
     },
     {
       "type": "task.start",
       "id": "sh_1",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0001",
       "parent": null,
       "depth": null,
@@ -230,20 +293,21 @@
       "prompt": "",
       "workflow": "",
       "agentType": "",
-      "at": 1793248734843
+      "at": 1793294549161
     },
     {
       "type": "task.end",
       "id": "sh_1",
       "state": "completed",
       "report": {
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 0
       },
       "call": "toolu_mock0001",
-      "at": 1793248734848
+      "at": 1793294549170
     },
     {
       "type": "tool.end",
@@ -261,21 +325,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248734849
+      "at": 1793294549171
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248734858
+      "at": 1793294549182
     },
     {
       "type": "reply",
-      "at": 1793248734871
+      "at": 1793294549209
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248734871
+      "at": 1793294549209
     },
     {
       "type": "tool.start",
@@ -286,7 +350,7 @@
       "title": "shell",
       "mcp": null,
       "quiet": false,
-      "at": 1793248734872
+      "at": 1793294549210
     },
     {
       "type": "tool.called",
@@ -294,6 +358,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "git status"
       },
@@ -305,7 +370,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248734873
+      "at": 1793294549211
     },
     {
       "type": "ask.open",
@@ -371,7 +436,7 @@
           }
         ]
       },
-      "at": 1793248734875
+      "at": 1793294549217
     },
     {
       "type": "ask.close",
@@ -379,7 +444,7 @@
       "outcome": {
         "status": "allowed"
       },
-      "at": 1793248734878
+      "at": 1793294549220
     },
     {
       "type": "lists",
@@ -394,16 +459,46 @@
             "origin": null,
             "mode": null,
             "removable": true
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:0",
+            "subject": "shell",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:1",
+            "subject": "edit",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:2",
+            "subject": "write",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
           }
         ]
       },
-      "at": 1793248734878
+      "at": 1793294549220
     },
     {
       "type": "task.start",
       "id": "sh_2",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0002",
       "parent": null,
       "depth": null,
@@ -413,20 +508,21 @@
       "prompt": "",
       "workflow": "",
       "agentType": "",
-      "at": 1793248734879
+      "at": 1793294549232
     },
     {
       "type": "task.end",
       "id": "sh_2",
       "state": "completed",
       "report": {
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 0
       },
       "call": "toolu_mock0002",
-      "at": 1793248735050
+      "at": 1793294549561
     },
     {
       "type": "tool.end",
@@ -444,21 +540,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248735050
+      "at": 1793294549561
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735058
+      "at": 1793294549578
     },
     {
       "type": "reply",
-      "at": 1793248735068
+      "at": 1793294549651
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735068
+      "at": 1793294549651
     },
     {
       "type": "tool.start",
@@ -469,7 +565,7 @@
       "title": "shell",
       "mcp": null,
       "quiet": false,
-      "at": 1793248735069
+      "at": 1793294549652
     },
     {
       "type": "tool.called",
@@ -477,6 +573,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "git status"
       },
@@ -488,13 +585,13 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248735070
+      "at": 1793294549657
     },
     {
       "type": "task.start",
       "id": "sh_3",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0003",
       "parent": null,
       "depth": null,
@@ -504,20 +601,21 @@
       "prompt": "",
       "workflow": "",
       "agentType": "",
-      "at": 1793248735072
+      "at": 1793294549669
     },
     {
       "type": "task.end",
       "id": "sh_3",
       "state": "completed",
       "report": {
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 0
       },
       "call": "toolu_mock0003",
-      "at": 1793248735083
+      "at": 1793294549695
     },
     {
       "type": "tool.end",
@@ -535,21 +633,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248735083
+      "at": 1793294549695
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735090
+      "at": 1793294549706
     },
     {
       "type": "reply",
-      "at": 1793248735102
+      "at": 1793294549742
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735102
+      "at": 1793294549742
     },
     {
       "type": "tool.start",
@@ -560,7 +658,7 @@
       "title": "edit",
       "mcp": null,
       "quiet": false,
-      "at": 1793248735102
+      "at": 1793294549743
     },
     {
       "type": "tool.called",
@@ -568,6 +666,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts",
         "oldString": "\"hello\"",
@@ -581,7 +680,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248735103
+      "at": 1793294549744
     },
     {
       "type": "ask.open",
@@ -629,7 +728,7 @@
             "effect": "allow",
             "lasts": "project",
             "label": null,
-            "subject": "*",
+            "subject": "edits",
             "note": false,
             "endsTurn": false,
             "mode": null,
@@ -649,7 +748,7 @@
           }
         ]
       },
-      "at": 1793248735105
+      "at": 1793294549746
     },
     {
       "type": "ask.close",
@@ -660,7 +759,7 @@
         "why": "declined",
         "note": "Keep the greeting as it is."
       },
-      "at": 1793248735106
+      "at": 1793294549749
     },
     {
       "type": "tool.end",
@@ -683,21 +782,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248735107
+      "at": 1793294549749
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735114
+      "at": 1793294549766
     },
     {
       "type": "reply",
-      "at": 1793248735131
+      "at": 1793294549789
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735131
+      "at": 1793294549789
     },
     {
       "type": "tool.start",
@@ -708,7 +807,7 @@
       "title": "write",
       "mcp": null,
       "quiet": false,
-      "at": 1793248735132
+      "at": 1793294549790
     },
     {
       "type": "tool.called",
@@ -716,6 +815,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/b.ts",
         "content": "export const b = 1\n"
@@ -728,7 +828,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248735133
+      "at": 1793294549791
     },
     {
       "type": "ask.open",
@@ -776,7 +876,7 @@
             "effect": "allow",
             "lasts": "project",
             "label": null,
-            "subject": "*",
+            "subject": "edits",
             "note": false,
             "endsTurn": false,
             "mode": null,
@@ -796,7 +896,7 @@
           }
         ]
       },
-      "at": 1793248735135
+      "at": 1793294549793
     },
     {
       "type": "ask.close",
@@ -804,7 +904,7 @@
       "outcome": {
         "status": "allowed"
       },
-      "at": 1793248735136
+      "at": 1793294549794
     },
     {
       "type": "tool.end",
@@ -830,21 +930,21 @@
           "after": "export const b = 1\n"
         }
       ],
-      "at": 1793248735137
+      "at": 1793294549795
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735173
+      "at": 1793294549871
     },
     {
       "type": "reply",
-      "at": 1793248735184
+      "at": 1793294549964
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735184
+      "at": 1793294549964
     },
     {
       "type": "text.start",
@@ -853,37 +953,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793248735185
+      "at": 1793294549965
     },
     {
       "type": "text.delta",
       "part": "msg_6:text:0",
       "text": "The tour is done.",
-      "at": 1793248735190
+      "at": 1793294549974
     },
     {
       "type": "text.end",
       "part": "msg_6:text:0",
       "text": "The tour is done.",
-      "at": 1793248735190
+      "at": 1793294549974
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735198
+      "at": 1793294549992
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 713,
+      "durationMs": 1245,
       "inputTokens": 7200,
       "outputTokens": 1080,
       "tokens": 8280,
       "sessionCostUsd": 0.05060999999999999,
       "prompts": [],
-      "at": 1793248735198
+      "at": 1793294549994
     },
     {
       "type": "user",
@@ -893,29 +993,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793248735201
+      "at": 1793294550008
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793248735201
+      "at": 1793294550008
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793248735203
+      "at": 1793294550010
     },
     {
       "type": "reply",
-      "at": 1793248735213
+      "at": 1793294550029
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735213
+      "at": 1793294550029
     },
     {
       "type": "tool.start",
@@ -926,7 +1026,7 @@
       "title": "shell",
       "mcp": null,
       "quiet": false,
-      "at": 1793248735214
+      "at": 1793294550030
     },
     {
       "type": "tool.called",
@@ -934,6 +1034,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "echo hi"
       },
@@ -945,7 +1046,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248735214
+      "at": 1793294550031
     },
     {
       "type": "ask.open",
@@ -1011,7 +1112,7 @@
           }
         ]
       },
-      "at": 1793248735215
+      "at": 1793294550033
     },
     {
       "type": "ask.close",
@@ -1022,7 +1123,7 @@
         "why": "declined",
         "note": ""
       },
-      "at": 1793248735217
+      "at": 1793294550035
     },
     {
       "type": "tool.end",
@@ -1040,25 +1141,25 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248735217
+      "at": 1793294550035
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735224
+      "at": 1793294550049
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": true,
       "local": false,
-      "durationMs": 24,
+      "durationMs": 43,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.059009999999999986,
       "prompts": [],
-      "at": 1793248735225
+      "at": 1793294550051
     },
     {
       "type": "user",
@@ -1068,29 +1169,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793248735227
+      "at": 1793294550061
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793248735227
+      "at": 1793294550062
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-3"
       ],
-      "at": 1793248735229
+      "at": 1793294550069
     },
     {
       "type": "reply",
-      "at": 1793248735283
+      "at": 1793294550093
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735283
+      "at": 1793294550093
     },
     {
       "type": "tool.start",
@@ -1101,7 +1202,7 @@
       "title": "shell",
       "mcp": null,
       "quiet": false,
-      "at": 1793248735284
+      "at": 1793294550094
     },
     {
       "type": "tool.called",
@@ -1109,6 +1210,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "pwd"
       },
@@ -1120,7 +1222,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793248735288
+      "at": 1793294550095
     },
     {
       "type": "ask.open",
@@ -1186,7 +1288,7 @@
           }
         ]
       },
-      "at": 1793248735289
+      "at": 1793294550098
     },
     {
       "type": "ask.close",
@@ -1194,13 +1296,13 @@
       "outcome": {
         "status": "allowed"
       },
-      "at": 1793248735291
+      "at": 1793294550102
     },
     {
       "type": "task.start",
       "id": "sh_4",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0007",
       "parent": null,
       "depth": null,
@@ -1210,20 +1312,21 @@
       "prompt": "",
       "workflow": "",
       "agentType": "",
-      "at": 1793248735293
+      "at": 1793294550103
     },
     {
       "type": "task.end",
       "id": "sh_4",
       "state": "completed",
       "report": {
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 0
       },
       "call": "toolu_mock0007",
-      "at": 1793248735294
+      "at": 1793294550106
     },
     {
       "type": "tool.end",
@@ -1241,21 +1344,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793248735295
+      "at": 1793294550107
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735302
+      "at": 1793294550115
     },
     {
       "type": "reply",
-      "at": 1793248735313
+      "at": 1793294550134
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793248735313
+      "at": 1793294550134
     },
     {
       "type": "text.start",
@@ -1264,49 +1367,80 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793248735313
+      "at": 1793294550135
     },
     {
       "type": "text.delta",
       "part": "msg_9:text:0",
       "text": "Still in the project.",
-      "at": 1793248735318
+      "at": 1793294550136
     },
     {
       "type": "text.end",
       "part": "msg_9:text:0",
       "text": "Still in the project.",
-      "at": 1793248735318
+      "at": 1793294550136
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793248735325
+      "at": 1793294550167
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 99,
+      "durationMs": 107,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.07580999999999999,
       "prompts": [],
-      "at": 1793248735326
+      "at": 1793294550169
     },
     {
       "type": "lists",
       "lists": {
-        "rules": []
+        "rules": [
+          {
+            "id": "config:<root>/config/opencode/opencode.json:0",
+            "subject": "shell",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:1",
+            "subject": "edit",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          },
+          {
+            "id": "config:<root>/config/opencode/opencode.json:2",
+            "subject": "write",
+            "pattern": "*",
+            "effect": "ask",
+            "lasts": "everywhere",
+            "origin": "<root>/config/opencode/opencode.json",
+            "mode": null,
+            "removable": false
+          }
+        ]
       },
-      "at": 1793248735326
+      "at": 1793294550169
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793248735326
+      "at": 1793294550169
     }
   ],
   "outputs": [],
@@ -1640,7 +1774,7 @@
             "effect": "allow",
             "lasts": "project",
             "label": null,
-            "subject": "*",
+            "subject": "edits",
             "note": false,
             "endsTurn": false,
             "mode": null,
@@ -1744,7 +1878,7 @@
             "effect": "allow",
             "lasts": "project",
             "label": null,
-            "subject": "*",
+            "subject": "edits",
             "note": false,
             "endsTurn": false,
             "mode": null,
@@ -1784,13 +1918,13 @@
         "kind": "turn-end",
         "id": "turn-4",
         "costUsd": 0.05060999999999999,
-        "durationMs": 713,
+        "durationMs": 1245,
         "inputTokens": 7200,
         "outputTokens": 1080,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793248735198
+        "endedAt": 1793294549994
       },
       "user-5": {
         "kind": "user",
@@ -1898,13 +2032,13 @@
         "kind": "turn-end",
         "id": "turn-6",
         "costUsd": 0.059009999999999986,
-        "durationMs": 24,
+        "durationMs": 43,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": true,
-        "endedAt": 1793248735225
+        "endedAt": 1793294550051
       },
       "user-7": {
         "kind": "user",
@@ -2018,19 +2152,20 @@
         "kind": "turn-end",
         "id": "turn-9",
         "costUsd": 0.07580999999999999,
-        "durationMs": 99,
+        "durationMs": 107,
         "inputTokens": 2400,
         "outputTokens": 360,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793248735326
+        "endedAt": 1793294550169
       }
     },
     "tasks": {
       "sh_1": {
         "id": "sh_1",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0001",
         "parentId": null,
         "depth": 1,
@@ -2046,8 +2181,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 0,
         "error": null,
         "workflow": null,
         "command": "ls",
@@ -2058,7 +2194,8 @@
       },
       "sh_2": {
         "id": "sh_2",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0002",
         "parentId": null,
         "depth": 1,
@@ -2074,8 +2211,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 0,
         "error": null,
         "workflow": null,
         "command": "git status",
@@ -2086,7 +2224,8 @@
       },
       "sh_3": {
         "id": "sh_3",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0003",
         "parentId": null,
         "depth": 1,
@@ -2102,8 +2241,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 0,
         "error": null,
         "workflow": null,
         "command": "git status",
@@ -2114,7 +2254,8 @@
       },
       "sh_4": {
         "id": "sh_4",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0007",
         "parentId": null,
         "depth": 1,
@@ -2130,8 +2271,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 0",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 0,
         "error": null,
         "workflow": null,
         "command": "pwd",

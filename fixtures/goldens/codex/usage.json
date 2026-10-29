@@ -75,6 +75,7 @@
       "kind": "read",
       "name": "exec_command",
       "title": "read",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'cat src/a.ts'",
         "cwd": "<root>/project",

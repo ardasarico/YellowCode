@@ -54,7 +54,7 @@ function publish(id: string, version: string) {
   writeFileSync(join(tree, "index.ts"), `export default {} // ${version}\n`)
   tarballs.set(sha, Bun.spawnSync(["tar", "-czf", "-", "-C", stage, `${id}-${sha}`]).stdout)
   const treeHash = hashEntries(dirEntries(tree).files)
-  return { id, name: id, description: "", repo: `someone/${id}`, version, sha, treeHash, api: "^0.2" }
+  return { id, name: id, description: "", repo: `someone/${id}`, version, sha, treeHash, api: "^0.2", agents: "any" }
 }
 
 async function install(mod: ReturnType<typeof publish>, listed: boolean) {

@@ -31,6 +31,8 @@ export type TaskReport = {
   usage: TaskUsage | null
   // The user stopped it; the agent does not resume such a task.
   stoppedByUser: boolean
+  // A shell's; null for other tasks or when the agent did not say.
+  exitCode: number | null
 }
 
 export type BackgroundTask = {
@@ -85,8 +87,9 @@ type Events =
   | { type: "starting" }
   // The agent answered for the first time since it started.
   | { type: "ready" }
-  // `problem` is null when it went away because YellowCode closed it.
-  | { type: "ended"; problem: { text: string; detail: string[] } | null }
+  // `problem` is null when it went away because YellowCode closed it. `final`: the session itself is gone (deleted
+  // elsewhere), so a restart has nothing to go back to.
+  | { type: "ended"; problem: { text: string; detail: string[] } | null; final?: true }
   // Another program opened this session, or let it go, while it runs.
   | { type: "held"; elsewhere: boolean }
 
@@ -175,14 +178,15 @@ type Events =
       quiet: boolean
     }
   | { type: "tool.input.delta"; id: ToolId; text: string }
-  // The call's whole input is known. Sent again, it updates the call; `kind`, `name` and `title` change it when not null.
-  // The MCP server stays the one `tool.start` named.
+  // The call's whole input is known. Sent again, it updates the call; `kind`, `name`, `title` and `mcp` change it when
+  // not null.
   | {
       type: "tool.called"
       id: ToolId
       kind: ToolKind | null
       name: string | null
       title: string | null
+      mcp: { server: string; tool: string } | null
       input: unknown
       // One line for the row: a path, a command, a query.
       summary: string
@@ -299,10 +303,11 @@ type Events =
   | { type: "notice"; level: "info" | "warning" | "error"; text: string }
   // A line to or from the agent could not be read; `what` names its kind.
   | { type: "unreadable"; what: string }
-  // Another client cut the conversation back to before `before`, or took its cut back. YellowCode's own cuts show at
-  // once through the store and do not come back as these.
+  // Another client cut the conversation back to before `before`, took its cut back, or made the cut final (the hidden
+  // span is gone for good). YellowCode's own cuts show at once through the store and do not come back as these.
   | { type: "cut"; before: PromptId }
   | { type: "cut.undone" }
+  | { type: "cut.committed" }
 
   // Only from agents with the matching feature
   // workflows: a workflow call while its input still streams.

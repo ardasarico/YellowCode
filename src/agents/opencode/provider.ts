@@ -25,14 +25,14 @@ const CLEAR: CommandRow = {
   knob: null,
 }
 
-// The lists of the session on screen, for an agent that tells them as events: its commands, then /clear, `extra`,
-// YellowCode's commands and the mods'.
+// The lists of the session on screen, for an agent that tells them as events: its commands, then `own` (/clear by
+// default), YellowCode's commands and the mods'.
 export const listedProvider = (
   store: () => SessionStore,
   files: (query: string) => Promise<string[]>,
-  extra: CommandRow[] = [],
+  own: CommandRow[] = [CLEAR],
 ): InputProvider => ({
-  commands: () => withModCommands(agentCommands([...(store().lists().commands ?? []), CLEAR, ...extra], [])),
+  commands: () => withModCommands(agentCommands([...(store().lists().commands ?? []), ...own], [])),
   blocked: () => false,
   setting: () => null,
   knob: () => null,
@@ -46,6 +46,8 @@ export const listedProvider = (
   files,
 })
 
-// opencode's lists, with /permissions.
-export const opencodeProvider = (store: () => SessionStore, files: (query: string) => Promise<string[]>) =>
-  listedProvider(store, files, [PERMISSIONS])
+// opencode's lists, with /permissions and its own /new for /clear. A command opencode does not list stays here.
+export const opencodeProvider = (store: () => SessionStore, files: (query: string) => Promise<string[]>) => ({
+  ...listedProvider(store, files, [{ ...CLEAR, aliases: ["new"] }, PERMISSIONS]),
+  listedOnly: () => store().lists().commands !== undefined,
+})

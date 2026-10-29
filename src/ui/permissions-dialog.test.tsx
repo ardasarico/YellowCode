@@ -15,7 +15,7 @@ const fixture = readFixture(
 )
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
 
-test("/permissions lists the rule an always saved, and Delete removes it from opencode", async () => {
+test("/permissions lists the rule an always saved, and Delete removes it from opencode; a config rule stays", async () => {
   const store = createSession({ starting: true })
   const frames: string[] = []
   const run = await replayAgent(
@@ -44,7 +44,7 @@ test("/permissions lists the rule an always saved, and Delete removes it from op
       }
       await frame()
       setup.mockInput.pressKey("DELETE")
-      await a.until("lists", (event) => event.lists.rules?.length === 0)
+      await a.until("lists", (event) => event.lists.rules?.every((rule) => !rule.removable) === true)
       await frame()
       setup.renderer.destroy()
     },
@@ -55,6 +55,9 @@ test("/permissions lists the rule an always saved, and Delete removes it from op
   expect(frames[0]).toContain("shell git status *")
   expect(frames[0]).toContain("this project")
   expect(frames[0]).toContain("Delete del")
-  expect(frames[1]).toContain("opencode has saved no rules.")
+  // The config file's rule stays, and has no Delete.
+  expect(frames[1]).not.toContain("git status")
+  expect(frames[1]).toContain("shell *")
+  expect(frames[1]).toContain("everywhere")
   expect(frames[1]).not.toContain("Delete del")
 })

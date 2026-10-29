@@ -7,6 +7,8 @@ import { compact, compactFailed, usage } from "../../../tools/opencode/scenarios
 import type { AgentEvent } from "../../agent/events.ts"
 import { createSession } from "../../session/session.ts"
 import { readFixture } from "./fixture.ts"
+import type { Transport } from "./transport.ts"
+import { readLimits } from "./usage.ts"
 
 const ROOT = join(import.meta.dir, "..", "..", "..")
 const fixture = (name: string) => readFixture(readFileSync(join(ROOT, "fixtures", "opencode", `${name}.jsonl`), "utf8"))
@@ -100,4 +102,32 @@ test("a failed compaction says why once", async () => {
   expect(told(history, "turn.end").map((end) => end.error)).toEqual([why])
   const rows = store.state.items.map((id) => store.state.byId[id]?.kind)
   expect(rows).toEqual(["user", "text", "turn-end", "system", "user", "turn-end"])
+})
+
+const meter = (percent: number, limited: boolean) => ({ percent, limited, resetsAt: 1_800_000_600_000 })
+
+test("the Go allowance reads as the 5-hour and weekly windows, and a used up one as reached", async () => {
+  const transport: Transport = {
+    request: () =>
+      Promise.resolve({
+        status: 200,
+        body: {
+          location: { directory: "/work" },
+          data: {
+            workspace: { id: "w", name: "team", usageURL: "https://example.com/usage" },
+            go: { rolling: meter(100, true), weekly: meter(42, false), monthly: meter(10, false) },
+            budgets: [],
+          },
+        },
+      }),
+    events: () => (async function* () {})(),
+    socket: () => Promise.reject(new Error("no socket")),
+  }
+  const event = await readLimits(transport)
+  const store = createSession({ starting: true })
+  if (event) store.event(event)
+  expect(store.state.usage.limits.fiveHour?.utilization).toBe(1)
+  expect(store.state.usage.limits.week?.utilization).toBe(0.42)
+  expect(store.state.usage.warning?.type).toBe("five_hour")
+  expect(store.state.usage.warning?.status).toBe("rejected")
 })

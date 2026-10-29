@@ -7,6 +7,9 @@ export type InputProvider = {
   commands: Accessor<Command[]>
   // A command the agent has that YellowCode does not offer; typed, it does not go out.
   blocked(name: string): boolean
+  // True once the agent listed its commands, if a typed /name it did not list stays in the prompt; without it, such a
+  // name goes to the agent as text.
+  listedOnly?: () => boolean
   // The /settings row a command opens when typed bare, whether or not the agent has listed it yet; null for none.
   setting(name: string): string | null
   // The knob a command of the agent's own sets (CommandRow.knob), whether or not the agent has listed it yet.

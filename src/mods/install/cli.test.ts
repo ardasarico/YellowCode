@@ -44,7 +44,13 @@ function publish(repo: string, id: string, version: string) {
   return { id, repo, sha, version, treeHash: hashEntries(dirEntries(tree).files) }
 }
 
-const listed = (mod: ReturnType<typeof publish>) => ({ ...mod, name: mod.id, description: "", api: "^0.2" })
+const listed = (mod: ReturnType<typeof publish>) => ({
+  ...mod,
+  name: mod.id,
+  description: "",
+  api: "^0.2",
+  agents: "any",
+})
 
 async function run(args: string, answers?: string) {
   const child = Bun.spawn([process.execPath, "src/index.tsx", "mod", ...args.split(" ")], {

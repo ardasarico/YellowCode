@@ -381,13 +381,11 @@ export function createTranslator(
     return events
   }
 
-  // The chat reads a shell's exit code from the end of its summary.
   function shellEnd(id: ToolId, shell: Shell, exitCode: number | null): Events {
     if (shell.ended) return []
     shell.ended = true
     const state = shell.stopping ? "stopped" : exitCode === 0 ? "completed" : "failed"
-    const summary = exitCode === null ? "" : `exit code ${exitCode}`
-    const report = { summary, outputFile: null, usage: null, stoppedByUser: shell.stopping }
+    const report = { summary: "", outputFile: null, usage: null, stoppedByUser: shell.stopping, exitCode }
     return [{ type: "task.end", id, state, report, call: id, at: 0 }]
   }
 
@@ -396,7 +394,7 @@ export function createTranslator(
       type: "task.start",
       id: child.thread,
       kind: "agent",
-      taskType: "local_agent",
+      taskType: "",
       call: child.call,
       parent: child.parent,
       depth: null,
@@ -432,7 +430,8 @@ export function createTranslator(
     child.ended = true
     if (turn === null) ended.push(child.thread)
     const usage = { toolUses: child.toolUses, durationMs: Math.max(0, now - child.startedAt), tokens: null }
-    const report = { summary, outputFile: null, usage, stoppedByUser: child.stopping && state === "stopped" }
+    const stoppedByUser = child.stopping && state === "stopped"
+    const report = { summary, outputFile: null, usage, stoppedByUser, exitCode: null }
     return [{ type: "task.end", id: child.thread, state, report, call: child.call, at: 0 }]
   }
 
@@ -785,7 +784,7 @@ export function createTranslator(
             type: "task.start",
             id: terminal.itemId,
             kind: "shell",
-            taskType: "local_bash",
+            taskType: "",
             call: terminal.itemId,
             parent: null,
             depth: null,

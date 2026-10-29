@@ -206,6 +206,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "README.md"
       },
@@ -299,6 +300,7 @@
         "text": "This session was deleted in opencode",
         "detail": []
       },
+      "final": true,
       "at": 1793234280961
     },
     {
@@ -427,6 +429,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "README.md"
             },
@@ -668,6 +671,7 @@
         "available": true,
         "group": null
       }
-    ]
+    ],
+    "final": true
   }
 }

@@ -272,7 +272,9 @@ function Usage(props: {
   }
   const spent = () => {
     const source = props.session.info?.apiKeySource
-    if (!props.caps.cost || windows().length > 0 || !source || source === "none") return null
+    if (!props.caps.cost || windows().length > 0 || source === "none") return null
+    // An agent that names no sign-in shows its spend once there is any.
+    if (!source && props.session.usage.costUsd <= 0) return null
     return `$${props.session.usage.costUsd.toFixed(2)} spent`
   }
   return (

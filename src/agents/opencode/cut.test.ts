@@ -61,8 +61,7 @@ async function replayed(scenario: AgentScenario) {
     },
     event(event) {
       store.event(event)
-      if (event.type === "cut" || event.type === "cut.undone")
-        cuts.push({ state: copy(), rewound: store.state.rewound })
+      if (event.type.startsWith("cut")) cuts.push({ state: copy(), rewound: store.state.rewound })
     },
   }
   const run = await replayAgent((driver) => scenario.run(driver), fixture(scenario.name), {
@@ -120,18 +119,22 @@ test("our cut stages at once, its undo leaves no turn, and the next send commits
   expect(texts(store.state)).toEqual(["KILO one", "One done.", "KILO again", "Back after the first turn."])
 })
 
-test("another client's stage, clear and commit hide and bring back the span, and its empty execution shows no turn", async () => {
+test("another client's stage, clear and commit hide, bring back and drop the span, and its empty execution shows no turn", async () => {
   const { events, store, cuts, timeline } = await replayed(cutElsewhere)
   expect(
-    events.flatMap((event) => (event.type === "cut" ? [event.before] : event.type === "cut.undone" ? ["undone"] : [])),
-  ).toEqual(["prompt-2", "undone", "prompt-2", "prompt-3", "elsewhere"])
+    events.flatMap((event) =>
+      event.type === "cut" ? [event.before] : event.type.startsWith("cut.") ? [event.type] : [],
+    ),
+  ).toEqual(["prompt-2", "cut.undone", "prompt-2", "prompt-3", "cut.committed", "elsewhere", "cut.committed"])
   expect(told(events, "turn.open")).toHaveLength(5)
   expect(cuts.map((at) => at.rewound && { prompts: at.rewound.prompts, keptFiles: at.rewound.keptFiles })).toEqual([
     { prompts: 1, keptFiles: true },
     null,
     { prompts: 1, keptFiles: true },
     { prompts: 1, keptFiles: true },
+    null,
     { prompts: 1, keptFiles: true },
+    null,
   ])
   // The other client's requests go out on the same transport here; our send commits its stage before the prompt shows,
   // and after its own commit our send has nothing to cut.
@@ -300,7 +303,7 @@ test("after a clear, an execution with a step or an error is a turn; only an emp
 })
 
 // opencode's stage goes away both when it was cleared and when it was committed; only a clear brings the span back.
-test("a resync tells a clear made meanwhile, but not a commit, which deleted the span", async () => {
+test("a resync tells a clear made meanwhile and a commit, which deleted the span", async () => {
   const session = {
     id: "ses_1",
     projectID: "p",
@@ -329,10 +332,10 @@ test("a resync tells a clear made meanwhile, but not a commit, which deleted the
     const cuts = createCuts(() => [])
     cuts.applied({ type: "staged", message: "msg_prompt-2" })
     const events = await resync(transport, "ses_1", createTranslator(), cuts, 3)
-    return { told: events.filter((event) => event.type === "cut" || event.type === "cut.undone"), cuts }
+    return { told: events.filter((event) => event.type.startsWith("cut")), cuts }
   }
   expect((await after(200)).told).toEqual([{ type: "cut.undone", at: 3 }])
   const committed = await after(404)
-  expect(committed.told).toEqual([])
+  expect(committed.told).toEqual([{ type: "cut.committed", at: 3 }])
   expect(committed.cuts.deleted("msg_prompt-2")).toBe(true)
 })

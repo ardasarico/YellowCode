@@ -1,12 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs"
 import { join } from "node:path"
-import { compatible, MOD_ID, readManifest } from "../manifest.ts"
+import { compatible, incompatibleText, MOD_ID, readManifest } from "../manifest.ts"
 import { linkRuntime } from "../runtime.ts"
 import { REPO, SHA } from "./list.ts"
 import { type InstallRecord, writeRecord } from "./record.ts"
 import { dirEntries, hashEntries } from "./tree-hash.ts"
-
-export const INCOMPATIBLE = "needs a newer YellowCode · update YellowCode"
 
 // A mod-local copy of these would shadow the ones linked in by linkRuntime and give the mod a second Solid.
 const SHARED = new Set(["solid-js", "@opentui", "yellowcode"])
@@ -44,7 +42,7 @@ export async function installAt(target: InstallTarget, modsFolder: string): Prom
 
     const manifest = readManifest(tree)
     if (!manifest.ok) throw new Error(manifest.problem)
-    if (!compatible(manifest.manifest)) throw new Error(INCOMPATIBLE)
+    if (!compatible(manifest.manifest)) throw new Error(incompatibleText(manifest.manifest.api))
 
     await installDependencies(tree)
     const copies = sharedCopies(tree)

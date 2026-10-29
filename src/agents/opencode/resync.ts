@@ -100,15 +100,16 @@ export async function resync(
   const info = valueOf(asked, base)
   if (!info) return []
   // A stage no longer held was cleared or committed. A commit deleted its message, which then is not read from again,
-  // and the span is not brought back.
+  // and the span goes for good.
   const revert = info.data.revert?.messageID ?? null
   const staged = cuts.staged()
+  const final: AgentEvent[] = []
   if (staged !== null && staged !== revert) {
     const kept = await ask(transport, `${base}/message/${staged}`, z.unknown())
-    if (kept?.kind === "error" && kept.tag === "MessageNotFoundError") cuts.committedElsewhere()
+    if (kept?.kind === "error" && kept.tag === "MessageNotFoundError") final.push(...cuts.committedElsewhere(at))
   }
   // Told first, so a turn the resync finds opencode ran on a shell's end takes that end in.
-  const ended = await shellsEnded(transport, translator, at)
+  const ended = [...final, ...(await shellsEnded(transport, translator, at))]
   const messages = await messagesSince(transport, `${base}/message`, translator.boundary())
   if (!messages) return ended
   const running = await read(transport, "/api/session/active", active)

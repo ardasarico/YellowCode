@@ -94,6 +94,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "t1.txt",
         "content": "one\n"
@@ -236,6 +237,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "a.txt",
         "oldString": "hello",
@@ -401,6 +403,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "t3.txt",
         "content": "three\n"
@@ -617,6 +620,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "t1.txt",
               "content": "one\n"

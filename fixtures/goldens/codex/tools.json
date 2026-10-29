@@ -75,6 +75,7 @@
       "kind": "read",
       "name": "exec_command",
       "title": "read",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'cat README.md'",
         "cwd": "<root>/project",
@@ -145,6 +146,7 @@
       "kind": "search",
       "name": "exec_command",
       "title": "search",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'grep -rn greeting src'",
         "cwd": "<root>/project",
@@ -205,6 +207,7 @@
       "kind": "search",
       "name": "exec_command",
       "title": "list",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'ls src'",
         "cwd": "<root>/project",
@@ -264,6 +267,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc \"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"",
         "cwd": "<root>/project",
@@ -325,6 +329,7 @@
       "kind": "edit",
       "name": "apply_patch",
       "title": "edit",
+      "mcp": null,
       "input": {
         "changes": [
           {
@@ -427,6 +432,7 @@
       "kind": "edit",
       "name": "apply_patch",
       "title": "edit",
+      "mcp": null,
       "input": {
         "changes": [
           {
@@ -531,6 +537,7 @@
       "kind": "websearch",
       "name": "web_search",
       "title": "websearch",
+      "mcp": null,
       "input": {
         "query": "",
         "action": {
@@ -553,6 +560,7 @@
       "kind": "websearch",
       "name": "web_search",
       "title": "websearch",
+      "mcp": null,
       "input": {
         "query": "codex app-server protocol",
         "action": {
@@ -606,6 +614,7 @@
       "kind": "read",
       "name": "view_image",
       "title": "view image",
+      "mcp": null,
       "input": {
         "path": "<root>/project/pic.png"
       },
@@ -715,6 +724,7 @@
             "kind": "read",
             "name": "exec_command",
             "title": "read",
+            "mcp": null,
             "input": {
               "command": "/bin/zsh -lc 'cat README.md'",
               "cwd": "<root>/project",
@@ -775,6 +785,7 @@
             "kind": "search",
             "name": "exec_command",
             "title": "search",
+            "mcp": null,
             "input": {
               "command": "/bin/zsh -lc 'grep -rn greeting src'",
               "cwd": "<root>/project",
@@ -835,6 +846,7 @@
             "kind": "search",
             "name": "exec_command",
             "title": "list",
+            "mcp": null,
             "input": {
               "command": "/bin/zsh -lc 'ls src'",
               "cwd": "<root>/project",
@@ -894,6 +906,7 @@
             "kind": "shell",
             "name": "exec_command",
             "title": "shell",
+            "mcp": null,
             "input": {
               "command": "/bin/zsh -lc \"printf 'one\\\\n'; sleep 0.4; printf 'two\\\\n'; exit 3\"",
               "cwd": "<root>/project",
@@ -949,6 +962,7 @@
             "kind": "edit",
             "name": "apply_patch",
             "title": "edit",
+            "mcp": null,
             "input": {
               "changes": [
                 {
@@ -1051,6 +1065,7 @@
             "kind": "edit",
             "name": "apply_patch",
             "title": "edit",
+            "mcp": null,
             "input": {
               "changes": [
                 {
@@ -1155,6 +1170,7 @@
             "kind": "websearch",
             "name": "web_search",
             "title": "websearch",
+            "mcp": null,
             "input": {
               "query": "codex app-server protocol",
               "action": {
@@ -1208,6 +1224,7 @@
             "kind": "read",
             "name": "view_image",
             "title": "view image",
+            "mcp": null,
             "input": {
               "path": "<root>/project/pic.png"
             },

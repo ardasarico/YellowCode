@@ -75,6 +75,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'sleep 5; echo slept'",
         "cwd": "<root>/project",
@@ -119,7 +120,7 @@
       "type": "task.start",
       "id": "call_mock0001",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "call_mock0001",
       "parent": null,
       "depth": null,
@@ -354,7 +355,8 @@
     "tasks": {
       "call_mock0001": {
         "id": "call_mock0001",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "call_mock0001",
         "parentId": null,
         "depth": 1,
@@ -372,6 +374,7 @@
         "tokens": 0,
         "summary": "",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "sleep 5; echo slept",

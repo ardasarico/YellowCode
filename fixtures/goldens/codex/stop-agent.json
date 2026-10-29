@@ -85,6 +85,7 @@
       "kind": "agent",
       "name": "spawnAgent",
       "title": "agent",
+      "mcp": null,
       "input": {
         "prompt": "HOTEL sleep a while",
         "model": "",
@@ -112,6 +113,7 @@
       "kind": "agent",
       "name": "spawnAgent",
       "title": "agent",
+      "mcp": null,
       "input": {
         "prompt": "HOTEL sleep a while",
         "model": "gpt-5.5",
@@ -139,7 +141,7 @@
       "type": "task.start",
       "id": "00000000-0000-7000-8000-000000000004",
       "kind": "agent",
-      "taskType": "local_agent",
+      "taskType": "",
       "call": "call_mock0002",
       "parent": null,
       "depth": null,
@@ -192,6 +194,7 @@
       "kind": "other",
       "name": "wait",
       "title": "wait",
+      "mcp": null,
       "input": {
         "prompt": null,
         "model": null,
@@ -226,6 +229,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'sleep 20'",
         "cwd": "<root>/project",
@@ -291,7 +295,8 @@
           "durationMs": 237,
           "tokens": null
         },
-        "stoppedByUser": true
+        "stoppedByUser": true,
+        "exitCode": null
       },
       "call": "call_mock0002",
       "at": 1793261433297
@@ -302,6 +307,7 @@
       "kind": "other",
       "name": "wait",
       "title": "wait",
+      "mcp": null,
       "input": {
         "prompt": null,
         "model": null,
@@ -553,7 +559,8 @@
     "tasks": {
       "00000000-0000-7000-8000-000000000004": {
         "id": "00000000-0000-7000-8000-000000000004",
-        "type": "local_agent",
+        "type": "",
+        "kind": "agent",
         "toolUseId": "call_mock0002",
         "parentId": null,
         "depth": 1,
@@ -571,6 +578,7 @@
         "tokens": 0,
         "summary": "",
         "outputFile": null,
+        "exitCode": null,
         "error": null,
         "workflow": null,
         "command": "",

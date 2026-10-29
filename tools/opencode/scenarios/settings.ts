@@ -8,8 +8,21 @@ import type { AgentScenario } from "../scenario.ts"
 // read-only row, which sends nothing.
 export const settings: AgentScenario = {
   name: "settings",
-  config: { websearch: false, compaction: { auto: true, keep: { tokens: 8000 } } },
-  files: { "opencode.json": JSON.stringify({ compaction: { buffer: 30000 }, tool_output: { max_lines: 500 } }) },
+  config: {
+    websearch: false,
+    compaction: { auto: true, keep: { tokens: 8000 } },
+    watcher: { ignore: ["dist/**", "build/**"] },
+    warming: false,
+    mcp: { timeout: { startup: 20000 } },
+  },
+  files: {
+    "opencode.json": JSON.stringify({
+      compaction: { buffer: 30000 },
+      tool_output: { max_lines: 500 },
+      worktree: { directory: "../trees" },
+      policies: [{ action: "provider.use", resource: "openai", effect: "deny" }],
+    }),
+  },
   script: { title: "Settings", threads: [] },
   async run(a) {
     await a.start()
@@ -35,9 +48,9 @@ export async function savedRule(a: AgentDriver): Promise<RuleRow> {
   await a.send("NOVEMBER check the tree")
   const { ask } = await a.until("ask.open")
   await a.answer(ask.id, { type: "option", option: "always", note: null })
-  const { lists } = await a.until("lists", (event) => (event.lists.rules?.length ?? 0) > 0)
+  const { lists } = await a.until("lists", (event) => event.lists.rules?.some((rule) => rule.removable) === true)
   await a.until("turn.end")
-  const rule = lists.rules?.[0]
+  const rule = lists.rules?.find((one) => one.removable)
   if (!rule) throw new Error("no saved rule")
   return rule
 }
@@ -63,7 +76,7 @@ export const rules: AgentScenario = {
   async run(a) {
     const rule = await savedRule(a)
     await a.removeRule(rule.id)
-    await a.until("lists", (event) => event.lists.rules?.length === 0)
+    await a.until("lists", (event) => event.lists.rules?.every((one) => !one.removable) === true)
     await a.close()
   },
 }

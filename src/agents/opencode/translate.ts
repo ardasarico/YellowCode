@@ -15,7 +15,7 @@ import type { Modes } from "./modes.ts"
 import { inPlanFolder } from "./plan.ts"
 import { imagesOf, messageOf, promptImages, promptOf } from "./prompts.ts"
 import { createTasks, type Child } from "./tasks.ts"
-import { absolute, blankEnd, called, goesOn, kindOf, questionOutcome, resumes, succeeded } from "./tools.ts"
+import { absolute, blankEnd, called, goesOn, innerCall, kindOf, questionOutcome, resumes, succeeded } from "./tools.ts"
 import { modelKey, retryReason, type Windows } from "./usage.ts"
 import type { Form, PermissionRequest } from "./wire/asks.ts"
 import type { OpencodeEvent } from "./wire/events.ts"
@@ -105,6 +105,8 @@ type Tool = {
   parent: ToolId | null
   input: Record<string, unknown> | null
   ended: boolean
+  // An `execute` shows as the call of ours its code made.
+  inner: boolean
 }
 
 export type Translator = ReturnType<typeof createTranslator>
@@ -237,7 +239,7 @@ export function createTranslator() {
 
   function deleted(): Events {
     turn = null
-    return [...endParts(null), { type: "ended", problem: DELETED, at: 0 }]
+    return [...endParts(null), { type: "ended", problem: DELETED, final: true, at: 0 }]
   }
 
   function openTurn(): Events {
@@ -410,7 +412,7 @@ export function createTranslator() {
 
   function toolStart(id: ToolId, name: string, message: string, parent: ToolId | null): Events {
     if (tools.has(id)) return []
-    tools.set(id, { message, name, parent, input: null, ended: false })
+    tools.set(id, { message, name, parent, input: null, ended: false, inner: false })
     const kind = kindOf(name)
     return [{ type: "tool.start", id, parent, name, kind, title: name, mcp: null, quiet: false, at: 0 }]
   }
@@ -431,9 +433,19 @@ export function createTranslator() {
     return [event, ...(child ? tasks.acted(child, known.name, activity, now) : [])]
   }
 
-  // A shell's or a subagent's call names what it runs.
+  function inner(id: ToolId, metadata: unknown): Events {
+    const known = tools.get(id)
+    if (known?.name !== "execute" || !known.input || known.inner || known.ended) return []
+    const call = innerCall(id, metadata)
+    if (!call) return []
+    known.inner = true
+    return [call]
+  }
+
+  // A shell's or a subagent's call names what it runs, and an `execute` the calls its code makes.
   function progress(id: ToolId, metadata: unknown, child: Child | undefined): Events {
     const known = tools.get(id)
+    if (known?.name === "execute") return inner(id, metadata)
     const kind = known && kindOf(known.name)
     if (!known?.input || (kind !== "shell" && kind !== "agent")) return []
     const call = {
@@ -467,7 +479,7 @@ export function createTranslator() {
     const end = succeeded({ id, name: known.name, input: known.input ?? {} }, content, metadata, directory)
     if (end.background && end.task) return [...tasks.moved(end.task), ...toolDone(id, end)]
     const state = end.exitCode === null || end.exitCode === 0 ? "completed" : "failed"
-    return [...tasks.settled(id, state, now, turn !== null), ...toolDone(id, end)]
+    return [...inner(id, metadata), ...tasks.settled(id, state, now, turn !== null), ...toolDone(id, end)]
   }
 
   // A rejected permission carries what the user said; a subagent the user stopped counts as stopped.

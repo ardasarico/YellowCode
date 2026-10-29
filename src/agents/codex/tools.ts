@@ -265,6 +265,7 @@ export function calledOf(id: ToolId, call: Call): Called {
     kind: call.kind,
     name: call.name,
     title: call.title,
+    mcp: null,
     input: call.input,
     summary: call.summary,
     detail: null,

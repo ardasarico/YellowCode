@@ -4,6 +4,7 @@ import { join } from "node:path"
 import { replayAgent } from "../../../tools/opencode/agent-driver.ts"
 import { permissions } from "../../../tools/opencode/scenarios/permissions.ts"
 import type { AgentEvent } from "../../agent/events.ts"
+import type { RuleRow } from "../../agent/lists.ts"
 import { createSession } from "../../session/session.ts"
 import { choiceOf } from "../../ui/ask/permission-band.tsx"
 import { permissionAsk } from "./asks.ts"
@@ -21,6 +22,9 @@ afterAll(() => clock?.mockRestore())
 
 const told = <T extends AgentEvent["type"]>(events: AgentEvent[], type: T) =>
   events.filter((event): event is Extract<AgentEvent, { type: T }> => event.type === type)
+
+const written = (rules: RuleRow[]) =>
+  rules.filter((rule) => !rule.removable).map((rule) => [rule.subject, rule.pattern, rule.effect, rule.lasts])
 
 // The golden is written again only with UPDATE_OPENCODE_GOLDENS=1.
 test("each answer reaches opencode: once, always, a no with a note and one without, and another client's", async () => {
@@ -69,12 +73,16 @@ test("each answer reaches opencode: once, always, a no with a note and one witho
   // A no with a note lets the turn go on; one without stops it.
   expect(told(events, "turn.end").map((end) => end.interrupted)).toEqual([false, true, false])
   expect(told(events, "text.end").map((end) => end.text)).toContain("The tour is done.")
-  const rules = told(events, "lists").flatMap(({ lists }) =>
-    lists.rules ? [lists.rules.map((rule) => [rule.subject, rule.pattern])] : [],
+  const ruleLists = told(events, "lists").flatMap(({ lists }) => (lists.rules ? [lists.rules] : []))
+  const saved = ruleLists.map((rules) =>
+    rules.filter((rule) => rule.removable).map((rule) => [rule.subject, rule.pattern]),
   )
-  expect(rules.at(0)).toEqual([])
-  expect(rules).toContainEqual([["shell", "git status *"]])
-  expect(rules.at(-1)).toEqual([])
+  expect(saved.at(0)).toEqual([])
+  expect(saved).toContainEqual([["shell", "git status *"]])
+  expect(saved.at(-1)).toEqual([])
+  // The config's own rules are listed each time, and cannot be removed.
+  const config = ["shell", "edit", "write"].map((action) => [action, "*", "ask", "everywhere"])
+  expect(ruleLists.map(written)).toEqual(ruleLists.map(() => config))
 })
 
 test("the band reads opencode's options as one yes, a lasting yes for the saved patterns, and one no with a note", () => {
@@ -93,4 +101,10 @@ test("the band reads opencode's options as one yes, a lasting yes for the saved 
     ["always", false, false],
     ["reject", true, false],
   ])
+  const edit = permissionAsk(
+    { id: "per_2", sessionID: "ses_1", action: "edit", resources: ["src/a.ts"], save: ["*"] },
+    { call: null, tool: null, by: null, directory: PROJECT },
+  )
+  const lasting = choiceOf(edit.options[1]!)
+  expect(`${lasting.before}${lasting.subject}${lasting.after}`).toBe("Yes, and always allow edits here")
 })

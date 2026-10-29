@@ -31,9 +31,10 @@ import { projectFolder, settingRows, writeSetting } from "./settings.ts"
 import { findService } from "./service.ts"
 import { listSessions } from "./sessions.ts"
 import { eventStream, realClock, type Clock } from "./sse.ts"
+import { answerOnce } from "./titles.ts"
 import { createTranslator, type Translator, type WireModel } from "./translate.ts"
 import { channel, httpTransport, type Endpoint, type Transport } from "./transport.ts"
-import { contextReport, defaultModel, defaultRef, readWindows } from "./usage.ts"
+import { contextReport, defaultModel, defaultRef, readLimits, readWindows } from "./usage.ts"
 import { answerOf, dataOf, rawPage, rowsOf } from "./wire/envelope.ts"
 import { createEventReader } from "./wire/events.ts"
 import { message } from "./wire/messages.ts"
@@ -102,9 +103,17 @@ const accepted = dataOf(z.looseObject({ id: z.string(), time: z.looseObject({ cr
 const interruptReply = z.looseObject({ interrupted: z.boolean() })
 let renamed = false
 
-// Our own ask stands in for opencode's question tool, which this rule takes off the session's tools. It stays on the
-// session when YellowCode leaves (owner question L).
+// Our own ask stands in for opencode's question tool, which this rule takes off the session's tools while YellowCode
+// has the session open.
 const QUESTION_DENY: Rule = { action: "question", resource: "*", effect: "deny" }
+// How long leaving a session waits for the question rule to come off.
+const LEAVE_MS = 3000
+
+const plain = ({ action, resource, effect }: Rule): Rule => ({ action, resource, effect })
+const isQuestionDeny = (rule: Rule) =>
+  rule.action === QUESTION_DENY.action &&
+  rule.resource === QUESTION_DENY.resource &&
+  rule.effect === QUESTION_DENY.effect
 
 // Refuses an agent that is not installed, or one YellowCode cannot speak, before any service call.
 async function usable(deps: Deps): Promise<{ version: string; binary: string }> {
@@ -147,17 +156,27 @@ async function sessionFor(transport: Transport, options: StartOptions, agent: Mo
 // A session opened again or copied keeps its rules; the question rule is added where the last word on questions is
 // not ours. opencode applies the last rule that matches, and replaces the session's rules with the list sent.
 async function denyQuestions(transport: Transport, info: Session): Promise<void> {
-  const rules = (info.permissions ?? []).map(({ action, resource, effect }) => ({ action, resource, effect }))
+  const rules = (info.permissions ?? []).map(plain)
   const last = rules.findLast((rule) => matches(rule.action, QUESTION_DENY.action))
-  const ours =
-    last?.action === QUESTION_DENY.action &&
-    last.resource === QUESTION_DENY.resource &&
-    last.effect === QUESTION_DENY.effect
-  if (ours) return
+  if (last && isQuestionDeny(last)) return
   const reply = await transport
     .request({ method: "PATCH", path: `/api/session/${info.id}`, body: { permissions: [...rules, QUESTION_DENY] } })
     .catch(() => null)
   if (reply?.status !== 204 && reply?.status !== 200) log.warn("opencode: the question rule did not go on the session")
+}
+
+// Leaving the session gives opencode's question tool back to it, keeping the rules as they are now.
+async function allowQuestions(transport: Transport, id: string): Promise<void> {
+  const reply = await transport.request({ method: "GET", path: `/api/session/${id}` }).catch(() => null)
+  const asked = reply ? answerOf(reply, created, "session") : null
+  if (asked?.kind !== "ok") return
+  const rules = (asked.value.data.permissions ?? []).map(plain)
+  const kept = rules.filter((rule) => !isQuestionDeny(rule))
+  if (kept.length === rules.length) return
+  const done = await transport
+    .request({ method: "PATCH", path: `/api/session/${id}`, body: { permissions: kept } })
+    .catch(() => null)
+  if (done?.status !== 204 && done?.status !== 200) log.warn("opencode: the question rule did not come off the session")
 }
 
 // One session on opencode's shared service. Events of other sessions are seen and dropped.
@@ -213,6 +232,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   // Tells `events`; when they end the session (deleted from another client) nothing more comes for it. Says if so.
   function tell(events: AgentEvent[]): boolean {
     out.push(...events)
+    if (events.some((event) => event.type === "turn.end")) tellLimits()
     const end = events.find((event) => event.type === "ended")
     if (!end) return false
     ended = true
@@ -303,6 +323,13 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       })
   }
 
+  // A turn spends from the allowance, so it is read again after each.
+  function tellLimits(): void {
+    void readLimits(transport).then((event) => {
+      if (event && !ended && !closed) out.push({ ...event, at: lastAt })
+    })
+  }
+
   // Reads one connection's stream until it ends. `first` settles once the stream answers, or fails.
   async function pump(signal: AbortSignal, restarted: boolean, first: PromiseWithResolvers<void>): Promise<void> {
     const read = createEventReader()
@@ -353,7 +380,10 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       // opencode reads the config of each folder it has open, and says so for each.
       const folder = event.location?.directory
       const ours = folder === options.cwd || folder === here
-      if (event.type === "config.updated" && ours) for (const done of configWaiters) done()
+      if (event.type === "config.updated" && ours) {
+        for (const done of configWaiters) done()
+        if (rulesAsked) void tellRules()
+      }
       const changed = CHANGED[event.type]
       if (changed && ours && watched.has(changed)) tellList(changed)
       if (event.type === "session.forked") {
@@ -419,6 +449,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   // goes out.
   const modes = await readModes(transport)
   translator.windows(await readWindows(transport))
+  tellLimits()
   const chosen = options.mode ?? (options.resume ? null : options.defaultMode)
   const wanted = chosen !== null && modes?.rows.some((row) => row.id === chosen) ? chosen : null
   const made = await sessionFor(transport, options, options.resume ? null : wanted).catch((error: unknown) => {
@@ -889,14 +920,17 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     interrupt,
     answer: replyTo,
     restart,
-    close() {
-      if (closed) return Promise.resolve()
+    async close() {
+      if (closed) return
       closed = true
       stream.abort()
       own.close()
       out.push({ type: "ended", problem: null, at: lastAt })
       out.end()
-      return Promise.resolve()
+      if (ended || session === null) return
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const late = new Promise<void>((resolve) => (timer = setTimeout(resolve, LEAVE_MS)))
+      await Promise.race([allowQuestions(transport, session), late]).finally(() => clearTimeout(timer))
     },
     setMode,
     setModel,
@@ -990,5 +1024,13 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
     sessions: async (cwd) => listSessions(await service(cwd), cwd),
     // Any folder will do for reading a session by its id.
     history: async (ref, cursor) => historyPage(await service(process.cwd()), ref.id, cursor),
+    oneShot: (prompt, cwd) =>
+      service(cwd).then(
+        (transport) => answerOnce(transport, prompt),
+        (error: unknown) => {
+          log.warn("opencode: session title failed", error instanceof Error ? error.message : String(error))
+          return null
+        },
+      ),
   }
 }

@@ -132,9 +132,11 @@ test("opencode's own question form opens as pages, answered by field key, typed,
   const patched = fixture("native-form").lines.flatMap((line) =>
     line.kind === "http" && line.method === "PATCH" ? [line.body] : [],
   )
+  // The scenario takes the rule off, the session opened again gets it back, and leaving takes it off.
   expect(patched).toEqual([
     { permissions: [] },
     { permissions: [{ action: "question", resource: "*", effect: "deny" }] },
+    { permissions: [] },
   ])
 })
 

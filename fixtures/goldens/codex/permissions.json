@@ -75,6 +75,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'touch one.txt'",
         "cwd": "<root>/project",
@@ -217,6 +218,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'touch two.txt'",
         "cwd": "<root>/project",
@@ -349,6 +351,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'touch three.txt'",
         "cwd": "<root>/project",
@@ -404,6 +407,7 @@
       "kind": "shell",
       "name": "exec_command",
       "title": "shell",
+      "mcp": null,
       "input": {
         "command": "/bin/zsh -lc 'mkdir made'",
         "cwd": "<root>/project",

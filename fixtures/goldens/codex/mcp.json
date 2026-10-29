@@ -88,6 +88,7 @@
       "kind": "mcp",
       "name": "echo",
       "title": "echo",
+      "mcp": null,
       "input": {
         "text": "hi there"
       },

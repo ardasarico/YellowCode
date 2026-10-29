@@ -7,8 +7,12 @@ import type { Questions } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { ToolId } from "../../agent/ids.ts"
 import type { FileChange, SubagentCall, ToolKind } from "../../agent/tools.ts"
+import { OWN_ASK } from "../../protocol/messages.ts"
 import { oneLine, SUMMARY_LENGTH } from "../../session/tool-summary.ts"
+import { questionsOf } from "../claude/ask-input.ts"
+import { summarizeToolInput } from "../claude/summary.ts"
 import { hunksOf } from "../hunks.ts"
+import { OWN_SERVER } from "./own-mcp.ts"
 
 const KINDS: Record<string, ToolKind> = {
   shell: "shell",
@@ -142,6 +146,7 @@ export function called(
     kind: null,
     name: null,
     title: null,
+    mcp: null,
     input,
     summary: summaryOf(kind, known, directory),
     detail: null,
@@ -149,6 +154,44 @@ export function called(
     background: background || known.background === true,
     questions: kind === "question" ? questionPages(input) : null,
     agent: kind === "agent" ? subagentOf(known) : null,
+    message: null,
+    todos: null,
+    at: 0,
+  }
+}
+
+// An `execute` names each call its code made, and says when one of them failed.
+const executeMeta = z.looseObject({
+  toolCalls: z.array(z.looseObject({ tool: z.string(), input: z.unknown().optional() })).optional(),
+  error: z.boolean().optional(),
+})
+
+// The model reaches YellowCode's own tools, our ask and each mod's `mod-<id>` tools, only from `execute` code. An
+// `execute` that made one such call and nothing else shows as that call.
+export function innerCall(id: ToolId, metadata: unknown): Called | null {
+  const calls = executeMeta.safeParse(metadata).data?.toolCalls
+  const call = calls?.length === 1 ? calls[0] : undefined
+  if (!call) return null
+  const dot = call.tool.indexOf(".")
+  const server = call.tool.slice(0, dot)
+  const tool = call.tool.slice(dot + 1)
+  const ask = server === OWN_SERVER && tool === "ask"
+  if (dot <= 0 || (!ask && !server.startsWith("mod-"))) return null
+  const input = call.input ?? {}
+  return {
+    type: "tool.called",
+    id,
+    kind: ask ? "question" : "mcp",
+    name: call.tool,
+    title: tool,
+    mcp: ask ? null : { server, tool },
+    input,
+    summary: ask ? summarizeToolInput(input) : "",
+    detail: null,
+    command: null,
+    background: false,
+    questions: ask ? questionsOf(OWN_ASK, input) : null,
+    agent: null,
     message: null,
     todos: null,
     at: 0,
@@ -235,7 +278,7 @@ export function blankEnd(id: ToolId, status: Ended["status"], result: string): E
 }
 
 // A call that succeeded. A shell or subagent whose work goes on in the background names its task. A command that
-// exited with another code than 0 failed, as Claude's does.
+// exited with another code than 0 failed, as Claude's does, and so did an `execute` whose code made a call that failed.
 export function succeeded(
   call: { id: ToolId; name: string; input: Record<string, unknown> },
   content: Content,
@@ -246,8 +289,10 @@ export function succeeded(
   const shell = kind === "shell" ? shellMeta.safeParse(metadata).data : undefined
   const exit = shell?.exit ?? null
   const result = resultOf(kind, content, exit)
+  const failed =
+    (exit !== null && exit !== 0) || (call.name === "execute" && executeMeta.safeParse(metadata).data?.error === true)
   const end: Ended = {
-    ...blankEnd(call.id, exit === null || exit === 0 ? "done" : "error", result),
+    ...blankEnd(call.id, failed ? "error" : "done", result),
     exitCode: exit,
     count: countOf(call.name, result, metadata),
   }

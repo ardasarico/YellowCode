@@ -115,6 +115,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts"
       },
@@ -180,6 +181,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "pattern": "**/*.ts"
       },
@@ -245,6 +247,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "pattern": "greeting",
         "path": "src"
@@ -311,6 +314,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/a.ts",
         "oldString": "\"hello\"",
@@ -405,6 +409,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "src/b.ts",
         "content": "export const b = 1\n"
@@ -476,6 +481,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "path": "README.md",
         "content": "# demo\n\nChanged.\n"
@@ -547,6 +553,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3"
       },
@@ -564,7 +571,7 @@
       "type": "task.start",
       "id": "sh_1",
       "kind": "shell",
-      "taskType": "local_bash",
+      "taskType": "",
       "call": "toolu_mock0007",
       "parent": null,
       "depth": null,
@@ -581,10 +588,11 @@
       "id": "sh_1",
       "state": "failed",
       "report": {
-        "summary": "exit code 3",
+        "summary": "",
         "outputFile": null,
         "usage": null,
-        "stoppedByUser": false
+        "stoppedByUser": false,
+        "exitCode": 3
       },
       "call": "toolu_mock0007",
       "at": 1793234374274
@@ -638,6 +646,7 @@
       "kind": null,
       "name": null,
       "title": null,
+      "mcp": null,
       "input": {
         "url": "https://example.com/"
       },
@@ -789,6 +798,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/a.ts"
             },
@@ -854,6 +864,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "pattern": "**/*.ts"
             },
@@ -919,6 +930,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "pattern": "greeting",
               "path": "src"
@@ -985,6 +997,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/a.ts",
               "oldString": "\"hello\"",
@@ -1079,6 +1092,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "src/b.ts",
               "content": "export const b = 1\n"
@@ -1150,6 +1164,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "path": "README.md",
               "content": "# demo\n\nChanged.\n"
@@ -1221,6 +1236,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3"
             },
@@ -1283,6 +1299,7 @@
             "kind": null,
             "name": null,
             "title": null,
+            "mcp": null,
             "input": {
               "url": "https://example.com/"
             },
@@ -1700,7 +1717,8 @@
     "tasks": {
       "sh_1": {
         "id": "sh_1",
-        "type": "local_bash",
+        "type": "",
+        "kind": "shell",
         "toolUseId": "toolu_mock0007",
         "parentId": null,
         "depth": 1,
@@ -1716,8 +1734,9 @@
         "toolUses": 0,
         "durationMs": 0,
         "tokens": 0,
-        "summary": "exit code 3",
+        "summary": "",
         "outputFile": null,
+        "exitCode": 3,
         "error": null,
         "workflow": null,
         "command": "for i in 1 2 3; do echo line $i; sleep 0.3; done; exit 3",

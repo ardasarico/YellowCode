@@ -113,15 +113,17 @@ const THINKING = stored<"thinking">({
   options: same(["summarized", "hidden"]),
 })
 
-const SESSION_TITLE = stored({
-  key: "sessionTitle",
-  section: "Session",
-  label: "Session title",
-  options: [
-    { value: "yellowcode", label: "YellowCode" },
-    { value: "claude-code", label: "Claude Code" },
-  ],
-})
+// "claude-code" stands for the titles of the session's own agent.
+const sessionTitle = (agentName: string) =>
+  stored({
+    key: "sessionTitle",
+    section: "Session",
+    label: "Session title",
+    options: [
+      { value: "yellowcode", label: "YellowCode" },
+      { value: "claude-code", label: agentName },
+    ],
+  })
 
 const EDITOR = stored({
   key: "editor",
@@ -144,13 +146,13 @@ const NOTIFICATIONS = stored({
 })
 
 // YellowCode's own settings, with what it keeps for the agent among them.
-export const settingsFor = (agent: AgentKindId, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
+export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
   THEME,
   SIDEBAR,
   THINKING,
-  SESSION_TITLE,
+  sessionTitle(agent.name),
   defaultAgent(agents),
-  defaultMode(agent, modes),
+  defaultMode(agent.id, modes),
   EDITOR,
   NOTIFICATIONS,
 ]

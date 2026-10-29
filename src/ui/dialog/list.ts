@@ -5,6 +5,7 @@ export type DialogRow = {
   id: string
   label: string
   value?: string
+  // Shown under the row while it is selected, one line for each "\n"-separated part.
   note?: string
   search?: string
   // Drawn in the gutter, and in place of ● while the row is selected.
@@ -67,7 +68,8 @@ export function dialogLines(sections: DialogSection[], selected: string | undefi
         continue
       }
       lines.push({ kind: "row", row: item })
-      if (item.id === selected && item.note) lines.push({ kind: "note", text: item.note })
+      if (item.id === selected && item.note)
+        for (const text of item.note.split("\n")) lines.push({ kind: "note", text })
     }
     if (section.title && section.rows.length > 0 && position < sections.length - 1) lines.push({ kind: "gap" })
   }
