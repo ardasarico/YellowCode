@@ -963,3 +963,51 @@ test("a message to an agent settles only its own delivery, and a message that wa
   settleTo("t2", "a1")
   expect(deliveries()).toEqual([undefined, "sent"])
 })
+
+test("a hidden turn that takes a user prompt becomes the user's turn", () => {
+  const session = createSession()
+  const inn = (message: object) => feedLine(session, "in", parse(JSON.stringify(message)), 0)
+  const init = {
+    type: "system",
+    subtype: "init",
+    session_id: "x",
+    model: "m",
+    permissionMode: "default",
+    cwd: "/",
+    tools: [],
+    mcp_servers: [],
+    skills: [],
+    claude_code_version: "2.1.312",
+  }
+  inn(init)
+  session.hideTurnsOf(["task-h1"], () => {})
+  inn({
+    type: "system",
+    subtype: "task_notification",
+    task_id: "task-h1",
+    tool_use_id: "t",
+    status: "completed",
+    summary: "d",
+  })
+  inn(init)
+  inn({ type: "system", subtype: "status", status: "requesting" })
+  feedLine(session, "out", parse(userMessage("hello", [], "uuid-9")), 0)
+  inn({ type: "system", subtype: "status", status: "requesting", user_message_uuids: ["uuid-9"] })
+  inn({
+    type: "assistant",
+    parent_tool_use_id: null,
+    message: { id: "m1", content: [{ type: "text", text: "ANSWER" }] },
+  })
+  inn({
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    total_cost_usd: 0,
+    duration_ms: 1,
+    usage: { input_tokens: 1, output_tokens: 1 },
+  })
+  expect(session.state.status).toBe("idle")
+  expect(Object.values(session.state.byId).some((item) => item.kind === "text" && item.markdown === "ANSWER")).toBe(
+    true,
+  )
+})

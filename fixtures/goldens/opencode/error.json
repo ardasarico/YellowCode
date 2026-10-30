@@ -204,20 +204,6 @@
         "queue": null,
         "uuid": "prompt-1"
       },
-      "system-2": {
-        "kind": "system",
-        "id": "system-2",
-        "text": "API retry 10",
-        "level": "warning",
-        "retry": {
-          "attempt": 10,
-          "max": null,
-          "delayMs": 10958,
-          "status": 500,
-          "reason": "server_error",
-          "at": 1800000000000
-        }
-      },
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",

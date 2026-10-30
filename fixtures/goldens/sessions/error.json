@@ -55,7 +55,7 @@
     "103c9c6e1224",
     "103c9c6e1224",
     "103c9c6e1224",
-    "2e82b782991d"
+    "f77e8d515862"
   ],
   "fileOriginals": [],
   "state": {
@@ -264,12 +264,6 @@
         "text": "",
         "streaming": false,
         "durationMs": 238
-      },
-      "text-6": {
-        "kind": "text",
-        "id": "text-6",
-        "markdown": "**",
-        "streaming": false
       },
       "turn-7": {
         "kind": "turn-end",

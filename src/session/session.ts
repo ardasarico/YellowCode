@@ -310,11 +310,37 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     if (state.byId[id]) setState("byId", id, produce(change))
   }
 
+  // Removes top-level items with everything they own.
+  function drop(ids: ItemId[]): void {
+    const gone = new Set<ItemId>()
+    const collect = (id: ItemId): void => {
+      gone.add(id)
+      const item = state.byId[id]
+      if (item?.kind === "tool") for (const child of item.children) collect(child)
+    }
+    for (const id of ids) collect(id)
+    if (gone.size === 0) return
+    for (const id of gone) {
+      toolParents.delete(id)
+      commands.delete(id)
+      thinkingSince.delete(id)
+    }
+    for (const [part, known] of parts) if (gone.has(known.id)) parts.delete(part)
+    for (const [prompt, id] of prompts) if (gone.has(id)) prompts.delete(prompt)
+    for (const [key, known] of invalid) if (gone.has(known.id)) invalid.delete(key)
+    setState(
+      produce((session) => {
+        session.items = session.items.filter((id) => !gone.has(id))
+        for (const id of gone) delete session.byId[id]
+      }),
+    )
+  }
+
   function dropRetry(): void {
     if (!retryId) return
     const id = retryId
     retryId = null
-    setState("items", (ids) => ids.filter((item) => item !== id))
+    drop([id])
   }
 
   function onRetry(event: Event<"retry">): void {
@@ -610,6 +636,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         return redo()
       case "cut.committed":
         return commitCut()
+      default:
+        event satisfies never
     }
   }
 
@@ -634,7 +662,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   // The hidden prompts go for good.
   function commitCut(): void {
     const span = hiddenSpan(state.items, state.rewound)
-    if (span) setState("items", [...state.items.slice(0, span.start), ...state.items.slice(span.end)])
+    if (span) drop(state.items.slice(span.start, span.end))
     if (state.rewound) setState("rewound", null)
   }
 
@@ -808,7 +836,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     const item = id ? state.byId[id] : undefined
     if (!id || item?.kind !== "text") return
     const markdown = withoutOpenMarkers(item.markdown)
-    if (!markdown) setState("items", state.items.slice(0, -1))
+    if (!markdown) drop([id])
     else
       update(id, (text) => {
         if (text.kind === "text") text.markdown = markdown
@@ -865,6 +893,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   // The agent asks its model again; a turn it starts itself (a queued message, a background task's end) runs like any
   // other, and one that takes in a prompt counts as the user's.
   function stepTurn(taken: PromptId[]): void {
+    if (hiding && taken.length > 0) hiding = false
     if (hiding) return
     for (const prompt of taken) settleQueued(prompt)
     if (state.turn === null) setState("interrupting", false)

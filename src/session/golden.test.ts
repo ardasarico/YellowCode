@@ -400,3 +400,32 @@ test("every fixture has a golden and every golden a fixture", () => {
   }
   expect(present).toEqual(wanted)
 })
+
+const goldenState = z.object({
+  items: z.array(z.string()),
+  carried: z.array(z.string()).optional(),
+  byId: z.record(z.string(), z.object({ children: z.array(z.string()).optional() })),
+})
+
+test("every golden state keeps no item byId that items or carried cannot reach", () => {
+  const orphans: string[] = []
+  const states = (value: unknown, file: string): void => {
+    if (typeof value !== "object" || value === null) return
+    const state = goldenState.safeParse(value)
+    if (state.success) {
+      const { byId, items, carried = [] } = state.data
+      const reached = new Set<string>()
+      const reach = (id: string): void => {
+        if (reached.has(id)) return
+        reached.add(id)
+        for (const child of byId[id]?.children ?? []) reach(child)
+      }
+      for (const id of [...carried, ...items]) reach(id)
+      for (const id of Object.keys(byId)) if (!reached.has(id)) orphans.push(`${file}: ${id}`)
+    }
+    for (const inner of Object.values(value)) states(inner, file)
+  }
+  for (const file of readdirSync(GOLDENS, { recursive: true, encoding: "utf8" }))
+    if (file.endsWith(".json")) states(json(readFileSync(join(GOLDENS, file), "utf8")), file)
+  expect(orphans).toEqual([])
+})

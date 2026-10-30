@@ -290,33 +290,6 @@
         "interrupted": false,
         "endedAt": 1793261102104
       },
-      "user-4": {
-        "kind": "user",
-        "id": "user-4",
-        "text": "XRAY two",
-        "images": [],
-        "to": null,
-        "queue": null,
-        "uuid": "prompt-2"
-      },
-      "text-5": {
-        "kind": "text",
-        "id": "text-5",
-        "markdown": "Two.",
-        "streaming": false
-      },
-      "turn-6": {
-        "kind": "turn-end",
-        "id": "turn-6",
-        "costUsd": 0,
-        "durationMs": 49,
-        "inputTokens": 1200,
-        "outputTokens": 180,
-        "error": null,
-        "retries": 0,
-        "interrupted": false,
-        "endedAt": 1793261102168
-      },
       "user-7": {
         "kind": "user",
         "id": "user-7",

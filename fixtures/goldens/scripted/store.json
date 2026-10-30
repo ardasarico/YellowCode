@@ -29,26 +29,26 @@
     "3775d3ca4994",
     "d7d35ff2f715",
     "3fe84b4596c5",
-    "20319d160fb1",
-    "20319d160fb1",
-    "7459eac8cfd5",
-    "a2cfc02d2557",
-    "a904a6eecab9",
-    "b6288ab3a168",
-    "b6288ab3a168",
-    "67332cdc241f",
-    "5d37b4c1c327",
-    "5d37b4c1c327",
-    "5d37b4c1c327",
-    "5d37b4c1c327",
-    "4006dd8ac691",
-    "5d37b4c1c327",
-    "470e4ffb7737",
-    "470e4ffb7737",
-    "e09355d41b2a",
-    "e09355d41b2a",
-    "d5bdf1dd1661",
-    "44be0de89727"
+    "0c7ae7453219",
+    "0c7ae7453219",
+    "797a10ea1fac",
+    "d5c3939d485c",
+    "7cadf10911c2",
+    "fad41ac099bf",
+    "fad41ac099bf",
+    "19d0a99b6c23",
+    "0a9e4f5faf5d",
+    "0a9e4f5faf5d",
+    "0a9e4f5faf5d",
+    "0a9e4f5faf5d",
+    "e2f3fc5313ad",
+    "0a9e4f5faf5d",
+    "856d54dff2b2",
+    "856d54dff2b2",
+    "fecb018231be",
+    "fecb018231be",
+    "e3e0188413b9",
+    "77d1646616ce"
   ],
   "emitted": [
     "hidden turn started"
@@ -234,33 +234,6 @@
         "local": {
           "told": true
         }
-      },
-      "user-8": {
-        "kind": "user",
-        "id": "user-8",
-        "text": "What did ls show?",
-        "images": [],
-        "to": null,
-        "queue": null,
-        "uuid": "uuid-3"
-      },
-      "text-9": {
-        "kind": "text",
-        "id": "text-9",
-        "markdown": "It shows two",
-        "streaming": false
-      },
-      "turn-10": {
-        "kind": "turn-end",
-        "id": "turn-10",
-        "costUsd": 0.01,
-        "durationMs": 1200,
-        "inputTokens": 120,
-        "outputTokens": 30,
-        "error": null,
-        "retries": 0,
-        "interrupted": true,
-        "endedAt": 22000
       },
       "user-11": {
         "kind": "user",
