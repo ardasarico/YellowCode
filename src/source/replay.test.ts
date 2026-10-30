@@ -141,7 +141,7 @@ test("send during a pending timed pause does not skip ahead", async () => {
   expect(seen).toEqual(["out", "in", "out"])
 })
 
-test("close between yields ends iteration promptly", async () => {
+test("close between yields ends iteration without waiting out the 1 s entry delay", async () => {
   const timed = createReplaySource(
     {
       header,
@@ -160,7 +160,7 @@ test("close between yields ends iteration promptly", async () => {
   timed.close()
   const started = performance.now()
   expect((await timedIt.next()).done).toBe(true)
-  expect(performance.now() - started).toBeLessThan(200)
+  expect(performance.now() - started).toBeLessThan(800)
 
   const gated = createReplaySource(
     {

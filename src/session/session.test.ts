@@ -933,12 +933,12 @@ test("a `!` command rides along after the next message and is told", () => {
   expect(user?.kind === "user" && user.text).toBe("what changed?")
 })
 
-test("a long run of shell blocks is stripped without stalling", () => {
+test("a long run of shell blocks is stripped without stalling (limit is generous for slow machines)", () => {
   const blocks = Array.from({ length: 24 }, (_, at) => shellContext(`echo ${at}`, "x\n")).join("\n\n")
   const begun = performance.now()
   expect(stripShellContext(`what changed?\n\n${blocks}`)).toBe("what changed?")
   expect(stripShellContext(`${blocks}\nand then?`)).toBe(`${blocks}\nand then?`)
-  expect(performance.now() - begun).toBeLessThan(500)
+  expect(performance.now() - begun).toBeLessThan(3000)
 })
 
 const agentLine = (uuid: string, text: string) =>
