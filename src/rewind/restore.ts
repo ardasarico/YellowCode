@@ -19,6 +19,18 @@ import { log } from "../log/log.ts"
 import { blobId, covers, writeBeside } from "./common.ts"
 import type { Change, Snapshots, Taken, TreeEntry } from "./snapshots.ts"
 
+// Restore rules, applied to each path in order:
+// 1. Every folder on the way is a real folder inside root, not a symlink.
+// 2. An existing file is a regular file with one link.
+// 3. A path the target holds as a symlink or gitlink is kept.
+// 4. An existing file must still be what the safety snapshot saw, or it changed just now and is kept.
+// 5. If the target has the path, its blob is written beside it and renamed over it; a missing blob keeps the file.
+// 6. If the target lacks the path, delete it only when the undone turns made it, git does not ignore it and it was not
+//    born before the target snapshot.
+// 7. A file kept by rule 6 is still deleted when its bytes were just restored at another path (a move or copy).
+// 8. Folders are never removed, and no whole-tree git operation is used.
+// 9. A path the snapshots could not read is kept.
+
 // Paths are relative to the snapshots' root, as in snapshots.ts.
 export type Write = { path: string; kind: "create" | "update" }
 // What the files go back to: a snapshot, or a map of path → blob (null: no file there) for some paths only. A path

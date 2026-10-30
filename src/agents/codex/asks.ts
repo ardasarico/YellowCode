@@ -272,7 +272,7 @@ function ownAsk(params: Request<"item/tool/call">, rpcId: RpcId, context: Contex
 const NO_ANSWERS = { answers: {} }
 
 // Codex's own question tool. A question it marks secret is never shown: the whole request is turned down with a
-// notice (contract rule 8).
+// notice, so no band, store or log sees it.
 function questionAsk(params: Request<"item/tool/requestUserInput">, context: Context): Opened {
   const { questions } = params
   const secret = questions.find((question) => question.isSecret)

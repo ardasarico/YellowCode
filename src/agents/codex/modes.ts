@@ -1,6 +1,6 @@
 // Codex has two kinds of mode: access (an approval policy with a sandbox, or a permission profile) and collaboration
-// (Default or Plan). They read as one list (question 39): Shift+Tab walks Read Only, Default and Plan, Plan keeps the
-// access it had, and Full Access and the user's own profiles are picked from the list.
+// (Default or Plan). They read as one list: Shift+Tab walks Read Only, Default and Plan, Plan keeps the access it had,
+// and Full Access and the user's own profiles are picked from the list.
 import type { ModeId } from "../../agent/ids.ts"
 import type { ModeKind, ModeRow } from "../../agent/lists.ts"
 import type { ThreadSettings } from "./wire/settings.ts"

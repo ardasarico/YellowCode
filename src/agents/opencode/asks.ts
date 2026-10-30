@@ -122,7 +122,7 @@ function defaultOf(field: FormField): NeutralField["default"] {
 }
 
 // A string with options is one choice and a multiselect several, each on a page filed under its field key. Fields that
-// fit no page (text, number, toggle, link) are left out until owner question F says how to show them.
+// fit no page (text, number, toggle, link) are left out: the band cannot show them yet.
 export function formPages(form: Form): QuestionPage[] {
   return form.fields.flatMap((field) => {
     if (field.hidden || (field.type !== "string" && field.type !== "multiselect")) return []

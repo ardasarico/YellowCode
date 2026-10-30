@@ -71,7 +71,8 @@ export type FormField = {
   when: { key: string; op: "eq" | "neq"; value: string | number | boolean }[]
 }
 
-// A question or field the agent marks secret never gets here: its adapter declines it (contract rule 8).
+// A question or field the agent marks secret never gets here: its adapter declines it, so no band, store, log or
+// recording sees it.
 export type Questions =
   | { pages: QuestionPage[] }
   | { matrix: Matrix }

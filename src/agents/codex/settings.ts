@@ -26,7 +26,8 @@ const choice = (...values: [string, string][]): SettingControl => ({
 })
 const tokens: SettingControl = { type: "number", min: 1, max: null, step: 1, unit: "tokens" }
 
-// The keys left out, and the borderline ones still to be decided (owner question 53), are listed in the S8.8 notes.
+// Keys another picker or the modes already cover are left out, and so are borderline ones such as
+// model_context_window, service_tier and personality.
 const SETTINGS: Setting[] = [
   {
     id: "web-search",

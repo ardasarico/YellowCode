@@ -1,7 +1,7 @@
 // The conversation cut back to before a prompt. A cut waits for the next send, or the chat's go-back before it, so
 // `undo` takes it back until then. A paginated thread drops the turns from the prompt's on (thread/revert); a legacy
-// one cannot, so the session goes on in a copy made before that turn (owner question 40). Files are left to
-// YellowCode's own rewind.
+// one cannot, so the session goes on in a copy made before that turn and the original stays in /resume. Files are left
+// to YellowCode's own rewind.
 import type { Outcome, PromptId } from "../../agent/ids.ts"
 import { log } from "../../log/log.ts"
 import { turnOf } from "./history.ts"

@@ -168,7 +168,7 @@ export const transcriptPath = (cwd: string, id: string) => join(projectFolder(CL
 const promptText = (prompt: Pick<Prompt, "text" | "to">) =>
   prompt.to ? agentMessage(prompt.to.task, prompt.to.name, prompt.text) : prompt.text
 
-// The prompt in the chat at Enter, before its line goes out (rule 5's showEarly, until the store takes the Prompt).
+// The prompt in the chat at Enter, before its line goes out (the store's showEarly, until the store takes the Prompt).
 export function showPrompt(store: SessionStore, prompt: Prompt): void {
   showEarly(store, userMessage(promptText(prompt), prompt.images, prompt.id))
 }
@@ -649,7 +649,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
       setClientTools(tools)
       return Promise.resolve(ok)
     },
-    // The mods' manifest servers reach claude through the mod host for now (owner question 17).
+    // The mods' manifest servers reach claude through the mod host for now.
     setMcpServers: () => Promise.resolve(notYet("MCP servers")),
   }
 }

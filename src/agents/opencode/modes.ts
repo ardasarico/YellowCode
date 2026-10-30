@@ -10,7 +10,6 @@ import { rowsOf } from "./wire/envelope.ts"
 
 type AgentRow = z.output<typeof agentRow>
 
-// Question H: build is the normal mode, plan the plan mode, and any other agent a mode of its own.
 const KINDS: Record<string, ModeKind> = { build: "auto", plan: "plan" }
 
 export type Modes = {

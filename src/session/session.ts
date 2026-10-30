@@ -65,7 +65,7 @@ export type SessionStore = {
   onFileOriginal(listener: (toolUseId: string, path: string, original: string | null) => void): void
 }
 
-// The plan band's two answers. With no ask to answer, its no takes no note (question 30).
+// The plan band's two answers. With no ask to answer, its no takes no note.
 const planOption = (id: string, effect: "allow" | "deny"): AskOption => ({
   id,
   effect,
