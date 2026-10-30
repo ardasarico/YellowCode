@@ -35,13 +35,3 @@ export function dirEntries(
   walk(root, "")
   return { files, symlinks }
 }
-
-// Hashes a codeload-style tarball in memory, without its "<repo>-<sha>/" top folder. Bun leaves symlinks out of
-// files(), so this cannot refuse them; the installer hashes the extracted folder instead.
-export async function hashTarball(bytes: Uint8Array): Promise<string> {
-  const files = [...(await new Bun.Archive(bytes).files())]
-    .map(([path, file]) => [path.split("/").slice(1).join("/"), file] as const)
-    .filter(([rel]) => rel)
-  const entries = await Promise.all(files.map(async ([rel, file]): Promise<TreeEntry> => [rel, await file.bytes()]))
-  return hashEntries(entries)
-}

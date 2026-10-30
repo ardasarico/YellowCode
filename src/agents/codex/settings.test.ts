@@ -81,6 +81,10 @@ test("config/read keeps provider names and the rows' keys, and no provider key, 
   const rows = await createSettings(() => ({ request: () => Promise.resolve(REPLY) }), "/p").rows()
   const shown = JSON.stringify(rows)
   for (const value of PLANTED) expect(shown).not.toContain(value)
+  expect(allowedConfig({ config: { model_providers: { bare: { base_url: "http://z" } } } }).config).toEqual({
+    model_providers: { bare: {} },
+  })
+  expect(allowedConfig("nonsense")).toEqual({ config: { model_providers: {} }, origins: {}, layers: null })
 })
 
 const row = (rows: SettingRow[], id: string) => {

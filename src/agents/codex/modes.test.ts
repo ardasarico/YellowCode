@@ -8,7 +8,6 @@ import type { AgentEvent } from "../../agent/events.ts"
 import { createSession } from "../../session/session.ts"
 import { nextMode } from "../../session/settings.ts"
 import { todoList } from "../../session/todos.ts"
-import { allowedConfig } from "./allow.ts"
 import { readFixture } from "./fixture.ts"
 import { accessOf, modeRows } from "./modes.ts"
 import { createTranslator } from "./translate.ts"
@@ -125,21 +124,6 @@ test("profiles of the user's own follow the presets and are picked, not walked",
   expect(accessOf("on-request", { type: "readOnly" }, ":read-only")).toBe("read-only")
   expect(accessOf("on-request", { type: "workspaceWrite" }, "work")).toBe("profile:work")
   expect(accessOf("untrusted", { type: "readOnly" }, null)).toBe("untrusted readOnly")
-})
-
-test("config/read keeps each provider's name and nothing else", () => {
-  const reply = {
-    config: {
-      model: "gpt-5.5",
-      mcp_servers: { s: { env: { KEY: "v" } } },
-      model_providers: {
-        mock: { name: "Mock", base_url: "http://x", http_headers: { Authorization: "Bearer y" }, env_key: "K" },
-        bare: { base_url: "http://z" },
-      },
-    },
-  }
-  expect(allowedConfig(reply).config).toEqual({ model_providers: { mock: { name: "Mock" }, bare: {} } })
-  expect(allowedConfig("nonsense")).toEqual({ config: { model_providers: {} }, origins: {}, layers: null })
 })
 
 test("a stored plan reads back as text, with no band", () => {
