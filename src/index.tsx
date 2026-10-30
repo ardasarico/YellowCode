@@ -125,9 +125,9 @@ if (values.help) {
   process.exit(0)
 }
 const KNOWN_AGENTS = [
-  { name: CLAUDE_NAME, detect: () => detectClaude() },
-  { name: OPENCODE_NAME, detect: () => detectOpencode() },
-  { name: CODEX_NAME, detect: () => detectCodex() },
+  { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
+  { id: OPENCODE, name: OPENCODE_NAME, detect: () => detectOpencode() },
+  { id: CODEX, name: CODEX_NAME, detect: () => detectCodex() },
 ]
 if (values.version) {
   const agents = (await agentVersions(KNOWN_AGENTS)).map(({ name, version }) => `${name} ${version ?? "not found"}`)
@@ -135,13 +135,22 @@ if (values.version) {
   process.exit(0)
 }
 if (values.report) {
-  const loaded = loadSettings()
+  const loaded = loadSettings(undefined, false)
+  const ids = [CLAUDE, OPENCODE, CODEX]
+  const running = await pickAgent(loaded.settings.defaultAgent, ids, async (id) => {
+    const detection = await KNOWN_AGENTS.find((agent) => agent.id === id)?.detect()
+    return detection?.installed === true && detection.blocked === null
+  })
   process.stdout.write(
     reportMarkdown({
       environment: [...hostFacts(await agentVersions(KNOWN_AGENTS)), ...terminalFacts(null)],
       settings: settingsFacts(
         loaded.settings,
-        { id: CLAUDE, name: CLAUDE_NAME, modes: CLAUDE_MODES },
+        {
+          id: running ?? CLAUDE,
+          name: KNOWN_AGENTS.find((agent) => agent.id === running)?.name ?? CLAUDE_NAME,
+          modes: running === undefined || running === CLAUDE ? CLAUDE_MODES : [],
+        },
         [
           { id: CLAUDE, name: CLAUDE_NAME },
           { id: OPENCODE, name: OPENCODE_NAME },
@@ -154,6 +163,8 @@ if (values.report) {
   )
   process.exit(0)
 }
+
+if (!process.stdin.isTTY || !process.stdout.isTTY) fail("yellowcode needs a terminal; stdin and stdout must be a TTY")
 
 function gitBranch(): string | null {
   const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], {

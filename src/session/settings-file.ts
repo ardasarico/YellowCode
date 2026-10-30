@@ -193,7 +193,8 @@ function readStored(stored: Record<string, unknown>) {
 // Files that exist but could not be read: saving would replace what the user still has there.
 const unreadable = new Set<string>()
 
-export function loadSettings(path = configPath("settings.json")): LoadedSettings {
+// `repair` false leaves a broken file as it is.
+export function loadSettings(path = configPath("settings.json"), repair = true): LoadedSettings {
   let text: string
   try {
     text = readFileSync(path, "utf8")
@@ -213,6 +214,7 @@ export function loadSettings(path = configPath("settings.json")): LoadedSettings
     return { settings, problem, backup: null }
   }
   const { settings, found } = readStored(asStored(parseJsonc(text)) ?? salvage(text))
+  if (!repair) return { settings, problem: "settings.json is broken", backup: null }
   const backup = `${path}.bak`
   let fixed = false
   try {
