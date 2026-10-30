@@ -1145,10 +1145,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     live = next
   }
 
-  // The agent is gone, and with it the calls our own asks would answer.
-  function cancelOwnAsks(): void {
+  // The agent is gone, and with it the calls our own asks would answer; with `all`, the asks it made go too.
+  function cancelAsks(all: boolean): void {
     for (const item of Object.values(state.byId)) {
-      if (item.kind !== "ask" || !item.mcp || item.status !== "pending") continue
+      if (item.kind !== "ask" || (!all && !item.mcp) || item.status !== "pending") continue
       update(item.id, (ask) => {
         if (ask.kind === "ask") ask.status = "cancelled"
       })
@@ -1296,7 +1296,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
   function restart(): void {
     hiding = false
     hideFor.clear()
-    cancelOwnAsks()
+    // The agent that asked them is not the one that starts.
+    cancelAsks(true)
     setState("status", "starting")
   }
 
@@ -1305,16 +1306,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     for (const id of Object.keys(state.byId)) stopStreaming(id)
     if (problem) {
       stopRunning()
-      for (const item of Object.values(state.byId)) {
-        if (item.kind !== "ask" || item.status !== "pending") continue
-        update(item.id, (ask) => {
-          if (ask.kind === "ask") ask.status = "cancelled"
-        })
-      }
+      cancelAsks(true)
       dropRetry()
       add({ kind: "system", id: newId("system"), text: problem.text, level: "error", detail: problem.detail }, null)
     }
-    cancelOwnAsks()
+    cancelAsks(false)
     // A message still waiting never ran.
     for (const id of waiting.values())
       update(id, (item) => {

@@ -136,6 +136,9 @@ async function* framesOf(response: IncomingMessage, signal?: AbortSignal): Async
   }
 }
 
+// A service that stays up but stops answering must not hold a prompt, an ask reply or the messages after them.
+const REQUEST_MS = 60_000
+
 // Requests go through node:http, not fetch: Bun's fetch sends even loopback requests through HTTP_PROXY, and with
 // them the password. The password stays in this closure: it is never logged and never part of an error.
 export function httpTransport(endpoint: Endpoint, directory: string): Transport {
@@ -159,12 +162,21 @@ export function httpTransport(endpoint: Endpoint, directory: string): Transport 
   async function request(req: Request): Promise<Reply> {
     const what = `${req.method} ${req.path}`
     const body = req.body === undefined ? undefined : JSON.stringify(req.body)
-    const response = await open(req.method, urlOf(endpoint.url, req.path, req.query), body).catch(() => {
+    const signal = AbortSignal.timeout(REQUEST_MS)
+    const late = () => {
+      log.warn(`opencode: ${what} did not answer`)
+      return new Error(`opencode: ${what} did not answer`)
+    }
+    const response = await open(req.method, urlOf(endpoint.url, req.path, req.query), body, signal).catch(() => {
+      if (signal.aborted) throw late()
       log.warn(`opencode: ${what} failed to connect`)
       throw new Error(`opencode: ${what} failed to connect`)
     })
     const status = response.statusCode ?? 0
-    const reply = { status, body: bodyOf(await textOf(response)) }
+    const text = await textOf(response).catch(() => {
+      throw late()
+    })
+    const reply = { status, body: bodyOf(text) }
     if (status >= 400) logFailure(what, status, reply.body)
     return reply
   }

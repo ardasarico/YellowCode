@@ -149,6 +149,9 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
   }
 }
 
+// An app-server that stays up but stops answering must not hold a turn, a send or the messages after them.
+const REQUEST_MS = 60_000
+
 export function rpcClient(transport: Transport): Rpc {
   let next = 0
   const pending = new Map<RpcId, { method: string; resolve(value: unknown): void; reject(error: Error): void }>()
@@ -196,15 +199,22 @@ export function rpcClient(transport: Transport): Rpc {
   return {
     request(method, params) {
       const own = next++
+      let timer: ReturnType<typeof setTimeout> | undefined
       return new Promise((resolve, reject: (error: Error) => void) => {
         pending.set(own, { method, resolve, reject })
+        timer = setTimeout(() => {
+          pending.delete(own)
+          // Its answer may still come; it is no surprise then.
+          seen.add(String(own))
+          reject(new Error(`${method}: codex app-server did not answer`))
+        }, REQUEST_MS)
         try {
           send(params === undefined ? { id: own, method } : { id: own, method, params })
         } catch (error) {
           pending.delete(own)
           reject(error instanceof Error ? error : new Error(String(error)))
         }
-      })
+      }).finally(() => clearTimeout(timer))
     },
     notify: (method, params) => send(params === undefined ? { method } : { method, params }),
     respond: (to, result) => send({ id: to, result }),

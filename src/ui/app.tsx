@@ -604,12 +604,15 @@ export function App(props: AppProps) {
   createEffect(() => {
     if (pending()) setAgentView(null)
   })
+  const [heldWithdrawn, setHeldWithdrawn] = createSignal(false)
   createEffect(
     on(pending, (now, before) => {
-      // An ask that comes while the hold's limit let typing through to the prompt is held from too.
+      // Typing meant for the prompt goes on into an ask that just appeared, where a digit or Enter would answer it.
       // An ask that the user's own interrupt cancelled leaves nothing to hold.
       const withdrawn = before?.status === "cancelled" && !props.session.interrupting
-      if (withdrawn || (now && rushedSubmit())) holdKeys(() => pending() !== null)
+      if (!now && !withdrawn) return
+      holdKeys(() => pending() !== null)
+      setHeldWithdrawn(withdrawn)
     }),
   )
   const [mcpFailure, setMcpFailure] = createSignal<string | null>(null)
@@ -1830,7 +1833,7 @@ export function App(props: AppProps) {
       quitArmed: quitArmed(),
       rewindArmed: rewindArmed(),
       note: rewindNote(),
-      held: held(),
+      held: held() && heldWithdrawn(),
       interruptible: interruptible(),
       backgroundable: backgroundable(),
       modes: props.onInterrupt !== undefined,

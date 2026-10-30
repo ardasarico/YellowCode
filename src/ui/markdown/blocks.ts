@@ -23,10 +23,19 @@ const SKIPPED = new Set(["space", "def"])
 // Reuses the previous Block object for every block whose source did not change,
 // so a streaming message only re-renders its last block.
 export function splitBlocks(markdown: string, previous: readonly Block[] = []): Block[] {
-  const tokens = Lexer.lex(markdown, { gfm: true }).filter((token) => !SKIPPED.has(token.type))
+  const tokens = lex(markdown).filter((token) => !SKIPPED.has(token.type))
   return tokens.map((token, index) => {
     const key = `${index}:${token.type}`
     const old = previous[index]
     return old && old.key === key && old.token.raw === token.raw ? old : { key, token }
   })
+}
+
+// marked recurses once per nesting level, so thousands of nested quotes overflow the stack; that text is shown plain.
+export function lex(markdown: string): Token[] {
+  try {
+    return Lexer.lex(markdown, { gfm: true })
+  } catch {
+    return [{ type: "text", raw: markdown, text: markdown }]
+  }
 }

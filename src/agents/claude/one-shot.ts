@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
 import { log } from "../../log/log.ts"
-import { hostEnv, KILL_AFTER_MS } from "../../source/claude-cli.ts"
+import { collect, hostEnv, KILL_AFTER_MS, OUTPUT_WAIT_MS } from "../../source/claude-cli.ts"
 
 const ONE_SHOT_TIMEOUT_MS = 30_000
 const Result = z.looseObject({ result: z.string() })
@@ -30,13 +30,15 @@ export async function oneShot(prompt: string, cwd: string): Promise<string | nul
     proc.kill()
     kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
   }, ONE_SHOT_TIMEOUT_MS)
-  const [output, stderr, code] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
+  const out = collect(proc.stdout)
+  const err = collect(proc.stderr)
+  const code = await proc.exited
   clearTimeout(timer)
   clearTimeout(kill)
+  // A process claude left behind could keep the pipes open; what came until then is kept.
+  await Promise.race([Promise.all([out.done, err.done]), Bun.sleep(OUTPUT_WAIT_MS)])
+  const output = out.text
+  const stderr = err.text
   if (late || code !== 0) {
     log.warn("session title failed", { code, late, stderrChars: stderr.length })
     log.debug("session title stderr", stderr)

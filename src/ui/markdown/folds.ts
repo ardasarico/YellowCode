@@ -1,8 +1,8 @@
 import { render } from "grok-mermaid"
-import { Lexer, type Tokens } from "marked"
+import type { Tokens } from "marked"
 import { diffRows, type DiffRow, unifiedHunks } from "../diff.ts"
 import { HEAD_LIMIT } from "../diff-view.tsx"
-import { is } from "./blocks.ts"
+import { is, lex } from "./blocks.ts"
 import { remember } from "./cache.ts"
 import { calloutOf } from "./callout.ts"
 import { hasData, parseChart } from "./chart.ts"
@@ -108,7 +108,7 @@ const lexed = new Map<string, Entry[]>()
 // A whole message's blocks, kept for keyboard selection, which looks at every message on each key.
 export function messageEntries(markdown: string): Entry[] {
   return remember(lexed, 1000, markdown, () =>
-    groupDetails(Lexer.lex(markdown, { gfm: true }).filter((token) => token.type !== "space" && token.type !== "def")),
+    groupDetails(lex(markdown).filter((token) => token.type !== "space" && token.type !== "def")),
   )
 }
 

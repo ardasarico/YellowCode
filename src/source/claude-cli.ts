@@ -7,7 +7,7 @@ const CLI_TIMEOUT_MS = 20_000
 // A claude that ignores SIGTERM gets SIGKILL this long after it, and one that outlives that too is given up on.
 export const KILL_AFTER_MS = 2000
 export const GIVE_UP_AFTER_MS = 1000
-const OUTPUT_WAIT_MS = 1000
+export const OUTPUT_WAIT_MS = 1000
 
 // Variables claude puts on the processes it starts (2.1.305) that mark them as children of its session. Its settings
 // editors refuse to run under them, and they describe that session rather than the user's setup, which every other
@@ -41,7 +41,7 @@ export function runClaude(args: string[], options: { cwd: string; stdin?: string
   return run
 }
 
-function collect(stream: ReadableStream<Uint8Array>) {
+export function collect(stream: ReadableStream<Uint8Array>) {
   const decoder = new TextDecoder()
   const read = { text: "", done: Promise.resolve() }
   read.done = (async () => {

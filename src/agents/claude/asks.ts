@@ -227,9 +227,10 @@ export function createAsks(tools: Tools) {
       if (answers) return [close(id, { status: "answered", answers, notes: notesOf(answered.data.annotations) })]
       return [close(id, { status: "allowed" })]
     },
-    // claude is gone or starts over, and with it the calls held asks would answer.
+    // claude is gone or starts over, and with it the calls its asks would answer.
     stop(): void {
       held.clear()
+      opened.clear()
     },
   }
 }

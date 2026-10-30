@@ -1,4 +1,4 @@
-import { GIVE_UP_AFTER_MS, KILL_AFTER_MS } from "./source/claude-cli.ts"
+import { collect, GIVE_UP_AFTER_MS, KILL_AFTER_MS, OUTPUT_WAIT_MS } from "./source/claude-cli.ts"
 
 export type Spawned = { code: number | null; stdout: string; stderr: string }
 
@@ -21,7 +21,8 @@ export async function spawnLimited(
     proc.kill()
     kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
   }, options.timeoutMs)
-  const output = Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text()])
+  const stdout = collect(proc.stdout)
+  const stderr = collect(proc.stderr)
   const code = await Promise.race([
     proc.exited,
     Bun.sleep(options.timeoutMs + KILL_AFTER_MS + GIVE_UP_AFTER_MS).then(() => null),
@@ -29,6 +30,7 @@ export async function spawnLimited(
   clearTimeout(timer)
   clearTimeout(kill)
   if (late || code === null) return null
-  const [stdout, stderr] = await output
-  return { code, stdout, stderr }
+  // A process the command left behind could keep the pipes open; what came until then is kept.
+  await Promise.race([Promise.all([stdout.done, stderr.done]), Bun.sleep(OUTPUT_WAIT_MS)])
+  return { code, stdout: stdout.text, stderr: stderr.text }
 }

@@ -16,6 +16,11 @@ export function revokedListing(list: ModList, id: string, version: string | unde
   return item?.reason ?? null
 }
 
+// Why the list took this commit of an unlisted mod off, or null.
+export function revokedCommit(list: ModList, id: string, sha: string): string | null {
+  return list.revoked.find((revoked) => revoked.id === id && revoked.shas?.includes(sha))?.reason ?? null
+}
+
 // The list's entry for a mod that may be installed, or why it may not.
 export function listedEntry(list: ModList, id: string): ListedMod | string {
   const entry = list.mods.find((mod) => mod.id === id)

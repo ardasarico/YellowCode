@@ -1,8 +1,9 @@
 import { readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, extname, resolve } from "node:path"
-import { Lexer, marked, type Token } from "marked"
+import { marked, type Token } from "marked"
 import type { ChatImage } from "../../session/types.ts"
+import { lex } from "./blocks.ts"
 
 const MEDIA_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -57,5 +58,5 @@ export function imageLines(block: Token, cwd: string): ChatImage[][] {
 }
 
 export function markdownImages(markdown: string, cwd: string): ChatImage[] {
-  return markdown.includes("![") ? tokenImages(Lexer.lex(markdown, { gfm: true }), cwd) : []
+  return markdown.includes("![") ? tokenImages(lex(markdown), cwd) : []
 }

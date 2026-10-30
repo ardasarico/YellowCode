@@ -3,7 +3,7 @@ import { join } from "node:path"
 import { configPath } from "../../config-path.ts"
 import { parseJson } from "../../json.ts"
 import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
-import { editedLocally, listedEntry, modFolders, revokedListing } from "./checks.ts"
+import { editedLocally, listedEntry, modFolders, revokedCommit, revokedListing } from "./checks.ts"
 import { installAt, type InstallResult } from "./install.ts"
 import { type ModList, readCachedList, refreshList, REPO, SHA } from "./list.ts"
 import { type InstallRecord, readRecord, recordPath } from "./record.ts"
@@ -59,6 +59,8 @@ async function addUnlisted(target: string, mods: string): Promise<number> {
   if (!id.ok) return fail(id.problem)
   const list = await loadList()
   if (!list) return 1
+  const revoked = revokedCommit(list, id.value, sha.value)
+  if (revoked !== null) return fail(`${id.value} @ ${short(sha.value)}: Revoked: ${revoked}`)
   if (list.mods.some((mod) => mod.id === id.value))
     return fail(`${id.value} is a mod on the YellowCode list; install it with yellowcode mod add ${id.value}`)
   const installed = installedState(mods, id.value)
@@ -77,7 +79,7 @@ async function addUnlisted(target: string, mods: string): Promise<number> {
 async function update(only: string | undefined, mods: string): Promise<number> {
   const ids = only ? [only] : recordedIds(mods)
   if (ids.length === 0) return (say("No installed mods to update."), 0)
-  const list = ids.some((id) => readRecord(mods, id)?.listed) ? await loadList() : null
+  const list = await loadList()
   let failed = false
   for (const id of ids) {
     const record = readRecord(mods, id)
@@ -91,7 +93,7 @@ async function update(only: string | undefined, mods: string): Promise<number> {
       say(`${id}: edited locally, not updated`)
       continue
     }
-    const next = record.listed ? updateListed(id, record, mods, list) : updateUnlisted(id, record, mods)
+    const next = record.listed ? updateListed(id, record, mods, list) : updateUnlisted(id, record, mods, list)
     // oxlint-disable-next-line no-await-in-loop -- one mod at a time, since an unlisted one may ask first
     const done = await next
     if (!done) failed = true
@@ -107,12 +109,14 @@ async function updateListed(id: string, record: InstallRecord, mods: string, lis
   return finish(id, await installAt({ ...entry, listed: true }, mods), record.version) === 0
 }
 
-async function updateUnlisted(id: string, record: InstallRecord, mods: string): Promise<boolean> {
+async function updateUnlisted(id: string, record: InstallRecord, mods: string, list: ModList | null): Promise<boolean> {
   const [, repo = "", ref] = record.source.match(GITHUB) ?? []
   if (!repo) return (fail(`${id}: the install record's source "${record.source}" is not github:owner/repo`), false)
   const sha = await resolveRef(repo, ref)
   if (!sha.ok) return (fail(`${id}: ${sha.problem}`), false)
   if (sha.value === record.sha) return (say(`${id} ${record.version} is up to date`), true)
+  const revoked = list && revokedCommit(list, id, sha.value)
+  if (revoked) return (fail(`${id} @ ${short(sha.value)}: Revoked: ${revoked}`), false)
   say(`${id} (unlisted): ${repo} ${short(record.sha)} -> ${short(sha.value)}`)
   if (!(await ask(`Update ${id}?`))) return (say(`${id} not updated`), true)
   const result = await installAt({ id, repo, sha: sha.value, treeHash: null, listed: false, ref }, mods)
