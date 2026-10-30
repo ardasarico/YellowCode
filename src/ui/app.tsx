@@ -81,7 +81,7 @@ import { isAgentCall, isWorkflowCall, messageable, taskIdOf, topNodes } from "./
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
-import { ChatView, type ScrollState } from "./chat-view.tsx"
+import { ChatView, createRows, type ScrollState } from "./chat-view.tsx"
 import { AgentOfChat } from "./turn-end.tsx"
 import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
@@ -137,7 +137,6 @@ import { ExportDialog } from "./export/export-dialog.tsx"
 import { TodoDialog } from "./todos/todo-dialog.tsx"
 import { SkillsDialog } from "./skills/skills-dialog.tsx"
 import { Sidebar } from "./sidebar.tsx"
-import { buildRows } from "./structure.ts"
 import { hasThinkingText } from "./thinking.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
 import { useTicker } from "./ticker.ts"
@@ -764,7 +763,7 @@ export function App(props: AppProps) {
     return ids
   }
   const shownItems = () => itemsShown(props.session.items, props.session.rewound)
-  const rows = createMemo(() => buildRows(props.session))
+  const rows = createRows(() => props.session)
   // The rows' items in order: a hidden thought gives none, a group its own id and, while open, its calls and thoughts.
   const rowItems = () =>
     rows().flatMap((row) => {
@@ -1965,6 +1964,7 @@ export function App(props: AppProps) {
           <box flexDirection="column" width={chatWidth()} onMouseDown={() => setFocusedPane(null)}>
             <AgentOfChat.Provider value={agentId}>
               <ChatView
+                rows={rows}
                 session={props.session}
                 workspace={props.workspace}
                 model={settings.model ?? props.model()}

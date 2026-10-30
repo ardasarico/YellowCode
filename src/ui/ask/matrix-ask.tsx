@@ -193,7 +193,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
         </box>
         <box flexDirection="column" marginTop={1}>
           <Index each={shown()}>
-            {(row, offset) => {
+            {(_row, offset) => {
               const index = () => first() + offset
               const focused = () => index() === state.row
               const chosen = () => state.answers[index()] ?? -1

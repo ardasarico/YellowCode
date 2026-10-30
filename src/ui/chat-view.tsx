@@ -1,5 +1,5 @@
 import type { Renderable, ScrollBoxRenderable } from "@opentui/core"
-import { createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
+import { type Accessor, createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
 import type { SettingChange } from "../agent/settings.ts"
 import type { Command } from "../input/commands.ts"
 import { shellNodeId } from "../session/shells.ts"
@@ -47,6 +47,7 @@ type ChatProps = {
 }
 
 type ChatViewProps = ChatProps & {
+  rows: Accessor<Row[]>
   workspace: Workspace
   model: string | null
   earlier: boolean
@@ -220,16 +221,11 @@ function RowView(props: RowProps) {
   )
 }
 
-export function ChatView(props: ChatViewProps) {
-  let scroll: ScrollBoxRenderable | undefined
-  // The scroll height when the user left the bottom, so growth since then counts as new lines.
-  let leftAtHeight: number | null = null
-  let reachedTop = false
-  let shifted = false
-  // A row keeps its object while it stays the same, so its view does not run again.
-  const rows = createMemo((previous: Row[]) => {
+// A row keeps its object while it stays the same, so its view does not run again.
+export function createRows(session: () => Session) {
+  return createMemo((previous: Row[]) => {
     const old = new Map(previous.map((row) => [row.id, row]))
-    return buildRows(props.session).map((row) => {
+    return buildRows(session()).map((row) => {
       const kept = old.get(row.id)
       if (!kept || kept.kind !== row.kind) return row
       if (kept.kind === "end" && row.kind === "end") return sameIds(kept.turnEnds, row.turnEnds) ? kept : row
@@ -237,7 +233,15 @@ export function ChatView(props: ChatViewProps) {
       return kept
     })
   }, [])
-  const rowIds = createMemo(() => rows().map((row) => row.id))
+}
+
+export function ChatView(props: ChatViewProps) {
+  let scroll: ScrollBoxRenderable | undefined
+  // The scroll height when the user left the bottom, so growth since then counts as new lines.
+  let leftAtHeight: number | null = null
+  let reachedTop = false
+  let shifted = false
+  const rowIds = createMemo(() => props.rows().map((row) => row.id))
   createEffect(
     on(rowIds, (ids, previous) => {
       const first = previous?.[0]
@@ -251,11 +255,12 @@ export function ChatView(props: ChatViewProps) {
       { defer: true },
     ),
   )
-  const rowById = createMemo(() => new Map(rows().map((row) => [row.id, row])))
+  const rowById = createMemo(() => new Map(props.rows().map((row) => [row.id, row])))
   const agentIndex = createMemo(
     () =>
       new Map(
-        rows()
+        props
+          .rows()
           .filter((row) => row.kind === "agent")
           .map((row, index) => [row.id, index]),
       ),
@@ -276,13 +281,15 @@ export function ChatView(props: ChatViewProps) {
   )
   // The end of the latest turn, unless a new message went out after it.
   const latestEnd = createMemo(() => {
-    const index = rows().findLastIndex((row) => row.kind === "end" || row.kind === "user")
-    return rows()[index]?.kind === "end" ? rows()[index]?.id : undefined
+    const index = props.rows().findLastIndex((row) => row.kind === "end" || row.kind === "user")
+    return props.rows()[index]?.kind === "end" ? props.rows()[index]?.id : undefined
   })
-  const previousKind = createMemo(() => new Map(rows().map((row, index) => [row.id, rows()[index - 1]?.kind])))
+  const previousKind = createMemo(
+    () => new Map(props.rows().map((row, index) => [row.id, props.rows()[index - 1]?.kind])),
+  )
   // A divider right above the prompt's rule reads as one block, so it gets a row of its own.
   const endsWithDivider = createMemo(() => {
-    const last = rows().at(-1)
+    const last = props.rows().at(-1)
     const item = last?.kind === "system" ? props.session.byId[last.id] : undefined
     return item?.kind === "system" && item.level === "info"
   })
