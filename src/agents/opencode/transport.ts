@@ -138,6 +138,8 @@ async function* framesOf(response: IncomingMessage, signal?: AbortSignal): Async
 
 // A service that stays up but stops answering must not hold a prompt, an ask reply or the messages after them.
 const REQUEST_MS = 60_000
+// A client-mcp socket that has not opened by then is given up on.
+const SOCKET_OPEN_MS = 10_000
 
 // Requests go through node:http, not fetch: Bun's fetch sends even loopback requests through HTTP_PROXY, and with
 // them the password. The password stays in this closure: it is never logged and never part of an error.
@@ -218,17 +220,24 @@ export function httpTransport(endpoint: Endpoint, directory: string): Transport 
         if (typeof event.data === "string") frames.push(bodyOf(event.data))
       })
       ws.addEventListener("close", () => frames.end())
-      ws.addEventListener("open", () =>
+      const timer = setTimeout(() => {
+        reject(failed())
+        ws.close()
+      }, SOCKET_OPEN_MS)
+      ws.addEventListener("open", () => {
+        clearTimeout(timer)
         resolve({
           frames,
           send(frame) {
             if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(frame))
           },
           close: () => ws.close(1000),
-        }),
-      )
+        })
+      })
       ws.addEventListener("error", () => {
-        if (ws.readyState !== WebSocket.OPEN) reject(failed())
+        if (ws.readyState === WebSocket.OPEN) return
+        clearTimeout(timer)
+        reject(failed())
       })
     })
   }

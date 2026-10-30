@@ -36,7 +36,11 @@ export async function runClientTool(
 ): Promise<{ text: string; error: boolean }> {
   const tool = tools.find((known) => known.server === namespace && known.name === name)
   if (!tool) return { text: "Unknown tool", error: true }
-  return tool.run(inputOf(input))
+  try {
+    return await tool.run(inputOf(input))
+  } catch (error) {
+    return { text: error instanceof Error ? error.message : "The tool failed", error: true }
+  }
 }
 
 // The mods' manifest servers as config overrides of the thread, which Codex starts with it.

@@ -124,7 +124,14 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
 
   void (async () => {
     const decoder = new TextDecoder()
-    for await (const chunk of child.stderr) options.onStderr?.(decoder.decode(chunk, { stream: true }))
+    let chunks = 0
+    for await (const chunk of child.stderr) {
+      // Its text can quote the conversation, so only debug logging keeps it.
+      if (chunks++ === 0) log.warn("codex wrote to stderr")
+      const text = decoder.decode(chunk, { stream: true })
+      log.debug("codex stderr", text)
+      options.onStderr?.(text)
+    }
   })()
 
   return {

@@ -101,7 +101,6 @@ const created = dataOf(sessionSchema)
 const accepted = dataOf(z.looseObject({ id: z.string(), time: z.looseObject({ created: z.number() }) }))
 // `interrupted: false` when no turn was running.
 const interruptReply = z.looseObject({ interrupted: z.boolean() })
-let renamed = false
 
 // Our own ask stands in for opencode's question tool, which this rule takes off the session's tools while YellowCode
 // has the session open.
@@ -205,6 +204,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   // The session itself is gone, so a restart has nothing to connect to.
   let deleted: string | null = null
   let closed = false
+  let renamed = false
   let connects = 0
   let resyncing = false
   let lastAt = 0

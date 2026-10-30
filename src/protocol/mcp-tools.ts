@@ -25,5 +25,9 @@ export async function callClientTool(tools: readonly ClientTool[], params: unkno
   const parsed = toolCall.safeParse(params)
   const tool = parsed.success ? tools.find((entry) => entry.name === parsed.data.name) : undefined
   if (!parsed.success || !tool) return resultOf({ text: "Unknown tool", error: true })
-  return resultOf(await tool.run(parsed.data.arguments ?? {}))
+  try {
+    return resultOf(await tool.run(parsed.data.arguments ?? {}))
+  } catch (error) {
+    return resultOf({ text: error instanceof Error ? error.message : "The tool failed", error: true })
+  }
 }
