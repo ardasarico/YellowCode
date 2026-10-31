@@ -5,8 +5,6 @@ import { yellow } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 
-const GRAY = RGBA.fromHex("#8A8A8A")
-
 // Digits 1-4 are the toes from left to right, X is the pad.
 const PAW = [
   "..22.33..",
@@ -87,19 +85,19 @@ const key = (color: RGBA) => color.toInts().join(",")
 
 const mix = (from: number, to: number) => Math.round(from + (to - from) * 0.7)
 
-// Finished marks lean toward the agent color with a little gray, so they stay quieter than running ones.
+// Finished marks lean toward the agent color with a little of the muted color, so they stay quieter than running ones.
 function tint(color: RGBA): RGBA {
   const [r, g, b] = color.toInts()
-  const [gr, gg, gb] = GRAY.toInts()
+  const [gr, gg, gb] = theme.muted.toInts()
   return RGBA.fromInts(mix(gr, r), mix(gg, g), mix(gb, b))
 }
 
 const checkImage = (color: RGBA, size: Size) =>
-  cached(`check:${key(color)}:${size}`, () => draw(CHECK, tint(color), () => 255, size))
+  cached(`check:${key(color)}:${key(theme.muted)}:${size}`, () => draw(CHECK, tint(color), () => 255, size))
 const crossImage = (color: RGBA, size: Size) =>
   cached(`cross:${key(color)}:${size}`, () => draw(CROSS, color, () => 255, size))
 const stoppedImage = (color: RGBA, size: Size) =>
-  cached(`stopped:${key(color)}:${size}`, () => draw(PAW, tint(color), () => 255, size))
+  cached(`stopped:${key(color)}:${key(theme.muted)}:${size}`, () => draw(PAW, tint(color), () => 255, size))
 
 function pawFrame(color: RGBA, step: number | null, size: Size): NativeImage {
   return cached(`paw:${key(color)}:${step}:${size}`, () =>
