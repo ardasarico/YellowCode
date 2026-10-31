@@ -245,7 +245,7 @@ test("manifest servers become launches, other fields fail the manifest, and an a
     `import { defineMod } from "yellowcode/mod"\nexport default defineMod({ setup() {} })`,
   )
   const mcpServers = {
-    local: { command: "node", args: ["s.js"], env: { A: "b" } },
+    local: { command: "node", args: ["${modDir}/s.js"], env: { A: "b" } },
     remote: { type: "http", url: "https://example.test/mcp", headers: { X: "y" } },
   }
   const manifest = { id: "served", name: "served", version: "1.0.0", api: "^0.2", agents: "any", entry: "index.ts" }
@@ -256,7 +256,7 @@ test("manifest servers become launches, other fields fail the manifest, and an a
   host.discover({ id: "second", name: "Second", caps: { clientTools: "start", mcpServers: "start" } })
   await host.loadAll()
   expect(host.launches()).toEqual([
-    { name: "mod-served--local", command: "node", args: ["s.js"], env: { A: "b" } },
+    { name: "mod-served--local", command: "node", args: [`${join(folder, "served")}/s.js`], env: { A: "b" } },
     { name: "mod-served--remote", url: "https://example.test/mcp", headers: { X: "y" } },
   ])
   host.discover({ id: "third", name: "Third", caps: { clientTools: "start", mcpServers: "none" } })

@@ -196,7 +196,8 @@ export type ModDialogHandle = {
 export type ModDialogs = {
   // The chosen item's id, or null on Esc.
   choose(options: ModChooseOptions): Promise<string | null>
-  confirm(options: ModConfirmOptions): Promise<boolean | null>
+  // true on Enter, null on Esc.
+  confirm(options: ModConfirmOptions): Promise<true | null>
   // The text, or null on Esc.
   input(options: ModInputOptions): Promise<string | null>
   open(options: ModDialogOptions): ModDialogHandle

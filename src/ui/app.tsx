@@ -1672,7 +1672,8 @@ export function App(props: AppProps) {
     else if (command.startsWith("/export ")) void exportTo(command.slice("/export ".length).trim(), false)
     else {
       // Mods see what the user typed, not the commands the agent runs.
-      const message = text.trim() !== "" && !text.trim().startsWith("/")
+      // A path such as /Users/me/x.ts is a message; a command name has no second slash.
+      const message = text.trim() !== "" && !/^\/[^\s/]+(\s|$)/.test(text.trim())
       const changed = message ? beforeSend(text) : text
       if (changed === null) {
         waitNotice("A mod stopped this message")

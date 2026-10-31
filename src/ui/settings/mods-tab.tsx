@@ -203,7 +203,7 @@ function detailItems(entry: ModEntry, width: number, settings: SettingsHandle | 
   const description = manifest?.description
     ? [text("description", [{ text: manifest.description, fg: theme.text }])]
     : []
-  const adds = counts(entry.id)
+  const adds = counts(entry.id, entry.status === "on" ? Object.keys(manifest?.mcpServers ?? {}).length : 0)
   return [
     header(heading, statusSpan(entry)),
     ...description,

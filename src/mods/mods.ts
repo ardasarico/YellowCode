@@ -69,8 +69,8 @@ async function loadFor(agent: ModAgent): Promise<void> {
   if (mods.entries.length > 0) linkRuntime(mods.folder)
   await mods.loadAll()
   stop()
-  if (failed.length === 1) setModNotice({ text: `Mod ${failed[0]} failed · /mods`, problem: true })
-  else if (failed.length > 1) setModNotice({ text: `${failed.length} mods failed · /mods`, problem: true })
+  if (failed.length === 1) setModNotice({ text: `Mod ${failed[0]} did not load · /mods`, problem: true })
+  else if (failed.length > 1) setModNotice({ text: `${failed.length} mods did not load · /mods`, problem: true })
   for (const entry of mods.entries) log.info(`mod ${entry.id}: ${entry.status}`, entry.problem ?? undefined)
 }
 

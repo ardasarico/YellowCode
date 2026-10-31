@@ -21,6 +21,7 @@ import {
   addWrap,
   guarded,
   appBridge,
+  countLoad,
   modDialogs,
   modNotify,
   modTools,
@@ -91,6 +92,15 @@ const launchOf = (name: string, server: McpServer): McpLaunch =>
   "url" in server
     ? { name, url: server.url, headers: server.headers ?? {} }
     : { name, command: server.command, args: server.args ?? [], env: server.env ?? {} }
+
+// A manifest server writes ${modDir} for the mod's own folder, so it can run a script the mod ships.
+function inFolder(server: McpServer, folder: string): McpServer {
+  const fill = (text: string) => text.replaceAll("${modDir}", folder)
+  const values = (record: Record<string, string> | undefined) =>
+    record && Object.fromEntries(Object.entries(record).map(([key, value]) => [key, fill(value)]))
+  if ("url" in server) return { ...server, url: fill(server.url) }
+  return { ...server, command: fill(server.command), args: server.args?.map(fill), env: values(server.env) }
+}
 
 function textOf(result: ModToolResult): { text: string; error: boolean } {
   const { text, isError } = typeof result === "string" ? { text: result, isError: false } : result
@@ -265,6 +275,7 @@ export function createModHost(options: {
     const file = join(entry.folder, entry.manifest.entry)
     const state: Running = { disposers: [], cleanup: null, settings: null }
     running.set(id, state)
+    countLoad(id)
     // Turned off or reloaded while setup was still awaiting.
     const stale = () => running.get(id) !== state
     const own = (disposer: Dispose): Dispose => {
@@ -387,7 +398,7 @@ export function createModHost(options: {
     const servers: Record<string, McpServer> = {}
     // Ids never hold "--", so a manifest server cannot take another mod's name.
     for (const [name, config] of Object.entries(entry.manifest?.mcpServers ?? {}))
-      servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = config
+      servers[`${MOD_SERVER_PREFIX}${id}--${name}`] = inFolder(config, entry.folder)
     return servers
   }
 

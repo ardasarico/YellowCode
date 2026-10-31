@@ -213,7 +213,7 @@ export type ModDialogHandle = {
 }
 export type ModDialogs = {
   choose(options: ModChooseOptions): Promise<string | null>
-  confirm(options: ModConfirmOptions): Promise<boolean | null>
+  confirm(options: ModConfirmOptions): Promise<true | null>
   input(options: ModInputOptions): Promise<string | null>
   open(options: ModDialogOptions): ModDialogHandle
 }

@@ -750,7 +750,8 @@ remote server. Any other field fails the manifest.
 ```
 
 A server name may use letters, digits, `_` and `-`. Each one is given to the agent as `mod-<id>--<name>`, here
-`mod-dice--memory`, while the mod is on. A `command` is not resolved against the mod's folder. If a server cannot
+`mod-dice--memory`, while the mod is on. A `command` is not resolved against the mod's folder; write `${modDir}` for
+it, as in `"args": ["${modDir}/server.ts"]`. It is filled in `command`, `args`, `env` values and `url`. If a server cannot
 connect, `/mods` shows the error on the mod's page. On an agent that takes no MCP servers or tools from YellowCode, a mod
 that adds them does not load, and `/mods` says why. opencode takes a mod's tools but not its MCP servers.
 

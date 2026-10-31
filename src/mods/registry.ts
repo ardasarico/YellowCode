@@ -45,11 +45,20 @@ let failure: (mod: string, error: unknown) => void = (mod, error) => log.warn(`m
 export const onModError = (handler: typeof failure) => (failure = handler)
 export const reportModError = (mod: string, error: unknown) => failure(mod, error)
 
+// Each load of a mod counts up, so a promise its earlier copy left running cannot turn off the one loaded after it.
+const loads = new Map<string, number>()
+export const countLoad = (mod: string) => loads.set(mod, (loads.get(mod) ?? 0) + 1)
+
 // Runs a mod's code; a throw or a rejected promise turns the mod off.
 export function guarded(mod: string, run: () => unknown): void {
+  const load = loads.get(mod)
   try {
     const result = run()
-    if (result instanceof Promise) result.catch((error: unknown) => failure(mod, error))
+    if (result instanceof Promise)
+      result.catch((error: unknown) => {
+        if (loads.get(mod) === load) failure(mod, error)
+        else log.warn(`mod ${mod}: an earlier copy failed`, error)
+      })
   } catch (error) {
     failure(mod, error)
   }
@@ -95,7 +104,7 @@ function paneWords(mod: string): string[] {
   return [...titled, ...count(own.length - titled.length, "pane")]
 }
 
-export function counts(mod: string): string[] {
+export function counts(mod: string, servers = 0): string[] {
   return [
     ...paneWords(mod),
     ...count(commands().filter((command) => command.mod === mod).length, "command"),
@@ -105,6 +114,7 @@ export function counts(mod: string): string[] {
     ...count(rowRenderers().filter((renderer) => renderer.mod === mod).length, "row renderer"),
     ...count(fences().filter((fence) => fence.mod === mod).length, "fence"),
     ...count(wrapCount(mod) + senders().filter((send) => send.mod === mod).length, "override"),
+    ...count(servers, "MCP server"),
   ]
 }
 
@@ -299,13 +309,13 @@ function request(mod: string, what: Request): Promise<unknown> {
 
 const answer = <T>(value: unknown, guard: (value: unknown) => value is T): T | null => (guard(value) ? value : null)
 const isString = (value: unknown): value is string => typeof value === "string"
-const isBoolean = (value: unknown): value is boolean => typeof value === "boolean"
+const isTrue = (value: unknown): value is true => value === true
 
 // The dialogs of one mod, and a dispose that closes the one it has open.
 export function modDialogs(mod: string): { dialogs: ModDialogs; dispose: Dispose } {
   const dialogs: ModDialogs = {
     choose: async (options) => answer(await request(mod, { kind: "choose", options }), isString),
-    confirm: async (options) => answer(await request(mod, { kind: "confirm", options }), isBoolean),
+    confirm: async (options) => answer(await request(mod, { kind: "confirm", options }), isTrue),
     input: async (options) => answer(await request(mod, { kind: "input", options }), isString),
     open(options) {
       const accepted = canShow()
