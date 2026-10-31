@@ -19,7 +19,7 @@ const MESSAGE = z.object({
 
 export const ANSWER = z.union([
   z.object({ ok: z.enum(["run", "queued", "held"]) }),
-  z.object({ error: z.enum(["not-active", "hidden"]) }),
+  z.object({ error: z.enum(["not-active", "hidden", "failed"]) }),
 ])
 
 export type PeerMessage = z.infer<typeof MESSAGE>
@@ -52,7 +52,7 @@ export function openInbox(socket: string, handle: (message: PeerMessage) => Peer
         answer = handle(parsed.data)
       } catch (error) {
         log.error("a peer message failed", error)
-        answer = { error: "not-active" }
+        answer = { error: "failed" }
       }
       connection.end(`${JSON.stringify(answer)}\n`)
     })

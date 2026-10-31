@@ -67,6 +67,25 @@ test("delivers to the current session and refuses stale ids and gone sockets", a
   expect(await deliver(socket, message)).toEqual({ error: "not-active" })
 })
 
+test("a record whose live pid belongs to another process is deleted once its socket refuses", async () => {
+  const dir = join(temp, "reused")
+  openRegistry(state, dir).remove()
+  const other = Bun.spawn(["sleep", "10"])
+  const socket = join(dir, `${other.pid}.sock`)
+  writeFileSync(join(dir, `${other.pid}.json`), JSON.stringify({ ...state, pid: other.pid, socket }))
+
+  expect(listPeers(dir)).toHaveLength(1)
+  await deliver(socket, {
+    from: { id: "s0", title: "a", agent: "claude" },
+    to: "s1",
+    broadcast: false,
+    text: "",
+    images: [],
+  })
+  expect(listPeers(dir)).toEqual([])
+  other.kill()
+})
+
 test("two sessions share a project when either folder holds the other", () => {
   expect(sameProject("/r", "/r/client")).toBe(true)
   expect(sameProject("/r/client", "/r")).toBe(true)

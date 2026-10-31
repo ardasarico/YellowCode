@@ -162,7 +162,11 @@ async function bodyOf(input: z.infer<typeof BROADCAST>, cwd: string, context: Pe
 // One line per target: `<title> (<agent>, <id>): <status>`, which the chat reads back with readResultLine.
 function answerText(peer: PeerRecord, answer: PeerAnswer): string {
   const name = `${oneLine(peer.title) || basename(peer.cwd)} (${peer.agent}, ${peer.session})`
-  if ("error" in answer) return `${name}: ${answer.error === "hidden" ? "takes no messages." : "not active."}`
+  if ("error" in answer) {
+    if (answer.error === "hidden") return `${name}: takes no messages.`
+    if (answer.error === "failed") return `${name}: is open but could not take your message; you may try again.`
+    return `${name}: not active.`
+  }
   if (answer.ok === "run") return `${name}: delivered, it runs your message now.`
   if (answer.ok === "queued") return `${name}: delivered, it runs your message once its current turn ends.`
   return `${name}: delivered, it waits for its user to approve your message.`

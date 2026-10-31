@@ -37,6 +37,12 @@ function removeFiles(dir: string, pid: number): void {
   rmSync(join(dir, `${pid}.sock`), { force: true })
 }
 
+// For a session whose socket refuses: its pid may now belong to another process, which keeps the record looking alive.
+export function forgetPeer(socket: string): void {
+  rmSync(socket.replace(/\.sock$/, ".json"), { force: true })
+  rmSync(socket, { force: true })
+}
+
 export function openRegistry(start: PeerState, dir = defaultPeersDir()): Registry {
   ensureDir(dir)
   const pid = process.pid

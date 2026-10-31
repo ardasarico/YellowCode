@@ -1,6 +1,7 @@
 import { createConnection } from "node:net"
 import { parseJson } from "../json.ts"
 import { ANSWER, type PeerAnswer, type PeerMessage } from "./inbox.ts"
+import { forgetPeer } from "./registry.ts"
 
 const TIMEOUT_MS = 5000
 const NOT_ACTIVE: PeerAnswer = { error: "not-active" }
@@ -18,7 +19,10 @@ export function deliver(socket: string, message: PeerMessage, timeoutMs = TIMEOU
     }
     const connection = createConnection(socket)
     connection.setTimeout(timeoutMs, () => finish(NOT_ACTIVE))
-    connection.on("error", () => finish(NOT_ACTIVE))
+    connection.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ECONNREFUSED" || error.code === "ENOENT") forgetPeer(socket)
+      finish(NOT_ACTIVE)
+    })
     connection.on("close", () => finish(NOT_ACTIVE))
     connection.on("data", (chunk: Buffer) => {
       reply += chunk.toString("utf8")
