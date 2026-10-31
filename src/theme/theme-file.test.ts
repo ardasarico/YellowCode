@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test"
-import { mkdtempSync, writeFileSync } from "node:fs"
+import { mkdtempSync, readdirSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { basename, join } from "node:path"
+import { BUILT_IN_THEMES } from "./built-in.ts"
 import { readThemes } from "./theme-file.ts"
 
 const dusk = readThemes(mkdtempSync(join(tmpdir(), "yellowcode-themes-"))).find(
@@ -41,4 +42,9 @@ test("a wrong kind of value is not called missing", () => {
     ["name", "name is not text"],
     ["none", "dark: needs dark or light"],
   ])
+})
+
+test("every file in themes/ is a built-in theme", () => {
+  const files = readdirSync(join(import.meta.dir, "../../themes")).map((name) => basename(name, ".json"))
+  expect(BUILT_IN_THEMES.map(({ id }) => id).toSorted()).toEqual(files.toSorted())
 })

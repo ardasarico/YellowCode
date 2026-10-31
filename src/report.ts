@@ -1,4 +1,5 @@
 import type { TerminalCapabilities } from "@opentui/core"
+import { buildCommit } from "./build-info.ts"
 import { readFileSync } from "node:fs"
 import { cpus, homedir, release, totalmem, type, userInfo } from "node:os"
 import { basename, join } from "node:path"
@@ -60,7 +61,7 @@ export type AgentVersion = { name: string; version: string | null }
 
 // What the machine, Bun and this checkout say, the same in a shell and in the app.
 export function hostFacts(agents: AgentVersion[]): Row[] {
-  const commit = run(["git", "rev-parse", "--short", "HEAD"], join(import.meta.dir, ".."))
+  const commit = buildCommit ?? run(["git", "rev-parse", "--short", "HEAD"], join(import.meta.dir, ".."))
   const shell = process.env["SHELL"] ? basename(process.env["SHELL"]) : null
   const locale = process.env["LC_ALL"] || process.env["LC_CTYPE"] || process.env["LANG"]
   return [

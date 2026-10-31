@@ -95,7 +95,8 @@ async function installDependencies(tree: string): Promise<void> {
       "--omit=peer",
       "--config=/dev/null",
     ],
-    { cwd: tree, stdin: "ignore", stdout: "ignore", stderr: "pipe" },
+    // BUN_BE_BUN makes a standalone binary act as bun; plain bun ignores it.
+    { cwd: tree, env: { ...process.env, BUN_BE_BUN: "1" }, stdin: "ignore", stdout: "ignore", stderr: "pipe" },
   )
   const [code, stderr] = await Promise.all([install.exited, new Response(install.stderr).text()])
   if (code !== 0) throw new Error(`bun install failed: ${stderr.trim().split("\n").at(-1) ?? ""}`)

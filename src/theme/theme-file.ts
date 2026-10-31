@@ -3,6 +3,7 @@ import { basename, join } from "node:path"
 import { z } from "zod"
 import { configPath } from "../config-path.ts"
 import { parseJson } from "../json.ts"
+import { BUILT_IN_THEMES } from "./built-in.ts"
 import type { ThemeColors, ThemeDefinition } from "./theme.ts"
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/)
@@ -83,11 +84,14 @@ export function readTheme(path: string, source: ThemeSource): ThemeEntry {
   }
   const json = parseJson(text)
   if (!json.ok) return { id, name: id, source, definition: null, problem: "is not valid JSON" }
-  const name = typeof json.value === "object" && json.value !== null && "name" in json.value ? json.value.name : id
+  return themeEntry(id, json.value, source)
+}
+
+export function themeEntry(id: string, value: unknown, source: ThemeSource): ThemeEntry {
+  const name = typeof value === "object" && value !== null && "name" in value ? value.name : id
   const shown = typeof name === "string" && name !== "" ? name : id
-  const parsed = ThemeFile.safeParse(json.value)
-  if (!parsed.success)
-    return { id, name: shown, source, definition: null, problem: problemOf(parsed.error, json.value) }
+  const parsed = ThemeFile.safeParse(value)
+  if (!parsed.success) return { id, name: shown, source, definition: null, problem: problemOf(parsed.error, value) }
   const { name: themeName, dark, light } = parsed.data
   return { id, name: themeName, source, definition: { id, name: themeName, dark, light }, problem: null }
 }
@@ -105,11 +109,9 @@ function readFolder(folder: string, source: ThemeSource): ThemeEntry[] {
     .map((name) => readTheme(join(folder, name), source))
 }
 
-export const BUILT_IN_FOLDER = join(import.meta.dir, "../../themes")
-
 // The built-in themes, then the user's; a user theme may not take a built-in theme's id.
 export function readThemes(userFolder = configPath("themes")): ThemeEntry[] {
-  const builtIn = readFolder(BUILT_IN_FOLDER, "built-in")
+  const builtIn = BUILT_IN_THEMES.map(({ id, json }) => themeEntry(id, json, "built-in"))
   const taken = new Set(builtIn.map((entry) => entry.id))
   const user = readFolder(userFolder, "user").map((entry): ThemeEntry =>
     taken.has(entry.id) || entry.id === "terminal"

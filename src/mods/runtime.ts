@@ -1,6 +1,8 @@
 import { lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
+import { compiled } from "../build-info.ts"
 import { log } from "../log/log.ts"
+import { installModLoader } from "./compiled-loader.ts"
 
 const REPO = resolve(import.meta.dir, "../..")
 
@@ -24,6 +26,7 @@ function linkTarget(path: string): string | null | undefined {
 }
 
 export function linkRuntime(modsFolder: string): void {
+  if (compiled) return installModLoader(modsFolder)
   for (const [name, target] of LINKS) {
     const path = join(modsFolder, "node_modules", name)
     const current = linkTarget(path)

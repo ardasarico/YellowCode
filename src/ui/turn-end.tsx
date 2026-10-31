@@ -1,7 +1,10 @@
 import { overridable } from "../mods/overridable.tsx"
 import { NativeImage } from "@opentui/core"
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import sparkPng from "../../assets/claude-spark.png" with { type: "file" }
+import codexPng from "../../assets/codex-mark.png" with { type: "file" }
+import ocDarkPng from "../../assets/opencode-mark-dark.png" with { type: "file" }
+import ocLightPng from "../../assets/opencode-mark-light.png" with { type: "file" }
 import { createContext, createSignal, Match, Show, Switch, useContext } from "solid-js"
 import type { TurnEnd } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -10,13 +13,13 @@ import { blank, onBackground, trackImage } from "./images.ts"
 
 // Each mark belongs to the agent's maker and is shown only to say which agent answered. YellowCode is not a product of
 // Anthropic, OpenAI or opencode.
-const asset = (name: string) => NativeImage.decode(readFileSync(join(import.meta.dir, "..", "..", "assets", name)))
-const SPARK = asset("claude-spark.png")
-const CODEX = asset("codex-mark.png")
+const asset = (path: string) => NativeImage.decode(readFileSync(path))
+const SPARK = asset(sparkPng)
+const CODEX = asset(codexPng)
 const MARKS: Record<string, { dark: NativeImage; light: NativeImage }> = {
   claude: { dark: SPARK, light: SPARK },
   codex: { dark: CODEX, light: CODEX },
-  opencode: { dark: asset("opencode-mark-dark.png"), light: asset("opencode-mark-light.png") },
+  opencode: { dark: asset(ocDarkPng), light: asset(ocLightPng) },
 }
 
 // The id of the agent whose chat this is.
