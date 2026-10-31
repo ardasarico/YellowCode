@@ -64,7 +64,8 @@ async function held(file: string): Promise<boolean> {
 
 // The client checks the service with fetch, and Bun's fetch sends even loopback requests through HTTP_PROXY, with the
 // password in the header. For the call only, loopback is added to NO_PROXY; the env is put back afterwards. A service
-// started meanwhile gets the user's own values (empty when unset, which proxies read the same way).
+// started meanwhile gets the user's own values (empty when unset, which proxies read the same way). Any other child
+// spawned during the call inherits the loopback entry, which only means it reaches loopback without the proxy.
 async function withoutLoopbackProxy<T>(run: (userEnv: Record<string, string>) => Promise<T>): Promise<T> {
   const saved = { NO_PROXY: process.env["NO_PROXY"], no_proxy: process.env["no_proxy"] }
   const current = saved.NO_PROXY ?? saved.no_proxy ?? ""
