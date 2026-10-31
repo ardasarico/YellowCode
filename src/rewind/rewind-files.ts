@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { mkdirSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { log } from "../log/log.ts"
 import type { ItemId, Session } from "../session/types.ts"
@@ -59,15 +59,18 @@ const prompts = (session: Session) =>
 
 const lastAfter = (state: Rewinds) => state.done.findLast((one) => one.after)?.after ?? null
 
-// Paths a nested repository or an unreadable folder made since the target, which no change names and no restore
-// touches.
+// Paths no change names and no restore touches: ones a nested repository, an unreadable folder or a file too big to
+// store made since the target, and ones the target could not read that are gone now.
 async function unknownLeft(snapshots: Snapshots, target: Taken, after: Taken, listed: Set<string>) {
   const fresh = after.unknown.filter((path) => !covers(target.unknown, path) && !listed.has(path))
   const inTarget = await snapshots.entries(
     target.tree,
     fresh.map((path) => path.replace(/\/$/, "")),
   )
-  return fresh.filter((path) => !inTarget.has(path.replace(/\/$/, "")))
+  const gone = target.unknown.filter(
+    (path) => !covers(after.unknown, path) && !listed.has(path) && !existsSync(join(snapshots.root, path)),
+  )
+  return [...fresh.filter((path) => !inTarget.has(path.replace(/\/$/, ""))), ...gone]
 }
 
 export function createFileRewind(capture: Capture | null, cwd: string): FileRewind {

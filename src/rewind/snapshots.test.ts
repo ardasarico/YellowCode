@@ -159,9 +159,9 @@ test("the home directory itself is not tracked", async () => {
   expect(await openSnapshots(home)).toBeNull()
 })
 
-test("an untracked file over 2 MB is never stored, also when it grows past the limit later", async () => {
+test("an untracked file over 10 MB is never stored, also when it grows past the limit later", async () => {
   const dir = folder({ "a.txt": "a\n" }, true)
-  const big = new Uint8Array(3 * 1024 * 1024)
+  const big = new Uint8Array(11 * 1024 * 1024)
   writeFileSync(join(dir, "big.bin"), big)
   writeFileSync(join(dir, "grows.log"), "small\n")
   const snapshots = await opened(dir)
@@ -192,18 +192,18 @@ test("a nested repository with nothing committed is left out as unknown and does
   expect((await snapshots.entries(after, ["newapp"])).get("newapp")?.mode).toBe("160000")
 })
 
-test("a file git cannot read is listed as unknown, untracked or with an edit, beside a big file left out on purpose", async () => {
+test("a file git cannot read is listed as unknown, untracked or with an edit, and so is a big file left out", async () => {
   const dir = folder({ "a.txt": "a\n", "tracked.txt": "committed\n" }, true)
   writeFileSync(join(dir, "tracked.txt"), "edit\n")
   writeFileSync(join(dir, "secret.txt"), "existed before\n")
-  writeFileSync(join(dir, "big.bin"), new Uint8Array(3 * 1024 * 1024))
+  writeFileSync(join(dir, "big.bin"), new Uint8Array(11 * 1024 * 1024))
   chmodSync(join(dir, "tracked.txt"), 0o000)
   chmodSync(join(dir, "secret.txt"), 0o000)
   try {
     const snapshots = await opened(dir)
     const snapshot = await snapshots.take("unreadable")
 
-    expect(snapshot?.unknown.toSorted()).toEqual(["secret.txt", "tracked.txt"])
+    expect(snapshot?.unknown.toSorted()).toEqual(["big.bin", "secret.txt", "tracked.txt"])
   } finally {
     chmodSync(join(dir, "tracked.txt"), 0o644)
     chmodSync(join(dir, "secret.txt"), 0o644)

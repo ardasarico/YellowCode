@@ -25,8 +25,8 @@ import { alive, type GitRun, gitEnv, runGit } from "./common.ts"
 // Paths are relative to `root`, with `/` separators, as git prints them.
 export type Change = { path: string; status: "A" | "D" | "M" | "T"; plus: number | null; minus: number | null }
 export type TreeEntry = { mode: string; sha: string }
-// `unknown` lists the paths git could not read: the snapshot does not hold what was on disk there. A path ending in
-// "/" stands for everything under it.
+// `unknown` lists the paths git could not read or left out for size: the snapshot does not hold what was on disk there.
+// A path ending in "/" stands for everything under it.
 export type Taken = { tree: string; unknown: string[] }
 
 export type Snapshots = {
@@ -56,7 +56,7 @@ export type Planted = { path: string; source: string; mode: "100644" | "100755" 
 type Project = { root: string; gitDir: string; commonDir: string; format: string }
 
 const FIRST_LISTING_MS = 3000
-const UNTRACKED_LIMIT = 2 * 1024 * 1024
+const UNTRACKED_LIMIT = 10 * 1024 * 1024
 const DEPENDENCY_FOLDERS = ["node_modules/", ".venv/", "venv/", "__pycache__/", "target/", ".gradle/"]
 const ATTRIBUTES = "* -text -filter -ident -working-tree-encoding\n"
 const CONFIG = "[gc]\n\tauto = 0\n[core]\n\tautocrlf = false\n"
@@ -233,6 +233,8 @@ export async function openSnapshots(cwd: string, onOff?: (reason: string) => voi
   const work = join(store, `index-${process.pid}`)
   const index = join(work, "index")
   const exclude = join(gitDir, "info", "exclude")
+  // The untracked files left out for size, one per line, which every snapshot names as unknown while they are there.
+  const bigList = join(store, "big")
   const own = gitEnv({ GIT_DIR: gitDir, GIT_WORK_TREE: root, GIT_INDEX_FILE: index })
   // Git refreshes the mtime of an object it would write that an alternate already holds, which would touch the
   // project's .git. So the project's objects are borrowed only by commands that write none.
@@ -320,6 +322,10 @@ export async function openSnapshots(cwd: string, onOff?: (reason: string) => voi
     appendLines(
       exclude,
       big.flatMap((path) => excludeLine(path) ?? []),
+    )
+    appendLines(
+      bigList,
+      big.filter((path) => !path.includes("\n")),
     )
     await forget(big)
     // ls-files shows a nested repository as its folder with a trailing slash.
@@ -575,8 +581,12 @@ export async function openSnapshots(cwd: string, onOff?: (reason: string) => voi
     await forget(big)
     if (unreadable)
       for (const path of await unread(new Set([...big, ...nested, ...repos, ...kept]))) unknownPaths.add(path)
+    if (unknownPaths.size > 0)
+      log.warn("snapshot could not read some files", { id, unknown: [...unknownPaths].slice(0, 20) })
+    for (const path of new Set([...linesOf(bigList), ...big]))
+      if (path !== "" && !tracked.has(path) && lstatSync(join(root, path), { throwIfNoEntry: false })?.isFile())
+        unknownPaths.add(path)
     const unknown = [...unknownPaths]
-    if (unknown.length > 0) log.warn("snapshot could not read some files", { id, unknown: unknown.slice(0, 20) })
     // Blobs of unchanged files stay in the project only, which a run without its objects counts as missing.
     const tree = await run(["write-tree", "--missing-ok"], { writes: true })
     if (tree.code !== 0) throw failed("write-tree", tree)

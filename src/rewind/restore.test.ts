@@ -220,13 +220,13 @@ test("nothing is deleted inside a folder the target holds as a nested repository
   ])
 })
 
-test("a file that grew past 2 MB in the turn is kept", async () => {
+test("a file that grew past 10 MB in the turn is kept", async () => {
   const { dir, snapshots } = await project({ "a.txt": "a\n" })
   writeFileSync(join(dir, "big.log"), "small\n")
-  const undone = await turn(snapshots, () => writeFileSync(join(dir, "big.log"), new Uint8Array(3 * 1024 * 1024)))
+  const undone = await turn(snapshots, () => writeFileSync(join(dir, "big.log"), new Uint8Array(11 * 1024 * 1024)))
 
   expect((await rewind(snapshots, [undone])).kept).toEqual([{ path: "big.log", reason: "changed just now" }])
-  expect(lstatSync(join(dir, "big.log")).size).toBe(3 * 1024 * 1024)
+  expect(lstatSync(join(dir, "big.log")).size).toBe(11 * 1024 * 1024)
 })
 
 test("a file the user changed after Claude is restored too", async () => {
