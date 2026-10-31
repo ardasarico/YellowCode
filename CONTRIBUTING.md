@@ -58,6 +58,10 @@ recorded session that shows them.
   login and cost nothing. The recordings go to `fixtures/codex/` and `fixtures/opencode/`. `--check` records again and
   compares the result with the committed one.
 
+Tests compare replays of these recordings with the expected results in `fixtures/goldens/`. When a change alters them
+on purpose, run the tests with `UPDATE_GOLDENS=1` (Claude Code), `UPDATE_CODEX_GOLDENS=1` or `UPDATE_OPENCODE_GOLDENS=1`
+to write them again, and read the diff before you commit.
+
 ## Commits and pull requests
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject`, for
