@@ -2,6 +2,7 @@
 // `server.connected`. The service counts as gone once the stream has failed to come back for GONE_MS and
 // `/api/info` fails too.
 import { log } from "../../log/log.ts"
+import { LineTooLong } from "../../source/lines.ts"
 import type { Transport } from "./transport.ts"
 
 export type Clock = { now(): number; sleep(ms: number, signal: AbortSignal): Promise<void> }
@@ -53,6 +54,10 @@ export async function* eventStream(
       }
     } catch (error) {
       log.warn("opencode: the event stream broke", error instanceof Error ? error.message : "")
+      if (error instanceof LineTooLong) {
+        yield { type: "gone" }
+        return
+      }
     }
     if (signal.aborted) return
     downSince ??= clock.now()

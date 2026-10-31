@@ -4,6 +4,7 @@
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
 import { log } from "../../log/log.ts"
+import { LINE_LIMIT } from "../../source/lines.ts"
 
 export type Exit = { code: number | null; signal: string | null }
 
@@ -117,6 +118,11 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
         if (line === "") continue
         const json = parseJson(line)
         lines.push(json.ok ? json.value : line)
+      }
+      if (buffer.length > LINE_LIMIT) {
+        log.warn("codex wrote a line over the limit", { limit: LINE_LIMIT })
+        child.kill("SIGKILL")
+        break
       }
     }
     lines.end()

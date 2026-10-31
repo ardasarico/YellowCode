@@ -4,7 +4,7 @@ import { log } from "../log/log.ts"
 import type { SessionEnd } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
 import { hostEnv, KILL_AFTER_MS } from "./claude-cli.ts"
-import { splitLines } from "./lines.ts"
+import { LineTooLong, splitLines } from "./lines.ts"
 import type { Source, SourceEvent } from "./source.ts"
 
 // `closed` is true when the process ended after close() was called.
@@ -65,7 +65,10 @@ export function createClaudeSource(cwd: string, running: () => boolean, command:
   const output = (async () => {
     for await (const line of splitLines(proc.stdout)) push({ dir: "in", line, at: Date.now() })
   })()
-    .catch((error: unknown) => log.warn("cannot read claude output", error))
+    .catch((error: unknown) => {
+      log.warn("cannot read claude output", error)
+      if (error instanceof LineTooLong) stop()
+    })
     .finally(() => {
       reading = false
       wake?.()

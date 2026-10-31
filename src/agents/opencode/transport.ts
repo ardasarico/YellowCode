@@ -3,6 +3,7 @@ import { request as httpsRequest } from "node:https"
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
 import { log } from "../../log/log.ts"
+import { LINE_LIMIT, LineTooLong } from "../../source/lines.ts"
 
 export type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE"
 export type Query = Record<string, string>
@@ -75,6 +76,7 @@ export function createSseParser(): (chunk: string) => SseFrame[] {
       if (data.length === 0) continue
       frames.push({ name: field("event").at(-1) ?? null, data: bodyOf(data.join("\n")) })
     }
+    if (buffer.length > LINE_LIMIT) throw new LineTooLong()
     return frames
   }
 }
@@ -130,6 +132,7 @@ async function* framesOf(response: IncomingMessage, signal?: AbortSignal): Async
   try {
     for await (const chunk of response) yield* parse(String(chunk))
   } catch (error) {
+    if (error instanceof LineTooLong) throw error
     if (!signal?.aborted) throw new Error("opencode: the event stream broke", { cause: error })
   } finally {
     response.destroy()
