@@ -62,6 +62,12 @@ Tests compare replays of these recordings with the expected results in `fixtures
 on purpose, run the tests with `UPDATE_GOLDENS=1` (Claude Code), `UPDATE_CODEX_GOLDENS=1` or `UPDATE_OPENCODE_GOLDENS=1`
 to write them again, and read the diff before you commit.
 
+## Builds and releases
+
+`bun run build` makes the standalone binaries for macOS and Linux in `dist/`, and `bun run build:check` checks that a
+mod loads in the one for your machine. Releases are made by the maintainer with `bun run release beta` and
+`bun run release stable`.
+
 ## Commits and pull requests
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): subject`, for

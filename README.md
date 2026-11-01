@@ -26,12 +26,12 @@ curl -fsSL https://raw.githubusercontent.com/ardasarico/YellowCode/main/install.
 npm i -g yellowcode
 bun add -g yellowcode
 pnpm add -g yellowcode
-yarn global add yellowcode
 brew install ardasarico/tap/yellowcode   # macOS and Linux
 ```
 
 Then run `yellowcode` in your project. You need macOS or Linux and a [supported agent](#supported-agents), installed
-and logged in. See [Usage](docs/usage.md) for the rest.
+and logged in. YellowCode keeps itself up to date. For the beta, run the install script with `bash -s beta` or install
+`yellowcode@beta`. See [Usage](docs/usage.md) for the rest.
 
 > [!TIP]
 > We recommend [Ghostty](https://ghostty.org). Images in the chat need a terminal that can draw them, such as Ghostty or

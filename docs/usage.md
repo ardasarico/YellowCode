@@ -112,16 +112,33 @@ other machines do not.
 - Rewind snapshots: `~/.local/share/yellowcode/snapshots/`, following `XDG_DATA_HOME`. These are copies of files from
   your projects. Snapshots older than 30 days are deleted. When YellowCode starts with Claude Code, it uses Claude Code's
   `cleanupPeriodDays` instead.
-- The mod list: `~/.cache/yellowcode/mods.json`, following `XDG_CACHE_HOME`.
+- The mod list and the release list: `~/.cache/yellowcode/mods.json` and `update.json`, following `XDG_CACHE_HOME`.
+- Updates: `~/.yellowcode/` keeps the state of the last update (`update-state.json`, `update-hold.json`). The install
+  script also puts its versions in `~/.yellowcode/versions/` and notes its channel in `~/.yellowcode/install.json`.
 
 Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex
 and opencode's own service for opencode. `/resume` lists the sessions of every installed agent.
 
 ## Updating and uninstalling
 
-Update YellowCode with the tool you installed it with, for example `npm i -g yellowcode@latest` or
-`brew upgrade yellowcode`, or run the install script again.
+YellowCode updates itself in the background, however you installed it. It looks for a new version when it starts and
+once a day while it runs, installs it, and the new version runs from the next start. When an update cannot be
+installed, for example because npm's global folder needs `sudo`, a note in the bottom right shows the command to run
+by hand until the update goes through.
 
-To remove it, uninstall it the same way, then delete the folders listed in [Files it writes](#files-it-writes):
-`~/.config/yellowcode`, `~/.yellowcode`, `~/.local/share/yellowcode` and `~/.cache/yellowcode`. Your agent and its
-sessions are not touched.
+There are two channels: Stable and Beta. Pick one in `/settings` under Updates. Beta also gets every stable release.
+Moving back to Stable keeps the beta you have until a stable release is newer. Homebrew has Stable only; for the beta,
+use the install script or a package manager.
+
+`yellowcode update` installs the newest version now. `yellowcode update 0.2.1` switches to that version. After going
+back to an older version, YellowCode does not install the one you left again, and updates go on once a newer one is
+out. Set `YELLOWCODE_DISABLE_AUTOUPDATE=1` to turn the background updates off; `yellowcode update` still works.
+
+To remove YellowCode, uninstall it the way you installed it:
+
+- Install script: `rm ~/.local/bin/yellowcode` and `rm -rf ~/.yellowcode/versions`
+- npm, bun or pnpm: `npm uninstall -g yellowcode`, `bun remove -g yellowcode` or `pnpm remove -g yellowcode`
+- Homebrew: `brew uninstall yellowcode`
+
+Then delete the folders listed in [Files it writes](#files-it-writes): `~/.config/yellowcode`, `~/.yellowcode`,
+`~/.local/share/yellowcode` and `~/.cache/yellowcode`. Your agent and its sessions are not touched.
