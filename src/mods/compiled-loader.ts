@@ -1,8 +1,8 @@
 import { isCoreRuntimeModuleSpecifier, runtimeModuleIdForSpecifier } from "@opentui/core/runtime-plugin"
 import { ensureRuntimePluginSupport } from "@opentui/solid/runtime-plugin-support/configure"
 import { plugin } from "bun"
-import { realpathSync } from "node:fs"
-import { dirname } from "node:path"
+import { readdirSync, realpathSync } from "node:fs"
+import { dirname, join } from "node:path"
 import * as solidWeb from "solid-js/web"
 
 // In a standalone binary there is no node_modules to link to. Mods instead get YellowCode's own Solid, OpenTUI and
@@ -57,7 +57,16 @@ let installed = false
 export function installModLoader(modsFolder: string): void {
   if (installed) return
   installed = true
-  const folders = [...new Set([modsFolder, realpathSync(modsFolder)])].map(escape).join("|")
+  // A mod folder may be a link to where its author works on it; its files load from there.
+  const roots = new Set([modsFolder, realpathSync(modsFolder)])
+  for (const name of readdirSync(modsFolder)) {
+    try {
+      roots.add(realpathSync(join(modsFolder, name)))
+    } catch {
+      // A broken link: that mod fails on its own.
+    }
+  }
+  const folders = [...roots].map(escape).join("|")
   plugin({
     name: "yellowcode-mods",
     setup(build) {

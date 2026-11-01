@@ -1,5 +1,5 @@
 // Builds the binary for this machine and checks that a mod loads with YellowCode's own Solid: bun run build:check
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import packageJson from "../package.json"
@@ -9,7 +9,9 @@ const host = PLATFORMS.find((platform) => platform === `${process.platform}-${pr
 if (!host) throw new Error(`no build target for ${process.platform}-${process.arch}`)
 
 const home = mkdtempSync(join(tmpdir(), "yellowcode-build-check-"))
-const mod = join(home, "yellowcode", "mods", "probe")
+// The mod is written outside the mods folder, then copied in once and linked in once, the way an author works on one.
+const mod = join(home, "work", "probe")
+const installed = join(home, "yellowcode", "mods", "probe")
 const result = join(home, "result.json")
 
 function write(path: string, text: string): void {
@@ -65,25 +67,37 @@ const tty =
   process.platform === "darwin"
     ? ["script", "-q", "/dev/null", ...command]
     : ["script", "-qec", command.join(" "), "/dev/null"]
-const run = Bun.spawn(tty, {
-  env: { ...process.env, XDG_CONFIG_HOME: home, YELLOWCODE_LOG_DIR: join(home, "logs") },
-  stdin: Bun.file("/dev/null"),
-  stdout: "ignore",
-  stderr: "ignore",
-})
-const timer = setTimeout(() => run.kill(), 30_000)
-await run.exited
-clearTimeout(timer)
-
-let same: string | null
-try {
-  same = readFileSync(result, "utf8")
-} catch {
-  same = null
+async function load(how: "copied" | "linked"): Promise<string | null> {
+  rmSync(installed, { recursive: true, force: true })
+  rmSync(result, { force: true })
+  mkdirSync(resolve(installed, ".."), { recursive: true })
+  if (how === "copied") cpSync(mod, installed, { recursive: true })
+  else symlinkSync(mod, installed)
+  const run = Bun.spawn(tty, {
+    env: { ...process.env, XDG_CONFIG_HOME: home, YELLOWCODE_LOG_DIR: join(home, "logs") },
+    stdin: Bun.file("/dev/null"),
+    stdout: "ignore",
+    stderr: "ignore",
+  })
+  const timer = setTimeout(() => run.kill(), 30_000)
+  await run.exited
+  clearTimeout(timer)
+  try {
+    return readFileSync(result, "utf8")
+  } catch {
+    return null
+  }
 }
+
+const copied = await load("copied")
+const linked = await load("linked")
 rmSync(home, { recursive: true, force: true })
-if (same !== "true") {
-  console.error(same === "false" ? "the mod got a second Solid" : "the mod did not load in the binary")
+for (const [how, same] of [
+  ["copied", copied],
+  ["linked", linked],
+] as const) {
+  if (same === "true") continue
+  console.error(`${how} mod: ${same === "false" ? "it got a second Solid" : "it did not load in the binary"}`)
   process.exit(1)
 }
-console.log(`${binary}: the mod loaded with the app's Solid`)
+console.log(`${binary}: a copied and a linked mod loaded with the app's Solid`)
