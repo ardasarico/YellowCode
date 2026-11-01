@@ -9,12 +9,14 @@ import { parseArgs } from "node:util"
 import packageJson from "../package.json"
 import { type Channels, parseChannels, type Platform, type Release } from "../src/update/channels.ts"
 import { build, bundleHash, DIST, PLATFORMS } from "./build.ts"
+import { thirdPartyLicenses } from "./licenses.ts"
 import { formula, writeNpmPackages } from "./packages.ts"
 
 const REPO = resolve(import.meta.dir, "..")
 const GITHUB = "ardasarico/YellowCode"
 const TAP = "ardasarico/homebrew-tap"
 const CHANNELS_FILE = "release/channels.json"
+const LICENSES = "THIRD_PARTY_LICENSES.txt"
 
 function git(...args: string[]): string {
   return run(["git", ...args], REPO)
@@ -93,6 +95,8 @@ async function pack(
     const inner = join(folder, platform)
     mkdirSync(inner)
     cpSync(join(DIST, `yellowcode-${platform}`), join(inner, "yellowcode"))
+    cpSync(join(REPO, "LICENSE"), join(inner, "LICENSE"))
+    writeFileSync(join(inner, LICENSES), thirdPartyLicenses(join(DIST, ".stage", platform)))
     const name = `yellowcode-${platform}.tar.gz`
     // No owner names or macOS attributes in the archive: it is public, and Linux tar warns about the attributes.
     run(
@@ -113,6 +117,8 @@ async function pack(
         "-C",
         inner,
         "yellowcode",
+        "LICENSE",
+        LICENSES,
       ],
       REPO,
     )

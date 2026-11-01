@@ -3,10 +3,12 @@ import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { Platform, Release } from "../src/update/channels.ts"
 import { DIST, PLATFORMS } from "./build.ts"
+import { thirdPartyLicenses } from "./licenses.ts"
 
 const GITHUB = "ardasarico/YellowCode"
 const LICENSE = join(import.meta.dir, "..", "LICENSE")
 const DESCRIPTION = "Terminal UI for coding agents"
+const LICENSES = "THIRD_PARTY_LICENSES.txt"
 const COMMON = {
   description: DESCRIPTION,
   license: "GPL-3.0-only",
@@ -71,9 +73,10 @@ export function writeNpmPackages(version: string): string[] {
       description: `${DESCRIPTION}: the ${platform} binary of the yellowcode package`,
       os: [OS_CPU[platform].os],
       cpu: [OS_CPU[platform].cpu],
-      files: ["bin/yellowcode", "LICENSE"],
+      files: ["bin/yellowcode", "LICENSE", LICENSES],
     }
     writePackage(folder, manifest, { from: join(DIST, `yellowcode-${platform}`) })
+    writeFileSync(join(folder, LICENSES), thirdPartyLicenses(join(DIST, ".stage", platform)))
     return folder
   })
   const main = join(root, "yellowcode")
@@ -123,6 +126,7 @@ ${block("linux-x64")}
 
   def install
     bin.install "yellowcode"
+    prefix.install "LICENSE", "${LICENSES}"
   end
 
   test do
