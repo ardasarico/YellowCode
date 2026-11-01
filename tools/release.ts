@@ -9,9 +9,11 @@ import { parseArgs } from "node:util"
 import packageJson from "../package.json"
 import { type Channels, parseChannels, type Platform, type Release } from "../src/update/channels.ts"
 import { build, bundleHash, DIST, PLATFORMS } from "./build.ts"
+import { formula, writeNpmPackages } from "./packages.ts"
 
 const REPO = resolve(import.meta.dir, "..")
 const GITHUB = "ardasarico/YellowCode"
+const TAP = "ardasarico/homebrew-tap"
 const CHANNELS_FILE = "release/channels.json"
 
 function git(...args: string[]): string {
@@ -183,12 +185,27 @@ const { files, assets } = await pack(version, channel, source)
 const tag = `v${version}`
 const release: Release = { version, commit, bundle, assets }
 const next: Channels = { ...channels, [channel]: release }
+const npmFolders = writeNpmPackages(version)
+const formulaFile = join(DIST, "brew", "yellowcode.rb")
+mkdirSync(join(DIST, "brew"), { recursive: true })
+writeFileSync(formulaFile, formula(release))
+// npm and the tap are public, so they wait for the repo to be public too; a private release only reaches people with
+// access to the repo.
+const isPublic = run(["gh", "repo", "view", GITHUB, "--json", "visibility", "-q", ".visibility"], REPO) === "PUBLIC"
+const npmTag = channel === "beta" ? "beta" : "latest"
+if (isPublic && !dryRun && Bun.spawnSync(["npm", "whoami"]).exitCode !== 0) fail("log in to npm first (npm login)")
 
 steps.push(
   `tag ${tag} on ${commit.slice(0, 7)}`,
   channel === "beta" ? "push main and the tag to origin" : "push the tag to origin",
   `publish the GitHub ${channel === "beta" ? "prerelease" : "release"} ${tag} with ${files.length} files`,
   `point ${channel} at ${tag} in ${CHANNELS_FILE}, commit and push it`,
+  isPublic
+    ? `publish ${npmFolders.length} npm packages under the ${npmTag} tag`
+    : `skip npm: the repo is private (packages are in dist/npm)`,
+  ...(channel === "stable"
+    ? [isPublic ? `update Formula/yellowcode.rb in ${TAP} and push it` : `skip Homebrew: the repo is private`]
+    : []),
 )
 const unpushed = git("log", "--oneline", `origin/main..${channel === "beta" ? commit : "HEAD"}`)
 console.log(`\n${channel} ${tag} from ${commit.slice(0, 7)}`)
@@ -226,4 +243,18 @@ run(
 writeFileSync(join(REPO, CHANNELS_FILE), `${JSON.stringify(next, null, 2)}\n`)
 git("commit", "-q", "-m", `release: point ${channel} at ${tag}`, CHANNELS_FILE)
 git("push", "origin", "main")
+if (isPublic) {
+  // The platform packages go first, so the main package never points at a version that is not there yet.
+  for (const folder of npmFolders) run(["npm", "publish", "--access", "public", "--tag", npmTag], folder)
+  if (channel === "stable") {
+    const tap = join(DIST, ".tap")
+    rmSync(tap, { recursive: true, force: true })
+    run(["gh", "repo", "clone", TAP, tap, "--", "--depth", "1", "-q"], REPO)
+    mkdirSync(join(tap, "Formula"), { recursive: true })
+    cpSync(formulaFile, join(tap, "Formula", "yellowcode.rb"))
+    run(["git", "add", "Formula/yellowcode.rb"], tap)
+    run(["git", "commit", "-q", "-m", `yellowcode ${version}`], tap)
+    run(["git", "push", "-q", "origin", "HEAD"], tap)
+  }
+}
 console.log(`Published ${tag}.`)
