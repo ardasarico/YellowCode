@@ -57,9 +57,9 @@ quits. YellowCode never stops or restarts it. It needs opencode 2 or newer and i
 
 The only requests YellowCode makes on its own are for updates and mods. It reads the list of releases from GitHub when
 it starts and once a day, and downloads a new version from GitHub, or runs your package manager, which downloads it
-from npm. `YELLOWCODE_DISABLE_AUTOUPDATE=1` turns this off. It fetches the [mod list](mods.md) from GitHub
-at most once a day and updates listed mods in the background. When a mod is installed or updated, its code comes from GitHub and its
-dependencies, if it has any, from npm. Mods are code you chose to run, so they can do more. See [Mods](mods.md).
+from npm. `YELLOWCODE_DISABLE_AUTOUPDATE=1` turns this off. It fetches the [mod list](mods.md) from GitHub at most once
+a day and updates listed mods in the background. When a mod is installed or updated, its code comes from GitHub and
+its dependencies, if it has any, from npm. Mods are code you chose to run, so they can do more. See [Mods](mods.md).
 
 ## What it keeps on your machine
 

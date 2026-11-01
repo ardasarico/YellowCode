@@ -17,6 +17,7 @@ Run `yellowcode` in the folder you want to work in. The agent starts there too.
 yellowcode [--skip-terminal-check] [--no-mods]
 yellowcode --report
 yellowcode --version
+yellowcode update [<version>]
 yellowcode mod <command>
 ```
 
@@ -24,6 +25,8 @@ yellowcode mod <command>
 - `--report` prints a summary for bug reports and exits: versions, terminal, YellowCode settings and the last lines of
   the log. `/report` inside the app copies the same text.
 - `--version` prints the versions of YellowCode, its mod API and the agents you have installed.
+- `yellowcode update` installs the newest version now, or the one you name. See
+  [Updating and uninstalling](#updating-and-uninstalling).
 - `yellowcode mod` installs and manages mods. See [Mods](mods.md).
 
 ## Keys

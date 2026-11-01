@@ -47,7 +47,8 @@ that names no agents at all was made for an older YellowCode and does not load u
 - Ctrl+O opens its folder.
 
 When a mod fails, YellowCode turns it off and keeps going. The line under the prompt says `! Mod <id> did not load ·
-/mods` at start, or `! Mod <id> failed and was turned off · /mods` later, and `/mods` shows why. It loads again on the next start, or when you reload it with Ctrl+R.
+/mods` at start, or `! Mod <id> failed and was turned off · /mods` later, and `/mods` shows why. It loads again on the
+next start, or when you reload it with Ctrl+R.
 
 If a mod keeps YellowCode from starting, run `yellowcode --no-mods` and turn it off in `/mods`.
 
