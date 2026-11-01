@@ -1,26 +1,4 @@
 {
   "stable": null,
-  "beta": {
-    "version": "0.1.0-beta.1",
-    "commit": "18b60839f47793b258ff4979031c293d1a36bed5",
-    "bundle": "0faa4848aab65a70c9b63d99afdc9dc2e562054183d5015606f05adcef261a88",
-    "assets": {
-      "darwin-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-darwin-arm64.tar.gz",
-        "sha256": "9b9e6053f7ee2e930fc6b00705da0a9eb18d902f8c39db9a191e43a6f8701c1f"
-      },
-      "darwin-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-darwin-x64.tar.gz",
-        "sha256": "d697a53cab2113270aa69776575a83dedaa28c4a9c1a7e2bf716e5be496217a8"
-      },
-      "linux-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-linux-x64.tar.gz",
-        "sha256": "22d928dce7b90012d01f2fa8de6736c6f6594922ee5af9d7e95b0de0efd475fa"
-      },
-      "linux-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-linux-arm64.tar.gz",
-        "sha256": "878dcc10ad271e25a42a103580eb6f92bb025e5152549f7be2f7912d8d008f82"
-      }
-    }
-  }
+  "beta": null
 }
