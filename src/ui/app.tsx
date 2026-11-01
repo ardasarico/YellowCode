@@ -122,7 +122,7 @@ import {
   setFocusedPane,
 } from "../mods/registry.ts"
 import { ModPaneView, setCrowded, shownPane } from "./mod-pane.tsx"
-import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice } from "./notice.ts"
+import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingNotice, updateSpan } from "./notice.ts"
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog, type ResumeSessions } from "./resume/resume-dialog.tsx"
@@ -142,6 +142,7 @@ import { useElapsedSeconds } from "./elapsed.ts"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
+import { updateNotice, updateText } from "../update/updater.ts"
 
 const QUIT_WINDOW = 2000
 // Past this the rewind dialog opens without what the snapshots know.
@@ -1799,12 +1800,28 @@ export function App(props: AppProps) {
       const restart = props.onRestart ? " · Enter: restart" : ""
       return { text: `✗ ${props.agent.name} exited · Ctrl+C: quit${restart}`, fg: theme.error }
     }
-    return live() && props.session.status === "starting" ? startingNotice(props.agent.name) : null
+    if (live() && props.session.status === "starting") return startingNotice(props.agent.name)
+    const update = updateNotice()
+    return update ? updateSpan(update) : null
   }
   const openBackup = () => {
     const backup = props.settingsBackup
     if (!backup || quitArmed() || pasteNotice() || settingsProblem() !== props.settingsProblem) return undefined
     return () => void openFile(backup)
+  }
+  const copyCommand = (command: string) =>
+    void copyText(command).then((copied) => {
+      if (copied) setToast("Copied")
+    })
+  // A failed update's note copies its command when clicked.
+  const copyUpdate = () => {
+    const update = updateNotice()
+    return update?.status === "failed" ? () => copyCommand(update.command) : undefined
+  }
+  const welcomeClick = () => {
+    const update = updateNotice()
+    const shown = update && welcomeNotice()?.text === updateText(update)
+    return shown ? copyUpdate() : openBackup()
   }
 
   const clock = useTicker(() => props.session.usage.warning !== null, 30_000)
@@ -1817,7 +1834,7 @@ export function App(props: AppProps) {
   }
   const notice = () => {
     clock()
-    return noticeFor({
+    const base = noticeFor({
       agent: props.agent.name,
       usage: props.session.usage,
       replay: props.replay,
@@ -1842,6 +1859,10 @@ export function App(props: AppProps) {
       limits: props.caps.limits,
       now: Date.now(),
     })
+    // An update note takes the hints' place on the right; while an ask is open that side stays empty.
+    const update = updateNotice()
+    if (!update || base.right.length === 0) return base
+    return { left: base.left, right: [updateSpan(update)], onRight: copyUpdate() }
   }
 
   // A drag that started on a pane's edge; false when none is going on.
@@ -1915,7 +1936,7 @@ export function App(props: AppProps) {
                 workspace={props.workspace}
                 agent={agentHint()}
                 notice={welcomeNotice()}
-                onNotice={openBackup()}
+                onNotice={welcomeClick()}
                 recent={{ entries: recents(), names: listed().names, selected: recent() }}
                 width={dimensions().width - rightWidth()}
                 height={dimensions().height - bottomHeight()}

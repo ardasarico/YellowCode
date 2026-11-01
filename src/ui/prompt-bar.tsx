@@ -117,6 +117,8 @@ function PromptInput(
     onLeaveDown?: () => void
     onUnfoldable: (unfoldable: boolean) => void
     hint?: string
+    hintColor?: RGBA
+    onHint?: () => void
   },
 ) {
   const dimensions = useTerminalDimensions()
@@ -174,6 +176,8 @@ function PromptInput(
           glyph="─"
           label={edgeLabel()}
           hint={props.hint}
+          hintColor={props.hintColor}
+          onHint={props.onHint}
           color={props.shell ? theme.shell : undefined}
         />
         <SuggestionList entries={completion.shown()} selected={completion.selected()} width={props.width} />
@@ -420,6 +424,8 @@ function PromptBarBase(props: PromptBarProps) {
             fill={props.fill}
             onUnfoldable={setUnfoldable}
             hint={props.notice.right.map((span) => span.text).join("")}
+            hintColor={props.notice.right[0]?.fg}
+            onHint={props.notice.onRight}
           />
         }
       >

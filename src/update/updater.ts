@@ -9,6 +9,11 @@ import { installMethod, type Method } from "./method.ts"
 const [updateNotice, setUpdateNotice] = createSignal<UpdateState | null>(null)
 export { updateNotice }
 
+export const updateText = (state: UpdateState) =>
+  state.status === "failed"
+    ? `Couldn't update to ${state.version} · ${state.command}`
+    : `${state.version} ready · restart to use it`
+
 // Homebrew has the stable formula only.
 export const channelFor = (method: Method, picked: Channel): Channel => (method === "brew" ? "stable" : picked)
 

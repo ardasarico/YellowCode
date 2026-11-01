@@ -1,8 +1,9 @@
-import { RGBA, TextAttributes } from "@opentui/core"
+import { RGBA, TextAttributes, type TextRenderable } from "@opentui/core"
 import { Index } from "solid-js"
 import { ultracodeGradient, ultracodePalette } from "../theme/brand.ts"
 import { theme } from "../theme/theme.ts"
 import { mix } from "./color.ts"
+import { cut } from "./format.ts"
 
 const WORD = "ultracode".split("")
 const WHITE = RGBA.fromInts(255, 255, 255)
@@ -57,6 +58,9 @@ export function InputEdge(props: {
   glyph?: string
   label?: string
   hint?: string
+  // A clickable hint is cut to fit rather than left out.
+  hintColor?: RGBA
+  onHint?: () => void
   color?: RGBA
 }) {
   const glyph = () => props.glyph ?? EDGE
@@ -68,7 +72,9 @@ export function InputEdge(props: {
   const after = () => (label() ? LABEL_INDENT + Bun.stringWidth(label()) : 0)
   const hint = () => {
     const text = props.hint ? ` ${props.hint} ` : ""
-    return text && after() + LABEL_INDENT + Bun.stringWidth(text) + LABEL_INDENT <= width() ? text : ""
+    const room = width() - after() - 2 * LABEL_INDENT
+    if (!text || Bun.stringWidth(text) <= room) return text
+    return props.onHint && room > 4 ? `${cut(text.trimEnd(), room - 1)} ` : ""
   }
   const before = () => width() - LABEL_INDENT - Bun.stringWidth(hint())
   const cells = (from: number, to: number) =>
@@ -79,8 +85,17 @@ export function InputEdge(props: {
     ) : (
       <span style={{ fg: props.color ?? theme.frame }}>{glyph().repeat(Math.max(0, to - from))}</span>
     )
+  let edge: TextRenderable | undefined
   return (
-    <text flexShrink={0} wrapMode="none">
+    <text
+      ref={(element: TextRenderable) => (edge = element)}
+      flexShrink={0}
+      wrapMode="none"
+      onMouseDown={(event) => {
+        const x = event.x - (edge?.x ?? 0)
+        if (props.onHint && hint() && x >= before() && x < width() - LABEL_INDENT) props.onHint()
+      }}
+    >
       {label() ? (
         <>
           {cells(0, LABEL_INDENT)}
@@ -90,7 +105,7 @@ export function InputEdge(props: {
       {cells(after(), hint() ? before() : width())}
       {hint() ? (
         <>
-          <span style={{ fg: theme.muted }}>{hint()}</span>
+          <span style={{ fg: props.hintColor ?? theme.muted }}>{hint()}</span>
           {cells(width() - LABEL_INDENT, width())}
         </>
       ) : null}

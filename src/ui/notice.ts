@@ -1,3 +1,5 @@
+import { type UpdateState } from "../update/apply.ts"
+import { updateText } from "../update/updater.ts"
 import type { RGBA } from "@opentui/core"
 import type { ModNotice } from "../mods/mods.ts"
 import type { SessionStatus, Usage, Window } from "../session/types.ts"
@@ -5,7 +7,8 @@ import { theme } from "../theme/theme.ts"
 import { formatUntil } from "./format.ts"
 
 export type Span = { text: string; fg: RGBA; bold?: boolean }
-export type Notice = { left: Span[]; right: Span[] }
+// onRight runs when the right side is clicked.
+export type Notice = { left: Span[]; right: Span[]; onRight?: () => void }
 
 export type ReplayInfo = {
   file: string
@@ -62,6 +65,10 @@ export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`,
 export const modSpan = (notice: ModNotice): Span =>
   notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }
 export const startingNotice = (agent: string): Span => ({ text: `Starting ${agent}…`, fg: theme.muted })
+export const updateSpan = (state: UpdateState): Span => ({
+  text: updateText(state),
+  fg: state.status === "failed" ? theme.warning : theme.muted,
+})
 
 const SIDEBAR_HINT = "F3 sidebar"
 const WARN_AT = 0.85
