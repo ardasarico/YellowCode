@@ -1,3 +1,4 @@
+import { appVersion } from "./build-info.ts"
 import { CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
 import { constants } from "node:os"
@@ -45,7 +46,6 @@ import { loadSettings, pickAgent } from "./session/settings-file.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
 import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
-import packageJson from "../package.json"
 import {
   hiddenPrompts,
   keptReplies,
@@ -131,7 +131,7 @@ const KNOWN_AGENTS = [
 ]
 if (values.version) {
   const agents = (await agentVersions(KNOWN_AGENTS)).map(({ name, version }) => `${name} ${version ?? "not found"}`)
-  process.stdout.write(`yellowcode ${packageJson.version} (mod API ${apiVersion})\n${agents.join("\n")}\n`)
+  process.stdout.write(`yellowcode ${appVersion} (mod API ${apiVersion})\n${agents.join("\n")}\n`)
   process.exit(0)
 }
 if (values.report) {
@@ -180,7 +180,7 @@ const cwd = process.cwd()
 const workspace = {
   cwd: tildePath(cwd),
   branch: gitBranch(),
-  version: packageJson.version,
+  version: appVersion,
 }
 // The replay's session, or the one live starts with; opening another session brings a new store.
 const firstSession = createSession({ starting: values.replay === undefined })

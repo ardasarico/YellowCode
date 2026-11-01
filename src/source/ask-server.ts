@@ -1,5 +1,5 @@
+import { appVersion } from "../build-info.ts"
 import { z } from "zod"
-import packageJson from "../../package.json"
 import type { ClientTool } from "../agent/agent.ts"
 import { ownAskProblem } from "../agents/claude/ask-input.ts"
 import { log } from "../log/log.ts"
@@ -94,7 +94,7 @@ export function createAskServer(
             mcpResponse(requestId, id, {
               protocolVersion: version,
               capabilities: { tools: {} },
-              serverInfo: { name: OWN_ASK_SERVER, version: packageJson.version },
+              serverInfo: { name: OWN_ASK_SERVER, version: appVersion },
             }),
           )
         }

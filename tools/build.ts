@@ -1,8 +1,11 @@
-// Builds one standalone binary per platform into dist/: bun run build [--target <platform>]... [--channel <channel>]
+// Builds one standalone binary per platform into dist/:
+// bun run build [--target <platform>]... [--version <version>] [--channel <channel>]
 import { cpSync, mkdirSync, rmSync } from "node:fs"
 import { join, resolve } from "node:path"
+import { createHash } from "node:crypto"
 import { parseArgs } from "node:util"
 import solid from "@opentui/solid/bun-plugin"
+import packageJson from "../package.json"
 
 const TARGETS = {
   "darwin-arm64": "bun-darwin-arm64",
@@ -18,7 +21,7 @@ function isPlatform(name: string): name is Platform {
 }
 
 const REPO = resolve(import.meta.dir, "..")
-const DIST = join(REPO, "dist")
+export const DIST = join(REPO, "dist")
 const SOURCES = [
   "src",
   "assets",
@@ -39,11 +42,11 @@ function run(command: string[], cwd: string): string {
 
 // Each platform gets its own copy of the app with only that platform's native packages installed, so a binary never
 // carries another platform's libraries.
-function stage(platform: Platform): string {
-  const folder = join(DIST, ".stage", platform)
+function stage(platform: Platform, source: string, folderName: string = platform): string {
+  const folder = join(DIST, ".stage", folderName)
   rmSync(folder, { recursive: true, force: true })
   mkdirSync(folder, { recursive: true })
-  for (const name of SOURCES) cpSync(join(REPO, name), join(folder, name), { recursive: true })
+  for (const name of SOURCES) cpSync(join(source, name), join(folder, name), { recursive: true })
   const [os, cpu] = platform.split("-")
   run(
     [
@@ -60,8 +63,23 @@ function stage(platform: Platform): string {
   return folder
 }
 
-export async function build(platform: Platform, channel: string): Promise<string> {
-  const folder = stage(platform)
+export type BuildOptions = {
+  version: string
+  channel: string
+  // The checkout to build; a release builds a commit from a temporary worktree.
+  source?: string
+}
+
+function defines({ version, channel, source = REPO }: BuildOptions): Record<string, string> {
+  return {
+    BUILD_VERSION: JSON.stringify(version),
+    BUILD_COMMIT: JSON.stringify(run(["git", "rev-parse", "--short", "HEAD"], source)),
+    BUILD_CHANNEL: JSON.stringify(channel),
+  }
+}
+
+export async function build(platform: Platform, options: BuildOptions): Promise<string> {
+  const folder = stage(platform, options.source ?? REPO)
   const outfile = join(DIST, `yellowcode-${platform}`)
   const result = await Bun.build({
     entrypoints: [join(folder, "src/index.tsx")],
@@ -72,23 +90,43 @@ export async function build(platform: Platform, channel: string): Promise<string
       autoloadBunfig: false,
       autoloadDotenv: false,
     },
-    define: {
-      BUILD_COMMIT: JSON.stringify(run(["git", "rev-parse", "--short", "HEAD"], REPO)),
-      BUILD_CHANNEL: JSON.stringify(channel),
-    },
+    define: defines(options),
     plugins: [solid],
   })
   if (!result.success) throw new AggregateError(result.logs, `build for ${platform} failed`)
   return outfile
 }
 
+// A hash of the app's code at a checkout, built with a fixed version and channel. A stable release is rebuilt from its
+// beta's commit; the same hash proves the rebuild holds the same code.
+export async function bundleHash(source = REPO): Promise<string> {
+  const folder = stage("darwin-arm64", source, "bundle")
+  const result = await Bun.build({
+    entrypoints: [join(folder, "src/index.tsx")],
+    target: "bun",
+    // Native packages differ per platform and are not the app's code.
+    external: ["@opentui/core-*", "@resvg/resvg-js-*"],
+    define: defines({ version: "0.0.0", channel: "none", source }),
+    plugins: [solid],
+  })
+  const output = result.outputs.find((file) => file.kind === "entry-point")
+  if (!result.success || !output) throw new AggregateError(result.logs, "bundle failed")
+  const text = (await output.text()).replaceAll(folder, "<stage>")
+  return createHash("sha256").update(text).digest("hex")
+}
+
 if (import.meta.main) {
   const { values } = parseArgs({
-    options: { target: { type: "string", multiple: true }, channel: { type: "string", default: "stable" } },
+    options: {
+      target: { type: "string", multiple: true },
+      version: { type: "string" },
+      channel: { type: "string", default: "stable" },
+    },
   })
   const targets = (values.target ?? PLATFORMS).map((target) => {
     if (!isPlatform(target)) throw new Error(`unknown target ${target}; one of ${PLATFORMS.join(", ")}`)
     return target
   })
-  for (const outfile of await Promise.all(targets.map((target) => build(target, values.channel)))) console.log(outfile)
+  const options = { version: values.version ?? packageJson.version, channel: values.channel }
+  for (const outfile of await Promise.all(targets.map((target) => build(target, options)))) console.log(outfile)
 }

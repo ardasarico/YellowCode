@@ -1,6 +1,6 @@
 // The hand-written inputs of golden.test.ts: lines and calls no recording holds.
 import { endSession, interruptFailed, openHeldAsk, restartSession, showEarly } from "../agents/claude/translate.ts"
-import packageJson from "../../package.json"
+import { appVersion } from "../build-info.ts"
 import { CLAUDE_MODES } from "../agents/claude/lists.ts"
 import { liveProvider } from "../agents/claude/provider.ts"
 import { OWN_ASK, type McpMessage } from "../protocol/messages.ts"
@@ -241,7 +241,7 @@ export const spawnArgs = () =>
 export function askServerLines(): Record<string, unknown[]> {
   const out: Record<string, unknown[]> = {}
   let emitted: unknown[] = []
-  const version = `"version":"${packageJson.version}"`
+  const version = `"version":"${appVersion}"`
   const server = createAskServer(
     (line) => emitted.push(line.replace(version, '"version":"<version>"')),
     (toolUseId) => emitted.push(`open ${toolUseId}`),

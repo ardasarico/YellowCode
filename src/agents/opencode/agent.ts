@@ -1,6 +1,6 @@
 import { lstat } from "node:fs/promises"
 import { z } from "zod"
-import packageJson from "../../../package.json"
+import { appVersion } from "../../build-info.ts"
 import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
 import type { AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
@@ -74,7 +74,7 @@ const realDeps: Deps = {
   service: (binary) => findService(binary),
   transport: (endpoint, directory) => httpTransport(endpoint, directory),
   clock: realClock,
-  appVersion: packageJson.version,
+  appVersion: appVersion,
   // A link in the plan folder could lead anywhere, so only a plain file is read.
   readFile: (path) =>
     lstat(path)

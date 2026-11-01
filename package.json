@@ -29,7 +29,8 @@
     "types:check": "bun tools/mod-types.ts --check",
     "check": "bun run typecheck && bun run lint && bun run format:check && bun run types:check && bun test",
     "build": "bun tools/build.ts",
-    "build:check": "bun tools/build-check.ts"
+    "build:check": "bun tools/build-check.ts",
+    "release": "bun tools/release.ts"
   },
   "dependencies": {
     "@babel/core": "7.29.7",

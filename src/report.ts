@@ -1,9 +1,8 @@
 import type { TerminalCapabilities } from "@opentui/core"
-import { buildCommit } from "./build-info.ts"
+import { appVersion, buildCommit } from "./build-info.ts"
 import { readFileSync } from "node:fs"
 import { cpus, homedir, release, totalmem, type, userInfo } from "node:os"
 import { basename, join } from "node:path"
-import packageJson from "../package.json"
 import { apiVersion } from "./mods/version.ts"
 import { logFile } from "./log/log.ts"
 import type { Detection } from "./agent/agent.ts"
@@ -65,7 +64,7 @@ export function hostFacts(agents: AgentVersion[]): Row[] {
   const shell = process.env["SHELL"] ? basename(process.env["SHELL"]) : null
   const locale = process.env["LC_ALL"] || process.env["LC_CTYPE"] || process.env["LANG"]
   return [
-    ["YellowCode", joined(packageJson.version, commit)],
+    ["YellowCode", joined(appVersion, commit)],
     ["Mod API", apiVersion],
     ...agents.map(({ name, version }): Row => [name, version ?? "not found"]),
     ["Bun", Bun.version],

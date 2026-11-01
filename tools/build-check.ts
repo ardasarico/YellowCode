@@ -2,6 +2,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import packageJson from "../package.json"
 import { build, PLATFORMS } from "./build.ts"
 
 const host = PLATFORMS.find((platform) => platform === `${process.platform}-${process.arch}`)
@@ -56,7 +57,7 @@ write(
 )
 write(join(mod, "node_modules/solid-js/index.js"), "export function createSignal() {}\n")
 
-const binary = await build(host, "stable")
+const binary = await build(host, { version: packageJson.version, channel: "stable" })
 const replay = resolve(import.meta.dir, "../fixtures/sessions/chat.jsonl")
 const command = [binary, "--replay", replay, "--speed", "instant", "--skip-terminal-check"]
 // The app needs a terminal; script gives it one.

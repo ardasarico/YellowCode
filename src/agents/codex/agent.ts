@@ -1,6 +1,6 @@
 // One Codex thread on a `codex app-server` of its own, spawned in the session's folder. The kind's lists read a
 // short-lived app-server each.
-import packageJson from "../../../package.json"
+import { appVersion } from "../../build-info.ts"
 import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "../../agent/ids.ts"
@@ -102,7 +102,7 @@ function webPage(url: string): boolean {
   }
 }
 
-const realDeps: Deps = { detect: () => detect(), spawn: spawnServer, appVersion: packageJson.version, openUrl }
+const realDeps: Deps = { detect: () => detect(), spawn: spawnServer, appVersion: appVersion, openUrl }
 
 const notYet = (what: string): Outcome => ({ ok: false, problem: `Codex ${what} is not built yet` })
 const later = (what: string) => () => Promise.resolve(notYet(what))

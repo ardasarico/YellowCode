@@ -1,6 +1,6 @@
+import { appVersion } from "../build-info.ts"
 import { type Accessor, createEffect, createMemo, createRoot, on } from "solid-js"
 import { z } from "zod"
-import packageJson from "../../package.json"
 import type { ClientTool } from "../agent/agent.ts"
 import { log } from "../log/log.ts"
 import { MOD_SERVER_PREFIX as PREFIX, type ModHost } from "../mods/host.ts"
@@ -37,7 +37,7 @@ export function serveModTools(
         mcpResponse(requestId, id, {
           protocolVersion: version,
           capabilities: { tools: {} },
-          serverInfo: { name: request.server_name, version: packageJson.version },
+          serverInfo: { name: request.server_name, version: appVersion },
         }),
       )
     }
