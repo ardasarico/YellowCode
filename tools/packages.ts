@@ -36,10 +36,10 @@ case "$(uname -s)-$(uname -m)" in
   Linux-x86_64) platform=linux-x64 ;;
   *) echo "YellowCode has no build for $(uname -s) $(uname -m)" >&2; exit 1 ;;
 esac
-for binary in "$root/node_modules/yellowcode-$platform/bin/yellowcode" "$root/../yellowcode-$platform/bin/yellowcode"; do
+for binary in "$root/node_modules/@yellowcode/$platform/bin/yellowcode" "$root/../@yellowcode/$platform/bin/yellowcode"; do
   [ -x "$binary" ] && exec "$binary" "$@"
 done
-echo "YellowCode: yellowcode-$platform is missing; reinstall with optional dependencies allowed" >&2
+echo "YellowCode: @yellowcode/$platform is missing; reinstall with optional dependencies allowed" >&2
 exit 1
 `
 
@@ -60,6 +60,9 @@ function writePackage(folder: string, manifest: object, binary: { from?: string;
   chmodSync(target, 0o755)
 }
 
+// The binaries live in packages of the yellowcode npm organization, so no one else can take their names.
+const platformPackage = (platform: Platform) => `@yellowcode/${platform}`
+
 // One folder per package under dist/npm/, ready for npm pack or npm publish. The binaries are dist/yellowcode-<platform>.
 export function writeNpmPackages(version: string): string[] {
   const root = join(DIST, "npm")
@@ -67,7 +70,7 @@ export function writeNpmPackages(version: string): string[] {
   const folders = PLATFORMS.map((platform) => {
     const folder = join(root, `yellowcode-${platform}`)
     const manifest = {
-      name: `yellowcode-${platform}`,
+      name: platformPackage(platform),
       version,
       ...COMMON,
       description: `${DESCRIPTION}: the ${platform} binary of the yellowcode package`,
@@ -88,7 +91,7 @@ export function writeNpmPackages(version: string): string[] {
       ...COMMON,
       bin: { yellowcode: "bin/yellowcode" },
       files: ["bin/yellowcode", "LICENSE"],
-      optionalDependencies: Object.fromEntries(PLATFORMS.map((platform) => [`yellowcode-${platform}`, version])),
+      optionalDependencies: Object.fromEntries(PLATFORMS.map((platform) => [platformPackage(platform), version])),
     },
     { text: SHIM },
   )

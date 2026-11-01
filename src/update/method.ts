@@ -19,7 +19,7 @@ export function methodOf(binary: string): Method {
   if (/[/\\]Cellar[/\\]yellowcode[/\\]/.test(binary)) return "brew"
   if (/[/\\]install[/\\]global[/\\]node_modules[/\\]/.test(binary)) return "bun"
   if (/[/\\]pnpm[/\\]|[/\\]\.pnpm[/\\]/.test(binary)) return "pnpm"
-  if (/[/\\]node_modules[/\\]yellowcode(?:-[a-z0-9-]+)?[/\\]/.test(binary)) return "npm"
+  if (/[/\\]node_modules[/\\]@?yellowcode[/\\]/.test(binary)) return "npm"
   return "none"
 }
 
