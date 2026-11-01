@@ -45,6 +45,9 @@ import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, termi
 import { loadSettings, pickAgent } from "./session/settings-file.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
+import { runUpdateCommand, UPDATE_USAGE } from "./update/cli.ts"
+import { defaultChannel } from "./update/method.ts"
+import { startUpdater } from "./update/updater.ts"
 import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
 import {
   hiddenPrompts,
@@ -84,6 +87,7 @@ const USAGE = [
   "       yellowcode --version",
   "       yellowcode --help",
   MOD_USAGE,
+  UPDATE_USAGE,
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
 ].join("\n")
@@ -115,6 +119,7 @@ function readArgs() {
 }
 
 if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
+if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
 
 const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
@@ -1377,4 +1382,7 @@ await render(
 )
 if (terminal === null) tellPicked()
 // After the first frame, or a second when the renderer stays busy, so the network never holds up the start.
-void Promise.race([renderer.idle(), Bun.sleep(1000)]).then(() => startModUpdates(values["no-mods"]))
+void Promise.race([renderer.idle(), Bun.sleep(1000)]).then(() => {
+  startModUpdates(values["no-mods"])
+  if (values.replay === undefined) startUpdater(() => settings.updates ?? defaultChannel())
+})

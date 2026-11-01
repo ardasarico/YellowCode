@@ -15,6 +15,7 @@ import type { StoredSettings } from "../../session/settings-file.ts"
 import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
+import { defaultChannel, installMethod } from "../../update/method.ts"
 
 type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
 
@@ -176,6 +177,25 @@ const PEER_VISIBLE = sessionSetting("peerVisible", "Visible to them", [
   { value: "no", label: "No" },
 ])
 
+const UPDATES: SettingDefinition = {
+  key: "updates",
+  section: "Updates",
+  label: "Channel",
+  options: [
+    { value: "stable", label: "Stable" },
+    {
+      value: "beta",
+      label: "Beta",
+      note: installMethod() === "brew" ? "Homebrew has stable only; use install.sh or npm for beta" : undefined,
+    },
+  ],
+  value: () => settings.updates ?? defaultChannel(),
+  set(value) {
+    if (value === "stable" || value === "beta") setSetting("updates", value)
+  },
+  reset: () => resetSetting("updates"),
+}
+
 // YellowCode's own settings, with what it keeps for the agent among them.
 export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
   THEME,
@@ -188,6 +208,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentO
   NOTIFICATIONS,
   PEER_MESSAGES,
   PEER_VISIBLE,
+  UPDATES,
 ]
 
 export const LONG = 3

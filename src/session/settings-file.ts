@@ -16,6 +16,7 @@ import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../json.ts"
 import { themes } from "../theme/theme.ts"
+import { type Channel, CHANNELS } from "../update/channels.ts"
 
 export type SidebarSetting = "auto" | "shown" | "hidden"
 export type ThinkingSetting = "summarized" | "hidden"
@@ -36,6 +37,8 @@ export type StoredSettings = {
   editor: Editor
   notifications: NotificationSetting
   disabledMods: string[]
+  // Unset until the user picks one; updates then follow how YellowCode was installed (defaultChannel).
+  updates?: Channel
   // Unset until the user picks one; a start then opens the first installed agent.
   defaultAgent?: AgentKindId
   agents: Record<AgentKindId, AgentPrefs>
@@ -49,6 +52,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   editor: "default",
   notifications: "all",
   disabledMods: [],
+  updates: undefined,
   // Present, so the file keeps it once it is picked; an unset one is not written.
   defaultAgent: undefined,
   agents: {},
@@ -102,6 +106,7 @@ const Permission = z.preprocess((mode) => (mode === "manual" ? "default" : mode)
 const EditorSchema = z.enum(EDITORS)
 const Notifications = z.enum(NOTIFICATIONS)
 const DisabledMods = z.array(z.string())
+const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
 const FavoriteModels = z.array(z.string()).optional()
 const AgentEntry = z.object({ defaultMode: z.string().optional(), favoriteModels: FavoriteModels })
@@ -186,6 +191,7 @@ function readStored(stored: Record<string, unknown>) {
   read("editor", EditorSchema)
   read("notifications", Notifications)
   read("disabledMods", DisabledMods)
+  read("updates", Updates)
   read("defaultAgent", DefaultAgent)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
