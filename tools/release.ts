@@ -92,9 +92,12 @@ async function pack(
     mkdirSync(inner)
     cpSync(join(DIST, `yellowcode-${platform}`), join(inner, "yellowcode"))
     const name = `yellowcode-${platform}.tar.gz`
+    // No owner names or macOS attributes in the archive: it is public, and Linux tar warns about the attributes.
     run(
       [
         "tar",
+        "--no-xattrs",
+        "--no-mac-metadata",
         "--uid",
         "0",
         "--gid",
