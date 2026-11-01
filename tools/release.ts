@@ -198,6 +198,8 @@ writeFileSync(formulaFile, formula(release))
 // npm and the tap are public, so they wait for the repo to be public too; a private release only reaches people with
 // access to the repo.
 const isPublic = run(["gh", "repo", "view", GITHUB, "--json", "visibility", "-q", ".visibility"], REPO) === "PUBLIC"
+// Homebrew waits until the tap repo exists; until then stable releases leave it out.
+const hasTap = Bun.spawnSync(["gh", "repo", "view", TAP], { stdout: "ignore", stderr: "ignore" }).exitCode === 0
 const npmTag = channel === "beta" ? "beta" : "latest"
 if (isPublic && !dryRun && Bun.spawnSync(["npm", "whoami"]).exitCode !== 0) fail("log in to npm first (npm login)")
 
@@ -210,7 +212,13 @@ steps.push(
     ? `publish ${npmFolders.length} npm packages under the ${npmTag} tag`
     : `skip npm: the repo is private (packages are in dist/npm)`,
   ...(channel === "stable"
-    ? [isPublic ? `update Formula/yellowcode.rb in ${TAP} and push it` : `skip Homebrew: the repo is private`]
+    ? [
+        !hasTap
+          ? `skip Homebrew: ${TAP} does not exist`
+          : isPublic
+            ? `update Formula/yellowcode.rb in ${TAP} and push it`
+            : "skip Homebrew: the repo is private",
+      ]
     : []),
 )
 const unpushed = git("log", "--oneline", `origin/main..${channel === "beta" ? commit : "HEAD"}`)
@@ -252,7 +260,7 @@ git("push", "origin", "main")
 if (isPublic) {
   // The platform packages go first, so the main package never points at a version that is not there yet.
   for (const folder of npmFolders) run(["npm", "publish", "--access", "public", "--tag", npmTag], folder)
-  if (channel === "stable") {
+  if (channel === "stable" && hasTap) {
     const tap = join(DIST, ".tap")
     rmSync(tap, { recursive: true, force: true })
     run(["gh", "repo", "clone", TAP, tap, "--", "--depth", "1", "-q"], REPO)

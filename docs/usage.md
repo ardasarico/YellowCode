@@ -127,8 +127,7 @@ installed, for example because npm's global folder needs `sudo`, a note in the b
 by hand until the update goes through.
 
 There are two channels: Stable and Beta. Pick one in `/settings` under Updates. Beta also gets every stable release.
-Moving back to Stable keeps the beta you have until a stable release is newer. Homebrew has Stable only; for the beta,
-use the install script or a package manager.
+Moving back to Stable keeps the beta you have until a stable release is newer.
 
 `yellowcode update` installs the newest version now. `yellowcode update 0.2.1` switches to that version. After going
 back to an older version, YellowCode does not install the one you left again, and updates go on once a newer one is
@@ -138,7 +137,6 @@ To remove YellowCode, uninstall it the way you installed it:
 
 - Install script: `rm ~/.local/bin/yellowcode` and `rm -rf ~/.yellowcode/versions`
 - npm, bun or pnpm: `npm uninstall -g yellowcode`, `bun remove -g yellowcode` or `pnpm remove -g yellowcode`
-- Homebrew: `brew uninstall yellowcode`
 
 Then delete the folders listed in [Files it writes](#files-it-writes): `~/.config/yellowcode`, `~/.yellowcode`,
 `~/.local/share/yellowcode` and `~/.cache/yellowcode`. Your agent and its sessions are not touched.

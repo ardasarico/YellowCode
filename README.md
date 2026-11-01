@@ -26,7 +26,6 @@ curl -fsSL https://raw.githubusercontent.com/ardasarico/YellowCode/main/install.
 npm i -g yellowcode
 bun add -g yellowcode
 pnpm add -g yellowcode
-brew install ardasarico/tap/yellowcode   # macOS and Linux
 ```
 
 Then run `yellowcode` in your project. You need macOS or Linux and a [supported agent](#supported-agents), installed
