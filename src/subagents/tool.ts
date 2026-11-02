@@ -179,7 +179,8 @@ export function createSubagents(deps: SubagentDeps) {
   let closed = false
 
   const tell = (id: string, name: string, provider: string, text: string) => {
-    if (!closed) deps.tell(subagentMessage({ id, name, provider, text }))
+    const shown = provider ? (deps.launcher(provider)?.name ?? provider) : ""
+    if (!closed) deps.tell(subagentMessage({ id, name, provider: shown, text }))
   }
 
   function ask(make: (id: string) => Ask): Promise<AskReply | null> {
