@@ -85,7 +85,7 @@ import { parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
-import { App, type KnobActions, type Message } from "./ui/app.tsx"
+import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { sessionMessage } from "./peers/envelope.ts"
 import { startPeers } from "./peers/host.ts"
@@ -1044,20 +1044,24 @@ function clearLive(): boolean {
   return true
 }
 
-// A new session of the agent takes the screen; `then` is what waits for a running turn.
-async function startNew(runner: Runner, then: string): Promise<void> {
+// A new session of the agent takes the screen, on `model` or the agent's own; `then` is what waits for a running turn.
+// False when it did not.
+async function startNew(runner: Runner, then: string, model: ModelRef | null = null): Promise<boolean> {
   const current = live
   const run = runOf(current)
-  if (working(then)) return
+  if (working(then)) return false
   const token = ++opening
   // The mods load for the agent before it starts, so it starts with their tools.
   await modsFor(runner.kind)
-  if (quitting || token !== opening || runOf(live) !== run || working(then)) return void modsFor(live.runner.kind)
+  if (quitting || token !== opening || runOf(live) !== run || working(then)) {
+    void modsFor(live.runner.kind)
+    return false
+  }
   const session = createSession({ starting: true })
   const following = capture?.follow(session)
   let next: Live
   try {
-    next = await startLive(runner, startOptions(runner, null), session)
+    next = await startLive(runner, { ...startOptions(runner, null), model }, session)
   } catch (error) {
     log.error(`cannot start ${runner.kind.id}`, error)
     following?.()
@@ -1065,15 +1069,41 @@ async function startNew(runner: Runner, then: string): Promise<void> {
     setControlProblem({
       text: `Cannot start ${runner.kind.name}: ${error instanceof Error ? error.message : String(error)}`,
     })
-    return
+    return false
   }
   if (quitting || token !== opening || runOf(live) !== run) {
     void next.agent.close()
     following?.()
     void modsFor(live.runner.kind)
-    return
+    return false
   }
   replaceLive(current, next, following, null)
+  return true
+}
+
+// /model and Shift+←→ read the other added providers' models from the catalog, and start one of them.
+const modelSource: ModelSource = {
+  added: addedProviders,
+  listed: (id) => readCatalog().providers[id]?.groups.flatMap((group) => group.models) ?? null,
+  ensure: (id) => {
+    const kind = listing.find((one) => one.id === id)
+    return kind ? ensureCatalog(kind, cwd) : Promise.resolve(false)
+  },
+  start: (id, model, message, giveBack) => {
+    const runner = runnerById(id)
+    if (!runner) {
+      if (message) giveBack()
+      return
+    }
+    startNew(runner, `switch to ${runner.kind.name}`, model)
+      .then((started) => {
+        if (message && (!started || !sendLive(message, giveBack))) giveBack()
+      })
+      .catch((error: unknown) => {
+        log.error(`cannot start ${id}`, error)
+        if (message) giveBack()
+      })
+  },
 }
 
 // The last look at the installed agents, for /providers.
@@ -1548,6 +1578,7 @@ function Main() {
               onTitle={mode.kind === "live" ? (title) => rename(current.session, title) : undefined}
               onShownTitle={mode.kind === "live" ? (title) => peers?.update({ title }) : undefined}
               knobs={mode.kind === "live" ? knobs : undefined}
+              models={mode.kind === "live" ? modelSource : undefined}
               info={mode.kind === "live" ? infoReads : undefined}
               permissions={
                 mode.kind === "live"
