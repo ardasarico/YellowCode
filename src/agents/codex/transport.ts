@@ -91,11 +91,14 @@ export type SpawnOptions = {
   command: string[]
   cwd: string
   env: Record<string, string>
-  // stderr is Codex's log, never protocol.
+  // stderr is the agent's log, never protocol.
   onStderr?: (text: string) => void
+  // Who the log lines and errors name; codex app-server when not given.
+  name?: string
 }
 
 export function stdioTransport(options: SpawnOptions): Transport & { pid: number } {
+  const name = options.name ?? "codex app-server"
   const child = Bun.spawn(options.command, {
     cwd: options.cwd,
     env: options.env,
@@ -120,7 +123,7 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
         lines.push(json.ok ? json.value : line)
       }
       if (buffer.length > LINE_LIMIT) {
-        log.warn("codex wrote a line over the limit", { limit: LINE_LIMIT })
+        log.warn(`${name} wrote a line over the limit`, { limit: LINE_LIMIT })
         child.kill("SIGKILL")
         break
       }
@@ -133,9 +136,9 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
     let chunks = 0
     for await (const chunk of child.stderr) {
       // Its text can quote the conversation, so only debug logging keeps it.
-      if (chunks++ === 0) log.warn("codex wrote to stderr")
+      if (chunks++ === 0) log.warn(`${name} wrote to stderr`)
       const text = decoder.decode(chunk, { stream: true })
-      log.debug("codex stderr", text)
+      log.debug(`${name} stderr`, text)
       options.onStderr?.(text)
     }
   })()
@@ -144,7 +147,7 @@ export function stdioTransport(options: SpawnOptions): Transport & { pid: number
     pid: child.pid,
     messages: lines.items,
     send(message) {
-      if (!open) throw new Error("codex app-server is closed")
+      if (!open) throw new Error(`${name} is closed`)
       void child.stdin.write(JSON.stringify(message) + "\n")
       void child.stdin.flush()
     },

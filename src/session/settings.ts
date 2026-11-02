@@ -117,6 +117,14 @@ export function setDefaultMode(agent: AgentKindId, mode: ModeId | null): void {
   saveSettings(settings)
 }
 
+// Whether the agent's one-time warning is still to show; asking marks it shown.
+export function firstWarning(agent: AgentKindId): boolean {
+  if (settings.agents[agent]?.warned === true) return false
+  setSettings({ agents: { ...settings.agents, [agent]: { ...settings.agents[agent], warned: true } } })
+  saveSettings(settings)
+  return true
+}
+
 // Back to what nothing saved gives.
 export const resetDefaultMode = (agent: AgentKindId): void =>
   setDefaultMode(agent, startModeIn(DEFAULT_SETTINGS, agent))

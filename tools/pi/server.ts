@@ -30,6 +30,7 @@ export function startPi(root: Root, proxy: string, args: string[] = [], options:
     command: ["pi", "--mode", "rpc", ...args],
     cwd: root.project,
     env: piEnv(root, proxy),
+    name: "pi",
     onStderr: (text) => void appendFile(stderr, text),
   })
   const ours = finder(transport.pid, root.root)

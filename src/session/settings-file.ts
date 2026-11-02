@@ -26,8 +26,9 @@ export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
 export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
-// What YellowCode keeps for one agent, under the agent's id. `favoriteModels` are the models Shift+←→ walks.
-export type AgentPrefs = { defaultMode?: ModeId; favoriteModels?: string[] }
+// What YellowCode keeps for one agent, under the agent's id. `favoriteModels` are the models Shift+←→ walks; `warned`:
+// the agent's one-time warning was shown.
+export type AgentPrefs = { defaultMode?: ModeId; favoriteModels?: string[]; warned?: boolean }
 
 export type StoredSettings = {
   theme: string
@@ -109,7 +110,11 @@ const DisabledMods = z.array(z.string())
 const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
 const FavoriteModels = z.array(z.string()).optional()
-const AgentEntry = z.object({ defaultMode: z.string().optional(), favoriteModels: FavoriteModels })
+const AgentEntry = z.object({
+  defaultMode: z.string().optional(),
+  favoriteModels: FavoriteModels,
+  warned: z.boolean().optional(),
+})
 const ClaudeEntry = z.object({ defaultMode: Permission.optional(), favoriteModels: FavoriteModels })
 
 export type LoadedSettings = {

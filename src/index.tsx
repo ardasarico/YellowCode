@@ -25,6 +25,9 @@ import { opencodeKind } from "./agents/opencode/agent.ts"
 import { OPENCODE, OPENCODE_NAME } from "./agents/opencode/caps.ts"
 import { detect as detectOpencode } from "./agents/opencode/detect.ts"
 import { listedProvider, opencodeProvider } from "./agents/opencode/provider.ts"
+import { piKind } from "./agents/pi/agent.ts"
+import { PI, PI_NAME } from "./agents/pi/caps.ts"
+import { detect as detectPi } from "./agents/pi/detect.ts"
 import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
 import type { InputProvider } from "./input/provider.ts"
@@ -35,6 +38,7 @@ import { createSession, loadHistory, type SessionStore } from "./session/session
 import {
   controlProblem,
   defaultModeOf,
+  firstWarning,
   initSettings,
   setControlProblem,
   setKnobs,
@@ -133,6 +137,7 @@ const KNOWN_AGENTS = [
   { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
   { id: OPENCODE, name: OPENCODE_NAME, detect: () => detectOpencode() },
   { id: CODEX, name: CODEX_NAME, detect: () => detectCodex() },
+  { id: PI, name: PI_NAME, detect: () => detectPi() },
 ]
 if (values.version) {
   const agents = (await agentVersions(KNOWN_AGENTS)).map(({ name, version }) => `${name} ${version ?? "not found"}`)
@@ -141,7 +146,7 @@ if (values.version) {
 }
 if (values.report) {
   const loaded = loadSettings(undefined, false)
-  const ids = [CLAUDE, OPENCODE, CODEX]
+  const ids = [CLAUDE, OPENCODE, CODEX, PI]
   const running = await pickAgent(loaded.settings.defaultAgent, ids, async (id) => {
     const detection = await KNOWN_AGENTS.find((agent) => agent.id === id)?.detect()
     return detection?.installed === true && detection.blocked === null
@@ -160,6 +165,7 @@ if (values.report) {
           { id: CLAUDE, name: CLAUDE_NAME },
           { id: OPENCODE, name: OPENCODE_NAME },
           { id: CODEX, name: CODEX_NAME },
+          { id: PI, name: PI_NAME },
         ],
         loaded.problem,
       ),
@@ -325,8 +331,30 @@ const codexRunner: Runner = {
   hearsShells: false,
   clears: false,
 }
+const pi = piKind()
+const piRunner: Runner = {
+  kind: pi,
+  provider: listedProvider(
+    () => chat().session,
+    (query) => live.agent.files(query),
+  ),
+  start: (options, store) =>
+    pi.start(options).then((agent) => {
+      agent.refresh("commands")
+      if (firstWarning(PI))
+        store.event({
+          type: "notice",
+          level: "warning",
+          text: "Pi runs every tool without asking first, file edits and shell commands included.",
+          at: Date.now(),
+        })
+      return { agent, hooks: {} }
+    }),
+  hearsShells: false,
+  clears: false,
+}
 // The agents YellowCode can run, Claude first.
-const runners: Runner[] = [claudeRunner, opencodeRunner, codexRunner]
+const runners: Runner[] = [claudeRunner, opencodeRunner, codexRunner, piRunner]
 const installed = createRegistry(runners.map((runner) => runner.kind))
 
 function runnerOf(ref: SessionRef): Runner {
