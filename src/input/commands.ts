@@ -25,6 +25,7 @@ export const OWN_COMMANDS: Command[] = [
   { name: "report", description: "Copy a summary of your setup for a bug report", argumentHint: "", aliases: [] },
   { name: "resume", description: "Resume a session from this project", argumentHint: "", aliases: [] },
   { name: "providers", description: "Add or remove providers", argumentHint: "", aliases: [] },
+  { name: "agents", description: "Assign models to subagents", argumentHint: "", aliases: [] },
   { name: "rewind", description: "Go back to before a prompt", argumentHint: "", aliases: [] },
   { name: "timeline", description: "Move through the prompts of this session", argumentHint: "", aliases: [] },
   { name: "redo", description: "Bring back what the last rewind hid", argumentHint: "", aliases: [] },

@@ -140,25 +140,24 @@ function setKey(front: string, key: string, value: string): string {
   return front ? `${front}\n${line}` : line
 }
 
-// Writes only the provider and model lines. A built-in without a file gets one in the global folder.
-export function writeModel(name: string, provider: string, model: string, cwd: string = process.cwd()): void {
+// The file an agent's lines go to: the winning one, or a new one in the global folder for a built-in without one.
+export function fileOf(name: string, cwd: string = process.cwd()): string {
   const definition = loadDefinitions(cwd, () => false).find((entry) => entry.name === name)
   if (!definition) throw new Error(`no agent named ${name}`)
-  if (definition.path) {
-    const text = readFileSync(definition.path, "utf8")
-    const parts = splitFrontmatter(text)
-    if (!parts) throw new Error(`${definition.path} has no frontmatter`)
-    const front = setKey(setKey(parts.front, "provider", provider), "model", model)
-    writeFileSync(definition.path, `---\n${front}\n---\n${parts.body}`)
-    return
-  }
+  if (definition.path) return definition.path
   const folder = globalFolder()
   mkdirSync(folder, { recursive: true })
-  const front = [
-    `description: ${JSON.stringify(definition.description)}`,
-    `provider: ${yamlValue(provider)}`,
-    `model: ${yamlValue(model)}`,
-    `permissions: ${definition.permissions}`,
-  ].join("\n")
-  writeFileSync(join(folder, `${name}.md`), `---\n${front}\n---\n\n${definition.instructions}\n`)
+  const front = [`description: ${JSON.stringify(definition.description)}`, `permissions: ${definition.permissions}`]
+  const path = join(folder, `${name}.md`)
+  writeFileSync(path, `---\n${front.join("\n")}\n---\n\n${definition.instructions}\n`)
+  return path
+}
+
+// Writes only the provider and model lines.
+export function writeModel(name: string, provider: string, model: string, cwd: string = process.cwd()): void {
+  const path = fileOf(name, cwd)
+  const parts = splitFrontmatter(readFileSync(path, "utf8"))
+  if (!parts) throw new Error(`${path} has no frontmatter`)
+  const front = setKey(setKey(parts.front, "provider", provider), "model", model)
+  writeFileSync(path, `---\n${front}\n---\n${parts.body}`)
 }

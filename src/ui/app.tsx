@@ -152,6 +152,7 @@ import { useElapsedSeconds } from "./elapsed.ts"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { type ProviderChoice, ProvidersDialog } from "./providers-dialog.tsx"
+import { AgentsDialog } from "./agents-dialog.tsx"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
 import { updateNotice, updateText } from "../update/updater.ts"
 
@@ -291,7 +292,7 @@ export type Message = Pick<Prompt, "text" | "images" | "to">
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "providers" }
+  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "providers" | "agents" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
@@ -938,6 +939,14 @@ export function App(props: AppProps) {
   }
   // A provider the catalog has no list of is listed as the picker opens.
   const openModels = (query = "") => {
+    listCatalogs()
+    setDialog({ name: "model", query })
+  }
+  const openAgents = () => {
+    listCatalogs()
+    setDialog({ name: "agents" })
+  }
+  const listCatalogs = () => {
     const lists = readCatalogs()
     setCatalogs(lists)
     for (const [id, known] of lists)
@@ -945,7 +954,6 @@ export function App(props: AppProps) {
         void props.models
           ?.ensure(id)
           .then(() => setCatalogs((now) => new Map(now).set(id, props.models?.listed(id) ?? [])))
-    setDialog({ name: "model", query })
   }
   const currentModel = () => {
     const id = settings.model ?? props.model()
@@ -1797,7 +1805,8 @@ export function App(props: AppProps) {
     if (
       (rewinding && !props.rewind) ||
       (planning && !props.onInterrupt) ||
-      (command === "/providers" && !props.agents)
+      (command === "/providers" && !props.agents) ||
+      (command === "/agents" && (!props.models || props.caps.clientTools === "none"))
     ) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name}`)
       return false
@@ -1816,6 +1825,7 @@ export function App(props: AppProps) {
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/providers") setDialog({ name: "providers" })
+    else if (command === "/agents") openAgents()
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp" && !yields("mcp")) setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins" && !yields("plugins")) setDialog({ name: "settings", tab: "plugins" })
@@ -2361,6 +2371,9 @@ export function App(props: AppProps) {
         {(agents) => (
           <ProvidersDialog inUse={props.agent.id} detect={() => agents().detect()} onClose={() => setDialog(null)} />
         )}
+      </Show>
+      <Show when={dialog()?.name === "agents"}>
+        <AgentsDialog cwd={process.cwd()} groups={modelGroups(catalogs())} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />

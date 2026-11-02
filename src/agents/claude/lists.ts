@@ -51,12 +51,12 @@ export const CLAUDE_MODES: ModeRow[] = [
 export const isClaudeMode = (id: ModeId | null): boolean => CLAUDE_MODES.some((mode) => mode.id === id)
 
 // Claude Code's commands YellowCode does not offer: broken over stream-json, internal, or covered by its own views.
+// Its /agents gives way to YellowCode's own (withOwnCommands).
 export const BLOCKED_COMMANDS = [
   "debug",
   "doctor",
   "heapdump",
   "fast",
-  "agents",
   "workflow-launch-exec",
   "auto-mode-setup",
   "recap",
