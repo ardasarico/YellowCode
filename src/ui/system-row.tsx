@@ -3,7 +3,7 @@ import type { RGBA } from "@opentui/core"
 import { createSignal, Index, Match, Show, Switch } from "solid-js"
 import type { Retry, SystemEvent } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
-import { cut, formatTokens } from "./format.ts"
+import { cut, formatTokens, wrapLines } from "./format.ts"
 import { useTicker } from "./ticker.ts"
 
 const REASONS: Record<string, string> = {
@@ -13,25 +13,35 @@ const REASONS: Record<string, string> = {
   authentication_failed: "auth failed",
 }
 
+// A label too wide for one line wraps, each line centered between rules.
 export function Divider(props: { text: string }) {
   const [width, setWidth] = createSignal(0)
-  const line = () => {
-    const label = ` ${props.text} `
-    const left = Math.max(0, Math.floor((width() - label.length) / 2))
-    const right = Math.max(0, width() - label.length - left)
-    return { left: "─".repeat(left), label, right: "─".repeat(right) }
+  const lines = () => {
+    const room = width() - 6
+    const parts = room > 0 && Bun.stringWidth(props.text) > room ? wrapLines(props.text, room, Infinity) : [props.text]
+    return parts.map((part) => {
+      const label = ` ${part} `
+      const left = Math.max(0, Math.floor((width() - Bun.stringWidth(label)) / 2))
+      const right = Math.max(0, width() - Bun.stringWidth(label) - left)
+      return { left: "─".repeat(left), label, right: "─".repeat(right) }
+    })
   }
   return (
     <box
+      flexDirection="column"
       onSizeChange={function () {
         setWidth(this.width)
       }}
     >
-      <text wrapMode="none">
-        <span style={{ fg: theme.frame }}>{line().left}</span>
-        <span style={{ fg: theme.muted }}>{line().label}</span>
-        <span style={{ fg: theme.frame }}>{line().right}</span>
-      </text>
+      <Index each={lines()}>
+        {(line) => (
+          <text wrapMode="none">
+            <span style={{ fg: theme.frame }}>{line().left}</span>
+            <span style={{ fg: theme.muted }}>{line().label}</span>
+            <span style={{ fg: theme.frame }}>{line().right}</span>
+          </text>
+        )}
+      </Index>
     </box>
   )
 }

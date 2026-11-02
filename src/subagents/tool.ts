@@ -58,7 +58,8 @@ export function rowsNamed(rows: ModelRow[], name: string): ModelRow[] {
   return [...found.values()]
 }
 
-const ID = { type: "string", description: "The subagent's id, as run returned it." }
+const ID = { type: "string", description: "The subagent's id, as run returned it, such as c1; not an agent name." }
+const TAKES_ID = "Takes `id`, the subagent's id that `run` returned (such as c1), not the agent's name."
 
 export const AGENT_TOOLS = [
   {
@@ -93,7 +94,8 @@ export const AGENT_TOOLS = [
     name: "send",
     description:
       "Give an open subagent more work; one still running takes it when its current task ends. Its result arrives " +
-      "later as a message; do not wait or poll for it.",
+      "later as a message; do not wait or poll for it. " +
+      TAKES_ID,
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -103,12 +105,13 @@ export const AGENT_TOOLS = [
   },
   {
     name: "stop",
-    description: "Stop a subagent's current task; it stays open. One still waiting for a free slot does not start.",
+    description:
+      "Stop a subagent's current task; it stays open. One still waiting for a free slot does not start. " + TAKES_ID,
     inputSchema: { type: "object", additionalProperties: false, required: ["id"], properties: { id: ID } },
   },
   {
     name: "close",
-    description: "Close a subagent you no longer need. A finished subagent stays open until you close it.",
+    description: "Close a subagent you no longer need. A finished subagent stays open until you close it. " + TAKES_ID,
     inputSchema: { type: "object", additionalProperties: false, required: ["id"], properties: { id: ID } },
   },
 ]
@@ -257,8 +260,12 @@ export function createSubagents(deps: SubagentDeps) {
     if (!parsed.success) return error(`Invalid input: ${parsed.error.message}`)
     const { agent, model, task } = parsed.data
     if (agent !== undefined) {
-      const definition = deps.definitions().find((one) => one.name === agent)
-      if (!definition) return error(`There is no agent named ${agent}; agents lists them.`)
+      const named = () => deps.definitions().find((one) => one.name === agent)
+      const first = named()
+      if (!first) return error(`There is no agent named ${agent}; agents lists them.`)
+      // An agent on a provider whose models are still listed is known once they are.
+      if (!first.active && first.provider !== null && !deps.listed(first.provider)) await deps.models(first.provider)
+      const definition = named() ?? first
       const provider = deps.providers().find((one) => one.id === definition.provider)
       if (!definition.active || !provider || definition.model === null)
         return error(`${agent} has no model on an added provider yet; the user assigns one.`)
@@ -292,21 +299,25 @@ export function createSubagents(deps: SubagentDeps) {
     const definitions = deps.definitions()
     const providerName = (id: string | null) => providers.find((one) => one.id === id)?.name ?? id
     const active = definitions.filter((one) => one.active)
-    const inactive = definitions.filter((one) => !one.active).map((one) => one.name)
+    const waits = (one: Definition) => one.model !== null && loading.some((provider) => provider.id === one.provider)
+    const pending = definitions.filter((one) => !one.active && waits(one))
+    const inactive = definitions.filter((one) => !one.active && !waits(one)).map((one) => one.name)
     return [
       "Agents:",
       ...(active.length > 0
         ? active.map((one) => `- ${one.name}: ${one.description} · ${one.model} · ${providerName(one.provider)}`)
-        : ["none"]),
+        : pending.length > 0
+          ? []
+          : ["none"]),
+      ...pending.map(
+        (one) =>
+          `- ${one.name}: ${one.description} · ${one.model} · ${providerName(one.provider)} · assigned (model list still loading)`,
+      ),
       ...(inactive.length > 0 ? ["", `Without a model until the user assigns one: ${inactive.join(", ")}`] : []),
       "",
       `Providers whose models run takes by name: ${providers.map((one) => one.name).join(", ")}`,
       ...(loading.length > 0
-        ? [
-            "",
-            `Still listing the models of ${loading.map((one) => one.name).join(", ")}; agents on them may show as ` +
-              "without a model until then.",
-          ]
+        ? ["", `Still listing the models of ${loading.map((one) => one.name).join(", ")}; run waits for the list.`]
         : []),
     ].join("\n")
   }
@@ -316,9 +327,10 @@ export function createSubagents(deps: SubagentDeps) {
     if (name === "agents") return done(agentsText())
     if (name === "run") return run(input)
     const parsed = SEND.partial({ message: true }).safeParse(input)
-    if (!parsed.success) return error(`Invalid input: ${parsed.error.message}`)
+    if (!parsed.success)
+      return error(`${name} takes id, the subagent's id from run, such as c1${name === "send" ? ", and message" : ""}.`)
     const { id, message } = parsed.data
-    if (!children.get(id)) return error(`There is no subagent ${id}.`)
+    if (!children.get(id)) return error(`There is no subagent ${id}; give the id run returned, such as c1.`)
     if (name === "send") {
       if (message === undefined) return error("Give the message.")
       const sent = children.send(id, message)
