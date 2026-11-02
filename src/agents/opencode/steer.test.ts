@@ -112,6 +112,7 @@ const prompt = (id: string) => ({
   to: null,
   delivery: "queue" as const,
   kept: [],
+  context: null,
   shells: [],
 })
 

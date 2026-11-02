@@ -474,7 +474,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
         if (replies.length > 0) heldReplies = { conversation, replies }
         heldShells = shells
       }
-      const told = command ? [] : replies.map(keptReply)
+      const told = command ? [] : [...(prompt.context === null ? [] : [prompt.context]), ...replies.map(keptReply)]
       const after = command ? [] : shells.map((shell) => shellContext(shell.command, shell.output))
       const { sent } = promptLines(promptText(prompt), prompt.images, prompt.id, told, after)
       if (live.source.send(sent)) return Promise.resolve(ok)

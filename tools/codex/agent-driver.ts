@@ -181,6 +181,7 @@ export function createAgentDriver(
         to: null,
         delivery,
         kept: [],
+        context: null,
         shells: [],
       }
       if (options.store) showEarly(options.store, prompt)

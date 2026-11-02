@@ -123,6 +123,7 @@ const prompt = (id: string): Prompt => ({
   to: null,
   delivery: "steer",
   kept: [],
+  context: null,
   shells: [],
 })
 

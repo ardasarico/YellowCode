@@ -28,7 +28,8 @@ const filesOf = (prompt: Prompt) =>
     : {}
 
 export function promptBody(prompt: Prompt) {
-  return { id: messageOf(prompt.id), text: prompt.text, delivery: prompt.delivery, ...filesOf(prompt) }
+  const text = prompt.context === null ? prompt.text : `${prompt.context}\n\n${prompt.text}`
+  return { id: messageOf(prompt.id), text, delivery: prompt.delivery, ...filesOf(prompt) }
 }
 
 // A command takes no id: opencode makes the message from the command's template.

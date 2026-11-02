@@ -1,6 +1,7 @@
 // The threads of one folder, for /resume and Recent.
 /* oxlint-disable no-await-in-loop -- each page names the next */
 import type { SessionEntry } from "../../agent/sessions.ts"
+import { withoutHandoff } from "../../session/handoff.ts"
 import { oneLine } from "../../session/tool-summary.ts"
 import { CODEX } from "./caps.ts"
 import type { Rpc } from "./transport.ts"
@@ -32,7 +33,7 @@ export async function listSessions(rpc: Rpc, cwd: string): Promise<SessionEntry[
   }
   // After a revert Codex lists a thread once more for the part written since, newest first; the oldest part's preview is
   // the thread's first prompt.
-  const first = new Map(found.map((row) => [row.id, row.preview]))
+  const first = new Map(found.map((row) => [row.id, withoutHandoff(row.preview)]))
   const seen = new Set<string>()
   return found
     .filter((row) => !row.parentThreadId && !row.ephemeral && row.cwd === cwd)

@@ -6,6 +6,7 @@ import { join, resolve } from "node:path"
 import { z } from "zod"
 import type { SessionEntry } from "../../agent/sessions.ts"
 import { parseJson } from "../../json.ts"
+import { withoutHandoff } from "../../session/handoff.ts"
 import { oneLine } from "../../session/tool-summary.ts"
 import { PI } from "./caps.ts"
 import { textOf } from "./tools.ts"
@@ -99,7 +100,7 @@ export function entryOf(file: SessionFile, modified: number): SessionEntry {
   const name = file.entries.findLast((one) => one.type === "session_info" && named.safeParse(one).success)
   const model = file.entries.findLast((one) => one.type === "model_change" && modelChange.safeParse(one).success)
   const change = model ? modelChange.parse(model) : null
-  const firstPrompt = first ? textOfContent(message.parse(first["message"]).content) : ""
+  const firstPrompt = first ? withoutHandoff(textOfContent(message.parse(first["message"]).content)) : ""
   return {
     ref: { agent: PI, id: file.id },
     title: oneLine(name ? named.parse(name).name : "") || oneLine(firstPrompt),

@@ -1,6 +1,7 @@
 // The sessions of one folder on opencode's shared service, for /resume and Recent.
 /* oxlint-disable no-await-in-loop -- each page names the next, and the prompts are read a few at a time */
 import type { SessionEntry } from "../../agent/sessions.ts"
+import { withoutHandoff } from "../../session/handoff.ts"
 import { oneLine } from "../../session/tool-summary.ts"
 import { OPENCODE } from "./caps.ts"
 import { isChild } from "./leftovers.ts"
@@ -25,7 +26,7 @@ async function firstPrompt(transport: Transport, id: string): Promise<string | f
   const found = await page(transport, `/api/session/${id}/message`, { type: "user", order: "asc", limit: "1" })
   if (!found) return null
   const [first] = rowsOf(found.data, message, "message")
-  return first?.type === "user" ? first.text : false
+  return first?.type === "user" ? withoutHandoff(first.text) : false
 }
 
 async function firstPrompts(transport: Transport, ids: string[]): Promise<(string | false | null)[]> {

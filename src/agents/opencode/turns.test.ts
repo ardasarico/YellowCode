@@ -121,7 +121,7 @@ test("a resync tells another client's stored prompt once and leaves ours to its 
   }
   expect(translator.event(enqueued, 3)).toEqual([])
   const reply = { id: "p1", text: "ours", images: [], command: null, to: null, delivery: "steer" as const }
-  expect(told(translator.sent({ ...reply, kept: [], shells: [] }, "msg_p1", 4), "user")).toMatchObject([
+  expect(told(translator.sent({ ...reply, kept: [], context: null, shells: [] }, "msg_p1", 4), "user")).toMatchObject([
     { prompt: "p1" },
   ])
 })

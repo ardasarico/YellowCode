@@ -212,7 +212,8 @@ function inputOf(prompt: Prompt): unknown[] {
     url: `data:${image.mediaType};base64,${image.base64}`,
   }))
   const text = prompt.text !== "" || images.length === 0 ? [{ type: "text", text: prompt.text, text_elements: [] }] : []
-  return [...text, ...images]
+  const context = prompt.context === null ? [] : [{ type: "text", text: prompt.context, text_elements: [] }]
+  return [...context, ...text, ...images]
 }
 
 async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {

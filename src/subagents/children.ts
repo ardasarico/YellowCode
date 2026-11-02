@@ -158,6 +158,7 @@ export function createChildren(options: ChildrenOptions) {
       to: null,
       delivery: "queue",
       kept: [],
+      context: null,
       shells: [],
     }
     run.preface = null

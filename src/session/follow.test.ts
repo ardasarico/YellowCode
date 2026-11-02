@@ -30,6 +30,7 @@ const prompt: Prompt = {
   to: null,
   delivery: "steer",
   kept: [],
+  context: null,
   shells: [],
 }
 

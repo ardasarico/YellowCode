@@ -111,6 +111,13 @@ function render(kept: Entry[], leftOut: number, cut: number): string {
   return [HEADER, ...body, FOOTER].join(SEPARATOR)
 }
 
+// A prompt read back with its handoff ahead of the user's text, as the user wrote it.
+export function withoutHandoff(prompt: string): string {
+  if (!prompt.startsWith(HEADER)) return prompt
+  const end = prompt.indexOf(FOOTER)
+  return end === -1 ? prompt : prompt.slice(end + FOOTER.length).replace(/^\n{1,2}/, "")
+}
+
 // The shown conversation as plain text for another agent's model whose context window is `window` tokens. Over the
 // budget it keeps the first user message and the newest entries that fit.
 export function buildHandoff(session: Pick<Session, "items" | "byId" | "rewound">, window: number, cwd = ""): Handoff {

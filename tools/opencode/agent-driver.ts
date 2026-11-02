@@ -180,6 +180,7 @@ export function createAgentDriver(
         to: null,
         delivery,
         kept: [],
+        context: null,
         shells: [],
       }
       const { store } = options

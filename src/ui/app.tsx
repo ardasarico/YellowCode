@@ -4,6 +4,7 @@ import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome } from "../agent/ids.ts"
 import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
 import { favoriteWalk, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
+import type { Handoff } from "../session/handoff.ts"
 import { ModelPicker, pickerModel } from "./model-picker.tsx"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
 import { ModDialogView } from "./mod-dialog.tsx"
@@ -269,8 +270,19 @@ export type ModelSource = {
   listed: (id: AgentKindId) => ModelRow[] | null
   // Lists the provider's models into the catalog; never rejects.
   ensure: (id: AgentKindId) => Promise<unknown>
-  // A new session of the provider on the model takes the screen; `message` goes to it once it runs.
-  start: (provider: AgentKindId, model: ModelRef, message: Message | null, giveBack: () => void) => void
+  // The conversation as text for a new session on the model, or why it cannot go there.
+  carry: (provider: AgentKindId, model: ModelRef) => { ok: true; handoff: Handoff } | { ok: false; problem: string }
+  // Asks before a message moves the conversation; true when the user lets it.
+  confirm: (provider: AgentKindId, model: ModelRef, handoff: Handoff) => Promise<boolean>
+  // A new session of the provider on the model takes the screen, with `handoff` ahead of its next message; `message`
+  // goes to it once it runs.
+  start: (
+    provider: AgentKindId,
+    model: ModelRef,
+    message: Message | null,
+    giveBack: () => void,
+    handoff: Handoff | null,
+  ) => void
 }
 
 // What the user sends; `to` is a running subagent the message is for.
@@ -939,23 +951,38 @@ export function App(props: AppProps) {
     const id = settings.model ?? props.model()
     return id === null ? null : { provider: props.agent.id, id }
   }
-  // A model of the running provider switches in place; another provider's starts a new session on it.
+  // A model of the running provider switches in place; another provider's starts a new session on it, which the
+  // conversation moves to as text. A message sent on a pending choice asks first.
   const chooseModel = (model: PickerModel, message: Message | null = null, giveBack = () => {}): boolean => {
     if (model.provider === props.agent.id) {
       setPending(null)
       toModel(pickModel(model.id))
       return true
     }
-    if (!props.models) return false
-    if (userItems().length > 0) return moveConversation()
-    setPending(null)
-    props.models.start(model.provider, model.ref, message, giveBack)
+    const models = props.models
+    if (!models) return false
+    const start = (handoff: Handoff | null) => {
+      setPending(null)
+      models.start(model.provider, model.ref, message, giveBack, handoff)
+    }
+    if (userItems().length === 0) {
+      start(null)
+      return true
+    }
+    const carried = models.carry(model.provider, model.ref)
+    if (!carried.ok) {
+      setControlProblem({ text: carried.problem })
+      return false
+    }
+    if (!message) {
+      start(carried.handoff)
+      return true
+    }
+    void models.confirm(model.provider, model.ref, carried.handoff).then((yes) => {
+      if (yes) start(carried.handoff)
+      else giveBack()
+    })
     return true
-  }
-  // TODO(C4): hand the conversation over to the new session instead of stopping here.
-  const moveConversation = (): boolean => {
-    waitNotice("Moving a conversation to another provider comes next")
-    return false
   }
   // Shift+←→ walks the favorites of every provider, or the running provider's models while none is a favorite.
   // Another provider's model waits as the pending choice until a message is sent.

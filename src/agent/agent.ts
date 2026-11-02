@@ -20,6 +20,9 @@ export type Prompt = {
   delivery: "steer" | "queue"
   // What the agent said while the conversation was cut; it hears it again ahead of the text.
   kept: string[]
+  // The conversation of another agent's session this one replaced; the agent reads it ahead of the text, the chat does
+  // not show it.
+  context: string | null
   // `!` commands the user ran since the last prompt; the agent reads them after the text, the chat does not show them.
   shells: { command: string; output: string }[]
 }

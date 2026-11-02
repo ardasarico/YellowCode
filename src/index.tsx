@@ -36,6 +36,8 @@ import { forgetFiles } from "./input/files.ts"
 import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
+import { moveAsk, moveOf, movedNote } from "./models/move.ts"
+import { buildHandoff, handoffBudget } from "./session/handoff.ts"
 import { ensureCatalog } from "./models/refresh.ts"
 import type { Launcher } from "./subagents/children.ts"
 import { loadDefinitions } from "./subagents/definitions.ts"
@@ -1081,6 +1083,22 @@ async function startNew(runner: Runner, then: string, model: ModelRef | null = n
   return true
 }
 
+// The conversation a new session took over from another provider's; it goes with the session's next message.
+let carrying: { store: SessionStore; text: string } | null = null
+const moveWaiting = new Map<string, (yes: boolean) => void>()
+
+function answerMove(ask: { requestId: string }, reply: AskReply): void {
+  const yes = reply.type === "option" && reply.option === "switch"
+  live.store.event({
+    type: "ask.close",
+    id: ask.requestId,
+    outcome: yes ? { status: "allowed" } : { status: "denied", said: "", why: "declined", note: "" },
+    at: Date.now(),
+  })
+  moveWaiting.get(ask.requestId)?.(yes)
+  moveWaiting.delete(ask.requestId)
+}
+
 // /model and Shift+←→ read the other added providers' models from the catalog, and start one of them.
 const modelSource: ModelSource = {
   added: addedProviders,
@@ -1089,14 +1107,35 @@ const modelSource: ModelSource = {
     const kind = listing.find((one) => one.id === id)
     return kind ? ensureCatalog(kind, cwd) : Promise.resolve(false)
   },
-  start: (id, model, message, giveBack) => {
+  carry: (id, model) => {
+    const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
+    const label = row?.label ?? model.id
+    if (!row?.window)
+      return { ok: false, problem: `${label} has no known context window, so the conversation stays here` }
+    if (handoffBudget(row.window) === 0)
+      return { ok: false, problem: `${label}'s context window is too small for this conversation` }
+    return { ok: true, handoff: buildHandoff(live.store.state, row.window, cwd) }
+  },
+  confirm: (id, model, handoff) => {
+    const label = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)?.label
+    const name = KNOWN_AGENTS.find((known) => known.id === id)?.name ?? id
+    const ask = moveAsk(crypto.randomUUID(), handoff, live.runner.kind.name, name, label ?? model.id)
+    live.store.event({ type: "ask.open", ask, at: Date.now() })
+    return new Promise((resolve) => moveWaiting.set(ask.id, resolve))
+  },
+  start: (id, model, message, giveBack, handoff) => {
     const runner = runnerById(id)
     if (!runner) {
       if (message) giveBack()
       return
     }
+    const from = live.runner.kind.name
     startNew(runner, `switch to ${runner.kind.name}`, model)
       .then((started) => {
+        if (started && handoff) {
+          carrying = { store: live.store, text: handoff.text }
+          live.store.event({ type: "notice", level: "info", text: movedNote(handoff, from), at: Date.now() })
+        }
         if (message && (!started || !sendLive(message, giveBack))) giveBack()
       })
       .catch((error: unknown) => {
@@ -1192,13 +1231,16 @@ function sendPrompt(
   const { store: session } = target
   const command = message.to === null ? commandOf(message.text, session.lists().commands) : null
   const delivery = message.delivery === "queue" && target.agent.caps.queue ? "queue" : "steer"
-  const prompt: Prompt = { ...message, id: uuid, command, delivery, kept, shells }
+  const carried = carrying?.store === session && message.to === null && !message.text.startsWith("/") ? carrying : null
+  if (carried) carrying = null
+  const prompt: Prompt = { ...message, id: uuid, command, delivery, kept, context: carried?.text ?? null, shells }
   const run = runOf(target)
   const startsTurn = session.state.status !== "running"
   const show = target.runner.show ?? showEarly
   show(session, prompt)
   const ready = capture?.before(uuid, target.agent.session.id || null, session)
   const unsent = () => {
+    if (carried && carrying === null) carrying = carried
     capture?.drop(uuid)
     session.notSent(uuid)
     giveBack?.()
@@ -1532,7 +1574,15 @@ function Main() {
                 if (mode.kind === "replay") {
                   // An empty Enter releases the next recorded message.
                   if (!empty && !mode.replay.accepts()) return false
-                  const prompt = { ...message, id: "", command: null, delivery: "steer" as const, kept: [], shells: [] }
+                  const prompt = {
+                    ...message,
+                    id: "",
+                    command: null,
+                    delivery: "steer" as const,
+                    kept: [],
+                    context: null,
+                    shells: [],
+                  }
                   void mode.replay.send(prompt)
                   return true
                 }
@@ -1554,6 +1604,7 @@ function Main() {
               onAnswer={(ask, reply) => {
                 const held = heldOf(ask.requestId)
                 if (held !== null) return answerHeld(held, ask, reply)
+                if (moveOf(ask.requestId) !== null) return answerMove(ask, reply)
                 if (mode.kind === "live" && live.subagents.answer(ask.requestId, reply)) return
                 const everywhere = everywhereOf(ask.requestId)
                 if (everywhere !== null) return answerEverywhere(everywhere, ask, reply)

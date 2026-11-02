@@ -387,15 +387,16 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   follow(pi)
 
   async function go(prompt: Prompt, via: Via): Promise<Outcome> {
-    translator.sent(prompt.id, prompt.text, via)
+    // pi says the prompt back whole, and the translator knows it by that text.
+    const text = prompt.context === null ? prompt.text : `${prompt.context}\n\n${prompt.text}`
+    translator.sent(prompt.id, text, via)
     const type = via === "start" ? "prompt" : via === "steer" ? "steer" : "follow_up"
     const images = prompt.images.map((image) => ({ type: "image", data: image.base64, mimeType: image.mediaType }))
     try {
       const reply = promptReply.safeParse(
-        await pi.command(type, { message: prompt.text, ...(images.length > 0 ? { images } : {}) }),
+        await pi.command(type, { message: text, ...(images.length > 0 ? { images } : {}) }),
       )
-      if (reply.success && reply.data.disposition === "handled")
-        tell(...translator.handled(prompt.id, prompt.text, now()))
+      if (reply.success && reply.data.disposition === "handled") tell(...translator.handled(prompt.id, text, now()))
       return { ok: true, note: null }
     } catch (error) {
       translator.forget(prompt.id)

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { parseJson } from "../../json.ts"
 import { readSessionMessage, readSubagentMessage } from "../../peers/envelope.ts"
 import { agentMessageLabel } from "../../session/agent-message.ts"
+import { withoutHandoff } from "../../session/handoff.ts"
 import { projectKey } from "../../project-key.ts"
 
 const WHOLE_LIMIT = 128 * 1024
@@ -76,8 +77,12 @@ export function commandPrompt(text: string): string {
   return args === "" ? command : `${command} ${args}`
 }
 
-const listPrompt = (text: string) =>
-  agentMessageLabel(text) ?? readSessionMessage(text)?.text ?? readSubagentMessage(text)?.text ?? commandPrompt(text)
+const listPrompt = (prompt: string) => {
+  const text = withoutHandoff(prompt)
+  return (
+    agentMessageLabel(text) ?? readSessionMessage(text)?.text ?? readSubagentMessage(text)?.text ?? commandPrompt(text)
+  )
+}
 
 function promptOf(line: Line): string | null {
   if (line.type !== "user" || line.isMeta || line.isCompactSummary) return null
