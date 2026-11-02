@@ -4,6 +4,9 @@ YellowCode is a screen for your coding agent. It has no model, tools or login of
 project, it starts your agent in the same folder, sends it what you type and draws what comes back. The agent runs on
 your own account, with your own settings, MCP servers, skills and plugins.
 
+On screen, Claude Code, Codex, opencode and Pi are called providers. A session runs one of them. Subagents can run
+others beside it, each through its own binary or service in the same way.
+
 ## Claude Code
 
 YellowCode runs `claude -p --input-format=stream-json --output-format=stream-json`, with a few more flags, and talks to
@@ -33,11 +36,43 @@ against pi 1.4.x.
 
 Pi runs every tool without asking first, file edits and shell commands included, and YellowCode does not add asks of
 its own. The prompt shows `no approvals` while a Pi session runs, and the first Pi session says so once. Pi has no plan
-mode or subagents, so those screens do not show. Questions from your Pi extensions open in YellowCode's own dialog, and
+mode or subagents of its own, so those screens do not show, and a Pi session gets no tools to run subagents. Pi can
+run as another session's subagent. Questions from your Pi extensions open in YellowCode's own dialog, and
 their notices show as lines in the chat.
 
 Pi does not lock its session files. Do not open the same session in Pi's own screen and in YellowCode at the same time,
 or both write to it and the file can break.
+
+## Models of other providers
+
+`/model` and the subagents need the models of providers that are not running. YellowCode keeps the list each provider
+gave last in `~/.yellowcode/models.json`: each model's id, name, effort levels and context window, nothing else. The
+running session fills it. When a provider has no list there yet, or a new version, YellowCode starts that provider
+briefly in the background, the same way it starts a session, and asks for its models. That sends no request to a
+model. It happens the first time `/model`, `/agents` or a subagent needs the list, never at start.
+
+A conversation moves to another provider as plain text: a new session starts there, and the text goes ahead of your
+next message, marked as earlier context and not a request. It is cut to fit the new model's context window, which comes
+from the provider's model list (opencode and Pi), from Claude Code for each model as the list is made, from Codex's own
+`~/.codex/models_cache.json`, or from a turn on that model that YellowCode has seen. A model with none of these cannot
+take a conversation.
+
+## Subagents
+
+The session you work in gets five tools, given the same way as the mods' tools: `agents` lists the
+[agent files](usage.md#agent-files) and providers, `run` starts a subagent, `send` gives it more work, `stop` stops its
+task and `close` closes it. `run` returns at once, and the result comes back later as a message, so no provider's tool
+timeout is hit.
+
+A subagent is a new session of its provider, started in your project folder, with the agent's instructions added to
+the provider's own and the task as its first message. It is started so that the provider does not save it: with Claude
+Code without a saved session, with Codex as a thread that is not kept, with opencode as a session that is deleted when
+it closes, with Pi without a session file. Unless its file says `plugins: true`, it starts without your plugins, hooks
+and MCP servers where the provider has a switch for it. It gets no tools from YellowCode.
+
+Its permission mode is the widest one its provider has that is no wider than both your session's mode and the agent's
+`permissions`. Its asks come to your chat. A subagent and your session share the working tree, and rewind snapshots
+follow your session only, so a rewind in your session can also undo a subagent's edits.
 
 ## What YellowCode adds to your session
 
@@ -59,6 +94,7 @@ or both write to it and the file can break.
   opencode or Pi.
 - Three tools for your other open sessions, `list`, `send` and `broadcast`, given to the agent the same way as the mods'
   tools. See [Sessions working together](usage.md#sessions-working-together). Pi does not get them.
+- Five tools to run [subagents](#subagents) on the providers you added. Pi does not get them.
 - The tools of the [mods](mods.md) you have turned on, and with Claude Code and Codex their MCP servers. Codex takes
   them when a session starts, so a change reaches it in the next session. Pi gets neither.
 
@@ -67,7 +103,8 @@ or both write to it and the file can break.
 - Read your credentials or API keys.
 - Talk to a model provider itself.
 - Send your prompts, files or sessions anywhere but to your agent. When your agent messages another open session, the
-  message goes to that session on your machine and nowhere else.
+  message goes to that session on your machine and nowhere else. A moved conversation or a subagent's task goes only
+  to a provider you added.
 
 The only requests YellowCode makes on its own are for updates and mods. It reads the list of releases from GitHub when
 it starts and once a day, and downloads a new version from GitHub, or runs your package manager, which downloads it
@@ -77,7 +114,7 @@ its dependencies, if it has any, from npm. Mods are code you chose to run, so th
 
 ## What it keeps on your machine
 
-Settings, logs and rewind snapshots, which are copies of files from your projects. [Usage](usage.md#files-it-writes)
-lists where each one lives. For `/resume`, YellowCode reads the session lists your agents keep: Claude Code's
+Settings, the model lists, logs and rewind snapshots, which are copies of files from your projects. [Usage](usage.md#files-it-writes)
+lists where each one lives. For `/resume`, YellowCode reads the session lists your providers keep: Claude Code's
 `~/.claude/projects`, what Codex's app-server and opencode's service list for the project, and Pi's session files in
 `~/.pi/agent/sessions`.

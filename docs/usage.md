@@ -3,18 +3,20 @@
 ## Requirements
 
 - macOS or Linux. On Windows, run it inside WSL.
-- A [supported agent](../README.md#supported-agents), installed and logged in. For Claude Code, that means `claude` is
-  on your `PATH`; for Codex, `codex`; for opencode, `opencode` 2 or newer.
+- At least one [supported provider](../README.md#supported-providers), installed and logged in. For Claude Code, that
+  means `claude` is on your `PATH`; for Codex, `codex`; for opencode, `opencode` 2 or newer; for Pi, `pi`.
 - For images, a terminal that can draw them, such as [Ghostty](https://ghostty.org) or
   [kitty](https://sw.kovidgoyal.net/kitty/). Other terminals and tmux work without images. YellowCode says so when it
   starts, and `--skip-terminal-check` skips that screen.
 
 ## Starting
 
-Run `yellowcode` in the folder you want to work in. The agent starts there too.
+Run `yellowcode` in the folder you want to work in. The agent starts there too. YellowCode opens on the model you
+used last, and so on its provider.
 
 ```text
 yellowcode [--skip-terminal-check] [--no-mods]
+yellowcode providers
 yellowcode --report
 yellowcode --version
 yellowcode update [<version>]
@@ -22,9 +24,10 @@ yellowcode mod <command>
 ```
 
 - `--no-mods` starts without loading any mods.
+- `yellowcode providers` opens the list of providers in the terminal. See [Providers](#providers).
 - `--report` prints a summary for bug reports and exits: versions, terminal, YellowCode settings and the last lines of
   the log. `/report` inside the app copies the same text.
-- `--version` prints the versions of YellowCode, its mod API and the agents you have installed.
+- `--version` prints the versions of YellowCode, its mod API and the providers you have installed.
 - `yellowcode update` installs the newest version now, or the one you name. See
   [Updating and uninstalling](#updating-and-uninstalling).
 - `yellowcode mod` installs and manages mods. See [Mods](mods.md).
@@ -42,9 +45,9 @@ yellowcode mod <command>
 | Enter in the chat          | Open or fold the selected item                                                |
 | End                        | Jump to the bottom of the chat                                                |
 | Shift+Tab                  | Switch to your agent's next permission mode                                   |
-| Shift+← / Shift+→          | Previous or next model                                                        |
+| Shift+← / Shift+→          | Previous or next favorite model. See [Models](#models)                        |
 | Shift+↑ / Shift+↓          | More or less effort                                                           |
-| Ctrl+T                     | Show the agents and shells running in the background                          |
+| Ctrl+T                     | Show the agents, subagents and shells running in the background               |
 | Ctrl+B                     | Send the command or agent that is running to the background                   |
 | F3                         | Show or hide the sidebar                                                      |
 
@@ -64,6 +67,8 @@ yellowcode mod <command>
 | `/redo`        | Bring back what the last rewind undid                      |
 | `/resume`      | Open an earlier session from this project                  |
 | `/providers`   | Add or remove providers                                    |
+| `/model`       | Pick a model of any provider you added                     |
+| `/agents`      | Assign models to subagents                                 |
 | `/export`      | Copy the conversation, or save it as Markdown              |
 | `/settings`    | YellowCode's settings                                      |
 | `/theme`       | Pick a theme                                               |
@@ -74,16 +79,105 @@ yellowcode mod <command>
 | `/permissions` | The rules you allowed for good, where the agent lists them |
 | `/report`      | Copy a summary of your setup for a bug report              |
 
-Other commands go to your agent. YellowCode handles a few itself, such as `/model`, `/effort`, `/context` and `/plan`,
-and `/usage` with Claude Code. It leaves out the few of Claude Code's that only work in its own screen.
+Other commands go to your agent. YellowCode handles a few itself, such as `/effort`, `/context` and `/plan`, and
+`/usage` with Claude Code. It leaves out the few of Claude Code's that only work in its own screen. `/providers` and
+`/agents` hide a command of the same name your agent may have.
+
+## Providers
+
+Claude Code, Codex, opencode and Pi are providers. The first time you run `yellowcode`, it lists the installed ones in
+the terminal: space selects, Enter goes on. If you used YellowCode before, the providers you used are added without
+asking. `yellowcode providers` opens the same list later.
+
+Inside the app, `/providers` lists the installed providers, and space adds or removes one. The provider in use and the
+last one left cannot be removed. A newly installed provider is not added until you add it. Sessions of a removed
+provider stay in `/resume` and still open.
+
+## Models
+
+`/model` lists your favorite models first, then one group for each provider you added, the one in use first. A group
+shows 20 models and then `… N more`, which Enter opens. Type to search. opencode and Pi models carry their own
+provider as a prefix, as in `anthropic/claude-opus-5-5`.
+
+- `f` adds or removes a favorite.
+- `h` hides a model, and `.` shows or leaves out the hidden ones.
+
+Shift+← and Shift+→ walk your favorites across providers, or the models of the provider in use while you have none.
+
+A model of the provider in use switches in place. A model of another provider starts a new session on that provider,
+and the conversation moves there as text with your next message:
+
+- Your messages and the agent's replies, and shell commands with their output.
+- File changes as the file name, other tools as one line each.
+- Images do not move.
+- When the conversation is too long for the new model, the oldest messages are left out. The first one stays.
+
+The old session stays in `/resume`. When Shift+← or Shift+→ lands on another provider's model, the prompt shows it and
+nothing switches yet. Once the conversation has messages, sending one asks first, with what will move, and switches
+only on Switch and send.
+
+A model whose context window YellowCode does not know cannot take a conversation. Picking it says so and the session
+stays where it is. A new conversation can start on it. [How it works](how-it-works.md#models-of-other-providers) says
+where the windows come from.
+
+## Subagents
+
+Your session gets tools to run subagents: sessions of their own, on any provider you added, that work on a task while
+your session goes on. Ask for one, for example "have a Codex model write the tests for this". Your agent runs one of
+your [agents](#agent-files), or names a model directly; then you are asked first which model runs, if any. A Pi session gets no such tools, but Pi can run as a subagent.
+
+- A subagent works in the same folder as your session. Its sessions are not saved and do not show in `/resume`.
+- It never gets a wider permission mode than your session's. When even its provider's narrowest mode is wider, as with
+  Pi, which asks for nothing, you are asked once in your chat whether it may run. With your session in auto or bypass
+  and the agent's permissions on `inherit`, it runs without that ask.
+- Its permission asks and questions show in your chat, marked with its name.
+- When it finishes, its last message, the files it edited and how long it took come back to your agent as a message.
+  It stays open, so your agent can send it more work, until your agent closes it or your session ends.
+- At most 6 run at once; more wait for a free slot. Subagents at once in `/settings` changes the number.
+- Ctrl+T shows them in the agent panel, where you can follow one, send it a message, stop it or close it.
+
+A subagent gets none of your session's own tools: no subagents of its own, no other sessions and no mod tools.
+
+## Agent files
+
+An agent is a task description with a model. Three are built in:
+
+- **general-purpose**: does a self-contained task end to end, with your session's permissions.
+- **explore**: searches and reads the code to answer a question, and changes nothing.
+- **worker**: makes a well-defined change and reports what it changed.
+
+Add your own as Markdown files in `~/.config/yellowcode/agents/` or in your project's `.yellowcode/agents/`. The file
+name is the agent's name. A project file wins over a global one of the same name, and both over a built-in one.
+
+```markdown
+---
+description: Reviews a diff for bugs and says what it found.
+provider: opencode
+model: openrouter/deepseek-v4
+permissions: read-only
+---
+
+Review the changes you are given. Reply with each bug, its file and line, and why it is one.
+```
+
+- `description`: what the agent is for. Your agent reads it to choose one.
+- `provider`: `claude`, `codex`, `opencode` or `pi`.
+- `model`: the model's id as that provider lists it.
+- `permissions`: `read-only`, `edits`, or `inherit`, the default, which goes up to your session's mode.
+- `plugins`: `true` starts it with your plugins, hooks and MCP servers. Without it, it starts without them, as far as
+  its provider can.
+
+The body is the agent's instructions. An agent runs only once it has a model on a provider you added. `/agents` lists
+every agent with its model: Enter picks a model, written into the agent's file (for a built-in, into a new file in
+`~/.config/yellowcode/agents/`), and `e` opens the file.
 
 ## Sessions working together
 
-Every YellowCode session open on your machine can see the others and send them messages, whichever agent each one
+Every YellowCode session open on your machine can see the others and send them messages, whichever provider each one
 runs. Ask your agent to hand something over, for example "give the token tests to the session in ~/work/api", and it
 does the rest:
 
-- It lists the open sessions with their title, folder, agent and model, and whether each one is busy, those of the
+- It lists the open sessions with their title, folder, provider and model, and whether each one is busy, those of the
   same project first. Two sessions share a project when one's folder holds the other's. Inside a git repository the
   repository's root folder counts, so `app/client` and `app/server` share one.
 - It sends a message to one session, in any project, or to every session of the same project. A message to every
@@ -106,8 +200,11 @@ other machines do not.
 
 ## Files it writes
 
-- Settings: `~/.config/yellowcode/settings.json`. Themes, mods and mod data live next to it, in `themes/`, `mods/` and
-  `mod-data/`. All of these follow `XDG_CONFIG_HOME`.
+- Settings: `~/.config/yellowcode/settings.json`, with your providers, favorite and hidden models and the model you
+  used last. Themes, mods, mod data and your agent files live next to it, in `themes/`, `mods/`, `mod-data/` and
+  `agents/`. All of these follow `XDG_CONFIG_HOME`.
+- Models: `~/.yellowcode/models.json`, the models each provider listed last, with their names, effort levels and
+  context windows.
 - Log: `~/.yellowcode/logs/yellowcode.log`, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug
   lines, which can contain session text.
 - Open sessions: `~/.yellowcode/sessions/`, one record and one socket for each open session, in a folder only you can
@@ -122,7 +219,7 @@ other machines do not.
   script also puts its versions in `~/.yellowcode/versions/` and notes its channel in `~/.yellowcode/install.json`.
 
 Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex,
-opencode's own service for opencode and `~/.pi/agent` for Pi. `/resume` lists the sessions of every installed agent.
+opencode's own service for opencode and `~/.pi/agent` for Pi. `/resume` lists the sessions of every installed provider.
 
 ## Updating and uninstalling
 

@@ -28,8 +28,9 @@ bun add -g yellowcode
 pnpm add -g yellowcode
 ```
 
-Then run `yellowcode` in your project. You need macOS or Linux and a [supported agent](#supported-agents), installed
-and logged in. YellowCode keeps itself up to date. For the beta, run the install script with `bash -s beta` or install
+Then run `yellowcode` in your project. You need macOS or Linux and at least one
+[supported provider](#supported-providers), installed and logged in. The first time, YellowCode asks in the terminal
+which of the installed ones to use. It keeps itself up to date. For the beta, run the install script with `bash -s beta` or install
 `yellowcode@beta`. See [Usage](docs/usage.md) for the rest.
 
 > [!TIP]
@@ -44,14 +45,18 @@ and logged in. YellowCode keeps itself up to date. For the beta, run the install
 - **Rewind that brings your files back.** Go back to an earlier message and the whole project goes back with it: files
   changed by shell commands, formatters and background agents too, not only the agent's own edits. `/redo` undoes the
   rewind.
+- **Every provider's models in one picker.** `/model` lists the models of all the providers you added. Pick one of
+  another provider and the conversation moves there as text.
+- **Subagents on other providers.** Your session can hand a task to another provider's model, say a Codex model while
+  you run Claude Code, and gets the result back as a message. Its permission asks show in your chat.
 - **Sessions that hand work to each other.** Every YellowCode session open on your machine can see the others and send
-  them work, whichever agent each one runs. One session asks another to write the tests, and the answer comes back as
+  them work, whichever provider each one runs. One session asks another to write the tests, and the answer comes back as
   a message.
 - **Mods.** Add your own commands, panes, sidebar sections and tools in TypeScript.
 
-## Supported agents
+## Supported providers
 
-| Agent              | Status         |
+| Provider           | Status         |
 | ------------------ | -------------- |
 | Claude Code        | ✅ Works       |
 | Codex CLI          | ✅ Works       |
@@ -62,7 +67,8 @@ and logged in. YellowCode keeps itself up to date. For the beta, run the install
 
 ## How it works
 
-YellowCode starts the agent you already use, on your own account, and draws what it sends back. It never reads your
+YellowCode starts the agent you already use, on your own account, and draws what it sends back. On screen, Claude
+Code, Codex, opencode and Pi are called providers. It never reads your
 credentials or talks to a model provider itself. What it adds to your session is listed in
 [How it works](docs/how-it-works.md#what-yellowcode-adds-to-your-session).
 
