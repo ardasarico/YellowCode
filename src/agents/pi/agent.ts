@@ -182,12 +182,21 @@ async function open(deps: Deps, cwd: string, args: string[]): Promise<{ pi: Clie
 
 // What a resume opens with: the session itself, a copy of it, or (with `at`) the session, which a fork then copies
 // up to before that prompt.
-function openArgs(options: StartOptions): string[] {
+function sessionArgs(options: StartOptions): string[] {
   const resume = options.resume
+  if (options.ephemeral) {
+    if (resume) throw new Error("A session Pi does not keep cannot resume")
+    return ["--no-session"]
+  }
   if (!resume) return []
   if (resume.fork && resume.at === null) return ["--fork", resume.ref.id]
   return ["--session-id", resume.ref.id]
 }
+
+// Plain: without the user's extensions (pi's plugins and hooks) and MCP servers.
+const leanArgs = (options: StartOptions) => (options.plain ? ["--no-extensions", "--no-mcp"] : [])
+
+export const openArgs = (options: StartOptions) => [...sessionArgs(options), ...leanArgs(options)]
 
 const entryOf = (map: Map<string, PromptId>, prompt: PromptId) =>
   [...map].find(([, known]) => known === prompt)?.[0] ?? null
@@ -460,9 +469,10 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   // The same session goes on in a new pi.
   async function restart(): Promise<Outcome> {
     if (!ended || closed) return { ok: false, problem: "Pi is still running" }
+    if (options.ephemeral) return { ok: false, problem: "Pi kept no copy of this session to go on with" }
     tell({ type: "starting", at: now() })
     try {
-      const next = await open(deps, options.cwd, ["--session-id", session])
+      const next = await open(deps, options.cwd, ["--session-id", session, ...leanArgs(options)])
       pi = next.pi
       state = next.state
       told = []

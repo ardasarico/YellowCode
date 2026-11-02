@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, spyOn, test } from "bun:test"
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { z } from "zod"
 import { replayAgent, type DriverOutput } from "../../../tools/codex/agent-driver.ts"
 import { pick } from "../../../tools/codex/driver.ts"
 import { connect, fork, sessions } from "../../../tools/codex/scenarios/sessions.ts"
@@ -127,6 +128,8 @@ const START = {
   model: null,
   effort: null,
   extraEffort: false,
+  ephemeral: false,
+  plain: false,
   thinking: false,
   instructions: [],
   clientTools: [],
@@ -153,6 +156,33 @@ test("nobody signed in: start stops after the account read with the sign-in prob
     line.kind === "out" && (line.c ?? 0) === 0 && !unused.has(line) ? [pick(line.msg, "method")] : [],
   )
   expect(sent).toEqual(["initialize", "initialized", "account/read"])
+})
+
+const sent = z.looseObject({ method: z.string().optional(), params: z.looseObject({}).optional() })
+
+test("a session Codex does not keep starts an ephemeral thread, a plain one with plugins, hooks and apps off", async () => {
+  const replay = replayTransport(fixture("connect"))
+  let started: unknown = null
+  const kind = codexKind({
+    detect: () => Promise.resolve(DETECTED),
+    spawn: () => ({
+      ...replay,
+      send(message) {
+        const request = sent.parse(message)
+        if (request.method !== "thread/start") return replay.send(message)
+        const { ephemeral, config, ...params } = request.params ?? {}
+        started = { ephemeral, config }
+        replay.send({ ...request, params })
+      },
+    }),
+    appVersion: "0.0.0-recording",
+  })
+  const agent = await kind.start({ ...START, ephemeral: true, plain: true })
+  await agent.close()
+  expect(started).toEqual({
+    ephemeral: true,
+    config: { "features.plugins": false, "features.hooks": false, "features.apps": false },
+  })
 })
 
 test("a thread another app-server writes is refused at resume with a plain problem", async () => {

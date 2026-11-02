@@ -32,6 +32,7 @@ import { findService } from "./service.ts"
 import { listSessions } from "./sessions.ts"
 import { eventStream, realClock, type Clock } from "./sse.ts"
 import { answerOnce } from "./titles.ts"
+import { childTitle, deleteLeftovers, deleteSession } from "./leftovers.ts"
 import { createTranslator, type Translator, type WireModel } from "./translate.ts"
 import { channel, httpTransport, type Endpoint, type Transport } from "./transport.ts"
 import { contextReport, defaultModel, defaultRef, readLimits, readWindows } from "./usage.ts"
@@ -125,6 +126,7 @@ async function usable(deps: Deps): Promise<{ version: string; binary: string }> 
 // The session `start` makes, in `agent` when given, attaches to or forks; it rejects with opencode's own words.
 async function sessionFor(transport: Transport, options: StartOptions, agent: ModeId | null): Promise<Session> {
   const { resume } = options
+  if (options.ephemeral && resume !== null) throw new Error("A session opencode does not keep cannot resume")
   const reply = await transport
     .request(
       resume === null
@@ -136,6 +138,7 @@ async function sessionFor(transport: Transport, options: StartOptions, agent: Mo
               location: { directory: options.cwd },
               permissions: [QUESTION_DENY],
               ...(agent === null ? {} : { agent }),
+              ...(options.ephemeral ? { title: childTitle() } : {}),
             },
           }
         : resume.fork
@@ -824,8 +827,9 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   }
 
   // opencode tells the new title as session.renamed, like the ones it makes. A title it already has is not written again.
-  async function rename(title: string): Promise<Outcome> {
+  async function rename(named: string): Promise<Outcome> {
     if (ended || session === null) return { ok: false, problem: "opencode is not connected" }
+    const title = options.ephemeral ? childTitle(named) : named
     if (translator.title() === title) return { ok: true, note: null }
     const reply = await transport
       .request({ method: "PATCH", path: `/api/session/${session}`, body: { title } })
@@ -927,10 +931,13 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       own.close()
       out.push({ type: "ended", problem: null, at: lastAt })
       out.end()
-      if (ended || session === null) return
+      if (session === null || deleted !== null) return
+      if (!options.ephemeral && ended) return
+      // A session not kept goes, mid-turn too; opencode stops the turn itself.
+      const leave = options.ephemeral ? deleteSession(transport, session) : allowQuestions(transport, session)
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<void>((resolve) => (timer = setTimeout(resolve, LEAVE_MS)))
-      await Promise.race([allowQuestions(transport, session), late]).finally(() => clearTimeout(timer))
+      await Promise.race([leave, late]).finally(() => clearTimeout(timer))
     },
     setMode,
     setModel,
@@ -989,6 +996,8 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
   // so each list does not start the service again.
   let finding: Promise<Endpoint> | null = null
   let failed: Error | null = null
+  // Once per kind: sessions not kept that a YellowCode which is gone left behind.
+  let leftovers: Promise<void> | null = null
   function endpoint(binary: string): Promise<Endpoint> {
     if (failed !== null) return Promise.reject(failed)
     finding ??= merged
@@ -1019,6 +1028,11 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
     },
     start: (options) => {
       failed = null
+      leftovers ??= service(options.cwd)
+        .then(deleteLeftovers)
+        .catch((error: unknown) =>
+          log.warn("opencode: leftover sessions not read", error instanceof Error ? error.message : String(error)),
+        )
       return connect(options, merged)
     },
     sessions: async (cwd) => listSessions(await service(cwd), cwd),

@@ -301,6 +301,8 @@ function carryOf(options: StartOptions, models: ModelRow[]): Knobs | undefined {
 function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge): ClaudeAgent {
   const { cwd } = options
   const { provider } = bridge
+  if (options.ephemeral && options.resume !== null) throw new Error("A session Claude Code does not keep cannot resume")
+  const lean = { ephemeral: options.ephemeral, plain: options.plain }
   // Every claude this agent starts serves them, as SDK MCP servers.
   const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
   const carried = carryOf(options, provider.models())
@@ -317,6 +319,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     onKnobs,
     mode: options.mode === null ? undefined : permissionOf(options.mode),
     clientTools,
+    lean,
   })
   const initialized = Promise.withResolvers<void>()
   current.controls.follow({ initialized: () => initialized.resolve(), onMessage: () => {} })
@@ -372,6 +375,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
         onKnobs,
         mode,
         clientTools,
+        lean,
       })
     } catch (error) {
       log.error("cannot start claude", error)

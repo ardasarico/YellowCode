@@ -14,6 +14,8 @@ const options = {
   model: null,
   effort: null,
   extraEffort: false,
+  ephemeral: false,
+  plain: false,
   thinking: true,
   instructions: [],
   clientTools: [],

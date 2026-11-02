@@ -55,6 +55,10 @@ export type StartOptions = {
   instructions: string[]
   clientTools: ClientTool[]
   mcpServers: McpLaunch[]
+  // The agent keeps nothing of the session once it is closed, and its own lists never show it.
+  ephemeral: boolean
+  // Without the user's plugins, hooks and MCP servers, as far as the agent has a switch for it.
+  plain: boolean
 }
 
 // The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on

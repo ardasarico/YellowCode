@@ -3,6 +3,7 @@
 import type { SessionEntry } from "../../agent/sessions.ts"
 import { oneLine } from "../../session/tool-summary.ts"
 import { OPENCODE } from "./caps.ts"
+import { isChild } from "./leftovers.ts"
 import type { Query, Transport } from "./transport.ts"
 import { answerOf, rawPage, rowsOf } from "./wire/envelope.ts"
 import { message } from "./wire/messages.ts"
@@ -40,7 +41,7 @@ async function firstPrompts(transport: Transport, ids: string[]): Promise<(strin
   return prompts
 }
 
-// Top-level sessions of `cwd` that are not archived, newest first. The service filters them already; the check here
+// Top-level sessions of `cwd` that are not archived and not a YellowCode subagent's, newest first. The service filters them already; the check here
 // keeps a version that ignores a filter from listing subagent runs or other folders.
 export async function listSessions(transport: Transport, cwd: string): Promise<SessionEntry[]> {
   const found: Session[] = []
@@ -54,7 +55,11 @@ export async function listSessions(transport: Transport, cwd: string): Promise<S
     query = { cursor, limit: PAGE }
   }
   const shown = found.filter(
-    (row) => row.parentID === undefined && row.time.archived === undefined && row.location.directory === cwd,
+    (row) =>
+      row.parentID === undefined &&
+      row.time.archived === undefined &&
+      row.location.directory === cwd &&
+      !isChild(row.title),
   )
   const prompts = await firstPrompts(
     transport,

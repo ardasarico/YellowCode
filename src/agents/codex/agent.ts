@@ -163,10 +163,19 @@ async function connect(
   }
 }
 
+// The user's plugins, hooks and apps stay off. Codex has no switch for the MCP servers of the user's config.
+const PLAIN = { "features.plugins": false, "features.hooks": false, "features.apps": false }
+
+function withConfig(servers: { config?: Record<string, unknown> }, more: Record<string, unknown>) {
+  const config = { ...servers.config, ...more }
+  return Object.keys(config).length === 0 ? {} : { config }
+}
+
 // The thread `start` makes, resumes or copies, with Codex's reply. A new one starts in `mode` and on the model asked
 // for, when they are given.
 async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null = null) {
   const { resume, model } = options
+  if (options.ephemeral && resume !== null) throw new Error("A session Codex does not keep cannot resume")
   const servers = serverConfig(options.mcpServers)
   const sent =
     resume === null
@@ -174,7 +183,8 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
           cwd: options.cwd,
           historyMode: "paginated",
           dynamicTools: dynamicTools(options.clientTools),
-          ...servers,
+          ...(options.ephemeral ? { ephemeral: true } : {}),
+          ...withConfig(servers, options.plain ? PLAIN : {}),
           ...(mode === null ? {} : startFields(mode)),
           ...(model === null ? {} : { model: model.id }),
           ...(model?.provider ? { modelProvider: model.provider } : {}),

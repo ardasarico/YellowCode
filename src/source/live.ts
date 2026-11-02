@@ -11,7 +11,7 @@ import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
 import { type AskServer, createAskServer } from "./ask-server.ts"
-import { claudeArgs, launchOf, type Spawn } from "./claude-args.ts"
+import { claudeArgs, launchOf, type Lean, type Spawn } from "./claude-args.ts"
 import { type Controls, createControls, type Knobs } from "./controls.ts"
 import { createExtensions, type Extensions } from "./extensions.ts"
 import { createMcpControls, type McpControls } from "./mcp.ts"
@@ -144,13 +144,14 @@ export function connect(options: {
   mode?: ModeId
   // Served as claude's dynamic MCP servers, kept in step from initialize on.
   clientTools: Accessor<readonly ClientTool[]>
+  lean?: Lean
 }): Connection {
-  const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools } = options
+  const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools, lean } = options
   const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn)])
+  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn, lean)])
   const requests = createRequests((line) => source.send(line))
   const controls = createControls({ requests, provider, session, launch, onKnobs })
   const mcp = createMcpControls({ requests, session })
@@ -163,7 +164,13 @@ export function connect(options: {
     (toolUseId) => openHeldAsk(session, toolUseId),
     clientTools,
   )
-  log.info("claude flags", { permissionMode: launch.mode, thinking: stored.thinking, bypass: launch.bypass, ...spawn })
+  log.info("claude flags", {
+    permissionMode: launch.mode,
+    thinking: stored.thinking,
+    bypass: launch.bypass,
+    ...spawn,
+    ...lean,
+  })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,
   // so only counts are logged.

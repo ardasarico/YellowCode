@@ -49,3 +49,13 @@ test("every spawn allows our own ask and turns the stock one off, each flag in o
     expect(args).toContain("--disallowedTools=AskUserQuestion")
   }
 })
+
+test("a session claude does not keep, and a plain one, start with their flags", () => {
+  const launch = launchOf({ permissionMode: "default" })
+  const args = (ephemeral: boolean, plain: boolean) =>
+    claudeArgs({ thinking: "summarized" }, launch, { sessionId: "n" }, { ephemeral, plain })
+  expect(args(false, false)).not.toContain("--no-session-persistence")
+  expect(args(false, false)).not.toContain("--safe-mode")
+  expect(args(true, false)).toContain("--no-session-persistence")
+  expect(args(false, true)).toContain("--safe-mode")
+})

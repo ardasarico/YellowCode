@@ -97,6 +97,8 @@ const START: Omit<StartOptions, "cwd"> = {
   model: null,
   effort: null,
   extraEffort: false,
+  ephemeral: false,
+  plain: false,
   thinking: false,
   instructions: [],
   clientTools: [],

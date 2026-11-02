@@ -36,8 +36,17 @@ export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Lau
   }
 }
 
+// A session claude keeps no transcript of, and one without the user's customizations (CLAUDE.md, skills, plugins,
+// hooks, MCP servers and more; --safe-mode).
+export type Lean = { ephemeral: boolean; plain: boolean }
+
 // How YellowCode starts claude: the saved thinking display, in the launch's mode.
-export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Launch, spawn: Spawn = {}): string[] {
+export function claudeArgs(
+  stored: Pick<StoredSettings, "thinking">,
+  launch: Launch,
+  spawn: Spawn = {},
+  lean: Lean = { ephemeral: false, plain: false },
+): string[] {
   const bypass = launch.bypass ? ["--allow-dangerously-skip-permissions"] : []
   return [
     ...CLAUDE_STREAM_ARGS,
@@ -51,6 +60,8 @@ export function claudeArgs(stored: Pick<StoredSettings, "thinking">, launch: Lau
     ...(spawn.resume && spawn.at ? ["--resume-session-at", spawn.at] : []),
     ...(spawn.fork ? ["--fork-session"] : []),
     ...(spawn.sessionId ? ["--session-id", spawn.sessionId] : []),
+    ...(lean.ephemeral ? ["--no-session-persistence"] : []),
+    ...(lean.plain ? ["--safe-mode"] : []),
     "--permission-mode",
     launch.mode,
     ...bypass,

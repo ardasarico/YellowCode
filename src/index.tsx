@@ -451,6 +451,8 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   model: null,
   effort: null,
   extraEffort: false,
+  ephemeral: false,
+  plain: false,
   thinking: settings.thinking !== "hidden",
   instructions: [],
   clientTools: clientTools(),

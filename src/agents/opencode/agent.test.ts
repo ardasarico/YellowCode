@@ -13,6 +13,8 @@ const OPTIONS: StartOptions = {
   model: null,
   effort: null,
   extraEffort: false,
+  ephemeral: false,
+  plain: false,
   thinking: false,
   instructions: [],
   clientTools: [],
@@ -35,6 +37,7 @@ const ANSWERS: Record<string, unknown> = {
   "GET /api/session/active": { data: {} },
   "GET /api/session/ses_1/permission": { data: [] },
   "GET /api/session/ses_1/form": { data: [] },
+  "DELETE /api/session/ses_1": {},
 }
 
 // A service whose stream stays connected until `stop`, giving the frames `send` puts on it; after `stop`, nothing
@@ -238,4 +241,11 @@ test("a durable event of a type not read keeps the sequence, so only a real gap 
   await until(events, "text.start")
   expect(shared.asked).toContain("GET /api/session/ses_1/message")
   await agent.close()
+})
+
+test("a session opencode does not keep is deleted on close", async () => {
+  const shared = service()
+  const agent = await startOpencode({ ...OPTIONS, ephemeral: true }, deps([shared]).deps)
+  await agent.close()
+  expect(shared.asked).toContain("DELETE /api/session/ses_1")
 })
