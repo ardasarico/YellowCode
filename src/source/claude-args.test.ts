@@ -50,12 +50,9 @@ test("every spawn allows our own ask and turns the stock one off, each flag in o
   }
 })
 
-test("a session claude does not keep, and a plain one, start with their flags", () => {
+test("a session claude does not keep starts with its flag", () => {
   const launch = launchOf({ permissionMode: "default" })
-  const args = (ephemeral: boolean, plain: boolean) =>
-    claudeArgs({ thinking: "summarized" }, launch, { sessionId: "n" }, { ephemeral, plain })
-  expect(args(false, false)).not.toContain("--no-session-persistence")
-  expect(args(false, false)).not.toContain("--safe-mode")
-  expect(args(true, false)).toContain("--no-session-persistence")
-  expect(args(false, true)).toContain("--safe-mode")
+  const args = (ephemeral: boolean) => claudeArgs({ thinking: "summarized" }, launch, { sessionId: "n" }, { ephemeral })
+  expect(args(false)).not.toContain("--no-session-persistence")
+  expect(args(true)).toContain("--no-session-persistence")
 })
