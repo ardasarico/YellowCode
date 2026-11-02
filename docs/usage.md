@@ -129,7 +129,8 @@ your [agents](#agent-files), or names a model directly; then you are asked first
 - A subagent works in the same folder as your session. Its sessions are not saved and do not show in `/resume`.
 - It never gets a wider permission mode than your session's. When even its provider's narrowest mode is wider, as with
   Pi, which asks for nothing, you are asked once in your chat whether it may run. With your session in auto or bypass
-  and the agent's permissions on `inherit`, it runs without that ask.
+  and the agent's permissions on `inherit`, it runs without that ask. An opencode subagent under a session that asks
+  runs in build mode and asks you before each edit and shell command.
 - Its permission asks and questions show in your chat, marked with its name.
 - When it finishes, its last message, the files it edited and how long it took come back to your agent as a message.
   It stays open, so your agent can send it more work, until your agent closes it or your session ends.

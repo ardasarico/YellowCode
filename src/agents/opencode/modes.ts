@@ -10,7 +10,8 @@ import { rowsOf } from "./wire/envelope.ts"
 
 type AgentRow = z.output<typeof agentRow>
 
-const KINDS: Record<string, ModeKind> = { build: "auto", plan: "plan" }
+export const BUILD = "build"
+const KINDS: Record<string, ModeKind> = { [BUILD]: "auto", plan: "plan" }
 
 export type Modes = {
   rows: ModeRow[]

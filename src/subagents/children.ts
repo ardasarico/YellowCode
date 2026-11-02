@@ -1,6 +1,6 @@
 import type { Agent, AgentKind, Prompt, StartOptions } from "../agent/agent.ts"
 import type { AgentEvent } from "../agent/events.ts"
-import type { AgentKindId, ModelRef, Outcome } from "../agent/ids.ts"
+import type { AgentKindId, ModeId, ModelRef, Outcome } from "../agent/ids.ts"
 import type { ModeKind, ModeRow } from "../agent/lists.ts"
 import { follow, showEarly } from "../session/follow.ts"
 import { createSession, type SessionStore } from "../session/session.ts"
@@ -16,6 +16,8 @@ export type Launcher = Pick<AgentKind, "id" | "name" | "caps"> & {
   show?(store: SessionStore, prompt: Prompt): void
   // It answers an ask from the ask in its own store, so its asks stay there too.
   keepsAsks?: boolean
+  // A mode it can run with every edit and shell command asked, for a parent that asks.
+  asking?: ModeId
 }
 
 export type Child = {
@@ -219,7 +221,7 @@ export function createChildren(options: ChildrenOptions) {
     const { launcher, definition } = request
     const name = definition?.name ?? "bare"
     const shown = definition?.name ?? request.model.id
-    const fit = childMode(request.parentMode, definition?.permissions ?? "inherit", request.modes)
+    const fit = childMode(request.parentMode, definition?.permissions ?? "inherit", request.modes, launcher.asking)
     if (fit.fit === "none") return { ok: false, problem: `${launcher.name} has no mode to run ${shown} in` }
     if (fit.fit === "confirm") request.asking?.()
     if (fit.fit === "confirm" && !(await options.confirm(confirmText(launcher, shown, fit.mode), request.task)))
@@ -263,6 +265,7 @@ export function createChildren(options: ChildrenOptions) {
         mcpServers: [],
         ephemeral: true,
         plain: !(definition?.plugins ?? false),
+        asks: fit.asks,
       },
       pending: request.prompt,
       preface: !own && instructions ? instructions : null,

@@ -108,6 +108,8 @@ const interruptReply = z.looseObject({ interrupted: z.boolean() })
 const QUESTION_DENY: Rule = { action: "question", resource: "*", effect: "deny" }
 // How long leaving a session waits for the question rule to come off.
 const LEAVE_MS = 3000
+// Session rules come after the config's and the agent's, so these win over an allow there.
+const ASK_ALL: Rule[] = ["edit", "shell"].map((action) => ({ action, resource: "*", effect: "ask" }))
 
 const plain = ({ action, resource, effect }: Rule): Rule => ({ action, resource, effect })
 const isQuestionDeny = (rule: Rule) =>
@@ -136,7 +138,7 @@ async function sessionFor(transport: Transport, options: StartOptions, agent: Mo
             path: "/api/session",
             body: {
               location: { directory: options.cwd },
-              permissions: [QUESTION_DENY],
+              permissions: [QUESTION_DENY, ...(options.asks ? ASK_ALL : [])],
               ...(agent === null ? {} : { agent }),
               ...(options.ephemeral ? { title: childTitle() } : {}),
             },

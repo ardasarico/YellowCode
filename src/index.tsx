@@ -26,6 +26,7 @@ import { detect as detectCodex } from "./agents/codex/detect.ts"
 import { opencodeKind } from "./agents/opencode/agent.ts"
 import { OPENCODE, OPENCODE_NAME } from "./agents/opencode/caps.ts"
 import { detect as detectOpencode } from "./agents/opencode/detect.ts"
+import { BUILD } from "./agents/opencode/modes.ts"
 import { listedProvider, opencodeProvider } from "./agents/opencode/provider.ts"
 import { NO_APPROVALS, piKind } from "./agents/pi/agent.ts"
 import { PI, PI_NAME } from "./agents/pi/caps.ts"
@@ -428,6 +429,7 @@ const launchers: Launcher[] = [
     id: OPENCODE,
     name: OPENCODE_NAME,
     caps: opencode.caps,
+    asking: BUILD,
     start: (options) => withModel(opencode.start(options), options.model),
   },
   { id: CODEX, name: CODEX_NAME, caps: codex.caps, start: (options) => codex.start(options) },

@@ -62,6 +62,8 @@ export type StartOptions = {
   ephemeral: boolean
   // Without the user's plugins, hooks and MCP servers, as far as the agent has a switch for it.
   plain: boolean
+  // Asks before every edit and shell command, whatever the mode allows. Only a launcher with `asking` gets it.
+  asks?: boolean
 }
 
 // The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on

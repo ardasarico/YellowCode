@@ -2,9 +2,9 @@ import { expect, test } from "bun:test"
 import type { ModeKind, ModeRow } from "../agent/lists.ts"
 import { childMode, type Permissions } from "./mode.ts"
 
-const row = (kind: ModeKind, available = true): ModeRow => ({
-  id: kind,
-  label: kind,
+const row = (kind: ModeKind, available = true, id: string = kind): ModeRow => ({
+  id,
+  label: id,
   description: "",
   kind,
   cycle: true,
@@ -20,9 +20,11 @@ const CODEX = [row("readonly"), row("auto"), row("plan"), row("bypass"), row("ot
 // No read-only row, and an edits row the session cannot switch to.
 const CLAUDE = [row("auto"), row("default"), row("edits", false), row("plan"), row("bypass"), row("other")]
 const PI = [row("bypass")]
+// build can run with every edit and shell command asked.
+const OPENCODE = [row("auto", true, "build"), row("plan")]
 
 // One cell per parent, in PARENTS order; "?" marks a mode that needs the user's yes.
-const EXPECTED: [string, ModeRow[], Record<Permissions, string>][] = [
+const EXPECTED: [string, ModeRow[], Record<Permissions, string>, string | null][] = [
   [
     "codex",
     CODEX,
@@ -31,6 +33,7 @@ const EXPECTED: [string, ModeRow[], Record<Permissions, string>][] = [
       edits: "readonly plan plan plan plan plan readonly",
       "read-only": "readonly readonly readonly readonly readonly readonly readonly",
     },
+    null,
   ],
   [
     "claude",
@@ -40,6 +43,7 @@ const EXPECTED: [string, ModeRow[], Record<Permissions, string>][] = [
       edits: "?plan plan default default default default ?plan",
       "read-only": "?plan ?plan ?plan ?plan ?plan ?plan ?plan",
     },
+    null,
   ],
   [
     "pi",
@@ -49,15 +53,27 @@ const EXPECTED: [string, ModeRow[], Record<Permissions, string>][] = [
       edits: "?bypass ?bypass ?bypass ?bypass ?bypass ?bypass ?bypass",
       "read-only": "?bypass ?bypass ?bypass ?bypass ?bypass ?bypass ?bypass",
     },
+    null,
+  ],
+  [
+    "opencode",
+    OPENCODE,
+    {
+      inherit: "?plan plan build+ask build+ask build build ?plan",
+      edits: "?plan plan build+ask build+ask build+ask build+ask ?plan",
+      "read-only": "?plan ?plan ?plan ?plan ?plan ?plan ?plan",
+    },
+    "build",
   ],
 ]
 
-test.each(EXPECTED)("a %s child never runs wider than its parent allows", (_, rows, expected) => {
+test.each(EXPECTED)("a %s child never runs wider than its parent allows", (_, rows, expected, asking) => {
   for (const permissions of PERMISSIONS) {
     const got = PARENTS.map((parent) => {
-      const result = childMode(parent, permissions, rows)
+      const result = childMode(parent, permissions, rows, asking)
       if (result.fit === "none") return "none"
-      return (result.fit === "confirm" ? "?" : "") + result.mode.kind
+      const shown = result.mode.id === result.mode.kind ? result.mode.kind : result.mode.id
+      return (result.fit === "confirm" ? "?" : "") + shown + (result.asks ? "+ask" : "")
     })
     expect(got.join(" ")).toBe(expected[permissions])
   }
