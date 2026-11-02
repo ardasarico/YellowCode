@@ -10,7 +10,7 @@ test("a report hides the home folder and the user name, and leaves a short name 
 test("each agent's saved mode goes under its name", () => {
   const settings = {
     ...DEFAULT_SETTINGS,
-    defaultAgent: "claude",
+    providers: ["claude", "other"],
     agents: { claude: { defaultMode: "plan" }, other: { defaultMode: "build" }, gone: { defaultMode: "ask" } },
   }
   const plan = { id: "plan", label: "Plan", description: "", kind: "plan" as const, cycle: true }
@@ -23,5 +23,5 @@ test("each agent's saved mode goes under its name", () => {
   expect(rows).toContainEqual(["Claude Code mode", "Plan"])
   expect(rows).toContainEqual(["Other mode", "build"])
   expect(rows).toContainEqual(["gone mode", "ask"])
-  expect(rows).toContainEqual(["Default agent", "Claude Code"])
+  expect(rows).toContainEqual(["Providers", "Claude Code, Other"])
 })

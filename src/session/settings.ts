@@ -204,6 +204,16 @@ export function removeProvider(provider: AgentKindId, inUse: AgentKindId): strin
   return null
 }
 
+// The model a start opens. A provider that is not added runs only the session it was opened for, so its models are
+// not kept.
+export function keepLastModel(provider: AgentKindId, ref: ModelRef): void {
+  const last = settings.lastModel
+  if (ref.id === "" || !(settings.providers ?? []).includes(provider)) return
+  if (last?.provider === provider && last.ref.provider === ref.provider && last.ref.id === ref.id) return
+  setSettings({ lastModel: { provider, ref: { provider: ref.provider, id: ref.id } } })
+  saveSettings(settings)
+}
+
 // Steps through the favorites that are listed, or every model when none is.
 export function stepModel(
   step: 1 | -1,

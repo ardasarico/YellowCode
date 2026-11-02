@@ -8,7 +8,7 @@ import { type Accessor, createEffect, createRoot, createSignal, on, type Setter,
 import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
-import type { AgentKindId } from "./agent/ids.ts"
+import type { AgentKindId, ModelRef } from "./agent/ids.ts"
 import type { ModelGroup } from "./agent/lists.ts"
 import { createRegistry, type SessionKind } from "./agent/registry.ts"
 import type { HistoryCursor, SessionEntry, SessionRef } from "./agent/sessions.ts"
@@ -43,13 +43,15 @@ import {
   defaultModeOf,
   firstWarning,
   initSettings,
+  keepLastModel,
   setControlProblem,
   setKnobs,
   setSessionSettings,
   settings,
 } from "./session/settings.ts"
 import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
-import { loadSettings, pickAgent } from "./session/settings-file.ts"
+import { loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
+import { runProvidersCommand, settleProviders } from "./setup/providers.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
 import { apiVersion } from "./mods/version.ts"
 import { runUpdateCommand, UPDATE_USAGE } from "./update/cli.ts"
@@ -90,6 +92,7 @@ import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal
 
 const USAGE = [
   "Usage: yellowcode [--skip-terminal-check] [--no-mods]",
+  "       yellowcode providers",
   "       yellowcode --report",
   "       yellowcode --version",
   "       yellowcode --help",
@@ -127,6 +130,24 @@ function readArgs() {
 
 if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
 if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
+const KNOWN_AGENTS = [
+  { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
+  { id: OPENCODE, name: OPENCODE_NAME, detect: () => detectOpencode() },
+  { id: CODEX, name: CODEX_NAME, detect: () => detectCodex() },
+  { id: PI, name: PI_NAME, detect: () => detectPi() },
+]
+// The added providers in YellowCode's order; every one while none is added, which only happens with none installed.
+function addedIds(saved: StoredSettings): AgentKindId[] {
+  const ids = KNOWN_AGENTS.map(({ id }) => id)
+  const { providers } = saved
+  return providers === undefined ? ids : ids.filter((id) => providers.includes(id))
+}
+// The provider of the last used model, while it is added.
+function lastProvider(saved: StoredSettings): AgentKindId | undefined {
+  const last = saved.lastModel?.provider
+  return last !== undefined && addedIds(saved).includes(last) ? last : undefined
+}
+if (process.argv[2] === "providers" && process.argv.length === 3) process.exit(await runProvidersCommand(KNOWN_AGENTS))
 
 const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
@@ -136,12 +157,6 @@ if (values.help) {
   process.stdout.write(`${USAGE}\n`)
   process.exit(0)
 }
-const KNOWN_AGENTS = [
-  { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
-  { id: OPENCODE, name: OPENCODE_NAME, detect: () => detectOpencode() },
-  { id: CODEX, name: CODEX_NAME, detect: () => detectCodex() },
-  { id: PI, name: PI_NAME, detect: () => detectPi() },
-]
 if (values.version) {
   const agents = (await agentVersions(KNOWN_AGENTS)).map(({ name, version }) => `${name} ${version ?? "not found"}`)
   process.stdout.write(`yellowcode ${appVersion} (mod API ${apiVersion})\n${agents.join("\n")}\n`)
@@ -149,8 +164,7 @@ if (values.version) {
 }
 if (values.report) {
   const loaded = loadSettings(undefined, false)
-  const ids = [CLAUDE, OPENCODE, CODEX, PI]
-  const running = await pickAgent(loaded.settings.defaultAgent, ids, async (id) => {
+  const running = await pickAgent(lastProvider(loaded.settings), addedIds(loaded.settings), async (id) => {
     const detection = await KNOWN_AGENTS.find((agent) => agent.id === id)?.detect()
     return detection?.installed === true && detection.blocked === null
   })
@@ -178,6 +192,9 @@ if (values.report) {
   process.exit(0)
 }
 
+// The agent starts with the saved settings, so they are read first.
+const { settings: stored, problem, backup } = loadSettings()
+if (values.replay === undefined) stored.providers = await settleProviders(stored, KNOWN_AGENTS)
 if (!process.stdin.isTTY || !process.stdout.isTTY) fail("yellowcode needs a terminal; stdin and stdout must be a TTY")
 
 function gitBranch(): string | null {
@@ -198,8 +215,6 @@ const workspace = {
 }
 // The replay's session, or the one live starts with; opening another session brings a new store.
 const firstSession = createSession({ starting: values.replay === undefined })
-// The agent starts with the saved settings, so they are read first.
-const { settings: stored, problem, backup } = loadSettings()
 initSettings(stored)
 
 type Back = { ok: true } | { ok: false; problem: string | null }
@@ -263,7 +278,13 @@ const extensions: Pick<Agent, "mcp" | "skills" | "plugins"> = {
 }
 const knobs: KnobActions = {
   setMode: (mode) => live.agent.setMode(mode),
-  setModel: (model) => live.agent.setModel(model),
+  setModel: (model) => {
+    const target = live
+    return target.agent.setModel(model).then((done) => {
+      if (done.ok) keepLastModel(target.runner.kind.id, model)
+      return done
+    })
+  },
   setEffort: (effort) => live.agent.setEffort(effort),
   setExtraEffort: (ultracode) => live.agent.setExtraEffort(ultracode),
   setThinking: (shown) => live.agent.setThinking(shown),
@@ -307,6 +328,7 @@ const opencodeRunner: Runner = {
     opencode.start(options).then((agent) => {
       // opencode tells its lists, the model the session runs and its saved rules once asked.
       for (const list of ["models", "rules", "commands", "skills", "mcp", "plugins"] as const) agent.refresh(list)
+      startModel(agent, options.model)
       return {
         agent,
         hooks: {},
@@ -344,6 +366,7 @@ const piRunner: Runner = {
   start: (options, store) =>
     pi.start(options).then((agent) => {
       for (const list of ["commands", "models"] as const) agent.refresh(list)
+      startModel(agent, options.model)
       if (firstWarning(PI))
         store.event({
           type: "notice",
@@ -356,6 +379,14 @@ const piRunner: Runner = {
   hearsShells: false,
   clears: false,
 }
+// For an agent that takes no model at start: the switch right after.
+function startModel(agent: Agent, model: ModelRef | null): void {
+  if (model === null) return
+  void agent.setModel(model).then((done) => {
+    if (!done.ok) log.warn(`${agent.kind} did not take the last model`, done.problem)
+  })
+}
+
 // The agents YellowCode can run, Claude first.
 const runners: Runner[] = [claudeRunner, opencodeRunner, codexRunner, piRunner]
 const installed = createRegistry(runners.map((runner) => runner.kind))
@@ -375,35 +406,26 @@ const detect = (kind: Runner["kind"]): Promise<Detection> =>
 
 const runnerById = (id: AgentKindId | undefined) => runners.find((runner) => runner.kind.id === id)
 
-// The saved default agent when it runs here, else the first that does, with a notice saying why the saved one did not
-// open. With none running, Claude starts and says why it cannot.
-async function pickFirst(): Promise<{ runner: Runner; notice: string | null }> {
+// The provider of the last used model when it runs here, with that model, else the first added one that does, with a
+// notice saying why the last one did not open. The last added one is started unchecked and says itself why it cannot.
+async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; notice: string | null }> {
   const found = new Map<AgentKindId, Detection>()
-  const runsHere = async (runner: Runner) => {
-    const detection = await detect(runner.kind)
-    found.set(runner.kind.id, detection)
+  const saved = lastProvider(stored)
+  const first = await pickAgent(saved, addedIds(stored), async (id) => {
+    const detection = await detect((runnerById(id) ?? claudeRunner).kind)
+    found.set(id, detection)
     return detection.installed && detection.blocked === null
-  }
-  const first = await pickAgent(
-    stored.defaultAgent,
-    runners.map((runner) => runner.kind.id),
-    (id) => runsHere(runnerById(id) ?? claudeRunner),
-  )
-  const candidate = runnerById(first) ?? claudeRunner
-  // pickAgent leaves the last candidate unasked; only Claude starts unchecked.
-  const runner =
-    candidate === claudeRunner || found.has(candidate.kind.id) || (await runsHere(candidate)) ? candidate : claudeRunner
-  const saved = runnerById(stored.defaultAgent)
-  const why = saved && saved !== runner ? found.get(saved.kind.id) : undefined
+  })
+  const runner = runnerById(first) ?? claudeRunner
+  const model = saved === runner.kind.id ? (stored.lastModel?.ref ?? null) : null
+  const why = saved !== undefined && saved !== runner.kind.id ? found.get(saved) : undefined
   const reason = why === undefined ? null : why.installed ? why.blocked : "is not installed"
-  return {
-    runner,
-    notice: saved && reason !== null ? `${saved.kind.name} ${reason} · opened ${runner.kind.name}` : null,
-  }
+  const name = runnerById(saved)?.kind.name
+  return { runner, model, notice: name && reason !== null ? `${name} ${reason} · opened ${runner.kind.name}` : null }
 }
 
 // A replay is a Claude recording.
-const picked = values.replay === undefined ? await pickFirst() : { runner: claudeRunner, notice: null }
+const picked = values.replay === undefined ? await pickFirst() : { runner: claudeRunner, model: null, notice: null }
 const firstRunner = picked.runner
 await startMods(values["no-mods"], {
   id: firstRunner.kind.id,
@@ -499,7 +521,7 @@ async function liveMode() {
   try {
     // Live shows the model and effort the agent reports, and nothing until it does.
     setKnobs({ model: null, effort: null, ultracode: false })
-    live = await startLive(firstRunner, startOptions(firstRunner, null), firstSession)
+    live = await startLive(firstRunner, { ...startOptions(firstRunner, null), model: picked.model }, firstSession)
     return { kind: "live" as const, first: live }
   } catch (error) {
     const { id, name } = firstRunner.kind
@@ -730,6 +752,25 @@ createRoot(() => {
       () => chat().session.state.models,
       (groups) => {
         if (groups && mode.kind === "live") void keepModels(live, groups)
+      },
+    ),
+  )
+  createEffect(
+    on(
+      () => chat().session.state.model,
+      (model) => {
+        if (mode.kind === "live" && model) keepLastModel(runningKind(), model)
+      },
+    ),
+  )
+  // Claude tells no model events; its model is kept when the user picks one, and here when it starts after another
+  // provider's.
+  createEffect(
+    on(
+      () => chat().session.state.info?.model,
+      (model) => {
+        if (mode.kind === "live" && model && runningKind() === CLAUDE && settings.lastModel?.provider !== CLAUDE)
+          keepLastModel(CLAUDE, { provider: null, id: model })
       },
     ),
   )

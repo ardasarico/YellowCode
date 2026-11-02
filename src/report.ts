@@ -116,7 +116,7 @@ export function settingsFacts(
     ["Sidebar", settings.sidebar],
     ["Thinking", settings.thinking],
     ["Session title", settings.sessionTitle],
-    ["Default agent", named(settings.defaultAgent)],
+    ["Providers", settings.providers?.map(named).join(", ")],
     [`${running.name} mode`, mode === null ? null : modeLabel(running.modes, mode)],
     ...others.map((id): Row => [`${named(id)} mode`, settings.agents[id]?.defaultMode]),
     ["Editor", settings.editor],
