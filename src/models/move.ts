@@ -38,7 +38,7 @@ export function moveAsk(id: string, handoff: Handoff, from: string, to: string, 
     input: null,
     target:
       `A new ${to} session takes over. This conversation goes along as text ahead of your message: ` +
-      `${messages(handoff.moved)}${left}. Images and tool results do not move. The ${from} session stays in /resume.`,
+      `${messages(handoff.moved)}${left}. Images do not move; tools go as summaries. The ${from} session stays in /resume.`,
     preview: null,
     writes: [],
     detail: "",
