@@ -9,6 +9,7 @@ import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, S
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
 import type { AgentKindId } from "./agent/ids.ts"
+import type { ModelGroup } from "./agent/lists.ts"
 import { createRegistry, type SessionKind } from "./agent/registry.ts"
 import type { HistoryCursor, SessionEntry, SessionRef } from "./agent/sessions.ts"
 import { type ClaudeHooks, claudeKind, showPrompt } from "./agents/claude/agent.ts"
@@ -33,6 +34,7 @@ import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
 import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
+import { saveListed, saveWindow } from "./models/catalog.ts"
 import { tildePath } from "./rewind/common.ts"
 import { follow, showEarly } from "./session/follow.ts"
 import { createSession, loadHistory, type SessionStore } from "./session/session.ts"
@@ -454,6 +456,27 @@ const restartOptions = (): RestartOptions => ({
   thinking: settings.thinking !== "hidden",
 })
 
+// The running provider's models go to the catalog, which /model reads for the other providers. claude names its
+// version only with its first turn, so its detection's stands in until then.
+async function keepModels(running: Live, groups: ModelGroup[]): Promise<void> {
+  const { kind } = running.runner
+  const version = running.agent.version || (await detect(kind).then((found) => (found.installed ? found.version : "")))
+  if (version === "") return
+  try {
+    saveListed(kind.id, version, groups)
+  } catch (error) {
+    log.warn("cannot keep the models list", String(error))
+  }
+}
+
+function keepWindow(provider: AgentKindId, model: string, window: number): void {
+  try {
+    saveWindow(provider, model, window)
+  } catch (error) {
+    log.warn("cannot keep the context window", String(error))
+  }
+}
+
 // Agents asked to close that may still run, with the promise of each being gone.
 const stopped = new Map<Agent, Promise<void>>()
 
@@ -692,6 +715,36 @@ createRoot(() => {
       status: state.status === "idle" ? "idle" : "busy",
     })
   })
+  createEffect(
+    on(
+      () => claudeLists.models(),
+      (models) => {
+        if (mode.kind === "live" && live.runner === claudeRunner)
+          void keepModels(live, [{ provider: null, applies: "now", models }])
+      },
+      { defer: true },
+    ),
+  )
+  createEffect(
+    on(
+      () => chat().session.state.models,
+      (groups) => {
+        if (groups && mode.kind === "live") void keepModels(live, groups)
+      },
+    ),
+  )
+  createEffect(
+    on(
+      () => chat().session.state.usage.context.window,
+      (window) => {
+        if (mode.kind !== "live" || window === null || window <= 0) return
+        const { state } = chat().session
+        const model = state.model?.id ?? state.info?.model
+        if (model) keepWindow(runningKind(), model, window)
+      },
+      { defer: true },
+    ),
+  )
   createEffect(
     on(
       () => clientTools(),

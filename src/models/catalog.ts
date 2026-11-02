@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync } from "node:fs"
 import { dirname } from "node:path"
 import { z } from "zod"
 import type { AgentKindId } from "../agent/ids.ts"
-import type { ModelGroup } from "../agent/lists.ts"
+import type { ModelGroup, ModelRow } from "../agent/lists.ts"
 import { dataPath } from "../config-path.ts"
 import { parseJson } from "../json.ts"
 import { writeBeside } from "../rewind/common.ts"
@@ -65,4 +65,34 @@ export function writeCatalog(value: Catalog, file = catalogFile()): void {
     rmSync(temp, { force: true })
     throw error
   }
+}
+
+const sameRef = (a: ModelRow, b: ModelRow) => a.ref.provider === b.ref.provider && a.ref.id === b.ref.id
+
+// A provider's new list replaces its old one; a window learned before stays on a row whose new list has none.
+export function saveListed(provider: AgentKindId, version: string, groups: ModelGroup[], file = catalogFile()): void {
+  const now = readCatalog(file)
+  const known = now.providers[provider]?.groups.flatMap((one) => one.models) ?? []
+  const kept = groups.map((one) => ({
+    ...one,
+    models: one.models.map((model) =>
+      model.window === null ? { ...model, window: known.find((old) => sameRef(old, model))?.window ?? null } : model,
+    ),
+  }))
+  now.providers[provider] = { version, at: Date.now(), groups: kept }
+  writeCatalog(now, file)
+}
+
+// A window a turn reported for `model`, put on each of the provider's rows that is or stands for it.
+export function saveWindow(provider: AgentKindId, model: string, window: number, file = catalogFile()): void {
+  const now = readCatalog(file)
+  const entry = now.providers[provider]
+  if (!entry) return
+  let changed = false
+  for (const one of entry.groups.flatMap((each) => each.models))
+    if ((one.ref.id === model || one.resolves === model) && one.window !== window) {
+      one.window = window
+      changed = true
+    }
+  if (changed) writeCatalog(now, file)
 }
