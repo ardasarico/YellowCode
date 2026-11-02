@@ -6,8 +6,21 @@ import type { Session } from "../../session/types.ts"
 import { theme } from "../../theme/theme.ts"
 import { cut, SAVED_NOTICE } from "../format.ts"
 import { AgentPage, type PageProps } from "./agent-page.tsx"
+import { ChildPage } from "./child-page.tsx"
 import { ShellPage } from "./shell-page.tsx"
-import { agentTree, liveAgentCount, messageable, shellNodes, taskIdOf, type TreeNode } from "./tree.ts"
+import {
+  agentTree,
+  type ChildActions,
+  childCloses,
+  childIdOf,
+  childTakes,
+  type ChildView,
+  liveAgentCount,
+  messageable,
+  shellNodes,
+  taskIdOf,
+  type TreeNode,
+} from "./tree.ts"
 import { TreeRows } from "./tree-rows.tsx"
 import { WorkflowAgentPage, WorkflowPage } from "./workflow-page.tsx"
 
@@ -20,15 +33,18 @@ const FOOTER = [
 const STOP_KEY = { key: "x", word: "stop" }
 const CONFIRM_KEY = { key: "x", word: "confirm" }
 const MESSAGE_KEY = { key: "m", word: "message" }
+const CLOSE_KEY = { key: "c", word: "close" }
 
 const treeWidth = (width: number) => (width < 60 ? 0 : Math.max(30, Math.min(40, Math.floor(width * 0.26))))
 
-const stoppable = (node: TreeNode) => node.state === "running" && node.kind !== "phase"
+const stoppable = (node: TreeNode) =>
+  (node.state === "running" && node.kind !== "phase") || (node.kind === "child" && node.state === "queued")
 
 // The Shells section above its rows: a blank row, the title, the rule and another blank row.
 const SHELLS_HEAD = 4
 
-const runningCount = (nodes: TreeNode[]) => nodes.filter((node) => node.selectable && stoppable(node)).length
+const runningCount = (nodes: TreeNode[]) =>
+  nodes.filter((node) => node.selectable && node.state === "running" && node.kind !== "phase").length
 
 function SectionTitle(props: { title: string; running: number; width: number }) {
   return (
@@ -121,6 +137,7 @@ function Footer(props: {
   width: number
   message: boolean
   stop: boolean
+  close: boolean
   armed: string | null
 }) {
   return (
@@ -144,6 +161,7 @@ function Footer(props: {
                 ...FOOTER.slice(0, -1),
                 ...(props.stop ? [props.armed ? CONFIRM_KEY : STOP_KEY] : []),
                 ...(props.message ? [MESSAGE_KEY] : []),
+                ...(props.close ? [CLOSE_KEY] : []),
                 ...FOOTER.slice(-1),
               ]}
             >
@@ -194,7 +212,7 @@ function keepUnchanged(): (nodes: TreeNode[]) => TreeNode[] {
   }
 }
 
-function Page(props: PageProps & { rows: TreeNode[] }) {
+function Page(props: PageProps & { rows: TreeNode[]; child: ChildView | undefined }) {
   return (
     <Switch>
       <Match when={props.node.kind === "agent"}>
@@ -209,6 +227,7 @@ function Page(props: PageProps & { rows: TreeNode[] }) {
       <Match when={props.node.kind === "shell"}>
         <ShellPage {...props} />
       </Match>
+      <Match when={props.child}>{(child) => <ChildPage {...props} child={child()} />}</Match>
     </Switch>
   )
 }
@@ -225,18 +244,26 @@ export function AgentView(props: {
   // Starts a message to the agent and closes the view; returns why it cannot, if so. None when the agent takes no
   // messages.
   onMessage?: (id: string) => string | null
+  // The subagents YellowCode runs for the session, listed after the session's own agents.
+  children: TreeNode[]
+  childActions?: ChildActions
+  messageChild?: (id: string) => string | null
   width: number
   height: number
 }) {
   let scroll: ScrollBoxRenderable | undefined
   const keptAgents = keepUnchanged()
   const keptShells = keepUnchanged()
-  const agents = createMemo(() => keptAgents(agentTree(props.session)))
+  const agents = createMemo(() => keptAgents([...agentTree(props.session), ...props.children]))
   const shells = createMemo(() => keptShells(shellNodes(props.session)))
   const nodes = createMemo(() => [...agents(), ...shells()])
   const byId = createMemo(() => new Map(nodes().map((node) => [node.id, node])))
   const node = () => byId().get(props.selected) ?? nodes().find((entry) => entry.selectable)
   const shownId = createMemo(() => node()?.id ?? null)
+  const childOf = (target: TreeNode) => {
+    const id = childIdOf(target)
+    return id === null ? undefined : props.childActions?.list().find((child) => child.id === id)
+  }
   const tree = () => treeWidth(props.width)
   const pageWidth = () => props.width - tree() - 4
 
@@ -303,8 +330,24 @@ export function AgentView(props: {
       else setArmed(null)
     } else if (key.name === "m") {
       const current = node()
-      const why = current?.kind === "agent" ? props.onMessage?.(current.id) : null
+      const why =
+        current?.kind === "agent"
+          ? props.onMessage?.(current.id)
+          : current?.kind === "child"
+            ? props.messageChild?.(current.id)
+            : null
       if (why) showNotice(why)
+    } else if (key.name === "c") {
+      const current = node()
+      const id = current ? childIdOf(current) : null
+      if (current && id !== null && !stoppable(current)) void props.childActions?.close(id)
+    } else if (key.name === "x" && node()?.kind === "child") {
+      const current = node()
+      const id = current ? childIdOf(current) : null
+      if (current && id !== null && stoppable(current))
+        void props.childActions?.stop(id).then((outcome) => {
+          if (!outcome.ok) showNotice(`Cannot stop ${current.name}: ${outcome.problem}`)
+        })
     } else if (key.name === "x" && props.canStop) {
       const current = node()
       const taskId = current && stoppable(current) ? taskIdOf(props.session, current) : null
@@ -337,6 +380,7 @@ export function AgentView(props: {
                     node={shown()}
                     startedBy={startedBy(shown())}
                     rows={shown().kind === "workflow" ? descendants(shown()) : []}
+                    child={childOf(shown())}
                     width={pageWidth()}
                     scrollRef={(element) => (scroll = element)}
                   />
@@ -351,11 +395,17 @@ export function AgentView(props: {
           width={pageWidth()}
           stop={(() => {
             const current = node()
+            if (current?.kind === "child") return props.childActions !== undefined && stoppable(current)
             return props.canStop && current !== undefined && stoppable(current)
           })()}
           message={(() => {
             const current = node()
+            if (current?.kind === "child") return props.messageChild !== undefined && childTakes(current)
             return props.onMessage !== undefined && current !== undefined && messageable(props.session, current)
+          })()}
+          close={(() => {
+            const current = node()
+            return current?.kind === "child" && props.childActions !== undefined && childCloses(current)
           })()}
         />
       </box>

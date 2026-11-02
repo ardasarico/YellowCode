@@ -73,9 +73,20 @@ import type { PushedLists } from "../session/session.ts"
 import type { OneShot, SessionTitle } from "../session/titler.ts"
 import type { Ask, ChatImage, Session, SessionInfo, UserMessage } from "../session/types.ts"
 import { setTheme, theme } from "../theme/theme.ts"
-import { AgentPanel, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
+import { AgentPanel, childWord, panelNodes, shownNodes } from "./agents/agent-panel.tsx"
 import { AgentView } from "./agents/agent-view.tsx"
-import { isAgentCall, isWorkflowCall, messageable, taskIdOf, topNodes } from "./agents/tree.ts"
+import {
+  type ChildActions,
+  childCloses,
+  childIdOf,
+  childNodes,
+  childTakes,
+  isAgentCall,
+  isWorkflowCall,
+  messageable,
+  taskIdOf,
+  topNodes,
+} from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
@@ -213,6 +224,8 @@ export type AppProps = {
   onShellStop?: () => void
   // Without them a stop shows that the conversation is saved (a replay or a saved conversation).
   tasks?: Agent["tasks"]
+  // Live only: the subagents YellowCode runs for the session, until they close.
+  children?: ChildActions
   // The running agent's model, effort, mode and thinking; none in a replay or a saved conversation.
   knobs?: KnobActions
   // Each new title YellowCode's titler made, so the agent can keep it for the session.
@@ -998,7 +1011,8 @@ export function App(props: AppProps) {
     openAgentView(shellNodeId(first.id))
   }
 
-  const panel = createMemo(() => (pending() ? [] : panelNodes(props.session)))
+  const children = createMemo(() => childNodes(props.children?.list() ?? [], topNodes(props.session).length))
+  const panel = createMemo(() => (pending() ? [] : panelNodes(props.session, children())))
   const [panelPick, setPanelPick] = createSignal<string | null>(null)
   const panelShown = () => shownNodes(panel(), focus() === "panel" ? panelPick() : null)
   const panelIds = () => panelShown().map((node) => node.id)
@@ -1021,6 +1035,14 @@ export function App(props: AppProps) {
   const takesMessages = () => props.caps.features.includes("agentMessages")
   // Starts a message to an agent, or says why it cannot be. Both the panel and the agent view come here.
   const startMessage = (id: string): string | null => {
+    const child = children().find((entry) => entry.id === id)
+    if (child) {
+      if (!childTakes(child)) return `${child.name} is ${childWord(child)}; it cannot take messages`
+      setMessageTo({ id, name: child.name })
+      setAgentView(null)
+      setFocus("input")
+      return null
+    }
     if (!takesMessages()) return null
     const tool = props.session.byId[id]
     const node = topNodes(props.session).find((entry) => entry.id === id)
@@ -1033,6 +1055,11 @@ export function App(props: AppProps) {
     setAgentView(null)
     setFocus("input")
     return null
+  }
+  const closeChild = (id: string) => {
+    const node = children().find((entry) => entry.id === id)
+    const childId = node ? childIdOf(node) : null
+    if (node && childId && childCloses(node)) void props.children?.close(childId)
   }
   const openFromPanel = (id: string) => {
     setFocus("input")
@@ -1404,6 +1431,13 @@ export function App(props: AppProps) {
       setFocus("input")
       return
     }
+    if (focus() === "panel" && !key.ctrl && !key.meta && !key.shift && key.name === "c") {
+      key.preventDefault()
+      key.stopPropagation()
+      const id = panelSelected()
+      if (id) closeChild(id)
+      return
+    }
     if (focus() === "panel" && !key.ctrl && !key.meta && !key.shift && key.name === "m") {
       key.preventDefault()
       key.stopPropagation()
@@ -1571,6 +1605,19 @@ export function App(props: AppProps) {
       return false
     }
     if (to && !text.trim()) return false
+    const child = to ? children().find((entry) => entry.id === to.id) : undefined
+    if (to && child) {
+      const given = props.children?.send(childIdOf(child) ?? "", text.trim())
+      if (!given?.ok) {
+        waitNotice(given ? `Cannot message ${child.name}: ${given.problem}` : SAVED_NOTICE)
+        return false
+      }
+      setMessageTo(null)
+      setToast(`Sent to ${child.name}`)
+      clearTimeout(clearToast)
+      clearToast = setTimeout(() => setToast(null), TOAST_MS)
+      return true
+    }
     if (!to && (shellMode() || command.startsWith("!"))) {
       const line = shellMode() ? text.trim() : command.slice(1).trim()
       if (!line) return false
@@ -1953,6 +2000,9 @@ export function App(props: AppProps) {
               onSelect={setAgentView}
               onClose={() => setAgentView(null)}
               tasks={props.tasks}
+              children={children()}
+              childActions={props.children}
+              messageChild={props.children ? startMessage : undefined}
               canStop={props.caps.stopTask}
               onMessage={takesMessages() ? startMessage : undefined}
               width={dimensions().width}
@@ -2033,7 +2083,12 @@ export function App(props: AppProps) {
                   onOpen={openFromPanel}
                   canMessage={(() => {
                     const node = panel().find((entry) => entry.id === panelSelected())
+                    if (node?.kind === "child") return childTakes(node)
                     return takesMessages() && node !== undefined && messageable(props.session, node)
+                  })()}
+                  canClose={(() => {
+                    const node = panel().find((entry) => entry.id === panelSelected())
+                    return node?.kind === "child" && childCloses(node)
                   })()}
                 />
               </box>

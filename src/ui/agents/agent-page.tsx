@@ -23,8 +23,8 @@ export type PageProps = {
 
 export const tokens = (n: number) => (n > 0 ? `${formatTokens(n)} tokens` : "")
 
-function stateText(state: TreeNode["state"]): { text: string; color: RGBA } {
-  if (state === "completed") return { text: "done", color: theme.muted }
+function stateText({ kind, state }: TreeNode): { text: string; color: RGBA } {
+  if (state === "completed") return { text: kind === "child" ? "idle" : "done", color: theme.muted }
   if (state === "failed") return { text: "failed", color: theme.error }
   if (state === "stopped") return { text: "stopped", color: theme.warning }
   if (state === "queued") return { text: "queued", color: theme.faint }
@@ -32,7 +32,7 @@ function stateText(state: TreeNode["state"]): { text: string; color: RGBA } {
 }
 
 export function PageHeader(props: { node: TreeNode; stats: string; right: string; width: number }) {
-  const state = () => stateText(props.node.state)
+  const state = () => stateText(props.node)
   const status = () => [state().text, props.stats].filter(Boolean).join(" · ")
   // The mark and the spaces take five columns. The name gives way first so the state stays, down to a third of the row.
   const name = () =>

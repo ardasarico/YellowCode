@@ -1,4 +1,8 @@
+import type { Accessor } from "solid-js"
 import { unwrap } from "solid-js/store"
+import type { Outcome } from "../../agent/ids.ts"
+import type { ChildState } from "../../subagents/children.ts"
+import type { SessionStore } from "../../session/session.ts"
 import { shownItems } from "../../session/rewind.ts"
 import { shellNodeId, shellTasks } from "../../session/shells.ts"
 import type { ItemId, Session, Task, TaskState, ToolCall, WorkflowProgress } from "../../session/types.ts"
@@ -7,7 +11,7 @@ import { plain } from "../format.ts"
 
 export type TreeNode = {
   id: string
-  kind: "agent" | "workflow" | "phase" | "workflow-agent" | "queued" | "shell"
+  kind: "agent" | "workflow" | "phase" | "workflow-agent" | "queued" | "shell" | "child"
   depth: number
   parentId: string | null
   name: string
@@ -325,6 +329,66 @@ export function shellNodes(session: Session): TreeNode[] {
     startedAt: task.startedAt,
     colorIndex: 0,
     selectable: true,
+  }))
+}
+
+// A subagent YellowCode runs for the session, as the UI shows it. `name` is the agent's, or the model's for a bare
+// run; `provider` is the provider's name.
+export type ChildView = {
+  id: string
+  name: string
+  provider: string
+  providerId: string
+  model: string
+  state: Exclude<ChildState, "closed">
+  startedAt: number | null
+  endedAt: number | null
+  problem: string | null
+  store: SessionStore
+}
+
+const CHILD_PREFIX = "child:"
+export const childNodeId = (id: string) => `${CHILD_PREFIX}${id}`
+export const childIdOf = (node: TreeNode): string | null =>
+  node.kind === "child" ? node.id.slice(CHILD_PREFIX.length) : null
+
+// What the user can do to a child from the panel and the agent view.
+export type ChildActions = {
+  list: Accessor<ChildView[]>
+  send(id: string, text: string): Outcome
+  stop(id: string): Promise<Outcome>
+  close(id: string): Promise<void>
+}
+
+// A child takes a message while it runs or waits for more; it can close once it stopped running.
+export const childTakes = (node: TreeNode) => node.state === "running" || node.state === "completed"
+export const childCloses = (node: TreeNode) => node.state !== "running" && node.state !== "queued"
+
+// An idle child is done with its task and stays open for more.
+const CHILD_STATES: Record<ChildView["state"], TreeNode["state"]> = {
+  queued: "queued",
+  running: "running",
+  idle: "completed",
+  failed: "failed",
+  stopped: "stopped",
+}
+
+// `first` is the colour of the first child, after the session's own agents.
+export function childNodes(children: ChildView[], first = 0): TreeNode[] {
+  return children.map((child, index) => ({
+    id: childNodeId(child.id),
+    kind: "child",
+    depth: 1,
+    parentId: null,
+    name: child.name,
+    state: CHILD_STATES[child.state],
+    detail: child.provider,
+    toolUses: 0,
+    durationMs: child.startedAt !== null && child.endedAt !== null ? child.endedAt - child.startedAt : 0,
+    startedAt: child.startedAt,
+    colorIndex: first + index,
+    selectable: true,
+    error: child.problem ?? undefined,
   }))
 }
 

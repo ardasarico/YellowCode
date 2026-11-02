@@ -16,13 +16,21 @@ const KEYS = [
   { key: "esc", word: "back" },
 ]
 const MESSAGE_KEY = { key: "m", word: "message" }
+const CLOSE_KEY = { key: "c", word: "close" }
 
-// Top-level agents and workflows that are running or started since the latest user message: running first, then
-// newest first.
-export function panelNodes(session: Session): TreeNode[] {
-  const nodes = activeNodes(session).toReversed()
-  return [...nodes.filter((node) => node.state === "running"), ...nodes.filter((node) => node.state !== "running")]
+// Top-level agents and workflows that are running or started since the latest user message, and the subagents
+// YellowCode runs for the session until they close: running first, then queued, then newest first.
+export function panelNodes(session: Session, children: TreeNode[] = []): TreeNode[] {
+  const nodes = [...activeNodes(session).toReversed(), ...children.toReversed()]
+  return [
+    ...nodes.filter((node) => node.state === "running"),
+    ...nodes.filter((node) => node.state === "queued"),
+    ...nodes.filter((node) => node.state !== "running" && node.state !== "queued"),
+  ]
 }
+
+// A child that is not running, as its row and page name it.
+export const childWord = (node: TreeNode) => (node.state === "completed" ? "idle" : node.state)
 
 // The first rows; a selected node that sorts past them takes the last one, so the selection stays on it.
 export function shownNodes(nodes: TreeNode[], selected: string | null): TreeNode[] {
@@ -32,6 +40,11 @@ export function shownNodes(nodes: TreeNode[], selected: string | null): TreeNode
 }
 
 function status(node: TreeNode, room: number): { text: string; color: RGBA } {
+  if (node.kind === "child" && node.state !== "failed") {
+    const text = [node.state === "running" ? "" : childWord(node), node.detail].filter(Boolean).join(" · ")
+    const color = node.state === "running" ? theme.text : node.state === "stopped" ? theme.warning : theme.muted
+    return { text, color }
+  }
   if (node.state === "failed") return { text: failure(node, room), color: theme.error }
   if (node.state === "stopped") return { text: "stopped", color: theme.warning }
   if (node.state !== "running") return { text: "done", color: theme.muted }
@@ -108,6 +121,7 @@ export function AgentPanel(props: {
   width: number
   onOpen: (id: string) => void
   canMessage?: boolean
+  canClose?: boolean
 }) {
   const hidden = () => props.nodes.length - shownNodes(props.nodes, props.selected).length
   return (
@@ -123,7 +137,14 @@ export function AgentPanel(props: {
       <Show when={props.selected !== null}>
         <text wrapMode="none" marginTop={1}>
           <span> </span>
-          <Index each={props.canMessage ? [...KEYS.slice(0, -1), MESSAGE_KEY, ...KEYS.slice(-1)] : KEYS}>
+          <Index
+            each={[
+              ...KEYS.slice(0, -1),
+              ...(props.canMessage ? [MESSAGE_KEY] : []),
+              ...(props.canClose ? [CLOSE_KEY] : []),
+              ...KEYS.slice(-1),
+            ]}
+          >
             {(entry, index) => (
               <>
                 <span style={{ fg: theme.faint }}>{index === 0 ? "" : " · "}</span>

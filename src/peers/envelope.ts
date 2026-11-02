@@ -31,7 +31,7 @@ export function readSessionMessage(prompt: string): SessionMessage | null {
 // A subagent's result, sent to the session that started it. `id` is empty for a run that never started.
 export type SubagentMessage = { id: string; name: string; provider: string; text: string }
 
-const SUBAGENT_HEAD = /^<subagent-message from="([^"]*)" name="([^"]*)" provider="([^"]+)">\n/
+const SUBAGENT_HEAD = /^<subagent-message from="([^"]*)" name="([^"]*)" provider="([^"]*)">\n/
 const SUBAGENT_CLOSE = "\n</subagent-message>\n\n"
 
 export function subagentMessage(message: SubagentMessage): string {

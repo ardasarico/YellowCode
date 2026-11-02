@@ -26,6 +26,7 @@ export type Child = {
   model: ModelRef
   task: string
   state: ChildState
+  // When its latest turn started.
   startedAt: number | null
   // When its last turn ended, or when it failed, stopped or closed.
   endedAt: number | null
@@ -125,7 +126,7 @@ export function createChildren(options: ChildrenOptions) {
 
   async function begin({ child, run }: Entry): Promise<void> {
     child.state = "running"
-    child.startedAt ??= now()
+    child.startedAt = now()
     child.endedAt = null
     changed(child)
     if (!child.agent) {
@@ -178,6 +179,11 @@ export function createChildren(options: ChildrenOptions) {
       durationMs: child.endedAt - run.turnStart,
       error,
     })
+    // A message the user sent while it ran.
+    if (run.pending !== null) {
+      child.state = "queued"
+      changed(child)
+    }
     pump()
   }
 
@@ -273,6 +279,11 @@ export function createChildren(options: ChildrenOptions) {
     const entry = entryOf(id)
     if (!entry) return { ok: false, problem: `no subagent ${id}` }
     const { child, run } = entry
+    // A running child takes it once its turn ends.
+    if (child.state === "running") {
+      run.pending = run.pending === null ? text : `${run.pending}\n\n${text}`
+      return { ok: true, note: null }
+    }
     if (child.state !== "idle") return { ok: false, problem: `${child.name} is ${child.state}` }
     run.pending = text
     child.state = "queued"
@@ -286,7 +297,10 @@ export function createChildren(options: ChildrenOptions) {
     const entry = entryOf(id)
     if (!entry) return { ok: false, problem: `no subagent ${id}` }
     const { child, run } = entry
-    if (child.state === "running" && child.agent) return child.agent.interrupt()
+    if (child.state === "running" && child.agent) {
+      run.pending = null
+      return child.agent.interrupt()
+    }
     if (child.state === "queued" && child.agent) {
       run.pending = null
       child.state = "idle"

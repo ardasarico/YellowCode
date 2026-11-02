@@ -39,7 +39,8 @@ import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
 import { ensureCatalog } from "./models/refresh.ts"
 import type { Launcher } from "./subagents/children.ts"
 import { loadDefinitions } from "./subagents/definitions.ts"
-import { agentClientTools, createSubagents, rowOf, type Subagents } from "./subagents/tool.ts"
+import { agentClientTools, createSubagents, modelText, nameOf, rowOf, type Subagents } from "./subagents/tool.ts"
+import type { ChildActions, ChildView } from "./ui/agents/tree.ts"
 import { tildePath } from "./rewind/common.ts"
 import { follow, showEarly } from "./session/follow.ts"
 import { createSession, loadHistory, type SessionStore } from "./session/session.ts"
@@ -504,8 +505,41 @@ async function startLive(runner: Runner, options: StartOptions, store: SessionSt
   return started
 }
 
+// The children of the session that runs now, for the agent panel.
+const [shownChildren, setShownChildren] = createSignal<ChildView[]>([])
+
+function showChildren(subagents: Subagents): void {
+  setShownChildren(
+    subagents.list().flatMap(({ state, ...child }) =>
+      state === "closed"
+        ? []
+        : [
+            {
+              id: child.id,
+              name: nameOf({ ...child, state }),
+              provider: launchers.find((one) => one.id === child.provider)?.name ?? child.provider,
+              providerId: child.provider,
+              model: modelText(child.model),
+              state,
+              startedAt: child.startedAt,
+              endedAt: child.endedAt,
+              problem: child.problem,
+              store: child.store,
+            },
+          ],
+    ),
+  )
+}
+
+const childActions: ChildActions = {
+  list: shownChildren,
+  send: (id, text) => live.subagents.send(id, text),
+  stop: (id) => live.subagents.stop(id),
+  close: (id) => live.subagents.close(id),
+}
+
 function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Subagents {
-  return createSubagents({
+  const made: Subagents = createSubagents({
     cwd,
     parent: store,
     providers: addedProviders,
@@ -516,6 +550,7 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
       return rows.find((row) => row.id === store.state.permissionMode && row.group === null)?.kind ?? "other"
     },
     models: catalogRows,
+    listed: (id) => readCatalog().providers[id] !== undefined,
     definitions: () =>
       loadDefinitions(
         cwd,
@@ -529,7 +564,11 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
         log.warn("a subagent's result did not reach the session")
     },
     close: stop,
+    onChange: () => {
+      if (live === owner() && owner().subagents === made) showChildren(made)
+    },
   })
+  return made
 }
 
 // The agent of the moment, compared by identity: Claude's changes with each claude its agent starts.
@@ -990,6 +1029,7 @@ function replaceLive(current: Live, next: Live, following: (() => void) | undefi
   // Opening another session starts from the agent's own model and effort.
   setKnobs({ model: null, effort: null, ultracode: false })
   live = next
+  showChildren(next.subagents)
   setRunningKind(next.runner.kind.id)
   // The mods may have changed while it started.
   giveTools(next)
@@ -1471,6 +1511,7 @@ function Main() {
                   const target = live
                   void target.subagents.closeAll()
                   target.subagents = subagentsOf(target.runner, target.store, () => target)
+                  showChildren(target.subagents)
                 }
                 return empty || sendLive(message, giveBack)
               }}
@@ -1503,6 +1544,7 @@ function Main() {
                   : undefined
               }
               tasks={mode.kind === "live" ? taskActions : undefined}
+              children={mode.kind === "live" ? childActions : undefined}
               onTitle={mode.kind === "live" ? (title) => rename(current.session, title) : undefined}
               onShownTitle={mode.kind === "live" ? (title) => peers?.update({ title }) : undefined}
               knobs={mode.kind === "live" ? knobs : undefined}

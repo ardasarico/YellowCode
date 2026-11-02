@@ -6,7 +6,8 @@ import { parse } from "../../protocol/parse.ts"
 import { createSession } from "../../session/session.ts"
 import type { Session } from "../../session/types.ts"
 import { parseRecording } from "../../source/recording.ts"
-import { activeNodes, agentTree, shellNodes, taskIdOf } from "./tree.ts"
+import { panelNodes } from "./agent-panel.tsx"
+import { activeNodes, agentTree, childNodes, type ChildView, shellNodes, taskIdOf } from "./tree.ts"
 
 function play(name: string) {
   const path = join(import.meta.dir, "..", "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -92,4 +93,33 @@ test("x stops the node's own task: an agent's, a shell's, and none for a workflo
     ["workflow-agent", null],
     ["workflow-agent", null],
   ])
+})
+
+const child = (id: string, name: string, state: ChildView["state"]): ChildView => ({
+  id,
+  name,
+  provider: "Pi",
+  providerId: "pi",
+  model: "pi-model",
+  state,
+  startedAt: state === "queued" ? null : 1000,
+  endedAt: state === "idle" ? 4000 : null,
+  problem: null,
+  store: createSession(),
+})
+
+test("the panel lists the session's children until they close: running, then queued, then the rest", () => {
+  const nodes = childNodes([
+    child("c1", "reviewer", "idle"),
+    child("c2", "tester", "running"),
+    child("c3", "x", "queued"),
+  ])
+  expect(panelNodes(createSession().state, nodes).map((node) => [node.id, node.kind, node.state, node.detail])).toEqual(
+    [
+      ["child:c2", "child", "running", "Pi"],
+      ["child:c3", "child", "queued", "Pi"],
+      ["child:c1", "child", "completed", "Pi"],
+    ],
+  )
+  expect(nodes[0]?.durationMs).toBe(3000)
 })

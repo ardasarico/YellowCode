@@ -31,6 +31,7 @@ function setup() {
     modes: () => Promise.resolve([]),
     parentMode: () => "default",
     models: (provider) => Promise.resolve(ROWS[provider] ?? []),
+    listed: () => true,
     definitions: () => [],
     limit: () => 6,
     tell: () => {},

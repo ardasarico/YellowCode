@@ -118,7 +118,7 @@ function UserMessageRowBase(props: UserMessageRowProps) {
         <Show when={props.item.from}>
           {(from) => (
             <text fg={agentColor(from().agent)} wrapMode="none">
-              {`← ${from().title || from().id} · ${from().agent}${from().broadcast ? " · broadcast" : ""}`}
+              {`← ${[from().title || from().id, from().agent, from().broadcast ? "broadcast" : ""].filter(Boolean).join(" · ")}`}
             </text>
           )}
         </Show>

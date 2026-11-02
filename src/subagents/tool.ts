@@ -27,11 +27,15 @@ export type SubagentDeps = {
   parentMode(): ModeKind
   // The provider's catalog rows, listed first when the catalog has none.
   models(provider: AgentKindId): Promise<ModelRow[]>
+  // False while the provider's models are not listed yet.
+  listed(provider: AgentKindId): boolean
   definitions(): Definition[]
   limit(): number
   // A message for the parent's model, sent as a prompt.
   tell(text: string): void
   close(agent: Agent): Promise<void>
+  // A child started, changed state or closed.
+  onChange?(): void
 }
 
 export type ToolResult = { text: string; error: boolean }
@@ -88,8 +92,8 @@ export const AGENT_TOOLS = [
   {
     name: "send",
     description:
-      "Give an open subagent that finished its last task more work. Its result arrives later as a message; do not " +
-      "wait or poll for it.",
+      "Give an open subagent more work; one still running takes it when its current task ends. Its result arrives " +
+      "later as a message; do not wait or poll for it.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -137,7 +141,7 @@ function duration(ms: number): string {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`
 }
 
-const nameOf = (child: Child) => (child.name === "bare" ? modelText(child.model) : child.name)
+export const nameOf = (child: Child) => (child.name === "bare" ? modelText(child.model) : child.name)
 
 function resultText(child: Child, result: ChildResult): string {
   const took = duration(result.durationMs)
@@ -190,6 +194,7 @@ export function createSubagents(deps: SubagentDeps) {
     onResult: (child, result) => tell(child.id, nameOf(child), child.provider, resultText(child, result)),
     onChange: (child) => {
       if (child.state === "failed" || child.state === "stopped" || child.state === "closed") asks.end(child.id)
+      deps.onChange?.()
     },
     take: (child, event, launcher) =>
       asks.take(
@@ -267,16 +272,22 @@ export function createSubagents(deps: SubagentDeps) {
     void ask((id) => modelAsk(id, model, task, choices)).then(async (reply) => {
       const index = reply === null ? null : pickedOf(reply)
       const choice = index === null ? undefined : choices[index]
-      if (!choice) return tell("", model, "yellowcode", "Did not run: the user chose not to run it.")
+      if (!choice) {
+        const providers = new Set(choices.map((one) => one.provider.id))
+        const [only = ""] = providers.size === 1 ? providers : []
+        return tell("", model, only, "Did not run: the user chose not to run it.")
+      }
       const begun = await begin({ definition: null, provider: choice.provider, row: choice.row, task })
       if (begun.kind === "failed") tell("", model, choice.provider.id, `Did not run: ${begun.problem}.`)
     })
     return done(`The user is asked which ${model} runs, if any. ${LATER}`)
   }
 
-  async function agentsText(): Promise<string> {
+  function agentsText(): string {
     const providers = deps.providers()
-    await Promise.all(providers.map((provider) => deps.models(provider.id)))
+    // The list does not wait for a provider whose models are still being listed.
+    const loading = providers.filter((provider) => !deps.listed(provider.id))
+    for (const provider of loading) void deps.models(provider.id)
     const definitions = deps.definitions()
     const providerName = (id: string | null) => providers.find((one) => one.id === id)?.name ?? id
     const active = definitions.filter((one) => one.active)
@@ -289,12 +300,19 @@ export function createSubagents(deps: SubagentDeps) {
       ...(inactive.length > 0 ? ["", `Without a model until the user assigns one: ${inactive.join(", ")}`] : []),
       "",
       `Providers whose models run takes by name: ${providers.map((one) => one.name).join(", ")}`,
+      ...(loading.length > 0
+        ? [
+            "",
+            `Still listing the models of ${loading.map((one) => one.name).join(", ")}; agents on them may show as ` +
+              "without a model until then.",
+          ]
+        : []),
     ].join("\n")
   }
 
   async function call(name: string, input: unknown): Promise<ToolResult> {
     if (closed) return error("This session is closing.")
-    if (name === "agents") return done(await agentsText())
+    if (name === "agents") return done(agentsText())
     if (name === "run") return run(input)
     const parsed = SEND.partial({ message: true }).safeParse(input)
     if (!parsed.success) return error(`Invalid input: ${parsed.error.message}`)
@@ -343,7 +361,16 @@ export function createSubagents(deps: SubagentDeps) {
     return children.closeAll()
   }
 
-  return { call, answer, closeAll, list: children.list }
+  return {
+    call,
+    answer,
+    closeAll,
+    list: children.list,
+    // The user's own, from the agent panel.
+    send: children.send,
+    stop: children.stop,
+    close: children.close,
+  }
 }
 
 export type Subagents = ReturnType<typeof createSubagents>
