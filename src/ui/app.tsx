@@ -1,8 +1,10 @@
 import type { Agent, AgentKind, Prompt } from "../agent/agent.ts"
 import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
-import type { AgentKindId, EffortId, ModeId, Outcome } from "../agent/ids.ts"
-import type { Knob, McpServerRow, RuleRow } from "../agent/lists.ts"
+import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome } from "../agent/ids.ts"
+import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
+import { favoriteWalk, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
+import { ModelPicker, pickerModel } from "./model-picker.tsx"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
 import { ModDialogView } from "./mod-dialog.tsx"
 import { PermissionsDialog } from "./permissions-dialog.tsx"
@@ -41,8 +43,8 @@ import {
   defaultModeOf,
   effortsOf,
   isFavorite,
+  isHidden,
   modelChoices,
-  modelFor,
   modelIds,
   modelRef,
   modeLabel,
@@ -56,11 +58,9 @@ import {
   setModelChoices,
   settings,
   stepEffort,
-  stepModel,
-  toggleFavorite,
   toggleUltracode,
 } from "../session/settings.ts"
-import { type ChoiceGroup, ChoiceDialog } from "./dialog/choice-dialog.tsx"
+import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
 import { fileRewindFact, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
 import { existsSync, statSync } from "node:fs"
@@ -228,6 +228,8 @@ export type AppProps = {
   children?: ChildActions
   // The running agent's model, effort, mode and thinking; none in a replay or a saved conversation.
   knobs?: KnobActions
+  // Live only: the other added providers' models, from the catalog.
+  models?: ModelSource
   // Each new title YellowCode's titler made, so the agent can keep it for the session.
   onTitle?: (title: string) => void
   // The title the session shows, whatever its source.
@@ -260,6 +262,17 @@ type RewindAnswer = boolean | RewindRecheck
 
 export type KnobActions = Pick<Agent, "setMode" | "setModel" | "setEffort" | "setExtraEffort" | "setThinking">
 
+export type ModelSource = {
+  // In /providers order.
+  added: () => { id: AgentKindId; name: string }[]
+  // Null while the catalog has no list of the provider.
+  listed: (id: AgentKindId) => ModelRow[] | null
+  // Lists the provider's models into the catalog; never rejects.
+  ensure: (id: AgentKindId) => Promise<unknown>
+  // A new session of the provider on the model takes the screen; `message` goes to it once it runs.
+  start: (provider: AgentKindId, model: ModelRef, message: Message | null, giveBack: () => void) => void
+}
+
 // What the user sends; `to` is a running subagent the message is for.
 export type Message = Pick<Prompt, "text" | "images" | "to">
 
@@ -270,7 +283,8 @@ type DialogName =
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
-  | { name: "choice"; kind: "model" | "effort" }
+  | { name: "choice"; kind: "effort" }
+  | { name: "model"; query: string }
   | { name: "context" | "usage" | "permissions" }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
@@ -843,6 +857,10 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "choice" ? open.kind : null
   }
+  const modelsQuery = () => {
+    const open = dialog()
+    return open?.name === "model" ? { text: open.query } : null
+  }
   // A pick goes to the agent only when it changed what the knobs show. One the agent turns down goes back to what the
   // session runs.
   const toModel = (id: string | null) => {
@@ -881,28 +899,89 @@ export function App(props: AppProps) {
       },
     ),
   )
-  // An agent with providers lists its models by provider, each a choice under its provider's heading.
-  const modelGroups = (): ChoiceGroup[] => {
-    const groups = props.provider.modelGroups?.()
-    if (!groups)
-      return [
-        {
-          title: "",
-          choices: modelIds().map((id) => ({
-            id,
-            label: modelName(id),
-            note: props.provider.models().find((model) => model.ref.id === modelRef(id).id)?.note,
-          })),
-        },
-      ]
-    return groups.map((group) => ({
-      title: group.provider?.name ?? "",
-      choices: group.models.map(({ ref, label, note }) => ({
-        id: ref.provider === null ? ref.id : providerModelId(ref.provider, ref.id),
-        label,
-        note,
-      })),
-    }))
+  // A model of another provider, from Shift+←→: the next message switches to it.
+  const [pendingModel, setPending] = createSignal<PickerModel | null>(null)
+  // The running provider's models come from its own lists, the others' from the catalog: null while one is listed.
+  const [catalogs, setCatalogs] = createSignal<ReadonlyMap<AgentKindId, ModelRow[] | null>>(new Map())
+  const otherProviders = () => (props.models?.added() ?? []).filter(({ id }) => id !== props.agent.id)
+  const readCatalogs = () => new Map(otherProviders().map(({ id }) => [id, props.models?.listed(id) ?? null]))
+  const modelGroups = (lists: ReadonlyMap<AgentKindId, ModelRow[] | null>): PickerGroup[] => {
+    const own = props.provider.models()
+    const running: PickerGroup = {
+      provider: props.agent.id,
+      name: props.agent.name,
+      models: modelIds().map((id) => pickerModel(props.agent.id, id, modelRef(id), own)),
+    }
+    return [
+      running,
+      ...otherProviders().map(({ id, name }) => {
+        const known = lists.get(id)
+        return {
+          provider: id,
+          name,
+          models: known ? modelChoices(known).map((one) => pickerModel(id, one.id, one.ref, known)) : null,
+        }
+      }),
+    ]
+  }
+  // A provider the catalog has no list of is listed as the picker opens.
+  const openModels = (query = "") => {
+    const lists = readCatalogs()
+    setCatalogs(lists)
+    for (const [id, known] of lists)
+      if (known === null)
+        void props.models
+          ?.ensure(id)
+          .then(() => setCatalogs((now) => new Map(now).set(id, props.models?.listed(id) ?? [])))
+    setDialog({ name: "model", query })
+  }
+  const currentModel = () => {
+    const id = settings.model ?? props.model()
+    return id === null ? null : { provider: props.agent.id, id }
+  }
+  // A model of the running provider switches in place; another provider's starts a new session on it.
+  const chooseModel = (model: PickerModel, message: Message | null = null, giveBack = () => {}): boolean => {
+    if (model.provider === props.agent.id) {
+      setPending(null)
+      toModel(pickModel(model.id))
+      return true
+    }
+    if (!props.models) return false
+    if (userItems().length > 0) return moveConversation()
+    setPending(null)
+    props.models.start(model.provider, model.ref, message, giveBack)
+    return true
+  }
+  // TODO(C4): hand the conversation over to the new session instead of stopping here.
+  const moveConversation = (): boolean => {
+    waitNotice("Moving a conversation to another provider comes next")
+    return false
+  }
+  // Shift+←→ walks the favorites of every provider, or the running provider's models while none is a favorite.
+  // Another provider's model waits as the pending choice until a message is sent.
+  const stepModel = (step: 1 | -1) => {
+    const groups = modelGroups(readCatalogs())
+    const marks = {
+      favorite: (one: PickerModel) => isFavorite(one.provider, one.ref),
+      hidden: (one: PickerModel) => isHidden(one.provider, one.ref),
+    }
+    const favorites = favoriteWalk(groups, marks)
+    const walk = favorites.length > 0 ? favorites : (groups[0]?.models ?? []).filter((one) => !marks.hidden(one))
+    const now = pendingModel() ?? currentModel()
+    const plain = now?.id.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
+    const at = walk.findIndex((one) => one.provider === now?.provider && (one.id === now.id || one.id === plain))
+    const next = walk[at === -1 ? 0 : (at + step + walk.length) % walk.length]
+    if (!next) return
+    if (next.provider === props.agent.id) {
+      setPending(null)
+      toModel(pickModel(next.id))
+    } else setPending(next)
+  }
+  const pendingText = () => {
+    const model = pendingModel()
+    if (!model) return null
+    const name = props.models?.added().find(({ id }) => id === model.provider)?.name ?? model.provider
+    return `${model.label} · ${name}`
   }
   // The levels of the model the session uses; `levels` leaves out the ones the agent sets from a message.
   const efforts = () => effortsOf(props.provider.models(), settings.model ?? props.model())
@@ -943,14 +1022,20 @@ export function App(props: AppProps) {
     }
     // A model without effort levels: the agent's own command says so.
     if (knob === "effort" && settings.effort === null) return untaken("This model has no effort levels")
-    if (!value) {
-      setDialog({ name: "choice", kind: knob })
+    if (knob === "model") {
+      if (!value) {
+        openModels()
+        return true
+      }
+      const named = modelsNamed(modelGroups(readCatalogs()), value)
+      const [only] = named
+      if (named.length > 1) openModels(value)
+      else if (only) chooseModel(only)
+      else return untaken(`No added provider has a model ${value}`)
       return true
     }
-    if (knob === "model") {
-      const id = modelFor(value)
-      if (id === null) return untaken(`${props.agent.name} has no model ${value}`)
-      toModel(pickModel(id))
+    if (!value) {
+      setDialog({ name: "choice", kind: knob })
       return true
     }
     const level = levels().find((known) => known.id === value.toLowerCase())
@@ -1503,7 +1588,7 @@ export function App(props: AppProps) {
     }
     if (key.shift && (key.name === "left" || key.name === "right")) {
       key.preventDefault()
-      toModel(stepModel(key.name === "right" ? 1 : -1, props.model(), (ref) => isFavorite(props.agent.id, ref)))
+      stepModel(key.name === "right" ? 1 : -1)
       return
     }
     if (key.name === "f4") {
@@ -1746,6 +1831,8 @@ export function App(props: AppProps) {
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
         : giveBack
+      const elsewhere = to ? null : pendingModel()
+      if (elsewhere && message) return chooseModel(elsewhere, out, back)
       const accepted = ended() ? (props.onRestart?.(out, back) ?? false) : props.onSubmit(out, back)
       if (!accepted) {
         if (planned !== null && modeBefore) chooseMode(modeBefore)
@@ -1795,7 +1882,7 @@ export function App(props: AppProps) {
                 ? `${props.agent.name} is not running · Enter restarts it`
                 : `${props.agent.name} is not running`
               : `Message ${props.agent.name}`,
-    model: settings.model ?? props.model(),
+    model: pendingText() ?? settings.model ?? props.model(),
     provider: props.provider,
     onSubmit: submit,
     onQuit: pressQuit,
@@ -2204,18 +2291,16 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
-      <Show when={choiceKind() === "model"}>
-        <ChoiceDialog
-          title="Model"
-          groups={modelGroups()}
-          current={settings.model ?? props.model()}
-          favorites={{
-            has: (id) => isFavorite(props.agent.id, modelRef(id)),
-            toggle: (id) => toggleFavorite(props.agent.id, modelRef(id)),
-          }}
-          onChoose={(id) => toModel(pickModel(id))}
-          onClose={() => setDialog(null)}
-        />
+      <Show when={modelsQuery()} keyed>
+        {(query) => (
+          <ModelPicker
+            groups={modelGroups(catalogs())}
+            current={currentModel()}
+            initialQuery={query.text}
+            onPick={(model) => chooseModel(model)}
+            onClose={() => setDialog(null)}
+          />
+        )}
       </Show>
       <Show when={choiceKind() === "effort"}>
         <ChoiceDialog

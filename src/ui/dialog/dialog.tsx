@@ -31,6 +31,7 @@ type DialogProps = {
   // Without the search row, typing does nothing.
   search?: boolean
   searchPlaceholder?: string
+  initialQuery?: string
   filter?: (sections: DialogSection[], query: string) => DialogSection[]
   // "keys" draws each action as `key action`, joined by a faint dot.
   footerStyle?: "keys"
@@ -54,13 +55,13 @@ const SEARCH_ROWS = 2
 
 export function Dialog(props: DialogProps) {
   const dimensions = useTerminalDimensions()
-  const [query, setQuery] = createSignal("")
+  const [query, setQuery] = createSignal(props.initialQuery ?? "")
   const [chosen, setChosen] = createSignal(props.initialSelected)
   createEffect(
     on(
       () => props.view,
       () => {
-        setQuery("")
+        setQuery(props.initialQuery ?? "")
         setChosen(props.initialSelected)
       },
       { defer: true },

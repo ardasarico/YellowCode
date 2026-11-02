@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { liveProvider } from "../agents/claude/provider.ts"
 import { createSession } from "../session/session.ts"
-import { controlProblem, setKnobs, settings, stepModel } from "../session/settings.ts"
+import { controlProblem, pickModel, setKnobs, settings } from "../session/settings.ts"
 import { DEFAULT_MODE } from "../session/settings-file.ts"
 import { createControls, SEND_DELAY_MS } from "./controls.ts"
 import type { Requests } from "./requests.ts"
@@ -45,9 +45,9 @@ function start() {
   controls.initialized({ commands: [], models })
   const last = (subtype: string) => sent.findLast((request) => request.subtype === subtype)
   last("get_settings")?.resolve(applied("claude-opus-5-5"))
-  // Shift+→, as the App does it.
+  // A model pick, as the App sends it.
   const step = () => {
-    const id = stepModel(1, null)
+    const id = pickModel("claude-sonnet-5-5")
     if (id) controls.setModel(id)
   }
   return { sent, last, controls, step }

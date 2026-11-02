@@ -152,16 +152,6 @@ export function pickEffort(level: EffortId): EffortId | null {
 // The models /model and Shift+←→ offer, as ids.
 export const modelIds = () => (choices.length > 0 ? choices.map(({ id }) => id) : MODELS)
 
-// The id a typed /model name stands for: an alias such as "opus", or an id; null when YellowCode does not list it.
-export function modelFor(name: string): string | null {
-  const needle = name.toLowerCase()
-  return (
-    choices.find((choice) => choice.ref.id.toLowerCase() === needle || choice.id.toLowerCase() === needle)?.id ??
-    MODELS.find((id) => id === needle) ??
-    null
-  )
-}
-
 // Nothing to step from while the agent has not said what it uses (or the model has no effort levels).
 export function stepEffort(levels: EffortId[], step: 1 | -1): EffortId | null {
   if (settings.effort === null) return null
@@ -212,25 +202,6 @@ export function keepLastModel(provider: AgentKindId, ref: ModelRef): void {
   if (last?.provider === provider && last.ref.provider === ref.provider && last.ref.id === ref.id) return
   setSettings({ lastModel: { provider, ref: { provider: ref.provider, id: ref.id } } })
   saveSettings(settings)
-}
-
-// Steps through the favorites that are listed, or every model when none is.
-export function stepModel(
-  step: 1 | -1,
-  current: string | null,
-  favorite: (ref: ModelRef) => boolean = () => false,
-): string | null {
-  const model = settings.model ?? current
-  if (model === null) return null
-  const all = choices.length > 0 ? choices.map(({ id }) => id) : MODELS
-  const marked = all.filter((id) => favorite(modelRef(id)))
-  const ids = marked.length > 0 ? marked : all
-  // A dated or suffixed id such as claude-opus-5-5-20261001[1m] steps from its plain model, unless it is a choice.
-  const plain = model.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
-  const index = ids.includes(model) ? ids.indexOf(model) : ids.indexOf(plain)
-  const next = index === -1 ? 0 : (index + step + ids.length) % ids.length
-  const id = ids[next]
-  return id === undefined ? null : pickModel(id)
 }
 
 // What the user sees for a mode: its label in the agent's list, or the id the agent reported.

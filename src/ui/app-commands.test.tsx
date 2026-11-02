@@ -78,7 +78,7 @@ const modelRow = (from: string, id: string, label: string) => ({
   window: null,
 })
 
-test("an agent with providers lists its models under their headings, and a pick and an effort step go to it", async () => {
+test("an agent with providers lists its models by provider/model, and a pick and an effort step go to it", async () => {
   const sent: string[] = []
   const store = createSession({ starting: true })
   const caps = { ...memoryCaps, effort: true }
@@ -159,9 +159,8 @@ test("an agent with providers lists its models under their headings, and a pick 
   await screen()
   setup.mockInput.pressEnter()
   const dialog = await screen()
-  expect(dialog).toContain("First Lab")
-  expect(dialog).toContain("Second Lab")
-  expect(dialog).toMatch(/Alpha\s+current/)
+  expect(dialog).toMatch(/one\/alpha\s+current/)
+  expect(dialog).toContain("two/alpha")
   setup.mockInput.pressArrow("down")
   setup.mockInput.pressEnter()
   await screen()
