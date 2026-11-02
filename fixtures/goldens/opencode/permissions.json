@@ -685,7 +685,26 @@
     {
       "type": "ask.open",
       "ask": {
-        "preview": null,
+        "preview": {
+          "type": "diff",
+          "files": [
+            {
+              "path": "<root>/project/src/a.ts",
+              "hunks": [
+                {
+                  "oldStart": 1,
+                  "oldLines": 1,
+                  "newStart": 1,
+                  "newLines": 1,
+                  "lines": [
+                    "-export const greeting = \"hello\"",
+                    "+export const greeting = \"hi\""
+                  ]
+                }
+              ]
+            }
+          ]
+        },
         "writes": [
           "<root>/project/src/a.ts"
         ],
@@ -833,7 +852,25 @@
     {
       "type": "ask.open",
       "ask": {
-        "preview": null,
+        "preview": {
+          "type": "diff",
+          "files": [
+            {
+              "path": "<root>/project/src/b.ts",
+              "hunks": [
+                {
+                  "oldStart": 0,
+                  "oldLines": 0,
+                  "newStart": 1,
+                  "newLines": 1,
+                  "lines": [
+                    "+export const b = 1"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
         "writes": [
           "<root>/project/src/b.ts"
         ],
@@ -1756,6 +1793,23 @@
         "writes": [
           "<root>/project/src/a.ts"
         ],
+        "diff": [
+          {
+            "path": "<root>/project/src/a.ts",
+            "hunks": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hi\""
+                ]
+              }
+            ]
+          }
+        ],
         "description": "",
         "reason": "",
         "options": [
@@ -1859,6 +1913,22 @@
         "target": "src/b.ts",
         "writes": [
           "<root>/project/src/b.ts"
+        ],
+        "diff": [
+          {
+            "path": "<root>/project/src/b.ts",
+            "hunks": [
+              {
+                "oldStart": 0,
+                "oldLines": 0,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "+export const b = 1"
+                ]
+              }
+            ]
+          }
         ],
         "description": "",
         "reason": "",

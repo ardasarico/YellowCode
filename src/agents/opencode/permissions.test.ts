@@ -108,3 +108,11 @@ test("the band reads opencode's options as one yes, a lasting yes for the saved 
   const lasting = choiceOf(edit.options[1]!)
   expect(`${lasting.before}${lasting.subject}${lasting.after}`).toBe("Yes, and always allow edits here")
 })
+
+test("a subagent's session offers no always: opencode would save it for the whole project", () => {
+  const edit = permissionAsk(
+    { id: "per_3", sessionID: "ses_2", action: "edit", resources: ["src/a.ts"], save: ["*"] },
+    { call: null, tool: null, by: null, directory: PROJECT, lasting: false },
+  )
+  expect(edit.options.map((option) => option.id)).toEqual(["once", "reject"])
+})

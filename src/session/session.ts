@@ -688,6 +688,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
         input: ask.input,
         target: ask.target,
         writes: [...ask.writes],
+        ...(ask.preview?.type === "diff" ? { diff: structuredClone(ask.preview.files) } : {}),
         description: ask.detail,
         reason: ask.reason,
         options: structuredClone(ask.options),

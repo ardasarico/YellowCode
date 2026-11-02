@@ -916,6 +916,37 @@
           "<root>/project/notes.md",
           "<root>/project/src/a.ts"
         ],
+        "diff": [
+          {
+            "path": "<root>/project/notes.md",
+            "hunks": [
+              {
+                "oldStart": 0,
+                "oldLines": 0,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "+# Notes"
+                ]
+              }
+            ]
+          },
+          {
+            "path": "<root>/project/src/a.ts",
+            "hunks": [
+              {
+                "oldStart": 1,
+                "oldLines": 1,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "-export const greeting = \"hello\"",
+                  "+export const greeting = \"hello, world\""
+                ]
+              }
+            ]
+          }
+        ],
         "description": "",
         "reason": "",
         "options": [
@@ -1035,6 +1066,24 @@
         "writes": [
           "<root>/project/README.md"
         ],
+        "diff": [
+          {
+            "path": "<root>/project/README.md",
+            "hunks": [
+              {
+                "oldStart": 1,
+                "oldLines": 3,
+                "newStart": 0,
+                "newLines": 0,
+                "lines": [
+                  "-# demo",
+                  "-",
+                  "-A small project for Codex recordings."
+                ]
+              }
+            ]
+          }
+        ],
         "description": "",
         "reason": "",
         "options": [
@@ -1148,6 +1197,22 @@
         "target": "<root>/project/two.md",
         "writes": [
           "<root>/project/two.md"
+        ],
+        "diff": [
+          {
+            "path": "<root>/project/two.md",
+            "hunks": [
+              {
+                "oldStart": 0,
+                "oldLines": 0,
+                "newStart": 1,
+                "newLines": 1,
+                "lines": [
+                  "+two"
+                ]
+              }
+            ]
+          }
         ],
         "description": "",
         "reason": "",

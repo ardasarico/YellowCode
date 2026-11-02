@@ -189,7 +189,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   const binary = found.binary
 
   const out = channel<AgentEvent>()
-  const translator: Translator = createTranslator()
+  const translator: Translator = createTranslator({ lasting: !options.ephemeral })
   let transport = deps.transport(await deps.service(binary), options.cwd)
   let stream = new AbortController()
   let session: string | null = null

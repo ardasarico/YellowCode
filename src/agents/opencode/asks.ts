@@ -1,7 +1,15 @@
 // opencode's permission requests and forms as neutral asks, and the replies YellowCode sends for them.
-import type { Ask, AskOption, AskOutcome, AskReply, FormField as NeutralField, QuestionPage } from "../../agent/ask.ts"
+import type {
+  Ask,
+  AskOption,
+  AskOutcome,
+  AskPreview,
+  AskReply,
+  FormField as NeutralField,
+  QuestionPage,
+} from "../../agent/ask.ts"
 import type { TaskId, ToolId } from "../../agent/ids.ts"
-import { absolute, kindOf } from "./tools.ts"
+import { absolute, editFiles, kindOf } from "./tools.ts"
 import type { Form, FormField, PermissionRequest } from "./wire/asks.ts"
 
 const blankAsk = () => ({
@@ -21,13 +29,20 @@ const DECISIONS = ["once", "always", "reject"] as const
 type Decision = (typeof DECISIONS)[number]
 
 // What a permission ask knows beyond the request: its call and the call's tool, if the stream told them, and the
-// subagent that asks.
-export type AskFrom = { call: ToolId | null; tool: string | null; by: TaskId | null; directory: string }
+// subagent that asks. `lasting: false` leaves out the always: opencode saves it for every session of the project,
+// wider than a session YellowCode does not keep.
+export type AskFrom = {
+  call: ToolId | null
+  tool: string | null
+  by: TaskId | null
+  directory: string
+  lasting?: boolean
+}
 
 // The option ids are opencode's own decisions. A no takes a note, which opencode gives the model; without one it
 // stops the turn.
 export function permissionAsk(request: PermissionRequest, from: AskFrom): Ask {
-  const save = request.save ?? []
+  const save = from.lasting === false ? [] : (request.save ?? [])
   const name = from.tool ?? request.action
   const kind = kindOf(name)
   const writes = [kind, kindOf(request.action)].some((known) => known === "edit" || known === "write")
@@ -53,6 +68,7 @@ export function permissionAsk(request: PermissionRequest, from: AskFrom): Ask {
     title: name,
     input: { resources: request.resources },
     target: request.resources.join("\n"),
+    preview: diffOf(request.metadata, from.directory),
     writes: writes ? request.resources.map((path) => absolute(path, from.directory)) : [],
     by: from.by,
     options: [
@@ -61,6 +77,14 @@ export function permissionAsk(request: PermissionRequest, from: AskFrom): Ask {
       option("reject", "deny", "once"),
     ],
   }
+}
+
+// An edit's ask carries its patch in the same metadata as the finished call.
+function diffOf(metadata: unknown, directory: string): AskPreview | null {
+  const files = editFiles(metadata, directory).flatMap((file) =>
+    file.patch && file.patch.length > 0 ? [{ path: file.path, hunks: file.patch }] : [],
+  )
+  return files.length > 0 ? { type: "diff", files } : null
 }
 
 // The body of `POST .../permission/{id}/reply`; null for a reply a permission does not take.

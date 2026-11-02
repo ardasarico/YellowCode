@@ -165,6 +165,8 @@ export type Ask = {
   target: string
   // Absolute paths the call will write.
   writes: string[]
+  // The change the call will make, when the agent sent it with the ask.
+  diff?: { path: string; hunks: Hunk[] }[]
   description: string
   reason: string
   // In the agent's order; a question with pages or a matrix has none.

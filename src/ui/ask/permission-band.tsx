@@ -1,4 +1,5 @@
-import { type InputRenderable, TextAttributes } from "@opentui/core"
+import { infoStringToFiletype, type InputRenderable, TextAttributes } from "@opentui/core"
+import { extname } from "node:path"
 import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import type { AskOption } from "../../agent/ask.ts"
@@ -6,6 +7,8 @@ import { severe } from "../../session/ask.ts"
 import type { Ask } from "../../session/types.ts"
 import { type WorkflowPlan, workflowPlan } from "../../session/workflow-script.ts"
 import { theme } from "../../theme/theme.ts"
+import { diffRows } from "../diff.ts"
+import { DiffView } from "../diff-view.tsx"
 import { cut, cutPath } from "../format.ts"
 import { covered } from "../images.ts"
 import { barChars } from "../user-message.tsx"
@@ -24,6 +27,7 @@ const NOTE_HINTS = "enter send · esc back"
 const TARGET_ROWS = 6
 const TEXT_ROWS = 3
 const PLAN_ROWS = 8
+const DIFF_ROWS = 10
 // Below this many cells beside the title, the description starts on the next row.
 const INLINE_ROOM = 10
 
@@ -122,6 +126,16 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
     return shown ? planRows(shown) : []
   })
   const hiddenPlans = () => plans().length - PLAN_ROWS
+  // Each file's rows, the first files taking the room.
+  const diffs = createMemo(() => {
+    let room = DIFF_ROWS
+    return (props.ask.diff ?? []).flatMap((file) => {
+      const all = diffRows(file.hunks)
+      const shown = all.slice(0, Math.max(0, room))
+      room -= shown.length
+      return shown.length > 0 ? [{ path: file.path, rows: shown, hidden: all.length - shown.length }] : []
+    })
+  })
   // The title and every choice stay in view, so the description and reason get three rows each and the
   // always-allow rule one.
   const inner = () => Math.max(1, props.width - 4)
@@ -229,6 +243,29 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
               </Show>
             </box>
           </Show>
+          <Index each={diffs()}>
+            {(file) => (
+              <box flexDirection="column" marginTop={1}>
+                <Show when={diffs().length > 1}>
+                  <text fg={theme.muted} wrapMode="none">
+                    {cutPath(file().path, inner() - 2)}
+                  </text>
+                </Show>
+                <DiffView
+                  rows={file().rows}
+                  tail={false}
+                  expanded={false}
+                  filetype={infoStringToFiletype(extname(file().path).slice(1))}
+                />
+                <Show when={file().hidden > 0}>
+                  <text
+                    fg={theme.muted}
+                    paddingLeft={2}
+                  >{`… ${file().hidden} more ${file().hidden === 1 ? "line" : "lines"}`}</text>
+                </Show>
+              </box>
+            )}
+          </Index>
           <Show when={plans().length > 0}>
             <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
               <Index each={plans().slice(0, PLAN_ROWS)}>

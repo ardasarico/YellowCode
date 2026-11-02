@@ -114,7 +114,8 @@ export type Translator = ReturnType<typeof createTranslator>
 // Stored subagent sessions by the call that started each, oldest message first, for a read back.
 export type Children = Map<ToolId, Message[]>
 
-export function createTranslator() {
+// `lasting: false`: asks offer no always (see AskFrom).
+export function createTranslator(options: { lasting?: boolean } = {}) {
   // Our own prompts by message id, from before they go out; their reply tells them.
   const own = new Map<string, PromptId>()
   // A command of ours that went out: opencode gives its message an id of its own, so the next user message it enqueues
@@ -546,6 +547,7 @@ export function createTranslator() {
       tool: (call && tools.get(call)?.name) ?? null,
       by: tasks.child(request.sessionID)?.id ?? null,
       directory,
+      lasting: options.lasting ?? true,
     }
     return askOpen(request.id, request.sessionID, () => ({
       type: "ask.open",

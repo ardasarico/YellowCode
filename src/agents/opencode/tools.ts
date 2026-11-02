@@ -220,7 +220,7 @@ export const goesOn = (name: string, metadata: unknown) =>
 // Only "modified" has been seen; "added" and "deleted" are guessed.
 const CHANGES: Record<string, FileChange["change"]> = { added: "create", deleted: "delete" }
 
-function editFiles(metadata: unknown, directory: string): FileChange[] {
+export function editFiles(metadata: unknown, directory: string): FileChange[] {
   return (editMeta.safeParse(metadata).data?.files ?? []).map((file) => ({
     path: absolute(file.file, directory),
     change: CHANGES[file.status ?? ""] ?? "update",
