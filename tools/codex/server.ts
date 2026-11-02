@@ -20,7 +20,7 @@ export type Running = {
 }
 
 // mtime only: the user's files are never read.
-function snapshot(file: string): string {
+export function snapshot(file: string): string {
   if (!existsSync(file)) return "missing"
   const { mtimeMs, ino } = statSync(file)
   return `${mtimeMs} ${ino}`
@@ -42,7 +42,7 @@ function table(): Row[] {
 }
 
 // Our app-server, its descendants, anything whose command line names the root, and earlier finds (orphans).
-function finder(pid: number, root: string): () => number[] {
+export function finder(pid: number, root: string): () => number[] {
   const seen = new Set<number>([pid])
   return () => {
     const rows = table().filter((row) => row.pid !== process.pid)
@@ -59,7 +59,7 @@ function finder(pid: number, root: string): () => number[] {
 const LOOPBACK = /(?:127\.0\.0\.1|\[::1\]|localhost|\*):\d+/g
 
 // One look at what our processes hold open: a socket to anything but loopback is a problem.
-function look(ours: () => number[], problems: Set<string>): void {
+export function look(ours: () => number[], problems: Set<string>): void {
   const pids = ours()
   if (pids.length === 0) return
   const rows = run("lsof", ["-nP", "-a", "-i", "-p", pids.join(","), "-F", "n"]).split("\n")
@@ -71,7 +71,7 @@ function look(ours: () => number[], problems: Set<string>): void {
 }
 
 // Returns the pids that outlived SIGTERM and SIGKILL.
-async function kill(ours: () => number[]): Promise<number[]> {
+export async function kill(ours: () => number[]): Promise<number[]> {
   for (const signal of ["SIGTERM", "SIGKILL"] as const) {
     const pids = ours()
     if (pids.length === 0) return []
