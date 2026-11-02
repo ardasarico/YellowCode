@@ -11,7 +11,7 @@ import {
   setSetting,
   settings,
 } from "../../session/settings.ts"
-import type { StoredSettings } from "../../session/settings-file.ts"
+import { MAX_SUBAGENTS, type StoredSettings } from "../../session/settings-file.ts"
 import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
@@ -161,6 +161,22 @@ const PEER_VISIBLE = sessionSetting("peerVisible", "Visible to them", [
   { value: "no", label: "No" },
 ])
 
+const SUBAGENTS: SettingDefinition = {
+  key: "maxSubagents",
+  section: "Session",
+  label: "Subagents at once",
+  options: Array.from({ length: MAX_SUBAGENTS }, (_, index) => ({
+    value: String(index + 1),
+    label: String(index + 1),
+  })),
+  value: () => String(settings.maxSubagents),
+  set(value) {
+    const count = Number(value)
+    if (Number.isInteger(count) && count >= 1 && count <= MAX_SUBAGENTS) setSetting("maxSubagents", count)
+  },
+  reset: () => resetSetting("maxSubagents"),
+}
+
 const UPDATES: SettingDefinition = {
   key: "updates",
   section: "Updates",
@@ -189,6 +205,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefini
   defaultMode(agent.id, modes),
   EDITOR,
   NOTIFICATIONS,
+  SUBAGENTS,
   PEER_MESSAGES,
   PEER_VISIBLE,
   UPDATES,

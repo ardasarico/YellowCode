@@ -57,6 +57,8 @@ export type StoredSettings = {
   // Read from files written before providers, for usedProviders only; never saved.
   defaultAgent?: AgentKindId
   agents: Record<AgentKindId, AgentPrefs>
+  // How many subagents run at once; the others wait.
+  maxSubagents: number
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -73,6 +75,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   models: { favorites: [], hidden: [] },
   lastModel: undefined,
   agents: {},
+  maxSubagents: 6,
 }
 
 // The providers an older file shows were used: those with an entry and the default agent it saved, in `known` order.
@@ -129,6 +132,8 @@ const Notifications = z.enum(NOTIFICATIONS)
 const DisabledMods = z.array(z.string())
 const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
+export const MAX_SUBAGENTS = 10
+const MaxSubagents = z.number().int().min(1).max(MAX_SUBAGENTS)
 const Providers = z.array(z.string()).min(1)
 const Keys = z.array(z.string()).default([])
 const Models = z.object({ favorites: Keys, hidden: Keys })
@@ -242,6 +247,7 @@ function readStored(stored: Record<string, unknown>) {
   read("disabledMods", DisabledMods)
   read("updates", Updates)
   read("defaultAgent", DefaultAgent)
+  read("maxSubagents", MaxSubagents)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 
