@@ -25,10 +25,9 @@ crash and its exit code stay readable.
 ### Live
 
 Without `--replay` the app starts a real agent in its working directory, with
-the user's account, settings and tools. It opens the Default agent saved in
-`/settings`, else the first installed one of Claude Code, opencode and Codex.
-To use another, type `/agent` once the app is up and pick it; that starts a new
-session. A replay is always a Claude Code recording. Isolate a live run:
+the user's account, settings and tools. It opens the provider of the last used
+model, else the first added one; `/providers` adds and removes providers. A
+replay is always a Claude Code recording. Isolate a live run:
 
 - Run it in a throwaway directory (a fresh `git init` repo under `/tmp`), with
   the app started through `bin/yellowcode` by its absolute path, so tools cannot

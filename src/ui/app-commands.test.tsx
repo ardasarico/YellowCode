@@ -3,11 +3,9 @@ import { testRender } from "@opentui/solid"
 import { createSignal, Show } from "solid-js"
 import { withOwnCommands } from "../input/commands.ts"
 import type { InputProvider } from "../input/provider.ts"
-import { follow } from "../session/follow.ts"
 import { memoryCaps, memoryKind } from "../session/memory-kind.ts"
 import { createSession } from "../session/session.ts"
 import { startTheme } from "../theme/theme.ts"
-import type { AgentChoice } from "./agent-dialog.tsx"
 import { App } from "./app.tsx"
 
 const provider: InputProvider = {
@@ -24,87 +22,7 @@ const provider: InputProvider = {
   files: () => Promise.resolve([]),
 }
 
-const options = {
-  cwd: "/work",
-  resume: null,
-  mode: null,
-  defaultMode: null,
-  model: null,
-  effort: null,
-  extraEffort: false,
-  thinking: true,
-  instructions: [],
-  clientTools: [],
-  mcpServers: [],
-}
-
 const settle = () => new Promise((resolve) => setTimeout(resolve, 50))
-
-test("/agent lists the installed agents, skips a blocked one, and picks another", async () => {
-  const first = memoryKind("first", "First agent")
-  const choices: AgentChoice[] = [
-    { id: "first", name: "First agent", version: "1.0.0", blocked: null },
-    { id: "second", name: "Second agent", version: "2.0.0", blocked: null },
-    { id: "old", name: "Old agent", version: "1.4.3", blocked: "needs old agent 2" },
-  ]
-  const store = createSession({ starting: true })
-  void follow((await first.kind.start(options)).events, store, "First agent")
-  const picked: string[] = []
-  // The theme needs the renderer, so the app shows once it has started.
-  const [themed, setThemed] = createSignal(false)
-  const setup = await testRender(
-    () => (
-      <Show when={themed()}>
-        <App
-          session={store.state}
-          lists={store.lists}
-          agent={first.kind}
-          caps={memoryCaps}
-          model={() => null}
-          workspace={{ cwd: "~/work", branch: null, version: "0.0.0" }}
-          replay={null}
-          settingsProblem={null}
-          provider={provider}
-          sessions={{ list: () => Promise.resolve({ entries: [], names: null }), open: () => {} }}
-          agents={{
-            known: choices,
-            installed: () => choices,
-            detect: () => Promise.resolve(choices),
-            pick: (id) => picked.push(id),
-          }}
-          onSubmit={() => true}
-          onAnswer={() => {}}
-          onQuit={() => {}}
-        />
-      </Show>
-    ),
-    { width: 100, height: 30 },
-  )
-  startTheme(setup.renderer.nativeScene, "terminal")
-  setThemed(true)
-  const screen = async () => {
-    await settle()
-    await setup.renderOnce()
-    return setup.captureCharFrame()
-  }
-
-  await setup.mockInput.typeText("/agent")
-  await screen()
-  setup.mockInput.pressEnter()
-  const dialog = await screen()
-  expect(dialog).toContain("First agent")
-  expect(dialog).toContain("1.0.0")
-  expect(dialog).toContain("Second agent")
-  expect(dialog).toContain("Old agent 1.4.3 · needs old agent 2")
-
-  // The blocked agent cannot be reached, so the last row stays the one picked.
-  setup.mockInput.pressArrow("down")
-  setup.mockInput.pressArrow("down")
-  setup.mockInput.pressEnter()
-  await screen()
-  expect(picked).toEqual(["second"])
-  setup.renderer.destroy()
-})
 
 test("an agent that titles its own sessions shows its title, and /rename goes to it with no session id", async () => {
   const store = createSession({ starting: true })

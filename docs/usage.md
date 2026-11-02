@@ -63,7 +63,7 @@ yellowcode mod <command>
 | `/timeline`    | Move through the prompts of this session                   |
 | `/redo`        | Bring back what the last rewind undid                      |
 | `/resume`      | Open an earlier session from this project                  |
-| `/agent`       | Switch to another agent, in a new session                  |
+| `/providers`   | Add or remove providers                                    |
 | `/export`      | Copy the conversation, or save it as Markdown              |
 | `/settings`    | YellowCode's settings                                      |
 | `/theme`       | Pick a theme                                               |

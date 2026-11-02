@@ -4,7 +4,6 @@ import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId, EffortId, ModeId, Outcome } from "../agent/ids.ts"
 import type { Knob, McpServerRow, RuleRow } from "../agent/lists.ts"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
-import { type AgentChoice, AgentDialog } from "./agent-dialog.tsx"
 import { ModDialogView } from "./mod-dialog.tsx"
 import { PermissionsDialog } from "./permissions-dialog.tsx"
 import { useModEvents } from "./mod-events.ts"
@@ -140,6 +139,7 @@ import { hasThinkingText } from "./thinking.tsx"
 import { useElapsedSeconds } from "./elapsed.ts"
 import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
+import { type ProviderChoice, ProvidersDialog } from "./providers-dialog.tsx"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
 import { updateNotice, updateText } from "../update/updater.ts"
 
@@ -191,11 +191,9 @@ export type AppProps = {
     // Every agent this build can run, installed or not.
     known: { id: AgentKindId; name: string }[]
     // The last look, null before the first.
-    installed: () => AgentChoice[] | null
+    installed: () => ProviderChoice[] | null
     // Looks again; never rejects.
-    detect(): Promise<AgentChoice[]>
-    // A new session of that agent replaces this one.
-    pick(id: AgentKindId): void
+    detect(): Promise<ProviderChoice[]>
   }
   earlier?: boolean
   onEarlier?: () => void
@@ -255,7 +253,7 @@ export type Message = Pick<Prompt, "text" | "images" | "to">
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "agent" }
+  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "providers" }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
@@ -309,9 +307,6 @@ export function App(props: AppProps) {
       },
     ),
   )
-  // The welcome screen names the agent, and Tab opens /agent, once there is another agent to pick.
-  const agentHint = () =>
-    (props.agents?.installed()?.filter((agent) => agent.blocked === null).length ?? 0) > 1 ? props.agent.name : null
   // What the default agent can be: the installed agents, or the running one before they were looked for.
   const agentOptions = (): AgentOption[] => {
     const { id, name } = props.agent
@@ -1495,13 +1490,7 @@ export function App(props: AppProps) {
       return
     }
     if (key.name === "tab") {
-      if (listOpen()) return
-      if (welcome()) {
-        if (agentHint() === null) return
-        key.preventDefault()
-        setDialog({ name: "agent" })
-        return
-      }
+      if (listOpen() || welcome()) return
       key.preventDefault()
       const next = focus() === "input" ? "chat" : "input"
       setFocus(next)
@@ -1646,7 +1635,11 @@ export function App(props: AppProps) {
     }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
-    if ((rewinding && !props.rewind) || (planning && !props.onInterrupt) || (command === "/agent" && !props.agents)) {
+    if (
+      (rewinding && !props.rewind) ||
+      (planning && !props.onInterrupt) ||
+      (command === "/providers" && !props.agents)
+    ) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name}`)
       return false
     }
@@ -1663,7 +1656,7 @@ export function App(props: AppProps) {
     if (command === "/report") void copyReport()
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
-    else if (command === "/agent") setDialog({ name: "agent" })
+    else if (command === "/providers") setDialog({ name: "providers" })
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp" && !yields("mcp")) setDialog({ name: "settings", tab: "mcp" })
     else if (command === "/plugins" && !yields("plugins")) setDialog({ name: "settings", tab: "plugins" })
@@ -1940,7 +1933,6 @@ export function App(props: AppProps) {
                   history,
                 }}
                 workspace={props.workspace}
-                agent={agentHint()}
                 notice={welcomeNotice()}
                 onNotice={welcomeClick()}
                 recent={{ entries: recents(), names: listed().names, selected: recent() }}
@@ -2198,14 +2190,9 @@ export function App(props: AppProps) {
           />
         )}
       </Show>
-      <Show when={dialog()?.name === "agent" && props.agents}>
+      <Show when={dialog()?.name === "providers" && props.agents}>
         {(agents) => (
-          <AgentDialog
-            current={props.agent.id}
-            detect={() => agents().detect()}
-            onPick={(id) => agents().pick(id)}
-            onClose={() => setDialog(null)}
-          />
+          <ProvidersDialog inUse={props.agent.id} detect={() => agents().detect()} onClose={() => setDialog(null)} />
         )}
       </Show>
       <Show when={dialog()?.name === "resume"}>

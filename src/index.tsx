@@ -78,7 +78,7 @@ import { loadRecording, RecordingError, recordedInfo } from "./source/recording.
 import { parseSpeed } from "./source/replay.ts"
 import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
-import type { AgentChoice } from "./ui/agent-dialog.tsx"
+import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message } from "./ui/app.tsx"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { sessionMessage } from "./peers/envelope.ts"
@@ -895,12 +895,6 @@ function replaceLive(current: Live, next: Live, following: (() => void) | undefi
   setChat({ session: next.store, resumed })
 }
 
-// A new session of another agent; the one left stays in /resume.
-async function switchAgent(id: AgentKindId): Promise<void> {
-  const runner = runnerById(id)
-  if (runner && runner !== live.runner) await startNew(runner, "switch the agent")
-}
-
 // A /clear on an agent with none of its own: a new session of the same agent, the one left stays in /resume.
 function clearLive(): boolean {
   if (working("start a new session")) return false
@@ -940,14 +934,14 @@ async function startNew(runner: Runner, then: string): Promise<void> {
   replaceLive(current, next, following, null)
 }
 
-// The last look at the installed agents, for /agent and the default agent.
-const [agentChoices, setAgentChoices] = createSignal<AgentChoice[] | null>(null)
-let detecting: Promise<AgentChoice[]> | null = null
+// The last look at the installed agents, for /providers.
+const [agentChoices, setAgentChoices] = createSignal<ProviderChoice[] | null>(null)
+let detecting: Promise<ProviderChoice[]> | null = null
 
 // The running agent is listed even when its binary no longer answers.
-function detectAgents(): Promise<AgentChoice[]> {
+function detectAgents(): Promise<ProviderChoice[]> {
   detecting ??= Promise.all(
-    runners.map(async ({ kind }): Promise<AgentChoice[]> => {
+    runners.map(async ({ kind }): Promise<ProviderChoice[]> => {
       const found = await detect(kind)
       const { id, name } = kind
       if (found.installed) return [{ id, name, version: found.version, blocked: found.blocked }]
@@ -967,7 +961,6 @@ const agents = {
   known: runners.map(({ kind }) => ({ id: kind.id, name: kind.name })),
   installed: agentChoices,
   detect: detectAgents,
-  pick: (id: AgentKindId) => void switchAgent(id).catch((error: unknown) => log.error("cannot switch agent", error)),
 }
 
 // The live agent whose restart was refused for good; Enter no longer offers one for it.
