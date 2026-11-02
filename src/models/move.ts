@@ -19,7 +19,11 @@ const messages = (count: number) => `${count} ${count === 1 ? "message" : "messa
 // The chat row in the new session.
 export function movedNote(handoff: Handoff, from: string): string {
   const left = handoff.leftOut > 0 ? [`${handoff.leftOut} left out`] : []
-  return [`Moved ${messages(handoff.moved)} from ${from}`, ...left, "images and tool results did not move"].join(" · ")
+  return [
+    `Moved ${messages(handoff.moved)} from ${from}`,
+    ...left,
+    "images did not move, tools went as summaries",
+  ].join(" · ")
 }
 
 // Asked before a message on a model of another provider moves the conversation. Esc cancels.

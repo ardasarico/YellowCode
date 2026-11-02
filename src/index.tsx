@@ -1130,11 +1130,16 @@ const modelSource: ModelSource = {
       return
     }
     const from = live.runner.kind.name
+    // A session left before its first message hands on the conversation it was given.
+    const held = handoff ? null : carrying?.store === live.store ? carrying.text : null
     startNew(runner, `switch to ${runner.kind.name}`, model)
       .then((started) => {
         if (started && handoff) {
           carrying = { store: live.store, text: handoff.text }
           live.store.event({ type: "notice", level: "info", text: movedNote(handoff, from), at: Date.now() })
+        } else if (started && held) {
+          carrying = { store: live.store, text: held }
+          live.store.event({ type: "notice", level: "info", text: "The moved conversation came along", at: Date.now() })
         }
         if (message && (!started || !sendLive(message, giveBack))) giveBack()
       })
