@@ -335,10 +335,13 @@ export const OWN_ASK = `mcp__${OWN_ASK_SERVER}__ask`
 // The tools for the other open sessions come as client tools of their own SDK server. Listing them never asks.
 export const OWN_SESSIONS_SERVER = "yellowcode-sessions"
 export const OWN_SESSIONS = `mcp__${OWN_SESSIONS_SERVER}__list`
+// The subagent tools likewise; listing the agents never asks.
+export const OWN_AGENTS_SERVER = "yellowcode-agents"
+export const OWN_AGENTS = `mcp__${OWN_AGENTS_SERVER}__agents`
 
 // Those servers are how the tools get to claude, not the user's servers, so no server list shows them.
 export const isOwnAskServer = (server: { name: string; source?: string | null }) =>
-  (server.name === OWN_ASK_SERVER || server.name === OWN_SESSIONS_SERVER) && server.source === "sdk"
+  [OWN_ASK_SERVER, OWN_SESSIONS_SERVER, OWN_AGENTS_SERVER].includes(server.name) && server.source === "sdk"
 
 const askPage = z.looseObject({
   question: z.string(),

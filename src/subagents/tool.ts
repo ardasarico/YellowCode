@@ -1,3 +1,4 @@
+import { OWN_AGENTS_SERVER } from "../protocol/messages.ts"
 import { z } from "zod"
 import type { Agent, ClientTool } from "../agent/agent.ts"
 import type { Ask, AskReply } from "../agent/ask.ts"
@@ -10,7 +11,7 @@ import { type Child, type ChildResult, createChildren, type Launcher } from "./c
 import type { Definition } from "./definitions.ts"
 
 // The tools reach the user's own session as client tools of this server; children get none.
-export const AGENTS_SERVER = "yellowcode-agents"
+export const AGENTS_SERVER = OWN_AGENTS_SERVER
 
 export type Provider = { id: AgentKindId; name: string }
 
