@@ -1857,7 +1857,10 @@ export function App(props: AppProps) {
       held: held() && heldWithdrawn(),
       interruptible: interruptible(),
       backgroundable: backgroundable(),
-      modes: props.onInterrupt !== undefined,
+      // An agent whose modes cannot be stepped through, such as Pi's one, has nothing for Shift+Tab to do.
+      modes:
+        props.onInterrupt !== undefined &&
+        !(props.provider.modes().length > 0 && props.provider.modes().every((mode) => !mode.cycle)),
       planHint: planHint(),
       extraEffort: props.readOnly ? null : props.caps.extraEffort,
       limits: props.caps.limits,

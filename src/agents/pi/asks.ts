@@ -41,7 +41,8 @@ const page = (question: string, options: { label: string; preview: string | null
   multi: false,
   gallery: false,
   custom: true,
-  options: options.map(({ label, preview }) => ({ label, description: null, preview, image: null })),
+  // The band shows the description, not the preview; a kept text is shown there too.
+  options: options.map(({ label, preview }) => ({ label, description: preview, preview, image: null })),
 })
 
 function askOf(id: AskId, raw: Record<string, unknown>): Ask | null {
