@@ -6,6 +6,7 @@ import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "../../agent/ids.ts"
 import type { ListName, McpServerRow, ModeRow, SkillRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
+import { defaultProvider } from "./allow.ts"
 import { createAsks } from "./asks.ts"
 import { CODEX, CODEX_CAPS, CODEX_NAME } from "./caps.ts"
 import { dynamicTools, serverConfig } from "./client-tools.ts"
@@ -25,6 +26,7 @@ import {
   type Access,
 } from "./modes.ts"
 import { readModels } from "./models.ts"
+import { cachedWindows, withWindows } from "./models-cache.ts"
 import { listSessions } from "./sessions.ts"
 import { createSettings } from "./settings.ts"
 import { createDelivery } from "./steer.ts"
@@ -858,6 +860,12 @@ export function codexKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start"> & 
     sessions: (cwd) => reading(cwd, (rpc) => listSessions(rpc, cwd)),
     // Any folder will do for reading a thread by its id.
     history: (ref, cursor) => reading(process.cwd(), (rpc) => historyPage(rpc, ref.id, cursor)),
+    // No thread is opened, so nothing is kept.
+    listModels: (cwd) =>
+      reading(cwd, async (rpc) => {
+        const { groups } = await readModels(rpc, cwd, await defaultProvider(rpc, cwd))
+        return withWindows(groups, cachedWindows())
+      }),
     async oneShot(prompt, cwd) {
       try {
         checked ??= usable(merged)

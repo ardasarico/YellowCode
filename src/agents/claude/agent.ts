@@ -55,6 +55,7 @@ import { claudeFiles } from "./files.ts"
 import { heldElsewhere } from "./held.ts"
 import { BLOCKED_COMMANDS, isClaudeMode } from "./lists.ts"
 import { toolPrefix } from "./mcp-rows.ts"
+import { listModels } from "./models.ts"
 import { oneShot } from "./one-shot.ts"
 import { CLAUDE_PROJECTS, projectFolder, realPath } from "./projects.ts"
 import type { LiveProvider } from "./provider.ts"
@@ -90,7 +91,9 @@ export type ClaudeAgent = Agent & ClaudeHooks
 // Claude in the registry. `start` and `replay` take the store the connection or the recording feeds until the store
 // reads `events`.
 export type ClaudeKind = Pick<AgentKind, "id" | "name" | "shortName" | "caps" | "detect" | "sessions" | "history"> &
-  Required<Pick<AgentKind, "heldElsewhere" | "oneShot" | "fileHistory" | "settingChange" | "settingMessage">> & {
+  Required<
+    Pick<AgentKind, "heldElsewhere" | "oneShot" | "listModels" | "fileHistory" | "settingChange" | "settingMessage">
+  > & {
     start(options: StartOptions, store: SessionStore): Promise<ClaudeAgent>
     replay(recording: Recording, speed: Speed, store: SessionStore): ClaudeReplay
   }
@@ -143,6 +146,7 @@ export function claudeKind(bridge: Bridge, folder: string | null = null): Claude
     history: (ref, cursor) => Promise.try(() => historyPage(transcriptOf(ref), cursor)),
     heldElsewhere: (ref) => heldElsewhere(ref.id),
     oneShot,
+    listModels,
     settingChange,
     settingMessage,
     fileHistory: (ref, wanted) => Promise.try(() => fileHistory(ref, transcriptOf(ref), wanted)),

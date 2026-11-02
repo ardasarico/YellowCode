@@ -2,7 +2,7 @@ import type { AskReply } from "./ask.ts"
 import type { Capabilities } from "./capabilities.ts"
 import type { AgentEvent } from "./events.ts"
 import type { AgentKindId, AskId, EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "./ids.ts"
-import type { ListName } from "./lists.ts"
+import type { ListName, ModelGroup } from "./lists.ts"
 import type { SettingChange, SettingRow, SettingValue } from "./settings.ts"
 import type { FileBackup, HistoryCursor, HistoryPage, SessionEntry, SessionRef } from "./sessions.ts"
 
@@ -111,6 +111,8 @@ export type AgentKind = {
   heldElsewhere?(ref: SessionRef): Promise<boolean>
   // One answer from the agent's model, outside the session, for YellowCode's own titles.
   oneShot?(prompt: string, cwd: string): Promise<string | null>
+  // The models list from a short-lived process that keeps no session, for the catalog.
+  listModels?(cwd: string): Promise<ModelGroup[]>
   // The agent's own file backups of a session (feature fileHistory), for the prompts `wanted` says yes to.
   fileHistory?(ref: SessionRef, wanted: (prompt: PromptId) => boolean): Promise<FileBackup[]>
   // For an agent whose settings writes go out as messages: the change a message's text makes, or null for any other

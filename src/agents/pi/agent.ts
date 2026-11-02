@@ -595,6 +595,15 @@ export function piKind(deps: Partial<Deps> = {}): AgentKind {
     detect: () => merged.detect(),
     start: (options) => start(options, merged),
     sessions: (cwd) => Promise.resolve(listSessions(cwd, merged.env)),
+    async listModels(cwd) {
+      await usable(merged)
+      const pi = client(merged.spawn(cwd, ["--no-session"]))
+      try {
+        return modelGroups(readModels(await pi.command("get_available_models")))
+      } finally {
+        await pi.close()
+      }
+    },
     history(ref) {
       const path = findSession(ref.id, merged.env)
       const file = path === null ? null : readSession(path)

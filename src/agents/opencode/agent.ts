@@ -1024,6 +1024,11 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
     sessions: async (cwd) => listSessions(await service(cwd), cwd),
     // Any folder will do for reading a session by its id.
     history: async (ref, cursor) => historyPage(await service(process.cwd()), ref.id, cursor),
+    async listModels(cwd) {
+      const groups = await readModels(await service(cwd))
+      if (!groups) throw new Error("opencode listed no models")
+      return groups
+    },
     oneShot: (prompt, cwd) =>
       service(cwd).then(
         (transport) => answerOnce(transport, prompt),

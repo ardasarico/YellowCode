@@ -81,3 +81,13 @@ export async function providerNames(rpc: Rpc, cwd: string): Promise<Map<string, 
   const listed = allowedConfig(reply).config.model_providers
   return new Map(Object.entries(listed).map(([id, entry]) => [id, entry.name ?? id]))
 }
+
+const chosen = z.looseObject({
+  config: z.looseObject({ model_provider: z.string().nullable().optional().catch(null) }),
+})
+
+// The provider a new thread runs on: config.toml's model_provider, else Codex's own default.
+export async function defaultProvider(rpc: Rpc, cwd: string): Promise<string> {
+  const reply = await rpc.request("config/read", { cwd }).catch(() => null)
+  return chosen.safeParse(reply).data?.config.model_provider ?? "openai"
+}
