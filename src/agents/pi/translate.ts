@@ -4,7 +4,9 @@
 // oldest one (a prompt template changes the text).
 import type { AgentEvent } from "../../agent/events.ts"
 import type { PromptId, ToolId } from "../../agent/ids.ts"
-import { calledOf, endOf, kindOf, textOf } from "./tools.ts"
+import { existsSync } from "node:fs"
+import { parseJson } from "../../json.ts"
+import { absolute, calledOf, endOf, kindOf, textOf } from "./tools.ts"
 import type { Message, PiEvent, Usage } from "./wire.ts"
 
 export type Via = "start" | "steer" | "queue"
@@ -46,7 +48,23 @@ function stamp(events: Bare[], at: number): AgentEvent[] {
   return stamped
 }
 
-export function createTranslator(cwd: string): Translator {
+// The path a write's arguments name, read from them while they still stream.
+const PATH = /"path"\s*:\s*"((?:[^"\\]|\\.)*)"/
+
+function pathIn(text: string): string | null {
+  const found = PATH.exec(text)?.[1]
+  if (found === undefined) return null
+  const path = parseJson(`"${found}"`)
+  return path.ok && typeof path.value === "string" ? path.value : null
+}
+
+const pathField = (input: unknown): string | null =>
+  typeof input === "object" && input !== null && "path" in input && typeof input.path === "string" ? input.path : null
+
+// `exists` is asked whether the file a write names is there, as soon as its path is known: pi runs the call only once
+// the model's message is done, so a file that is not there yet is one the call creates. Asked too late, it says the
+// file is there, which keeps the file on a rewind rather than delete one of the user's.
+export function createTranslator(cwd: string, exists: (path: string) => boolean = existsSync): Translator {
   const own: Own[] = []
   let running = false
   let startedAt = 0
@@ -56,7 +74,10 @@ export function createTranslator(cwd: string): Translator {
   let message = 0
   let streamed = new Set<number>()
   const callAt = new Map<number, ToolId>()
-  const tools = new Map<ToolId, { name: string; input: unknown; ended: boolean }>()
+  const tools = new Map<
+    ToolId,
+    { name: string; input: unknown; ended: boolean; args: string; created: boolean | null }
+  >()
   const totals = { input: 0, output: 0, tokens: 0 }
   let last: Message | null = null
 
@@ -84,7 +105,7 @@ export function createTranslator(cwd: string): Translator {
       images: [],
       to: null,
       history: false,
-      cutPoint: false,
+      cutPoint: true,
     }
     if (!firstUser) {
       firstUser = true
@@ -95,8 +116,15 @@ export function createTranslator(cwd: string): Translator {
     return [shown, ...taken, ...step(prompt ? [prompt.id] : [])]
   }
 
+  // Once per write, the first time its path is known.
+  function look(id: ToolId, path: string | null): void {
+    const tool = tools.get(id)
+    if (!tool || path === null || tool.created !== null || kindOf(tool.name) !== "write") return
+    tool.created = !exists(absolute(path, cwd))
+  }
+
   function call(id: ToolId, name: string): Bare {
-    tools.set(id, { name, input: null, ended: false })
+    tools.set(id, { name, input: null, ended: false, args: "", created: null })
     return { type: "tool.start", id, parent: null, name, kind: kindOf(name), title: name, mcp: null, quiet: false }
   }
 
@@ -125,7 +153,8 @@ export function createTranslator(cwd: string): Translator {
         ]
       if (part.type === "toolCall" && part.id && part.name && !tools.has(part.id)) {
         const { at: _, ...called } = calledOf(part.id, part.name, part.arguments, 0)
-        tools.set(part.id, { name: part.name, input: part.arguments, ended: false })
+        tools.set(part.id, { name: part.name, input: part.arguments, ended: false, args: "", created: null })
+        look(part.id, pathField(part.arguments))
         return [call(part.id, part.name), called]
       }
       return []
@@ -158,6 +187,11 @@ export function createTranslator(cwd: string): Translator {
       }
       case "toolcall_delta": {
         const tool = callAt.get(index)
+        const known = tool ? tools.get(tool) : undefined
+        if (known && update.delta) {
+          known.args += update.delta
+          if (tool) look(tool, pathIn(known.args))
+        }
         return tool && update.delta ? [{ type: "tool.input.delta", id: tool, text: update.delta }] : []
       }
       case "toolcall_end": {
@@ -165,6 +199,7 @@ export function createTranslator(cwd: string): Translator {
         if (!done) return []
         const known = tools.get(done.id)
         if (known) known.input = done.arguments
+        look(done.id, pathField(done.arguments))
         const { at: _, ...called } = calledOf(done.id, done.name, done.arguments, 0)
         return [called]
       }
@@ -241,7 +276,10 @@ export function createTranslator(cwd: string): Translator {
       case "tool_execution_start": {
         if (tools.has(event.toolCallId)) return []
         const { at: _, ...called } = calledOf(event.toolCallId, event.toolName, event.args, 0)
-        return [call(event.toolCallId, event.toolName), called]
+        const started = call(event.toolCallId, event.toolName)
+        const known = tools.get(event.toolCallId)
+        if (known) known.input = event.args
+        return [started, called]
       }
       case "tool_execution_update": {
         const text = textOf(event.partialResult?.content)
@@ -259,6 +297,7 @@ export function createTranslator(cwd: string): Translator {
           event.isError === true,
           cwd,
           0,
+          tool?.created ?? null,
         )
         return [ended]
       }

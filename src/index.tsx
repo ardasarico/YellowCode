@@ -340,7 +340,7 @@ const piRunner: Runner = {
   ),
   start: (options, store) =>
     pi.start(options).then((agent) => {
-      agent.refresh("commands")
+      for (const list of ["commands", "models"] as const) agent.refresh(list)
       if (firstWarning(PI))
         store.event({
           type: "notice",

@@ -38,7 +38,7 @@ const short = (text: string) => {
 
 // A recording's paths start with its `<root>` placeholder, which is not absolute, so a path already in the folder
 // stays as it is.
-const absolute = (path: string, cwd: string) =>
+export const absolute = (path: string, cwd: string) =>
   isAbsolute(path) || cwd === "" || path.startsWith(`${cwd}/`) ? path : join(cwd, path)
 
 function summaryOf(name: string, input: unknown): string {
@@ -95,6 +95,8 @@ export function endOf(
   error: boolean,
   cwd: string,
   at: number,
+  // The file a write names was not there before the call; null when that is not known, which counts as an update.
+  created: boolean | null = null,
 ): Ended {
   const output = textOf(result?.content)
   const kind = kindOf(name)
@@ -105,7 +107,15 @@ export function endOf(
   const files: FileChange[] =
     error || path === null || (kind !== "edit" && kind !== "write")
       ? []
-      : [{ path: absolute(path, cwd), change: "update", movedTo: null, patch: hunks, after: content }]
+      : [
+          {
+            path: absolute(path, cwd),
+            change: kind === "write" && created === true ? "create" : "update",
+            movedTo: null,
+            patch: hunks,
+            after: content,
+          },
+        ]
   return {
     type: "tool.end",
     id,
@@ -113,7 +123,7 @@ export function endOf(
     result: output,
     images: [],
     patch: hunks,
-    created: false,
+    created: kind === "write" && created === true,
     content,
     unchanged: false,
     exitCode: exitCodeOf(result),

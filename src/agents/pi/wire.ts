@@ -22,7 +22,7 @@ const part = z.looseObject({
 })
 export type Part = z.output<typeof part>
 
-const message = z.looseObject({
+export const message = z.looseObject({
   role: z.string(),
   content: z.union([z.string(), z.array(part)]).optional(),
   usage: usage.optional(),
@@ -128,6 +128,7 @@ export type State = {
   model: { id: string; name: string; provider: string; contextWindow: number | null } | null
   sessionId: string
   sessionName: string | null
+  thinking: string | null
 }
 
 export function stateOf(data: unknown): State | null {
@@ -145,6 +146,7 @@ export function stateOf(data: unknown): State | null {
       : null,
     sessionId: parsed.data.sessionId,
     sessionName: parsed.data.sessionName ?? null,
+    thinking: parsed.data.thinkingLevel ?? null,
   }
 }
 
@@ -157,3 +159,19 @@ export const commands = z.looseObject({
 export const promptReply = z.looseObject({ disposition: z.string().optional() })
 
 export const clearedQueue = z.looseObject({ steering: z.array(z.string()), followUp: z.array(z.string()) })
+
+export const forkMessages = z.looseObject({
+  messages: z.array(z.looseObject({ entryId: z.string(), text: z.string() })),
+})
+
+export const forked = z.looseObject({ text: z.string().optional(), cancelled: z.boolean().optional() })
+
+export const levels = z.looseObject({ levels: z.array(z.string()) })
+
+export const stats = z.looseObject({
+  sessionFile: z.string().optional(),
+  cost: z.number().optional(),
+  contextUsage: z
+    .looseObject({ tokens: z.number().nullable().optional(), contextWindow: z.number().optional() })
+    .optional(),
+})

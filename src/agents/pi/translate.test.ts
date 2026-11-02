@@ -13,10 +13,10 @@ const command = z.looseObject({ type: z.string(), message: z.string().optional()
 
 // Plays a recording into a store the way the app does: each prompt shows at once, then pi's lines come through the
 // translator.
-function played(name: string) {
+function played(name: string, exists: (path: string) => boolean = () => false) {
   const fixture = readFixture(readFileSync(join(ROOT, "fixtures", "pi", `${name}.jsonl`), "utf8"))
   const store = createSession()
-  const translator = createTranslator("<root>/project")
+  const translator = createTranslator("<root>/project", exists)
   let n = 0
   for (const line of fixture.lines) {
     if (line.kind === "out") {
@@ -105,4 +105,14 @@ test("Esc clears the queue, stops the turn, and the next prompt runs", () => {
   const ends = items.filter((item) => item?.kind === "turn-end")
   expect(ends.map((end) => end?.kind === "turn-end" && end.interrupted)).toEqual([true, false])
   expect(store.state.status).toBe("idle")
+})
+
+const writes = (exists: (path: string) => boolean) =>
+  played("edits", exists).items.flatMap((item) =>
+    item?.kind === "tool" && item.toolKind === "write" ? item.files.map((file) => [file.path, file.change]) : [],
+  )
+
+test("a write is a create only when its file was not there before the call", () => {
+  expect(writes(() => false)).toEqual([["<root>/project/notes.md", "create"]])
+  expect(writes((path) => path.endsWith("notes.md"))).toEqual([["<root>/project/notes.md", "update"]])
 })
