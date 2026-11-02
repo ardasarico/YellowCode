@@ -9,7 +9,7 @@ import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, S
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
 import type { AgentKindId, ModelRef } from "./agent/ids.ts"
-import type { ModelGroup } from "./agent/lists.ts"
+import type { ModeKind, ModelGroup, ModelRow, ModeRow } from "./agent/lists.ts"
 import { createRegistry, type SessionKind } from "./agent/registry.ts"
 import type { HistoryCursor, SessionEntry, SessionRef } from "./agent/sessions.ts"
 import { type ClaudeHooks, claudeKind, showPrompt } from "./agents/claude/agent.ts"
@@ -20,13 +20,14 @@ import { mcpRows } from "./agents/claude/mcp-rows.ts"
 import { stopOneShots } from "./agents/claude/one-shot.ts"
 import { liveProvider, replayProvider, savedProvider } from "./agents/claude/provider.ts"
 import { codexKind } from "./agents/codex/agent.ts"
+import { modeRows } from "./agents/codex/modes.ts"
 import { CODEX, CODEX_NAME } from "./agents/codex/caps.ts"
 import { detect as detectCodex } from "./agents/codex/detect.ts"
 import { opencodeKind } from "./agents/opencode/agent.ts"
 import { OPENCODE, OPENCODE_NAME } from "./agents/opencode/caps.ts"
 import { detect as detectOpencode } from "./agents/opencode/detect.ts"
 import { listedProvider, opencodeProvider } from "./agents/opencode/provider.ts"
-import { piKind } from "./agents/pi/agent.ts"
+import { NO_APPROVALS, piKind } from "./agents/pi/agent.ts"
 import { PI, PI_NAME } from "./agents/pi/caps.ts"
 import { piProvider } from "./agents/pi/provider.ts"
 import { detect as detectPi } from "./agents/pi/detect.ts"
@@ -34,7 +35,11 @@ import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
 import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
-import { saveListed, saveWindow } from "./models/catalog.ts"
+import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
+import { ensureCatalog } from "./models/refresh.ts"
+import type { Launcher } from "./subagents/children.ts"
+import { loadDefinitions } from "./subagents/definitions.ts"
+import { agentClientTools, createSubagents, rowOf, type Subagents } from "./subagents/tool.ts"
 import { tildePath } from "./rewind/common.ts"
 import { follow, showEarly } from "./session/follow.ts"
 import { createSession, loadHistory, type SessionStore } from "./session/session.ts"
@@ -246,6 +251,8 @@ type Live = {
   store: SessionStore
   hooks: Partial<ClaudeHooks>
   goBack?: () => Promise<Back>
+  // The subagents its model started; a claude that clears itself gets new ones.
+  subagents: Subagents
 }
 
 // The agent of the session YellowCode runs now; another session replaces it. Never set in a replay.
@@ -389,6 +396,63 @@ function startModel(agent: Agent, model: ModelRef | null): void {
 
 // The agents YellowCode can run, Claude first.
 const runners: Runner[] = [claudeRunner, opencodeRunner, codexRunner, piRunner]
+
+// For an agent that takes no model at start, in a subagent: the first prompt waits for the switch.
+async function withModel(starting: Promise<Agent>, model: ModelRef | null): Promise<Agent> {
+  const agent = await starting
+  if (model === null) return agent
+  const done = await agent.setModel(model)
+  if (done.ok) return agent
+  await agent.close()
+  throw new Error(done.problem)
+}
+
+// How a subagent runs on each provider. A claude subagent has lists of its own, and no file snapshots.
+const launchers: Launcher[] = [
+  {
+    id: CLAUDE,
+    name: CLAUDE_NAME,
+    caps: claude.caps,
+    show: showPrompt,
+    keepsAsks: true,
+    async start(options, store) {
+      const agent = await claudeKind({ provider: liveProvider(() => Promise.resolve([])) }).start(options, store)
+      agent.begin()
+      return agent
+    },
+  },
+  {
+    id: OPENCODE,
+    name: OPENCODE_NAME,
+    caps: opencode.caps,
+    start: (options) => withModel(opencode.start(options), options.model),
+  },
+  { id: CODEX, name: CODEX_NAME, caps: codex.caps, start: (options) => codex.start(options) },
+  { id: PI, name: PI_NAME, caps: pi.caps, start: (options) => withModel(pi.start(options), options.model) },
+]
+
+// The modes a subagent's mode is picked from; empty when not known.
+function childModes(id: AgentKindId): Promise<ModeRow[]> {
+  if (id === CLAUDE) return Promise.resolve(CLAUDE_MODES)
+  if (id === CODEX) return Promise.resolve(modeRows(true, []))
+  if (id === PI) return Promise.resolve([NO_APPROVALS])
+  if (id === OPENCODE) return opencode.listModes(cwd).catch(() => [])
+  return Promise.resolve([])
+}
+
+const listing = [claude, opencode, codex, pi]
+const catalogOf = (id: AgentKindId): ModelRow[] =>
+  readCatalog().providers[id]?.groups.flatMap((group) => group.models) ?? []
+
+// A provider without a catalog entry lists its models first.
+async function catalogRows(id: AgentKindId): Promise<ModelRow[]> {
+  const kind = listing.find((one) => one.id === id)
+  if (kind && !readCatalog().providers[id]) await ensureCatalog(kind, cwd)
+  return catalogOf(id)
+}
+
+const addedProviders = () =>
+  addedIds(settings).flatMap((id) => KNOWN_AGENTS.filter((known) => known.id === id).map(({ name }) => ({ id, name })))
 const installed = createRegistry(runners.map((runner) => runner.kind))
 
 function runnerOf(ref: SessionRef): Runner {
@@ -436,7 +500,36 @@ await startMods(values["no-mods"], {
 async function startLive(runner: Runner, options: StartOptions, store: SessionStore): Promise<Live> {
   const { agent, hooks, goBack } = await runner.start(options, store)
   void follow(agent.events, store, runner.kind.name)
-  return { runner, agent, store, hooks, goBack }
+  const started: Live = { runner, agent, store, hooks, goBack, subagents: subagentsOf(runner, store, () => started) }
+  return started
+}
+
+function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Subagents {
+  return createSubagents({
+    cwd,
+    parent: store,
+    providers: addedProviders,
+    launcher: (id) => launchers.find((one) => one.id === id) ?? null,
+    modes: childModes,
+    parentMode: (): ModeKind => {
+      const rows = store.state.modes ?? runner.provider.modes()
+      return rows.find((row) => row.id === store.state.permissionMode && row.group === null)?.kind ?? "other"
+    },
+    models: catalogRows,
+    definitions: () =>
+      loadDefinitions(
+        cwd,
+        (provider, model) => addedIds(settings).includes(provider) && rowOf(catalogOf(provider), model) !== undefined,
+      ),
+    limit: () => settings.maxSubagents,
+    // A result waits for the turn that runs, where the agent can queue it.
+    tell: (text) => {
+      if (live !== owner()) return
+      if (!sendLive({ text, images: [], to: null, delivery: "queue" }, () => {}))
+        log.warn("a subagent's result did not reach the session")
+    },
+    close: stop,
+  })
 }
 
 // The agent of the moment, compared by identity: Claude's changes with each claude its agent starts.
@@ -460,9 +553,13 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
 })
 
-// What the agent is given beside its own tools: the mods' tools of the moment, and the tools for the other sessions.
+// Each call goes to the session that runs now.
+const subagentTools = agentClientTools((name, input) => live.subagents.call(name, input))
+
+// What the agent is given beside its own tools: the mods' tools of the moment, the tools for the other sessions, and
+// those for subagents. A subagent gets none of them.
 function clientTools(): ClientTool[] {
-  return [...mods.clientTools(), ...(peers?.tools ?? [])]
+  return [...mods.clientTools(), ...(peers?.tools ?? []), ...(values.replay === undefined ? subagentTools : [])]
 }
 
 // An agent that takes tools mid-session gets the mods' tools of the moment.
@@ -515,8 +612,10 @@ function stop(old: Agent): Promise<void> {
 
 // Ends what feeds the chat: the live agent, or the replay.
 function closeSource(): void {
-  if (mode.kind === "live") void stop(live.agent)
-  else void mode.replay.close()
+  if (mode.kind === "live") {
+    void live.subagents.closeAll()
+    void stop(live.agent)
+  } else void mode.replay.close()
 }
 
 async function liveMode() {
@@ -885,6 +984,7 @@ function replaceLive(current: Live, next: Live, following: (() => void) | undefi
   // Its background agents may write until its agent is gone, and those writes still go to its prompts.
   const left = unfollow
   unfollow = following
+  void current.subagents.closeAll()
   void stop(current.agent).finally(() => left?.())
   fileRewind.release()
   // Opening another session starts from the agent's own model and effort.
@@ -1010,7 +1110,7 @@ let turnSend = Promise.resolve()
 // is not shown.
 function sendPrompt(
   target: Live,
-  message: Message,
+  message: Outgoing,
   giveBack?: () => void,
   kept: string[] = [],
   // Goes after the message, so Claude Code does not name things (a plan file) after it.
@@ -1021,7 +1121,8 @@ function sendPrompt(
   const uuid = crypto.randomUUID()
   const { store: session } = target
   const command = message.to === null ? commandOf(message.text, session.lists().commands) : null
-  const prompt: Prompt = { ...message, id: uuid, command, delivery: "steer", kept, shells }
+  const delivery = message.delivery === "queue" && target.agent.caps.queue ? "queue" : "steer"
+  const prompt: Prompt = { ...message, id: uuid, command, delivery, kept, shells }
   const run = runOf(target)
   const startsTurn = session.state.status !== "running"
   const show = target.runner.show ?? showEarly
@@ -1097,8 +1198,11 @@ peers?.sendWith((message) => {
 
 const [goingBack, setGoingBack] = createSignal(false)
 
+// A message, and whether it may wait for the running turn to end rather than go into it.
+type Outgoing = Message & { delivery?: Prompt["delivery"] }
+
 // False when the live agent cannot take the message.
-function sendLive(message: Message, giveBack: () => void): boolean {
+function sendLive(message: Outgoing, giveBack: () => void): boolean {
   if (live.hooks.accepts?.() === false) return false
   // The prompt clears once this returns; a chat item before that would take the welcome screen's draft with it.
   sendRewound(live, message, giveBack)
@@ -1106,7 +1210,7 @@ function sendLive(message: Message, giveBack: () => void): boolean {
 }
 
 // The prompt is already cleared when this runs, so a failure gives the text back.
-function sendRewound(target: Live, message: Message, giveBack: () => void): void {
+function sendRewound(target: Live, message: Outgoing, giveBack: () => void): void {
   void queueRewind(() => sendAfterRewinds(target, message, giveBack)).catch((error: unknown) => {
     log.error("cannot send after the rewind", error)
     giveBack()
@@ -1116,7 +1220,7 @@ function sendRewound(target: Live, message: Message, giveBack: () => void): void
 
 // A message goes out after the rewinds before it: the conversation goes back to the rewound prompt first, and the
 // chat shows the message only then. A restart keeps the session.
-async function sendAfterRewinds(target: Live, message: Message, giveBack: () => void) {
+async function sendAfterRewinds(target: Live, message: Outgoing, giveBack: () => void) {
   const session = target.store
   const steps = hiddenPrompts(session.state).length > 0
   const { goBack } = target
@@ -1362,6 +1466,12 @@ function Main() {
                   void mode.replay.send(prompt)
                   return true
                 }
+                // Claude clears itself, and its subagents go with the conversation.
+                if (message.to === null && /^\/clear(\s|$)/.test(message.text.trim())) {
+                  const target = live
+                  void target.subagents.closeAll()
+                  target.subagents = subagentsOf(target.runner, target.store, () => target)
+                }
                 return empty || sendLive(message, giveBack)
               }}
               onClear={mode.kind === "live" && !live.runner.clears ? clearLive : undefined}
@@ -1373,6 +1483,7 @@ function Main() {
               onAnswer={(ask, reply) => {
                 const held = heldOf(ask.requestId)
                 if (held !== null) return answerHeld(held, ask, reply)
+                if (mode.kind === "live" && live.subagents.answer(ask.requestId, reply)) return
                 const everywhere = everywhereOf(ask.requestId)
                 if (everywhere !== null) return answerEverywhere(everywhere, ask, reply)
                 if (ask.ownPlan) return current.session.settlePlan(ask.requestId, reply)

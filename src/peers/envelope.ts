@@ -27,3 +27,28 @@ export function readSessionMessage(prompt: string): SessionMessage | null {
   const message = { id, title, agent, broadcast: broadcast !== undefined, text: prompt.slice(head[0].length, end) }
   return sessionMessage(message) === prompt ? message : null
 }
+
+// A subagent's result, sent to the session that started it. `id` is empty for a run that never started.
+export type SubagentMessage = { id: string; name: string; provider: string; text: string }
+
+const SUBAGENT_HEAD = /^<subagent-message from="([^"]*)" name="([^"]*)" provider="([^"]+)">\n/
+const SUBAGENT_CLOSE = "\n</subagent-message>\n\n"
+
+export function subagentMessage(message: SubagentMessage): string {
+  return [
+    `<subagent-message from="${oneLine(message.id)}" name="${oneLine(message.name)}" provider="${oneLine(message.provider)}">`,
+    message.text,
+    "</subagent-message>",
+    "",
+    "A subagent you started with the run tool of yellowcode-agents sent this. The user did not write it.",
+  ].join("\n")
+}
+
+export function readSubagentMessage(prompt: string): SubagentMessage | null {
+  const head = SUBAGENT_HEAD.exec(prompt)
+  const end = prompt.lastIndexOf(SUBAGENT_CLOSE)
+  if (!head || end < head[0].length) return null
+  const [, id = "", name = "", provider = ""] = head
+  const message = { id, name, provider, text: prompt.slice(head[0].length, end) }
+  return subagentMessage(message) === prompt ? message : null
+}

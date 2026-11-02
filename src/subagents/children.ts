@@ -14,6 +14,8 @@ export type Launcher = Pick<AgentKind, "id" | "name" | "caps"> & {
   start(options: StartOptions, store: SessionStore): Promise<Agent>
   // The prompt in the child's chat as it goes out; showEarly when not given.
   show?(store: SessionStore, prompt: Prompt): void
+  // It answers an ask from the ask in its own store, so its asks stay there too.
+  keepsAsks?: boolean
 }
 
 export type Child = {
@@ -46,15 +48,20 @@ export type SpawnRequest = {
   parentMode: ModeKind
   // The provider's modes, to pick the child's from.
   modes: ModeRow[]
+  // Called when the user is asked first, so the caller need not wait for the answer.
+  asking?(): void
 }
 
 export type ChildrenOptions = {
   // How many children may run at once.
   limit(): number
   // The user's yes for a child whose narrowest mode is wider than allowed.
-  confirm(text: string): Promise<boolean>
+  confirm(text: string, task: string): Promise<boolean>
   onResult(child: Child, result: ChildResult): void
   onChange?(child: Child): void
+  // True when the event stays out of the child's store, as its asks do.
+  take?(child: Child, event: AgentEvent, launcher: Launcher): boolean
+  close?(agent: Agent): Promise<void>
   now?(): number
 }
 
@@ -102,6 +109,7 @@ function confirmText(launcher: Launcher, name: string, mode: ModeRow): string {
 
 export function createChildren(options: ChildrenOptions) {
   const now = () => (options.now ? options.now() : Date.now())
+  const closeAgent = (agent: Agent) => (options.close ? options.close(agent) : agent.close())
   const entries: Entry[] = []
   let count = 0
 
@@ -134,7 +142,7 @@ export function createChildren(options: ChildrenOptions) {
       child.agent = agent
       // Stopped or closed while it started.
       if (child.state !== "running") {
-        await agent.close()
+        await closeAgent(agent)
         return
       }
       void follow(agent.events, child.store, run.launcher.name)
@@ -179,7 +187,7 @@ export function createChildren(options: ChildrenOptions) {
     child.state = "failed"
     child.problem = problem
     child.endedAt = now()
-    void child.agent?.close()
+    if (child.agent) void closeAgent(child.agent)
     changed(child)
     if (wasRunning)
       options.onResult(child, {
@@ -196,15 +204,19 @@ export function createChildren(options: ChildrenOptions) {
     if (event.type === "turn.end" && !event.local && state === "running") finish(entry, event.error)
     else if (event.type === "ended" && state !== "closed" && state !== "stopped")
       fail(entry, event.problem?.text ?? `${entry.run.launcher.name} stopped`)
+    // A child keeps nothing to go on with, so one whose provider starts again is gone.
+    else if (event.type === "starting") fail(entry, `${entry.run.launcher.name} restarted`)
   }
 
   async function spawn(request: SpawnRequest): Promise<{ ok: true; child: Child } | { ok: false; problem: string }> {
     const { launcher, definition } = request
     const name = definition?.name ?? "bare"
+    const shown = definition?.name ?? request.model.id
     const fit = childMode(request.parentMode, definition?.permissions ?? "inherit", request.modes)
-    if (fit.fit === "none") return { ok: false, problem: `${launcher.name} has no mode to run ${name} in` }
-    if (fit.fit === "confirm" && !(await options.confirm(confirmText(launcher, name, fit.mode))))
-      return { ok: false, problem: `the user did not let ${name} run on ${launcher.name}` }
+    if (fit.fit === "none") return { ok: false, problem: `${launcher.name} has no mode to run ${shown} in` }
+    if (fit.fit === "confirm") request.asking?.()
+    if (fit.fit === "confirm" && !(await options.confirm(confirmText(launcher, shown, fit.mode), request.task)))
+      return { ok: false, problem: `the user did not let ${shown} run on ${launcher.name}` }
     const instructions = definition?.instructions ?? ""
     const own = launcher.caps.instructions
     const id = `c${++count}`
@@ -222,7 +234,7 @@ export function createChildren(options: ChildrenOptions) {
       store: {
         ...store,
         event(event) {
-          store.event(event)
+          if (!options.take?.(child, event, launcher)) store.event(event)
           seen(entry, event)
         },
       },
@@ -294,7 +306,7 @@ export function createChildren(options: ChildrenOptions) {
     child.endedAt = now()
     changed(child)
     pump()
-    await child.agent?.close()
+    if (child.agent) await closeAgent(child.agent)
   }
 
   return {

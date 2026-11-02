@@ -6,7 +6,7 @@ import type { AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../../agent/ids.ts"
 import type { SettingValue } from "../../agent/settings.ts"
-import type { ListName, Lists, ModelGroup } from "../../agent/lists.ts"
+import type { ListName, Lists, ModelGroup, ModeRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
 import { formReply, permissionReply } from "./asks.ts"
 import { OPENCODE, OPENCODE_CAPS, OPENCODE_NAME } from "./caps.ts"
@@ -989,6 +989,8 @@ export function startOpencode(options: StartOptions, deps: Partial<Deps> = {}): 
 
 export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start"> & {
   start(options: StartOptions): Promise<OpencodeAgent>
+  // The modes a new session can start in, for a subagent's.
+  listModes(cwd: string): Promise<ModeRow[]>
 } {
   const merged = { ...realDeps, ...deps }
   let checked: ReturnType<typeof usable> | null = null
@@ -1043,6 +1045,7 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
       if (!groups) throw new Error("opencode listed no models")
       return groups
     },
+    listModes: async (cwd) => (await readModes(await service(cwd)))?.rows ?? [],
     oneShot: (prompt, cwd) =>
       service(cwd).then(
         (transport) => answerOnce(transport, prompt),

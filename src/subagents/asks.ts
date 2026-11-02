@@ -81,6 +81,8 @@ const OWN = "subagent-"
 const DONT = "dont"
 const ROW = "row-"
 
+export const ownAskId = (id: string): AskId => `${OWN}${id}`
+
 const option = (id: string, effect: AskOption["effect"], label: string): AskOption => ({
   id,
   effect,
@@ -93,7 +95,7 @@ const option = (id: string, effect: AskOption["effect"], label: string): AskOpti
 })
 
 const ownAsk = (id: string, title: string, target: string, options: AskOption[]): Ask => ({
-  id: `${OWN}${id}`,
+  id: ownAskId(id),
   kind: "permission",
   call: null,
   tool: { name: "subagent", kind: "agent", mcp: null },
@@ -113,11 +115,9 @@ const ownAsk = (id: string, title: string, target: string, options: AskOption[])
   own: null,
 })
 
-export const piAsk = (id: string, name: string, task: string): Ask =>
-  ownAsk(id, `${name} · pi runs without approvals, run it anyway?`, task, [
-    option("run", "allow", "Run it"),
-    option(DONT, "deny", "Don't run"),
-  ])
+// `text` names the provider and the mode the child would run in.
+export const confirmAsk = (id: string, text: string, task: string): Ask =>
+  ownAsk(id, text, task, [option("run", "allow", "Run it"), option(DONT, "deny", "Don't run")])
 
 export type ModelChoice = { provider: { id: string; name: string }; row: ModelRow }
 
