@@ -52,10 +52,11 @@ recorded session that shows them.
 
 - Claude Code: the scenarios are in `tools/record/scenarios.ts`. Add one there and run `bun run record <name>`. This
   runs a live `claude` on your account.
-- Codex and opencode: the scenarios are in `tools/codex/scenarios/` and `tools/opencode/scenarios/`. Add one there and
-  run `bun tools/codex/record.ts <name>` or `bun tools/opencode/record.ts <name>`. These run your installed `codex`, or
-  `opencode` from `~/.opencode/bin`, in a throwaway home against a local stand-in for the model API, so they need no
-  login and cost nothing. The recordings go to `fixtures/codex/` and `fixtures/opencode/`. `--check` records again and
+- Codex, opencode and Pi: the scenarios are in `tools/codex/scenarios/`, `tools/opencode/scenarios/` and
+  `tools/pi/scenarios/`. Add one there and run `bun tools/codex/record.ts <name>`, `bun tools/opencode/record.ts <name>`
+  or `bun tools/pi/record.ts <name>`. These run your installed `codex`, `opencode` from `~/.opencode/bin`, or `pi`, in a
+  throwaway home against a local stand-in for the model API, so they need no login and cost nothing. The recordings go
+  to `fixtures/codex/`, `fixtures/opencode/` and `fixtures/pi/`. `--check` records again and
   compares the result with the committed one.
 
 Tests compare replays of these recordings with the expected results in `fixtures/goldens/`. When a change alters them

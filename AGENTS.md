@@ -1,10 +1,10 @@
 # YellowCode
 
-Terminal UI for coding agents. It runs Claude Code, Codex and opencode, one at a
-time, each through the user's own unmodified binary and its own protocol: `claude`
-over stream-json, `codex app-server` over JSON-RPC, and opencode's local service
-over HTTP. The adapters live in `src/agents/`. Stack: TypeScript, Bun, OpenTUI
-(Solid).
+Terminal UI for coding agents. It runs Claude Code, Codex, opencode and Pi, one at
+a time, each through the user's own unmodified binary and its own protocol:
+`claude` over stream-json, `codex app-server` over JSON-RPC, opencode's local
+service over HTTP, and `pi --mode rpc` over JSON lines. The adapters live in
+`src/agents/`. Stack: TypeScript, Bun, OpenTUI (Solid).
 
 - Everything in this repo is written in English.
 - Ask before every commit and push.

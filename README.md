@@ -58,6 +58,7 @@ and logged in. YellowCode keeps itself up to date. For the beta, run the install
 | GitHub Copilot CLI | ⏳ In progress |
 | Cursor CLI         | ⏳ In progress |
 | opencode           | ✅ Works       |
+| Pi                 | ✅ Works       |
 
 ## How it works
 

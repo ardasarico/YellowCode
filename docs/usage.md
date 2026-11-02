@@ -115,12 +115,14 @@ other machines do not.
 - Rewind snapshots: `~/.local/share/yellowcode/snapshots/`, following `XDG_DATA_HOME`. These are copies of files from
   your projects. Snapshots older than 30 days are deleted. When YellowCode starts with Claude Code, it uses Claude Code's
   `cleanupPeriodDays` instead.
+- Pi prompt ids: `~/.yellowcode/pi-prompts/`, one small file per Pi session. Pi does not keep the id YellowCode gives a
+  prompt, which rewind snapshots are filed under, so YellowCode keeps it here to find them again in a resumed session.
 - The mod list and the release list: `~/.cache/yellowcode/mods.json` and `update.json`, following `XDG_CACHE_HOME`.
 - Updates: `~/.yellowcode/` keeps the state of the last update (`update-state.json`, `update-hold.json`). The install
   script also puts its versions in `~/.yellowcode/versions/` and notes its channel in `~/.yellowcode/install.json`.
 
-Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex
-and opencode's own service for opencode. `/resume` lists the sessions of every installed agent.
+Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex,
+opencode's own service for opencode and `~/.pi/agent` for Pi. `/resume` lists the sessions of every installed agent.
 
 ## Updating and uninstalling
 
