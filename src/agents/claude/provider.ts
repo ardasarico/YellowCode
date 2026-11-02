@@ -35,6 +35,7 @@ const knownClaudeModels = (): ModelRow[] =>
     resolves: null,
     efforts: CLAUDE_EFFORTS,
     images: true,
+    window: null,
   }))
 
 // Fed by claude's initialize reply and the messages after it; until then the lists hold only what YellowCode knows.

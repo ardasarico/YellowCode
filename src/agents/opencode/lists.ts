@@ -79,6 +79,7 @@ const rowOf = (listed: Listed): ModelRow => ({
   resolves: null,
   efforts: effortsOf(listed),
   images: listed.capabilities?.input.includes("image") ?? false,
+  window: listed.limit?.context ?? null,
 })
 
 // One group per provider, in opencode's order, each with its models in opencode's order. A switch to another

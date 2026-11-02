@@ -30,6 +30,8 @@ export type ModelRow = {
   efforts: EffortRow[]
   // The model takes images (with caps.images).
   images: boolean
+  // The context window in tokens; null when the agent does not report it.
+  window: number | null
 }
 
 // A heading in /model. A group of another provider than the session's may apply in a new session only.

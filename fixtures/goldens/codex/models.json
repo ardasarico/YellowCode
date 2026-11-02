@@ -79,7 +79,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -116,7 +117,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -153,7 +155,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -186,7 +189,8 @@
                     "label": "max"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -223,7 +227,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -260,7 +265,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -297,7 +303,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -330,7 +337,8 @@
                     "label": "max"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -359,7 +367,8 @@
                     "label": "xhigh"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               }
             ]
           },
@@ -405,7 +414,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -442,7 +452,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -479,7 +490,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -512,7 +524,8 @@
                     "label": "max"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -549,7 +562,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -586,7 +600,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -623,7 +638,8 @@
                     "label": "ultra"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -656,7 +672,8 @@
                     "label": "max"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               },
               {
                 "ref": {
@@ -685,7 +702,8 @@
                     "label": "xhigh"
                   }
                 ],
-                "images": true
+                "images": true,
+                "window": null
               }
             ]
           }
@@ -1192,7 +1210,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1229,7 +1248,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1266,7 +1286,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1299,7 +1320,8 @@
                 "label": "max"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1336,7 +1358,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1373,7 +1396,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1410,7 +1434,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1443,7 +1468,8 @@
                 "label": "max"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1472,7 +1498,8 @@
                 "label": "xhigh"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           }
         ]
       },
@@ -1518,7 +1545,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1555,7 +1583,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1592,7 +1621,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1625,7 +1655,8 @@
                 "label": "max"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1662,7 +1693,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1699,7 +1731,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1736,7 +1769,8 @@
                 "label": "ultra"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1769,7 +1803,8 @@
                 "label": "max"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           },
           {
             "ref": {
@@ -1798,7 +1833,8 @@
                 "label": "xhigh"
               }
             ],
-            "images": true
+            "images": true,
+            "window": null
           }
         ]
       }

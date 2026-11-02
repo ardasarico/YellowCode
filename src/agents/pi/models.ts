@@ -60,6 +60,7 @@ const rowOf = (one: PiModel): ModelRow => ({
   resolves: null,
   efforts: effortRows(one.levels),
   images: one.images,
+  window: one.contextWindow,
 })
 
 // One heading per provider, in the order pi lists them.

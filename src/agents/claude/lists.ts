@@ -100,6 +100,7 @@ export const toModelRows = (models: ModelInfo[]): ModelRow[] =>
     resolves: resolvedModel ?? null,
     efforts: CLAUDE_EFFORTS,
     images: true,
+    window: null,
   }))
 
 export const modelsOf = (rows: unknown[]): ModelRow[] => toModelRows(rowsOf(modelInfo, rows).rows)

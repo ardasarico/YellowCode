@@ -24,6 +24,7 @@ const rowOf = (provider: string, model: CodexModel): ModelRow => ({
   resolves: null,
   efforts: effortsOf(model),
   images: model.inputModalities.includes("image"),
+  window: null,
 })
 
 // Hidden models are left out, as Codex's own picker leaves them.

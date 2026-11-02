@@ -157,6 +157,7 @@ const modelRow = (from: string, id: string, label: string) => ({
   resolves: null,
   efforts: ["default", "low", "high"].map((level) => ({ id: level, label: level })),
   images: true,
+  window: null,
 })
 
 test("an agent with providers lists its models under their headings, and a pick and an effort step go to it", async () => {

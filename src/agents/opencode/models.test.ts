@@ -62,6 +62,7 @@ test("models are listed by provider, and model and effort switches reach the req
       resolves: null,
       efforts: ["default", "low", "medium", "high", "xhigh", "max"].map((id) => ({ id, label: id })),
       images: true,
+      window: 200000,
     },
   ])
   expect(knobs).toEqual([

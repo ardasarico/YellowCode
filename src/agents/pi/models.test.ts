@@ -20,6 +20,7 @@ test("a model keeps no endpoint, header or key", () => {
   expect(JSON.stringify(read)).not.toContain("secret-value")
   expect(JSON.stringify(read)).not.toContain("example.invalid")
   expect(JSON.stringify(modelGroups(read))).not.toContain("secret-value")
+  expect(modelGroups(read)[0]?.models[0]?.window).toBe(1000)
 })
 
 test("thinking levels follow the model's level map", () => {
