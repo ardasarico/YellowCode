@@ -61,19 +61,26 @@ function target(ask: Ask): string {
   return ask.toolKind === "mcp" ? mcpArguments(ask.input) : ask.target
 }
 
-// Splits text into rows of at most `width` cells, the way the target line wraps it.
+// Splits text into rows of at most `width` cells, breaking at spaces; a word wider than a row is broken. Spaces inside a
+// row are kept, so a command reads as typed.
 function targetRows(text: string, width: number): string[] {
   const rows: string[] = []
   for (const line of text.split("\n")) {
     let row = ""
-    for (const char of line) {
-      if (row !== "" && Bun.stringWidth(row + char) > width) {
-        rows.push(row)
+    for (const word of line.split(/(?<= )/)) {
+      if (row.trim() !== "" && Bun.stringWidth((row + word).trimEnd()) > width) {
+        rows.push(row.trimEnd())
         row = ""
       }
-      row += char
+      for (const char of word) {
+        if (row !== "" && char !== " " && Bun.stringWidth(row + char) > width) {
+          rows.push(row)
+          row = ""
+        }
+        row += char
+      }
     }
-    rows.push(row)
+    rows.push(row.trimEnd())
   }
   return rows
 }
