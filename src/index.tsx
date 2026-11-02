@@ -27,6 +27,7 @@ import { detect as detectOpencode } from "./agents/opencode/detect.ts"
 import { listedProvider, opencodeProvider } from "./agents/opencode/provider.ts"
 import { piKind } from "./agents/pi/agent.ts"
 import { PI, PI_NAME } from "./agents/pi/caps.ts"
+import { piProvider } from "./agents/pi/provider.ts"
 import { detect as detectPi } from "./agents/pi/detect.ts"
 import { commandOf } from "./input/commands.ts"
 import { forgetFiles } from "./input/files.ts"
@@ -334,7 +335,7 @@ const codexRunner: Runner = {
 const pi = piKind()
 const piRunner: Runner = {
   kind: pi,
-  provider: listedProvider(
+  provider: piProvider(
     () => chat().session,
     (query) => live.agent.files(query),
   ),

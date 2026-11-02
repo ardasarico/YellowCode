@@ -8,6 +8,7 @@ import type { CommandRow, ListName, ModeRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
 import { yellowcodeHome } from "../../update/method.ts"
 import { queue, stdioTransport, type Transport } from "../codex/transport.ts"
+import { createAsks } from "./asks.ts"
 import { PI, PI_CAPS, PI_NAME } from "./caps.ts"
 import { detect } from "./detect.ts"
 import { historyPage } from "./history.ts"
@@ -179,9 +180,6 @@ async function open(deps: Deps, cwd: string, args: string[]): Promise<{ pi: Clie
   }
 }
 
-// Dialogs come with a later stage; until then each is cancelled, which pi takes as no answer.
-const DIALOGS = new Set(["select", "confirm", "input", "editor"])
-
 // What a resume opens with: the session itself, a copy of it, or (with `at`) the session, which a fork then copies
 // up to before that prompt.
 function openArgs(options: StartOptions): string[] {
@@ -220,25 +218,17 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   const source = options.resume?.ref.id ?? null
   if (source !== null && source !== session) deps.prompts.add(session, [...deps.prompts.read(source)])
 
+  const asks = createAsks({ respond: (id, fields) => pi.answer(id, fields), tell: (events) => tell(...events) })
+
+  // Status lines, widgets, titles and editor text have no place in YellowCode; they are left out.
   function request(raw: Record<string, unknown>): AgentEvent[] {
-    const id = typeof raw["id"] === "string" ? raw["id"] : null
-    const method = raw["method"]
-    if (method === "notify") {
+    if (raw["method"] === "notify") {
       const level = raw["notifyType"] === "error" ? "error" : raw["notifyType"] === "warning" ? "warning" : "info"
       const text = typeof raw["message"] === "string" ? raw["message"] : ""
       return [{ type: "notice", level, text, at: now() }]
     }
-    if (id === null || typeof method !== "string" || !DIALOGS.has(method)) return [{ type: "seen", at: now() }]
-    pi.answer(id, { cancelled: true })
-    const title = typeof raw["title"] === "string" ? `: ${raw["title"]}` : ""
-    return [
-      {
-        type: "notice",
-        level: "warning",
-        text: `A pi extension asked a question YellowCode cannot show yet${title}`,
-        at: now(),
-      },
-    ]
+    const opened = asks.open(raw, now())
+    return opened.length > 0 ? opened : [{ type: "seen", at: now() }]
   }
 
   // The entry ids of the user messages told here, matched from the end of pi's list of them.
@@ -303,7 +293,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     }
     if (closed || own !== pi) return
     ended = true
-    tell(...translator.gone(now()), { type: "ended", problem: GONE, at: now() })
+    tell(...asks.gone(now()), ...translator.gone(now()), { type: "ended", problem: GONE, at: now() })
   }
 
   const follow = (own: Client) =>
@@ -550,13 +540,16 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     events: out.items,
     send,
     interrupt,
-    answer: () => Promise.resolve(),
+    answer(id, reply) {
+      tell(...asks.answer(id, reply, now()))
+      return Promise.resolve()
+    },
     restart,
     async close() {
       if (closed) return
       closed = true
       await pi.close()
-      tell({ type: "ended", problem: null, at: now() })
+      tell(...asks.gone(now()), { type: "ended", problem: null, at: now() })
       out.end()
     },
     setMode,

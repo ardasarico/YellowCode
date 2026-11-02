@@ -19,7 +19,7 @@ import {
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup, onMount, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
-import { findCommand, findModCommand, untitledCommand } from "../input/commands.ts"
+import { findCommand, findModCommand, OWN_COMMANDS, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { planReturn } from "../session/plan-mode.ts"
 import type { InputProvider } from "../input/provider.ts"
@@ -1657,14 +1657,18 @@ export function App(props: AppProps) {
       void modCommand.run(args.trim())
       return true
     }
+    // A dialog of a list the agent does not fill gives way to the agent's own command of that name.
+    const yields = (list: "mcp" | "skills" | "plugins") =>
+      !props.caps.lists.includes(list) &&
+      props.provider.commands().some((row) => row.name === list && !OWN_COMMANDS.includes(row))
     if (command === "/report") void copyReport()
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/agent") setDialog({ name: "agent" })
     else if (command === "/theme") setDialog({ name: "theme" })
-    else if (command === "/mcp") setDialog({ name: "settings", tab: "mcp" })
-    else if (command === "/plugins") setDialog({ name: "settings", tab: "plugins" })
-    else if (command === "/skills") setDialog({ name: "skills" })
+    else if (command === "/mcp" && !yields("mcp")) setDialog({ name: "settings", tab: "mcp" })
+    else if (command === "/plugins" && !yields("plugins")) setDialog({ name: "settings", tab: "plugins" })
+    else if (command === "/skills" && !yields("skills")) setDialog({ name: "skills" })
     else if (command === "/mods") setDialog({ name: "settings", tab: "mods" })
     else if (command === "/rewind" || command === "/timeline") void openRewind()
     else if (command === "/redo") redo()

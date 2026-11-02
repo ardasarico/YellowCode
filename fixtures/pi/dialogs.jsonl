@@ -1,0 +1,24 @@
+{"kind":"meta","scenario":"dialogs","pi":"1.4.0","root":"<root>"}
+{"kind":"intent","n":0,"intent":"command","args":{"type":"prompt","message":"/ask-all"}}
+{"kind":"out","n":0,"t":0,"msg":{"id":"1","type":"prompt","message":"/ask-all"}}
+{"kind":"intent","n":1,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":215,"after":1,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000001","method":"confirm","title":"Run it?","message":"It touches nothing."}}
+{"kind":"intent","n":2,"intent":"answer","args":{"id":"00000000-0000-7000-8000-000000000001","confirmed":true}}
+{"kind":"out","n":1,"t":215,"msg":{"type":"extension_ui_response","id":"00000000-0000-7000-8000-000000000001","confirmed":true}}
+{"kind":"intent","n":3,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":215,"after":2,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000002","method":"select","title":"Pick a color","options":["Red","Blue"]}}
+{"kind":"intent","n":4,"intent":"answer","args":{"id":"00000000-0000-7000-8000-000000000002","value":"Blue"}}
+{"kind":"out","n":2,"t":215,"msg":{"type":"extension_ui_response","id":"00000000-0000-7000-8000-000000000002","value":"Blue"}}
+{"kind":"intent","n":5,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":215,"after":3,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000003","method":"input","title":"Your name","placeholder":"type it"}}
+{"kind":"intent","n":6,"intent":"answer","args":{"id":"00000000-0000-7000-8000-000000000003","value":"Ada"}}
+{"kind":"out","n":3,"t":215,"msg":{"type":"extension_ui_response","id":"00000000-0000-7000-8000-000000000003","value":"Ada"}}
+{"kind":"intent","n":7,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":215,"after":4,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000004","method":"editor","title":"Edit the note","prefill":"line one"}}
+{"kind":"intent","n":8,"intent":"answer","args":{"id":"00000000-0000-7000-8000-000000000004","value":"line one, edited"}}
+{"kind":"out","n":4,"t":215,"msg":{"type":"extension_ui_response","id":"00000000-0000-7000-8000-000000000004","value":"line one, edited"}}
+{"kind":"intent","n":9,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":216,"after":5,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000005","method":"select","title":"Too slow","options":["A","B"],"timeout":300}}
+{"kind":"intent","n":10,"intent":"until","args":{"type":"extension_ui_request"}}
+{"kind":"in","t":518,"after":5,"msg":{"type":"extension_ui_request","id":"00000000-0000-7000-8000-000000000006","method":"notify","message":"got {\"sure\":true,\"color\":\"Blue\",\"name\":\"Ada\",\"text\":\"line one, edited\"}","notifyType":"info"}}
+{"kind":"in","t":518,"after":5,"msg":{"id":"1","type":"response","command":"prompt","success":true,"data":{"disposition":"handled"}}}
