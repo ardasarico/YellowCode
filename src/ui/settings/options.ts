@@ -87,22 +87,6 @@ const defaultMode = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition =>
 // An agent YellowCode can open, by its name.
 export type AgentOption = { id: AgentKindId; name: string }
 
-// `agents` are the ones installed, the first of them what a start opens while none is saved.
-const defaultAgent = (agents: AgentOption[]): SettingDefinition => {
-  const value = () => settings.defaultAgent ?? agents[0]?.id ?? ""
-  return {
-    key: "defaultAgent",
-    section: "Session",
-    label: "Default agent",
-    options: agents.map(({ id, name }) => ({ value: id, label: name })),
-    value,
-    set(id) {
-      if (id !== settings.defaultAgent && agents.some((agent) => agent.id === id)) setSetting("defaultAgent", id)
-    },
-    reset: () => resetSetting("defaultAgent"),
-  }
-}
-
 const SIDEBAR = stored<"sidebar">({
   key: "sidebar",
   section: "Appearance",
@@ -197,12 +181,11 @@ const UPDATES: SettingDefinition = {
 }
 
 // YellowCode's own settings, with what it keeps for the agent among them.
-export const settingsFor = (agent: AgentOption, modes: ModeRow[], agents: AgentOption[]): SettingDefinition[] => [
+export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefinition[] => [
   THEME,
   SIDEBAR,
   THINKING,
   sessionTitle(agent.name),
-  defaultAgent(agents),
   defaultMode(agent.id, modes),
   EDITOR,
   NOTIFICATIONS,

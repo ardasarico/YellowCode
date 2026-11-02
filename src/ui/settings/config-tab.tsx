@@ -73,17 +73,16 @@ const mainSections = (definitions: SettingDefinition[]): DialogSection[] =>
       }),
   }))
 
-// `agent` is the agent whose YellowCode settings the tab shows, with its `modes`; `agents` the installed ones;
-// `agentSettings` its own, on a live session.
+// `agent` is the agent whose YellowCode settings the tab shows, with its `modes`; `agentSettings` its own, on a live
+// session.
 export function ConfigTab(props: {
   api: TabApi
   agent: AgentOption
   modes: ModeRow[]
-  agents: AgentOption[]
   agentSettings?: AgentSettings
   row?: string
 }) {
-  const definitions = createMemo(() => settingsFor(props.agent, props.modes, props.agents))
+  const definitions = createMemo(() => settingsFor(props.agent, props.modes))
   const settingFor = (id: string) => definitions().find((setting) => setting.key === id)
   const [list, setList] = createSignal<SettingDefinition | null>(null)
   const [agentList, setAgentList] = createSignal<SettingRow | null>(null)

@@ -73,7 +73,6 @@ export function SettingsDialog(props: {
           api={api}
           agent={props.agent}
           modes={props.provider.modes()}
-          agents={props.agents}
           agentSettings={props.agentSettings}
           row={props.row}
         />

@@ -11,7 +11,7 @@ import {
 import { dirname } from "node:path"
 import { createSignal } from "solid-js"
 import { z } from "zod"
-import type { AgentKindId, ModeId } from "../agent/ids.ts"
+import type { AgentKindId, ModelRef, ModeId } from "../agent/ids.ts"
 import { configPath } from "../config-path.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../json.ts"
@@ -26,9 +26,18 @@ export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
 export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
-// What YellowCode keeps for one agent, under the agent's id. `favoriteModels` are the models Shift+←→ walks; `warned`:
-// the agent's one-time warning was shown.
-export type AgentPrefs = { defaultMode?: ModeId; favoriteModels?: string[]; warned?: boolean }
+// What YellowCode keeps for one agent, under the agent's id. `warned`: the agent's one-time warning was shown.
+export type AgentPrefs = { defaultMode?: ModeId; warned?: boolean }
+
+// Models by modelKey: `favorites` are the ones Shift+←→ walks, `hidden` the ones /model leaves out.
+export type ModelMarks = { favorites: string[]; hidden: string[] }
+
+// A model as favorites and hidden marks keep it: the provider and the listed row it is picked by, which stays when the
+// model behind an alias changes.
+export const modelKey = (provider: AgentKindId, ref: ModelRef): string =>
+  joinKey(provider, ref.provider === null ? ref.id : `${ref.provider}/${ref.id}`)
+
+const joinKey = (provider: AgentKindId, model: string) => `${provider}:${model}`
 
 export type StoredSettings = {
   theme: string
@@ -40,7 +49,12 @@ export type StoredSettings = {
   disabledMods: string[]
   // Unset until the user picks one; updates then follow how YellowCode was installed (defaultChannel).
   updates?: Channel
-  // Unset until the user picks one; a start then opens the first installed agent.
+  // Unset until the user picks them.
+  providers?: AgentKindId[]
+  models: ModelMarks
+  // The model the last session used, which a start opens.
+  lastModel?: { provider: AgentKindId; ref: ModelRef }
+  // Read from files written before providers, for usedProviders only; never saved.
   defaultAgent?: AgentKindId
   agents: Record<AgentKindId, AgentPrefs>
 }
@@ -53,11 +67,17 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   editor: "default",
   notifications: "all",
   disabledMods: [],
+  // Present, so the file keeps them once they are set; unset ones are not written.
   updates: undefined,
-  // Present, so the file keeps it once it is picked; an unset one is not written.
-  defaultAgent: undefined,
+  providers: undefined,
+  models: { favorites: [], hidden: [] },
+  lastModel: undefined,
   agents: {},
 }
+
+// The providers an older file shows were used: those with an entry and the default agent it saved, in `known` order.
+export const usedProviders = (settings: StoredSettings, known: AgentKindId[]): AgentKindId[] =>
+  known.filter((id) => id in settings.agents || id === settings.defaultAgent)
 
 // Claude's mode when none is saved for it.
 export const DEFAULT_MODE: ModeId = "auto"
@@ -109,6 +129,14 @@ const Notifications = z.enum(NOTIFICATIONS)
 const DisabledMods = z.array(z.string())
 const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
+const Providers = z.array(z.string()).min(1)
+const Keys = z.array(z.string()).default([])
+const Models = z.object({ favorites: Keys, hidden: Keys })
+const LastModel = z.object({
+  provider: z.string(),
+  ref: z.object({ provider: z.string().nullable(), id: z.string() }),
+})
+// Favorites were kept per agent, by the row's ref alone; they move to `models`.
 const FavoriteModels = z.array(z.string()).optional()
 const AgentEntry = z.object({
   defaultMode: z.string().optional(),
@@ -144,7 +172,7 @@ function parseJsonc(text: string): unknown {
 
 function salvage(text: string): Record<string, unknown> {
   const stored: Record<string, unknown> = {}
-  for (const key of [...Object.keys(DEFAULT_SETTINGS), LEGACY_MODE]) {
+  for (const key of [...Object.keys(DEFAULT_SETTINGS), LEGACY_MODE, "defaultAgent"]) {
     const match = new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*)"`).exec(text)
     if (match) stored[key] = match[1]
   }
@@ -156,8 +184,12 @@ function salvage(text: string): Record<string, unknown> {
   return stored
 }
 
-// Each agent's entry stands alone, so a bad one leaves the others.
-function readAgents(stored: Record<string, unknown>, invalid: string[]): StoredSettings["agents"] | undefined {
+// Each agent's entry stands alone, so a bad one leaves the others. Its old favorites go to `favorites`.
+function readAgents(
+  stored: Record<string, unknown>,
+  invalid: string[],
+  favorites: string[],
+): StoredSettings["agents"] | undefined {
   let agents: StoredSettings["agents"] | undefined
   if ("agents" in stored) {
     const entries = Stored.safeParse(stored["agents"])
@@ -165,8 +197,13 @@ function readAgents(stored: Record<string, unknown>, invalid: string[]): StoredS
       agents = {}
       for (const [agent, entry] of Object.entries(entries.data)) {
         const parsed = (agent === CLAUDE_ENTRY ? ClaudeEntry : AgentEntry).safeParse(entry)
-        if (parsed.success) agents[agent] = parsed.data
-        else invalid.push(`agents.${agent}`)
+        if (!parsed.success) {
+          invalid.push(`agents.${agent}`)
+          continue
+        }
+        const { favoriteModels = [], ...prefs } = parsed.data
+        favorites.push(...favoriteModels.map((model) => joinKey(agent, model)))
+        agents[agent] = prefs
       }
     } else invalid.push("agents")
   }
@@ -191,8 +228,15 @@ function readStored(stored: Record<string, unknown>) {
   read("sidebar", Sidebar)
   read("thinking", Thinking)
   read("sessionTitle", SessionTitle)
-  const agents = readAgents(stored, invalid)
+  read("providers", Providers)
+  read("models", Models)
+  read("lastModel", LastModel)
+  const moved: string[] = []
+  const agents = readAgents(stored, invalid, moved)
   if (agents) found.agents = agents
+  const models = found.models ?? DEFAULT_SETTINGS.models
+  const favorites = moved.filter((key) => !models.favorites.includes(key))
+  if (favorites.length > 0) found.models = { ...models, favorites: [...models.favorites, ...favorites] }
   read("editor", EditorSchema)
   read("notifications", Notifications)
   read("disabledMods", DisabledMods)

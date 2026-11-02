@@ -2,7 +2,14 @@ import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { AgentKindId, EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { EffortRow, ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
-import { DEFAULT_SETTINGS, saveSettings, startModeIn, type StoredSettings } from "./settings-file.ts"
+import {
+  DEFAULT_SETTINGS,
+  type ModelMarks,
+  modelKey,
+  saveSettings,
+  startModeIn,
+  type StoredSettings,
+} from "./settings-file.ts"
 
 // A Claude replay has no model list, so these stand in until the live process provides one.
 export const MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"]
@@ -163,33 +170,50 @@ export function stepEffort(levels: EffortId[], step: 1 | -1): EffortId | null {
   return next === undefined ? null : pickEffort(next)
 }
 
-// A model as favorites keep it: the listed row it is picked by, which stays when the model behind an alias changes.
-export function favoriteKey(id: string): string {
-  const ref = modelRef(id)
-  return ref.provider === null ? ref.id : providerModelId(ref.provider, ref.id)
-}
+const isMarked = (marks: keyof ModelMarks, provider: AgentKindId, ref: ModelRef): boolean =>
+  settings.models[marks].includes(modelKey(provider, ref))
 
-export const favoritesOf = (agent: AgentKindId): string[] => settings.agents[agent]?.favoriteModels ?? []
-
-export function toggleFavorite(agent: AgentKindId, id: string): void {
-  const key = favoriteKey(id)
-  const saved = favoritesOf(agent)
+function toggleMark(marks: keyof ModelMarks, provider: AgentKindId, ref: ModelRef): void {
+  const key = modelKey(provider, ref)
+  const saved = settings.models[marks]
   const next = saved.includes(key) ? saved.filter((one) => one !== key) : [...saved, key]
-  setSettings({
-    agents: {
-      ...settings.agents,
-      [agent]: { ...settings.agents[agent], favoriteModels: next.length > 0 ? next : undefined },
-    },
-  })
+  setSettings({ models: { ...settings.models, [marks]: next } })
   saveSettings(settings)
 }
 
+export const isFavorite = (provider: AgentKindId, ref: ModelRef): boolean => isMarked("favorites", provider, ref)
+export const toggleFavorite = (provider: AgentKindId, ref: ModelRef): void => toggleMark("favorites", provider, ref)
+export const isHidden = (provider: AgentKindId, ref: ModelRef): boolean => isMarked("hidden", provider, ref)
+export const toggleHidden = (provider: AgentKindId, ref: ModelRef): void => toggleMark("hidden", provider, ref)
+
+export function addProvider(provider: AgentKindId): void {
+  const added = settings.providers ?? []
+  if (added.includes(provider)) return
+  setSettings({ providers: [...added, provider] })
+  saveSettings(settings)
+}
+
+// Why the provider stays, or null once it is removed. The one in use and the last one left stay.
+export function removeProvider(provider: AgentKindId, inUse: AgentKindId): string | null {
+  const added = settings.providers ?? []
+  if (!added.includes(provider)) return null
+  if (provider === inUse) return "cannot remove the provider in use"
+  if (added.length === 1) return "cannot remove the last provider"
+  setSettings({ providers: added.filter((one) => one !== provider) })
+  saveSettings(settings)
+  return null
+}
+
 // Steps through the favorites that are listed, or every model when none is.
-export function stepModel(step: 1 | -1, current: string | null, favorites: string[] = []): string | null {
+export function stepModel(
+  step: 1 | -1,
+  current: string | null,
+  favorite: (ref: ModelRef) => boolean = () => false,
+): string | null {
   const model = settings.model ?? current
   if (model === null) return null
   const all = choices.length > 0 ? choices.map(({ id }) => id) : MODELS
-  const marked = all.filter((id) => favorites.includes(favoriteKey(id)))
+  const marked = all.filter((id) => favorite(modelRef(id)))
   const ids = marked.length > 0 ? marked : all
   // A dated or suffixed id such as claude-opus-5-5-20261001[1m] steps from its plain model, unless it is a choice.
   const plain = model.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")

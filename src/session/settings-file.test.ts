@@ -3,7 +3,15 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSy
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { parseJson } from "../json.ts"
-import { DEFAULT_SETTINGS, loadSettings, pickAgent, saveSettings, UNREADABLE_PROBLEM } from "./settings-file.ts"
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  modelKey,
+  pickAgent,
+  saveSettings,
+  UNREADABLE_PROBLEM,
+  usedProviders,
+} from "./settings-file.ts"
 
 function fileWith(content: string | null): string {
   const path = join(mkdtempSync(join(tmpdir(), "yellowcode-settings-")), "settings.json")
@@ -85,15 +93,38 @@ test("a second repair keeps the first backup", () => {
   expect(readFileSync(`${path}.bak`, "utf8")).toBe(TRUNCATED)
 })
 
-test("a default agent is saved only once picked, and a bad one is reset", () => {
-  const path = fileWith(null)
-  saveSettings(DEFAULT_SETTINGS, path)
-  expect(readFileSync(path, "utf8")).not.toContain("defaultAgent")
-  saveSettings({ ...DEFAULT_SETTINGS, defaultAgent: "opencode" }, path)
-  expect(loadSettings(path).settings.defaultAgent).toBe("opencode")
-  const bad = loadSettings(fileWith('{"defaultAgent":7}'))
-  expect(bad.settings.defaultAgent).toBeUndefined()
-  expect(bad.problem).toBe("settings.json: invalid defaultAgent, using the default")
+const KNOWN = ["claude", "opencode", "codex", "pi"]
+
+test("old favorites move to models, the providers used before are found, and the old fields are not saved", () => {
+  const path = fileWith(
+    JSON.stringify({
+      defaultAgent: "codex",
+      agents: {
+        claude: { defaultMode: "plan", favoriteModels: ["opus"] },
+        opencode: { favoriteModels: ["anthropic/claude-opus-5-5"] },
+      },
+    }),
+  )
+  const { settings } = loadSettings(path)
+  expect(settings.models).toEqual({
+    favorites: [
+      modelKey("claude", { provider: null, id: "opus" }),
+      modelKey("opencode", { provider: "anthropic", id: "claude-opus-5-5" }),
+    ],
+    hidden: [],
+  })
+  expect(settings.agents).toEqual({ claude: { defaultMode: "plan" }, opencode: {} })
+  expect(usedProviders(settings, KNOWN)).toEqual(["claude", "opencode", "codex"])
+  saveSettings(settings, path)
+  const text = readFileSync(path, "utf8")
+  expect(text).not.toContain("favoriteModels")
+  expect(text).not.toContain("defaultAgent")
+  expect(loadSettings(path).settings.models).toEqual(settings.models)
+
+  const plain = loadSettings(fileWith('{"theme":"dusk"}')).settings
+  expect(plain.models).toEqual({ favorites: [], hidden: [] })
+  expect(plain.providers).toBeUndefined()
+  expect(usedProviders(plain, KNOWN)).toEqual([])
 })
 
 test("a start opens the saved agent when it runs here, else the first installed one", async () => {

@@ -41,8 +41,7 @@ import {
   controlProblem,
   defaultModeOf,
   effortsOf,
-  favoriteKey,
-  favoritesOf,
+  isFavorite,
   modelChoices,
   modelFor,
   modelIds,
@@ -1475,7 +1474,7 @@ export function App(props: AppProps) {
     }
     if (key.shift && (key.name === "left" || key.name === "right")) {
       key.preventDefault()
-      toModel(stepModel(key.name === "right" ? 1 : -1, props.model(), favoritesOf(props.agent.id)))
+      toModel(stepModel(key.name === "right" ? 1 : -1, props.model(), (ref) => isFavorite(props.agent.id, ref)))
       return
     }
     if (key.name === "f4") {
@@ -2164,8 +2163,8 @@ export function App(props: AppProps) {
           groups={modelGroups()}
           current={settings.model ?? props.model()}
           favorites={{
-            has: (id) => favoritesOf(props.agent.id).includes(favoriteKey(id)),
-            toggle: (id) => toggleFavorite(props.agent.id, id),
+            has: (id) => isFavorite(props.agent.id, modelRef(id)),
+            toggle: (id) => toggleFavorite(props.agent.id, modelRef(id)),
           }}
           onChoose={(id) => toModel(pickModel(id))}
           onClose={() => setDialog(null)}
