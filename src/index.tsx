@@ -816,6 +816,11 @@ await applyTerminal()
 startTheme(renderer.nativeScene, settings.theme)
 // OpenTUI clears its palette cache before it reports a light/dark switch, so the same read picks up the new colors.
 renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
+// A palette changed in the same light or dark mode reports nothing, so it is read again when the user comes back.
+renderer.on(CliRenderEvents.FOCUS, () => {
+  renderer.clearPaletteCache()
+  void applyTerminal()
+})
 // OpenTUI catches a mouse handler's throw; one from a mod's own box turns that mod off.
 renderer.on(CliRenderEvents.HANDLER_ERROR, ({ error }: { error: unknown }) => {
   const mod = modOfError(error)
