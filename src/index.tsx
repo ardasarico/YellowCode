@@ -1027,6 +1027,11 @@ async function openLive(entry: SessionEntry): Promise<void> {
   const { kind } = runner
   const part = await kind.history(ref, null)
   if (quitting) return
+  // Every listed session has a prompt, so an empty history is one deleted since the list was read.
+  if (part.events.length === 0 && part.earlier === null) {
+    if (token === opening) setControlProblem({ text: "This session is no longer there" })
+    return
+  }
   // A session left a moment ago may still be writing its file.
   await Promise.all([...stopped].flatMap(([old, gone]) => (sameSession(old.session, ref) ? [gone] : [])))
   if (quitting || token !== opening || runOf(live) !== run || working()) return
