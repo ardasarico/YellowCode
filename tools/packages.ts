@@ -1,12 +1,14 @@
 // The npm packages and the Homebrew formula of a release, written from its built binaries and tarballs.
 import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import packageJson from "../package.json"
 import type { Platform, Release } from "../src/update/channels.ts"
 import { DIST, PLATFORMS } from "./build.ts"
 import { thirdPartyLicenses } from "./licenses.ts"
 
 const GITHUB = "ardasarico/YellowCode"
-const LICENSE = join(import.meta.dir, "..", "LICENSE")
+const REPO = join(import.meta.dir, "..")
+const LICENSE = join(REPO, "LICENSE")
 const DESCRIPTION = "Terminal UI for coding agents"
 const LICENSES = "THIRD_PARTY_LICENSES.txt"
 const COMMON = {
@@ -95,7 +97,38 @@ export function writeNpmPackages(version: string): string[] {
     },
     { text: SHIM },
   )
-  return [...folders, main]
+  return [...folders, main, writeTypesPackage(root, version)]
+}
+
+const TYPES_README = `# @yellowcode/mod
+
+The types of \`yellowcode/mod\`, the API of [YellowCode](https://github.com/${GITHUB}) mods. It holds no code: YellowCode
+gives a mod the API when it loads it. See [Setting up](https://github.com/${GITHUB}/blob/main/docs/mod-api.md#setting-up).
+`
+
+// Types only, for type-checking a mod. It brings the Solid and OpenTUI versions YellowCode runs, for their JSX types.
+function writeTypesPackage(root: string, version: string): string {
+  const folder = join(root, "yellowcode-mod")
+  mkdirSync(folder, { recursive: true })
+  const manifest = {
+    name: "@yellowcode/mod",
+    version,
+    ...COMMON,
+    description: "Types of the YellowCode mod API",
+    types: "index.d.ts",
+    exports: { ".": { types: "./index.d.ts" } },
+    files: ["index.d.ts", "LICENSE"],
+    dependencies: {
+      "solid-js": packageJson.dependencies["solid-js"],
+      "@opentui/core": packageJson.dependencies["@opentui/core"],
+      "@opentui/solid": packageJson.dependencies["@opentui/solid"],
+    },
+  }
+  writeFileSync(join(folder, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`)
+  writeFileSync(join(folder, "README.md"), TYPES_README)
+  cpSync(join(REPO, "types/mod.d.ts"), join(folder, "index.d.ts"))
+  cpSync(LICENSE, join(folder, "LICENSE"))
+  return folder
 }
 
 export function formula(release: Release): string {

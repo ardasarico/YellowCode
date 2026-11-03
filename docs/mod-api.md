@@ -59,14 +59,10 @@ A mod is a folder in `$XDG_CONFIG_HOME/yellowcode/mods/<id>/`, which is `~/.conf
 `XDG_CONFIG_HOME` is not set. Folders whose name starts with a dot are skipped. YellowCode looks for mods only at
 startup, so restart it after adding a folder.
 
-While you work on a mod in another folder you can symlink it there, but imports are resolved from where the files really
-are, so give your working folder a `node_modules` link to the one YellowCode keeps in the mods folder. That folder is
-made when YellowCode starts with at least one mod in place, so link the mod first, start YellowCode once, then add the
-second link:
+While you work on a mod in another folder you can symlink it there:
 
 ```sh
 ln -s ~/my-mods/hello ~/.config/yellowcode/mods/hello
-ln -s ~/.config/yellowcode/mods/node_modules ~/my-mods/hello/node_modules
 ```
 
 Bun loads `.ts` and `.tsx` directly, so there is no build step. A mod may import:
@@ -75,13 +71,19 @@ Bun loads `.ts` and `.tsx` directly, so there is no build step. A mod may import
 - `solid-js`, `@opentui/core` and `@opentui/solid`, for views,
 - Node and Bun built-ins, and the mod's own files.
 
-YellowCode links `yellowcode`, `solid-js`, `@opentui/core` and `@opentui/solid` into `mods/node_modules/` when it
-starts, so they are the same copies the app uses. Views are Solid components drawn with OpenTUI elements such as `<box>`
-and `<text>`. A mod that needs another package can install it in its own folder, but never a second copy of `solid-js`
-or `@opentui/*`.
+YellowCode gives every mod the copies of `yellowcode/mod`, `solid-js` and `@opentui/*` the app itself uses. Views are
+Solid components drawn with OpenTUI elements such as `<box>` and `<text>`. A mod that needs another package can install
+it in its own folder.
 
-To type-check a mod, put this `tsconfig.json` in its folder. `yellowcode/mod` resolves to the API's declaration file
-through the `node_modules` link above:
+To type-check a mod, add the API's types and TypeScript as dev dependencies in its folder. `@yellowcode/mod` holds only
+types and brings the Solid and OpenTUI versions YellowCode runs; its version is YellowCode's, so keep it at the version
+you use:
+
+```sh
+bun add -d @yellowcode/mod @types/bun typescript
+```
+
+Then put this `tsconfig.json` next to it and run `bunx tsc`:
 
 ```json
 {
@@ -94,7 +96,9 @@ through the `node_modules` link above:
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "types": ["bun"],
+    "paths": { "yellowcode/mod": ["./node_modules/@yellowcode/mod"] }
   }
 }
 ```
@@ -848,8 +852,8 @@ A listed mod must follow these rules:
 - Its source is not minified or obfuscated.
 - A mod with a `package.json` also has a `bun.lock`. Its dependencies are installed from it exactly, without scripts.
 - Its `mcpServers` run files inside the mod, or packages pinned to an exact version.
-- `solid-js`, `@opentui/*` and `yellowcode` are only peer dependencies. YellowCode gives every mod its own copies, and a
-  mod that installs one of them is refused.
+- `solid-js`, `@opentui/*` and `yellowcode` are only peer dependencies, and `@yellowcode/mod` only a dev dependency.
+  YellowCode gives every mod its own copies, and a mod that installs one of them is refused.
 
 A mod that breaks a rule after it is listed is taken off the list with a reason; it then stops loading for everyone who
 installed it.

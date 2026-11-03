@@ -81,6 +81,15 @@ Keep a pull request to one change. Say what it fixes or adds, and how you checke
 
 To get a mod on the mod list, see [Getting a mod listed](docs/mod-api.md#getting-a-mod-listed).
 
+When YellowCode runs from the repo, it links its own `solid-js`, `@opentui/*` and `yellowcode` into
+`mods/node_modules/` instead of giving them to mods at load time. A mod must then have none of them in its own
+`node_modules`, so leave out `@yellowcode/mod`. A mod kept in another folder gets a link to that folder instead, which
+also gives the API's types; the folder is made the first time YellowCode starts with a mod in place:
+
+```sh
+ln -s ~/.config/yellowcode/mods/node_modules ~/my-mods/hello/node_modules
+```
+
 ## License
 
 By contributing, you agree that your work is released under the [GPL-3.0](LICENSE), the same license as the project.
