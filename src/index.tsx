@@ -494,7 +494,7 @@ const runnerById = (id: AgentKindId | undefined) => runners.find((runner) => run
 
 // The provider of the last used model when it runs here, with that model, else the first added one that does, with a
 // notice saying why the last one did not open. The last added one is started unchecked and says itself why it cannot.
-async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; notice: string | null }> {
+async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; notice: string | null; none: boolean }> {
   const found = new Map<AgentKindId, Detection>()
   const saved = lastProvider(stored)
   const first = await pickAgent(saved, addedIds(stored), async (id) => {
@@ -509,11 +509,15 @@ async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; no
   const why = meant !== undefined && meant !== runner.kind.id ? found.get(meant) : undefined
   const reason = why === undefined ? null : why.installed ? why.blocked : "is not installed"
   const name = runnerById(meant)?.kind.name
-  return { runner, model, notice: name && reason !== null ? `${name} ${reason} · opened ${runner.kind.name}` : null }
+  // The last added provider starts unchecked, so with every one missing it is the one that fails.
+  const none = [...found.values()].every((detection) => !detection.installed) && !found.has(runner.kind.id)
+  const notice = name && reason !== null ? `${name} ${reason} · opened ${runner.kind.name}` : null
+  return { runner, model, notice, none }
 }
 
 // A replay is a Claude recording.
-const picked = values.replay === undefined ? await pickFirst() : { runner: claudeRunner, model: null, notice: null }
+const picked =
+  values.replay === undefined ? await pickFirst() : { runner: claudeRunner, model: null, notice: null, none: false }
 const firstRunner = picked.runner
 await startMods(values["no-mods"], {
   id: firstRunner.kind.id,
@@ -695,8 +699,10 @@ async function liveMode() {
     live = await startLive(firstRunner, { ...startOptions(firstRunner, null), model: picked.model }, firstSession)
     return { kind: "live" as const, first: live }
   } catch (error) {
-    const { id, name } = firstRunner.kind
-    return fail(`Cannot start ${id}: ${error instanceof Error ? error.message : String(error)}. Is ${name} installed?`)
+    if (picked.none && !(await detect(firstRunner.kind)).installed)
+      return fail("No provider is installed. Install Claude Code, Codex, opencode or Pi, then start again.")
+    const { name } = firstRunner.kind
+    return fail(`Cannot start ${name}: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
