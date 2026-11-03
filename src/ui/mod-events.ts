@@ -49,15 +49,15 @@ export function useModEvents(renderer: CliRenderer, session: () => Session, mode
       },
     ),
   )
+  // The model is unknown for a moment while another agent starts; the change is from the last known one to the next.
+  let known: string | null = null
   createEffect(
-    on(
-      model,
-      (now, before) => {
-        // The model becoming known at start is not a change.
-        if (before !== null && before !== undefined && now !== before) emitModEvent("model-changed", { model: now })
-      },
-      { defer: true },
-    ),
+    on(model, (now) => {
+      if (now === null) return
+      // The model becoming known at start is not a change.
+      if (known !== null && now !== known) emitModEvent("model-changed", { model: now })
+      known = now
+    }),
   )
   renderer.on(CliRenderEvents.FOCUS, onFocus)
   onCleanup(() => renderer.off(CliRenderEvents.FOCUS, onFocus))
