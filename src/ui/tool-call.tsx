@@ -65,6 +65,8 @@ export function toolLines(
     if (!shell) return ["in background"]
     return [shell.state === "running" ? `running in background · ${formatDuration(elapsedMs)}` : "ran in background"]
   }
+  // Until the call's whole input arrives the model is still writing it; nothing runs yet.
+  if (tool.status === "running" && tool.input === undefined) return ["writing…"]
   if (tool.status === "running") return [`running… ${Math.floor(elapsedMs / 1000)}s`]
   // A `!` command's short output is the point of running it, so it shows whole.
   const output = tool.local && tool.result.trim() ? tool.result.trimEnd().split("\n") : []
