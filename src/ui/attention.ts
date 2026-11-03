@@ -42,26 +42,29 @@ export function notification(attention: Attention, level: NotificationSetting, a
   return attentionMessage(attention, agent)
 }
 
+// Whether the terminal has focus, watched from the renderer's start: Ghostty reports focus-out as soon as focus
+// tracking is on, before the app is drawn.
+const [terminalFocused, setTerminalFocused] = createSignal(true)
+
+export function watchFocus(renderer: CliRenderer): void {
+  // OpenTUI keeps the last reported focus in a private field (null until one came) and offers no getter for it.
+  if (Reflect.get(renderer, "_terminalFocusState") === false) setTerminalFocused(false)
+  renderer.on(CliRenderEvents.FOCUS, () => setTerminalFocused(true))
+  renderer.on(CliRenderEvents.BLUR, () => setTerminalFocused(false))
+}
+
 export function useAttention(
   renderer: CliRenderer,
   session: () => Session,
   level: () => NotificationSetting,
   agent: () => string,
 ): Accessor<boolean> {
-  const [focused, setFocused] = createSignal(true)
+  const focused = terminalFocused
   // Set from a notification until the user comes back to the terminal or replies.
   const [flagged, setFlagged] = createSignal(false)
-  const onFocus = () => {
-    setFocused(true)
-    setFlagged(false)
-  }
-  const onBlur = () => setFocused(false)
+  const onFocus = () => setFlagged(false)
   renderer.on(CliRenderEvents.FOCUS, onFocus)
-  renderer.on(CliRenderEvents.BLUR, onBlur)
-  onCleanup(() => {
-    renderer.off(CliRenderEvents.FOCUS, onFocus)
-    renderer.off(CliRenderEvents.BLUR, onBlur)
-  })
+  onCleanup(() => renderer.off(CliRenderEvents.FOCUS, onFocus))
 
   const attention = createMemo(() => attentionState(session()), undefined, {
     equals: (a, b) => a.state === b.state && a.id === b.id,

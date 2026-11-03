@@ -89,6 +89,7 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
+import { watchFocus } from "./ui/attention.ts"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { readSubagentMessage, sessionMessage } from "./peers/envelope.ts"
 import { startPeers } from "./peers/host.ts"
@@ -757,6 +758,7 @@ const renderer = await createCliRenderer({
   // OpenTUI sends an image again whenever an image above it scrolls in or out; a file path is cheap to send again.
   kittyImageTransport: "file",
 })
+watchFocus(renderer)
 const capabilities = firstCapabilities(renderer)
 renderer.addPostProcessFn(invertQueued)
 renderer.keyInput.on("keypress", noteKey)
