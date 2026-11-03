@@ -129,7 +129,8 @@ export default defineMod({
     // Every change, by keyboard; closing a diff comes back to the list.
     const pick = async (): Promise<void> => {
       await refresh()
-      if (state() === null) return mod.notify("Not a git repository", { level: "info" })
+      if (state() === null)
+        return mod.notify(Bun.which("git") ? "Not a git repository" : "git is not installed", { level: "info" })
       if (changes().length === 0) return mod.notify("No changes", { level: "info" })
       const id = await mod.dialogs.choose({
         title: "Changed files",
