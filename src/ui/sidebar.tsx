@@ -40,15 +40,15 @@ export type SidebarProps = {
 type ServerStatus = { mark: string; color: RGBA; name: RGBA; word: string; problem: boolean; running: boolean }
 type ServerActivity = { used: Set<string>; running: Set<string> }
 
+// The first message's first line; a slash command says nothing about the session, so it is passed over.
 function firstUserLine(session: Session): string {
   for (const id of session.items) {
     const item = session.byId[id]
-    if (item?.kind === "user")
-      return (
-        shownText(item)
-          .split("\n")
-          .find((line) => line.trim() !== "") ?? ""
-      )
+    if (item?.kind !== "user") continue
+    const line = shownText(item)
+      .split("\n")
+      .find((one) => one.trim() !== "")
+    if (line && !line.trimStart().startsWith("/")) return line
   }
   return ""
 }
