@@ -284,6 +284,8 @@ export function useCompletion(options: CompletionOptions) {
     if (!area) return
     const draft = chips.draft()
     if (options.onSubmit({ ...expandDraft(draft), draft })) chips.clear()
+    // Refused text stays to be fixed, selected, so what is typed next replaces it instead of joining it.
+    else area.selectAll()
   }
 
   // Only the changed middle is replaced, so the chips around it and the undo history stay.
