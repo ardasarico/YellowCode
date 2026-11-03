@@ -49,6 +49,8 @@ export function ModelPicker(props: {
   onClose: () => void
 }) {
   const [showHidden, setShowHidden] = createSignal(false)
+  // f and h act on the row only once ↑↓ moved through the list; before that, letters go to the filter.
+  const [browsing, setBrowsing] = createSignal(false)
   const [expanded, setExpanded] = createSignal<ReadonlySet<AgentKindId>>(new Set())
   const isCurrent = (model: PickerModel) => {
     const now = props.current
@@ -105,7 +107,7 @@ export function ModelPicker(props: {
         const line = row ? lineOf(row.id, query) : undefined
         const keys = [{ action: line?.kind === "more" ? "show all" : "pick", key: "enter", needsRow: true }]
         if (query) return keys
-        if (line?.kind === "model")
+        if (line?.kind === "model" && browsing())
           keys.push(
             { action: line.favorite ? "unfavorite" : "favorite", key: "f", needsRow: true },
             { action: line.hidden ? "unhide" : "hide", key: "h", needsRow: true },
@@ -129,15 +131,21 @@ export function ModelPicker(props: {
           }
           return true
         }
+        if (key.name === "up" || key.name === "down") {
+          setBrowsing(true)
+          return false
+        }
         // With a search typed, these letters go to the search.
         if (query) return false
         if (key.sequence === "." && printable(key)) {
           setShowHidden((shown) => !shown)
           return true
         }
-        if (line?.kind !== "model" || !row) return false
         const toggle = letter(key, "f") ? toggleFavorite : letter(key, "h") ? toggleHidden : null
-        if (!toggle) return false
+        if (!toggle || !browsing() || line?.kind !== "model" || !row) {
+          setBrowsing(false)
+          return false
+        }
         setFallback(after(row.id, query))
         toggle(line.model.provider, line.model.ref)
         return true
