@@ -40,8 +40,13 @@ export const keptReply = (reply: string) =>
   `While the conversation was rewound, a background task finished and you said:\n${reply}`
 
 // A `!` command and its output, in the form Claude Code gives its own shell mode; it goes out ahead of the next message.
+// Claude Code's own cap on Bash output; a `!` command's output gets no more room in the next message.
+const SHELL_CONTEXT_CHARS = 30_000
+
 export function shellContext(command: string, output: string): string {
-  return `<bash-input>${command}</bash-input>\n<bash-stdout>${output}</bash-stdout><bash-stderr></bash-stderr>`
+  const cut = output.length - SHELL_CONTEXT_CHARS
+  const kept = cut > 0 ? `[${cut} earlier characters left out]\n${output.slice(cut)}` : output
+  return `<bash-input>${command}</bash-input>\n<bash-stdout>${kept}</bash-stdout><bash-stderr></bash-stderr>`
 }
 
 export const TOOL_DECLINED = "The user declined this tool call."
