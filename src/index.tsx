@@ -208,6 +208,36 @@ if (values.report) {
 const { settings: stored, problem, backup } = loadSettings()
 if (values.replay === undefined) stored.providers = await settleProviders(stored, KNOWN_AGENTS)
 if (!process.stdin.isTTY || !process.stdout.isTTY) fail("yellowcode needs a terminal; stdin and stdout must be a TTY")
+// OpenTUI drops whatever waits in the terminal when it starts, so keys typed while YellowCode starts are read here
+// and typed into the prompt once it shows.
+const earlyInput: Buffer[] = []
+const keepEarly = (chunk: Buffer) => earlyInput.push(chunk)
+process.stdin.setRawMode(true)
+process.stdin.on("data", keepEarly)
+process.stdin.resume()
+function stopEarly(): void {
+  process.stdin.off("data", keepEarly)
+  process.stdin.pause()
+}
+// The printable text of what was typed: control keys and escape sequences (arrows, Enter) are left out.
+function typedText(raw: string): string {
+  let text = ""
+  for (let at = 0; at < raw.length; at++) {
+    const code = raw.charCodeAt(at)
+    if (code === 27) {
+      // ESC [ or ESC O, then up to the sequence's final letter.
+      if (raw[at + 1] === "[" || raw[at + 1] === "O") at++
+      while (at + 1 < raw.length && !/[@-~]/.test(raw[at + 1] ?? "")) at++
+      at++
+    } else if (code >= 32 && code !== 127) text += raw[at]
+  }
+  return text
+}
+function typeEarly(into: { keyInput: { processPaste(bytes: Uint8Array): void } }): void {
+  const text = typedText(Buffer.concat(earlyInput).toString("utf8"))
+  earlyInput.length = 0
+  if (text) into.keyInput.processPaste(new TextEncoder().encode(text))
+}
 
 function gitBranch(): string | null {
   const result = Bun.spawnSync(["git", "rev-parse", "--abbrev-ref", "HEAD"], {
@@ -764,6 +794,7 @@ const readOnlyProvider = mode.kind === "live" ? savedProvider(claudeLists) : mod
 // Languages OpenTUI does not bundle, for code blocks, diffs and the file view (tools/parsers-config.json).
 addDefaultParsers(await getParsers())
 
+stopEarly()
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",
@@ -1809,6 +1840,8 @@ await render(
   renderer,
 )
 if (terminal === null) tellPicked()
+// The terminal check takes its own keys, so early keys there are dropped rather than taken as a choice.
+if (terminal === null) setTimeout(() => typeEarly(renderer), 0)
 // After the first frame, or a second when the renderer stays busy, so the network never holds up the start.
 void Promise.race([renderer.idle(), Bun.sleep(1000)]).then(() => {
   startModUpdates(values["no-mods"])
