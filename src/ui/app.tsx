@@ -1845,6 +1845,14 @@ export function App(props: AppProps) {
     const yields = (list: "mcp" | "skills" | "plugins") =>
       !props.caps.lists.includes(list) &&
       props.provider.commands().some((row) => row.name === list && !OWN_COMMANDS.includes(row))
+    // A list the agent does not fill and has no command for would open empty.
+    const empty = (["mcp", "skills", "plugins"] as const).find(
+      (list) => command === `/${list}` && !props.caps.lists.includes(list) && !yields(list),
+    )
+    if (empty) {
+      waitNotice(`Not available with ${props.agent.name}`)
+      return false
+    }
     if (command === "/report") void copyReport()
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })

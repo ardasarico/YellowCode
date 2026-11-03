@@ -3,7 +3,7 @@ import type { InputProvider } from "../../input/provider.ts"
 import type { SessionStore } from "../../session/session.ts"
 import { listedProvider } from "../opencode/provider.ts"
 
-// YellowCode's dialogs of lists pi does not fill; pi's own command of the same name takes the row.
+// YellowCode's dialogs of lists pi does not fill, which would open empty; pi's own command of the same name shows.
 const YIELDING = new Set(["mcp", "skills", "plugins"])
 // pi takes no client tools, so it has no subagent tool to assign models for.
 const MISSING = new Set(["agents"])
@@ -14,10 +14,9 @@ export function piProvider(store: () => SessionStore, files: (query: string) => 
     ...base,
     commands() {
       const own = (store().lists().commands ?? []).filter((row) => YIELDING.has(row.name))
-      const names = new Set(own.map((row) => row.name))
       const rows = base
         .commands()
-        .filter((row) => !((names.has(row.name) || MISSING.has(row.name)) && OWN_COMMANDS.includes(row)))
+        .filter((row) => !((YIELDING.has(row.name) || MISSING.has(row.name)) && OWN_COMMANDS.includes(row)))
       return [
         ...own.map(({ name, description, argumentHint, aliases, builtin }) => ({
           name,
