@@ -26,20 +26,24 @@ function shownRect(element: ImageRenderable): Rect {
   return rect
 }
 
-// The largest part of `rect` the panel leaves free: a terminal image is drawn above cells, so it must not reach it.
-function besidePanel(rect: Rect, panel: Rect): Rect {
-  if (area(intersect(rect, panel)) === 0) return rect
+// The parts of `rect` the panel leaves free, without overlap: a terminal image is drawn above cells, so it must not
+// reach the panel. Above and below take the whole width, left and right the rows beside the panel.
+function besidePanel(rect: Rect, panel: Rect): Rect[] {
+  if (area(intersect(rect, panel)) === 0) return [rect]
   const right = rect.x + rect.width
   const bottom = rect.y + rect.height
   const panelRight = panel.x + panel.width
   const panelBottom = panel.y + panel.height
-  const parts: Rect[] = [
+  const top = Math.max(rect.y, panel.y)
+  const middle = Math.min(bottom, panelBottom) - top
+  return [
     { x: rect.x, y: rect.y, width: rect.width, height: panel.y - rect.y },
     { x: rect.x, y: panelBottom, width: rect.width, height: bottom - panelBottom },
-    { x: rect.x, y: rect.y, width: panel.x - rect.x, height: rect.height },
-    { x: panelRight, y: rect.y, width: right - panelRight, height: rect.height },
-  ].map((part) => intersect(part, rect))
-  return parts.reduce((best, part) => (area(part) > area(best) ? part : best))
+    { x: rect.x, y: top, width: panel.x - rect.x, height: middle },
+    { x: panelRight, y: top, width: right - panelRight, height: middle },
+  ]
+    .map((part) => intersect(part, rect))
+    .filter((part) => area(part) > 0)
 }
 
 function blend(color: RGBA): RGBA {
@@ -62,31 +66,35 @@ export function DimmedImages(props: { panel: Rect }) {
           dimensions()
           return { x: element.screenX, y: element.screenY, width: element.width, height: element.height }
         })
-        const part = () => besidePanel(shownRect(element), props.panel)
+        const parts = () => besidePanel(shownRect(element), props.panel)
         const source = () => (element.image ? underScrim(onBackground(element.image, base())) : undefined)
         return (
-          <Show when={area(part()) > 0 && source()}>
+          <Show when={source()}>
             {(image) => (
-              <box
-                position="absolute"
-                left={part().x}
-                top={part().y}
-                width={part().width}
-                height={part().height}
-                zIndex={10}
-                overflow="hidden"
-                backgroundColor={blend(base())}
-              >
-                <image
-                  position="absolute"
-                  left={box().x - part().x}
-                  top={box().y - part().y}
-                  width={box().width}
-                  height={box().height}
-                  fit={element.fit}
-                  source={image()}
-                />
-              </box>
+              <For each={parts()}>
+                {(part) => (
+                  <box
+                    position="absolute"
+                    left={part.x}
+                    top={part.y}
+                    width={part.width}
+                    height={part.height}
+                    zIndex={10}
+                    overflow="hidden"
+                    backgroundColor={blend(base())}
+                  >
+                    <image
+                      position="absolute"
+                      left={box().x - part.x}
+                      top={box().y - part.y}
+                      width={box().width}
+                      height={box().height}
+                      fit={element.fit}
+                      source={image()}
+                    />
+                  </box>
+                )}
+              </For>
             )}
           </Show>
         )
