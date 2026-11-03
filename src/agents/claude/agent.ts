@@ -296,13 +296,13 @@ function carryOf(options: StartOptions, models: ModelRow[]): Knobs | undefined {
   return { model: model === null ? null : modelIdOf(models, model.id), effort, ultracode: extraEffort }
 }
 
-// Spawns claude for the store; nothing is read until `begin`. claude takes YellowCode's own instructions and the mods'
-// manifest servers by itself, so `instructions` and `mcpServers` are not read yet.
+// Spawns claude for the store; nothing is read until `begin`. claude takes the mods' manifest servers by itself, so
+// `mcpServers` is not read.
 function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge): ClaudeAgent {
   const { cwd } = options
   const { provider } = bridge
   if (options.ephemeral && options.resume !== null) throw new Error("A session Claude Code does not keep cannot resume")
-  const lean = { ephemeral: options.ephemeral }
+  const lean = { ephemeral: options.ephemeral, instructions: options.instructions }
   // Every claude this agent starts serves them, as SDK MCP servers.
   const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
   const carried = carryOf(options, provider.models())

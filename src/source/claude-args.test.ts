@@ -58,3 +58,16 @@ test("a session claude does not keep starts with its flag", () => {
   expect(args(false)).not.toContain("--no-session-persistence")
   expect(args(true)).toContain("--no-session-persistence")
 })
+
+test("a subagent's instructions go into the appended system prompt", () => {
+  const args = claudeArgs(
+    { thinking: "summarized" },
+    launchOf({ permissionMode: "default" }),
+    {},
+    {
+      ephemeral: true,
+      instructions: ["Review only."],
+    },
+  )
+  expect(args[args.indexOf("--append-system-prompt") + 1]).toEndWith("\n\nReview only.")
+})

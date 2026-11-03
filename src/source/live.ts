@@ -169,7 +169,7 @@ export function connect(options: {
     thinking: stored.thinking,
     bypass: launch.bypass,
     ...spawn,
-    ...lean,
+    ephemeral: lean?.ephemeral,
   })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,

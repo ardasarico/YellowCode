@@ -36,8 +36,9 @@ export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Lau
   }
 }
 
-// A session claude keeps no transcript of. A plain start is not offered: --safe-mode would also drop CLAUDE.md.
-export type Lean = { ephemeral: boolean }
+// A session claude keeps no transcript of, with instructions added to its system prompt. A plain start is not offered:
+// --safe-mode would also drop CLAUDE.md.
+export type Lean = { ephemeral: boolean; instructions?: string[] }
 
 // How YellowCode starts claude: the saved thinking display, in the launch's mode.
 export function claudeArgs(
@@ -64,6 +65,6 @@ export function claudeArgs(
     launch.mode,
     ...bypass,
     "--append-system-prompt",
-    APPEND_SYSTEM_PROMPT,
+    [APPEND_SYSTEM_PROMPT, ...(lean.instructions ?? [])].join("\n\n"),
   ]
 }
