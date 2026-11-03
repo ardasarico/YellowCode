@@ -1,14 +1,15 @@
 import type { RGBA } from "@opentui/core"
+import { useTerminalDimensions } from "@opentui/solid"
 import { createSignal, onMount } from "solid-js"
 import type { ContextReport } from "../../agent/agent.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { Dialog } from "../dialog/dialog.tsx"
+import { PAD_X } from "../dialog/list-view.tsx"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { formatTokens, modelName } from "../format.ts"
 
 const WIDTH = 72
-const BAR = WIDTH - 8
 const message = (text: string): DialogSection[] => [
   { title: "", rows: [{ id: "message", spans: [{ text, fg: theme.panelMuted }] }] },
 ]
@@ -25,20 +26,20 @@ const entriesOf = (usage: ContextReport, category: Category) =>
       ? usage.tools.map((tool) => [`${tool.server} · ${tool.name}`, tool.tokens] as const)
       : []
 
-function sectionsOf(usage: ContextReport, open: ReadonlySet<string>): DialogSection[] {
+function sectionsOf(usage: ContextReport, open: ReadonlySet<string>, barWidth: number): DialogSection[] {
   const used = usage.categories.filter((category) => category.kind === "used")
   const colorOf = new Map<string, RGBA>(
     used.map((category, index) => [category.name, theme.agents[index % theme.agents.length] ?? theme.accent]),
   )
   // Each used category takes a cell at least, and the bar stops at its width however small the rest is.
-  let left = BAR
+  let left = barWidth
   const bar = used.map((category) => {
-    const share = usage.window > 0 ? Math.round((category.tokens / usage.window) * BAR) : 0
+    const share = usage.window > 0 ? Math.round((category.tokens / usage.window) * barWidth) : 0
     const cells = Math.min(left, Math.max(1, share))
     left -= cells
     return { text: "█".repeat(cells), fg: colorOf.get(category.name) ?? theme.accent }
   })
-  const filled = BAR - left
+  const filled = barWidth - left
   const rows: DialogItem[] = [
     {
       id: "total",
@@ -49,7 +50,7 @@ function sectionsOf(usage: ContextReport, open: ReadonlySet<string>): DialogSect
         },
       ],
     },
-    { id: "bar", spans: [...bar, { text: "░".repeat(Math.max(0, BAR - filled)), fg: theme.panelFaint }] },
+    { id: "bar", spans: [...bar, { text: "░".repeat(Math.max(0, barWidth - filled)), fg: theme.panelFaint }] },
     { id: "gap", spans: [] },
   ]
   for (const category of usage.categories) {
@@ -76,8 +77,8 @@ function sectionsOf(usage: ContextReport, open: ReadonlySet<string>): DialogSect
 }
 
 // The bar and the total, for an agent that counts no categories.
-function totalOf(usage: ContextReport, agent: string): DialogSection[] {
-  const bar = BAR - 6
+function totalOf(usage: ContextReport, agent: string, barWidth: number): DialogSection[] {
+  const bar = barWidth - 6
   const filled = usage.window > 0 ? Math.min(bar, Math.round((usage.used / usage.window) * bar)) : 0
   const used = formatTokens(usage.used)
   return [
@@ -113,6 +114,9 @@ export function ContextDialog(props: { load: () => Promise<ContextReport>; total
   const [usage, setUsage] = createSignal<ContextReport | null>(null)
   const [problem, setProblem] = createSignal<string | null>(null)
   const [open, setOpen] = createSignal(new Set<string>())
+  // The bar fills the dialog, which narrows with a narrow terminal.
+  const dimensions = useTerminalDimensions()
+  const bar = () => Math.max(8, Math.min(WIDTH, dimensions().width) - 2 * PAD_X)
   onMount(() => {
     props.load().then(setUsage, (error: unknown) => setProblem(error instanceof Error ? error.message : String(error)))
   })
@@ -125,8 +129,8 @@ export function ContextDialog(props: { load: () => Promise<ContextReport>; total
       width={WIDTH}
       sections={(() => {
         const shown = usage()
-        if (shown && props.total !== undefined) return totalOf(shown, props.total)
-        if (shown) return sectionsOf(shown, open())
+        if (shown && props.total !== undefined) return totalOf(shown, props.total, bar())
+        if (shown) return sectionsOf(shown, open(), bar())
         const failed = problem()
         return message(failed ? `Could not read the context: ${failed}` : "Reading the context…")
       })()}
