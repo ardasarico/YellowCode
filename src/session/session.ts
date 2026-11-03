@@ -209,7 +209,8 @@ export function sessionInfo(info: AgentInfo): SessionInfo {
   }
 }
 
-export function createSession(options?: { idPrefix?: string; starting?: boolean }): SessionStore {
+// `cleared` starts it as a /clear leaves a session: in the chat under a header, not on the welcome screen.
+export function createSession(options?: { idPrefix?: string; starting?: boolean; cleared?: boolean }): SessionStore {
   const [state, setState] = createStore<Session>({
     info: null,
     status: options?.starting ? "starting" : "idle",
@@ -231,7 +232,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean 
     turn: null,
     permissionMode: null,
     agentTitle: null,
-    conversation: 0,
+    conversation: options?.cleared ? 1 : 0,
     compacting: false,
     carried: [],
   })

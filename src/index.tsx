@@ -1090,13 +1090,21 @@ function replaceLive(current: Live, next: Live, following: (() => void) | undefi
 // A /clear on an agent with none of its own: a new session of the same agent, the one left stays in /resume.
 function clearLive(): boolean {
   if (working("start a new session")) return false
-  startNew(live.runner, "start a new session").catch((error: unknown) => log.error("cannot start a new session", error))
+  // The new session goes on with the model the cleared one used.
+  startNew(live.runner, "start a new session", live.store.state.model, true).catch((error: unknown) =>
+    log.error("cannot start a new session", error),
+  )
   return true
 }
 
 // A new session of the agent takes the screen, on `model` or the agent's own; `then` is what waits for a running turn.
 // False when it did not.
-async function startNew(runner: Runner, then: string, model: ModelRef | null = null): Promise<boolean> {
+async function startNew(
+  runner: Runner,
+  then: string,
+  model: ModelRef | null = null,
+  cleared = false,
+): Promise<boolean> {
   const current = live
   const run = runOf(current)
   if (working(then)) return false
@@ -1107,7 +1115,7 @@ async function startNew(runner: Runner, then: string, model: ModelRef | null = n
     void modsFor(live.runner.kind)
     return false
   }
-  const session = createSession({ starting: true })
+  const session = createSession({ starting: true, cleared })
   const following = capture?.follow(session)
   let next: Live
   try {
