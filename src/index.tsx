@@ -90,6 +90,7 @@ import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
 import { watchFocus } from "./ui/attention.ts"
+import { modelName } from "./ui/format.ts"
 import { getParsers } from "./ui/markdown/parsers/parsers.ts"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { readSubagentMessage, sessionMessage } from "./peers/envelope.ts"
@@ -1172,7 +1173,7 @@ const modelSource: ModelSource = {
   ensure: ensureListed,
   carry: (id, model) => {
     const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
-    const label = row?.label ?? model.id
+    const label = row?.resolves ? modelName(row.resolves) : (row?.label ?? model.id)
     if (!row?.window)
       return { ok: false, problem: `${label} has no known context window, so the conversation stays here` }
     if (handoffBudget(row.window) === 0)
@@ -1180,7 +1181,9 @@ const modelSource: ModelSource = {
     return { ok: true, handoff: buildHandoff(live.store.state, row.window, cwd) }
   },
   confirm: (id, model, handoff) => {
-    const label = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)?.label
+    const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
+    // A Claude alias row is labelled by its alias; the model it resolves to reads as the info line shows it.
+    const label = row?.resolves ? modelName(row.resolves) : row?.label
     const name = KNOWN_AGENTS.find((known) => known.id === id)?.name ?? id
     const ask = moveAsk(crypto.randomUUID(), handoff, live.runner.kind.name, name, label ?? model.id)
     live.store.event({ type: "ask.open", ask, at: Date.now() })
