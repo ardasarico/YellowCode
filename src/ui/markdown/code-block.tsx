@@ -76,7 +76,7 @@ export function CodeBlock(props: {
       </Show>
       <box flexDirection="row">
         <Show when={!props.bare}>
-          <text fg={theme.frame} width={digits() + 3} flexShrink={0} wrapMode="none">
+          <text fg={theme.frame} width={digits() + 3} flexShrink={0} wrapMode="none" selectable={false}>
             {gutter()}
           </text>
         </Show>
