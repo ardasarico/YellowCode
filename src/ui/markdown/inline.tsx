@@ -45,8 +45,9 @@ const sameRefs = (a: OwnRefs | undefined, b: OwnRefs | undefined) =>
 
 const withoutScheme = (url: string): string => url.replace(/^[a-z]+:\/\//i, "")
 
+// The selection band alone is faint on a plain word, so the selected ref takes the accent too.
 const selectedStyle = (style: RunStyle) =>
-  theme.selection ? { ...style, bg: theme.selection } : { ...style, reverse: true }
+  theme.selection ? { ...style, bg: theme.selection, fg: theme.accent, bold: true } : { ...style, reverse: true }
 
 function hasChildren(token: Token): token is Token & { tokens: Token[] } {
   return "tokens" in token && Array.isArray(token.tokens)
