@@ -1,0 +1,32 @@
+name: Check
+
+# Not on every push: `bun run release` pushes a release-check/* branch and publishes only when this passes there.
+on:
+  push:
+    branches: ["release-check/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: git config --global user.name CI && git config --global user.email ci@example.com
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun run build:check

@@ -38,6 +38,48 @@ function fail(message: string): never {
   process.exit(1)
 }
 
+// CI runs on a branch pushed for it while the binaries build here; nothing is published unless it passes.
+function startCheck(commit: string, version: string): string {
+  const branch = `release-check/v${version}`
+  git("push", "-q", "--force", "origin", `${commit}:refs/heads/${branch}`)
+  return branch
+}
+
+async function waitForCheck(branch: string): Promise<void> {
+  const list = [
+    "gh",
+    "run",
+    "list",
+    "--repo",
+    GITHUB,
+    "--workflow",
+    "check.yml",
+    "--branch",
+    branch,
+    "--json",
+    "databaseId",
+  ]
+  let id = ""
+  for (let tries = 0; !id && tries < 60; tries++) {
+    // oxlint-disable-next-line no-await-in-loop
+    if (tries > 0) await Bun.sleep(5000)
+    id = run([...list, "-q", ".[0].databaseId // empty"], REPO)
+  }
+  let passed = false
+  if (id) {
+    console.log(`Waiting for CI: https://github.com/${GITHUB}/actions/runs/${id}`)
+    const watch = Bun.spawn(["gh", "run", "watch", id, "--repo", GITHUB, "--exit-status", "--interval", "15"], {
+      stdout: "ignore",
+      stderr: "ignore",
+    })
+    passed = (await watch.exited) === 0
+  }
+  git("push", "-q", "origin", "--delete", branch)
+  if (!id) fail(`CI did not start on ${branch}; nothing was published`)
+  if (!passed) fail(`CI failed; nothing was published`)
+  console.log("CI passed.")
+}
+
 const base = (version: string) => version.replace(/-beta\.\d+$/, "")
 const betaNumber = (version: string) => Number(/-beta\.(\d+)$/.exec(version)?.[1] ?? 0)
 const newer = (a: string, b: string) => Bun.semver.order(a, b) === 1
@@ -187,6 +229,7 @@ if (channel === "beta") {
 const bundle = await bundleHash(source)
 if (channel === "stable" && !values.from && bundle !== channels.beta?.bundle)
   fail(`the rebuild of ${commit.slice(0, 7)} differs from the beta's code; nothing was published`)
+const checkBranch = dryRun ? null : startCheck(commit, version)
 const { files, assets } = await pack(version, channel, source)
 const tag = `v${version}`
 const release: Release = { version, commit, bundle, assets }
@@ -230,9 +273,10 @@ console.log(`\nSteps:\n${steps.map((step, index) => `  ${index + 1}. ${step}`).j
 
 git("worktree", "remove", "--force", source)
 if (dryRun) {
-  console.log("Dry run: nothing was pushed or published.")
+  console.log("Dry run: CI did not run, and nothing was pushed or published.")
   process.exit(0)
 }
+if (checkBranch) await waitForCheck(checkBranch)
 if (ask("Publish?", "no").toLowerCase() !== "yes") fail("stopped; nothing was pushed or published")
 
 if (channel === "beta") git("merge", "--ff-only", "-q", commit)
