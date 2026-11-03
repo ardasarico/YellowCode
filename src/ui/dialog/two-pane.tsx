@@ -209,11 +209,19 @@ export function TwoPane(props: TwoPaneProps) {
     return true
   }
 
+  // The keys that move name what they move between; with nothing to choose only esc is left.
+  const detailFooter = (): FooterAction[] => {
+    const back = DETAIL_FOOTER.filter((item) => item.key === "esc")
+    if (actionIds().includes(focusId() ?? "")) return DETAIL_FOOTER
+    if (bodyIds().length > 0) return [{ key: "↑↓", action: "select" }, { key: "enter", action: "choose" }, ...back]
+    return back
+  }
+
   untrack(() => props.api).bind({
     keys: (key) => (pane() === "list" ? listKeys(key) : detailKeys(key)),
     footer: () => {
       const owner = selectedRow()
-      if (pane() === "detail") return (owner && props.detailFooter?.(owner, focusedItem())) ?? DETAIL_FOOTER
+      if (pane() === "detail") return (owner && props.detailFooter?.(owner, focusedItem())) ?? detailFooter()
       const row = selectedRow()
       return row ? props.footer(row) : searchFooter("close")
     },
