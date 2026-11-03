@@ -19,8 +19,8 @@ export type DialogRow = {
   // Replaces the value while the row is selected.
   selectedValue?: string
 }
-// A line that cannot be selected; a text with no spans is a blank line.
-export type DialogText = { id: string; spans: Span[]; indent?: number }
+// A line that cannot be selected; a text with no spans is a blank line. One with `search` stays when that matches.
+export type DialogText = { id: string; spans: Span[]; indent?: number; search?: string }
 export type DialogItem = DialogRow | DialogText
 export type DialogSection = { title: string; rows: DialogItem[] }
 
@@ -42,7 +42,9 @@ export function filterSections(sections: DialogSection[], query: string): Dialog
   return sections
     .map((section) => ({
       ...section,
-      rows: section.rows.filter((row) => isRow(row) && (row.search ?? row.label).toLowerCase().includes(needle)),
+      rows: section.rows.filter((row) =>
+        (isRow(row) ? (row.search ?? row.label) : (row.search ?? "")).toLowerCase().includes(needle),
+      ),
     }))
     .filter((section) => section.rows.length > 0)
 }

@@ -71,6 +71,8 @@ function problemOf(error: z.ZodError, json: unknown): string {
     return `${path} is not ${expected}`
   }
   if (issue.code === "invalid_format") return `${path} is not a color`
+  if (issue.code === "too_small" && issue.origin === "array")
+    return `${path} needs at least ${Number(issue.minimum) === 1 ? "one color" : `${String(issue.minimum)} colors`}`
   return path ? `${path}: ${issue.message}` : issue.message
 }
 

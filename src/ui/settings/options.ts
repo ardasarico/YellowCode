@@ -253,7 +253,13 @@ const brokenThemes = (): DialogItem[] =>
   themeEntries().flatMap((entry) =>
     entry.problem === null
       ? []
-      : [{ id: `broken-${entry.id}`, spans: [{ text: `  ${entry.name} · ${entry.problem}`, fg: theme.warning }] }],
+      : [
+          {
+            id: `broken-${entry.id}`,
+            spans: [{ text: `  ${entry.name} · ${entry.problem}`, fg: theme.warning }],
+            search: entry.name,
+          },
+        ],
   )
 
 export const preview = (id: string) => {
