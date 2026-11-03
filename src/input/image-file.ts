@@ -1,21 +1,13 @@
-import { mkdtemp, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { NativeImage } from "@opentui/core"
-import { log } from "../log/log.ts"
+import { imageInfo, NativeImage } from "@opentui/core"
+import { Resvg } from "@resvg/resvg-js"
+import jpeg from "jpeg-js"
 import type { PromptImage } from "../agent/agent.ts"
-import { spawnLimited } from "../spawn.ts"
+import { log } from "../log/log.ts"
 import type { LoadImage } from "./draft.ts"
+import { encodePng, type Pixels } from "./png.ts"
 
 const MAX_SIDE = 2000
 const MAX_BYTES = 3.75 * 1024 * 1024
-
-const EXTENSIONS: Record<PromptImage["mediaType"], string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/gif": "gif",
-  "image/webp": "webp",
-}
 
 function startsWith(bytes: Uint8Array, prefix: string, at = 0): boolean {
   return Buffer.from(prefix, "latin1").every((byte, index) => bytes[at + index] === byte)
@@ -44,13 +36,6 @@ function decodes(bytes: Uint8Array): boolean {
   }
 }
 
-async function sips(args: string[]): Promise<string | null> {
-  const result = await spawnLimited(["sips", ...args], { timeoutMs: 20_000 })
-  if (result?.code === 0) return result.stdout
-  log.warn("sips failed", { args, stderr: result?.stderr ?? "timed out" })
-  return null
-}
-
 // Tried in order on the image (at most MAX_SIDE) until the JPEG fits: lower quality first, then a shorter long side.
 const STEPS = [
   { quality: 80, side: MAX_SIDE },
@@ -69,11 +54,67 @@ export class ImageTooLarge extends Error {
   }
 }
 
-async function pixelSize(file: string): Promise<{ width: number; height: number } | null> {
-  const info = await sips(["-g", "pixelWidth", "-g", "pixelHeight", file])
-  const width = Number(/pixelWidth: (\d+)/.exec(info ?? "")?.[1])
-  const height = Number(/pixelHeight: (\d+)/.exec(info ?? "")?.[1])
-  return width && height ? { width, height } : null
+function sizeOf(bytes: Uint8Array): { width: number; height: number } | null {
+  try {
+    return imageInfo(bytes)
+  } catch {
+    return null
+  }
+}
+
+// The decoder refuses pictures over about 25 MP; resvg draws those smaller. It ignores the EXIF orientation, so such a
+// photo taken sideways stays sideways. The size is the original's.
+function drawSmaller(bytes: Uint8Array, side: number): { png: Uint8Array; width: number; height: number } | null {
+  const type = mediaTypeOf(bytes)
+  if (type === null) return null
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="data:${type};base64,${Buffer.from(bytes).toString("base64")}"/></svg>`
+  const { width, height } = new Resvg(svg)
+  if (!width || !height) return null
+  const mode = width >= height ? "width" : "height"
+  const value = Math.min(side, Math.max(width, height))
+  return { png: new Resvg(svg, { fitTo: { mode, value } }).render().asPng(), width, height }
+}
+
+function open(bytes: Uint8Array): NativeImage | null {
+  try {
+    return NativeImage.decode(bytes)
+  } catch {
+    const smaller = drawSmaller(bytes, MAX_SIDE)
+    return smaller && NativeImage.decode(smaller.png)
+  }
+}
+
+// Straight-alpha RGBA, at most `side` pixels long, with the rows packed tight.
+function pixelsOf(image: NativeImage, side: number): Pixels {
+  const longest = Math.max(image.width, image.height)
+  const resized =
+    longest > side
+      ? image.resize({
+          width: Math.max(1, Math.round((image.width * side) / longest)),
+          height: Math.max(1, Math.round((image.height * side) / longest)),
+        })
+      : image
+  try {
+    const raw = resized.raw()
+    const row = raw.width * 4
+    const data = new Uint8Array(row * raw.height)
+    for (let y = 0; y < raw.height; y++) data.set(raw.data.subarray(y * raw.stride, y * raw.stride + row), y * row)
+    return { data, width: raw.width, height: raw.height }
+  } finally {
+    if (resized !== image) resized.dispose()
+  }
+}
+
+// JPEG has no alpha, so see-through parts go onto white rather than black.
+function toJpeg({ data, width, height }: Pixels, quality: number): Uint8Array {
+  const flat = Buffer.alloc(data.length)
+  for (let at = 0; at < data.length; at += 4) {
+    const alpha = data[at + 3] ?? 255
+    for (let channel = 0; channel < 3; channel++)
+      flat[at + channel] = Math.round(((data[at + channel] ?? 0) * alpha + 255 * (255 - alpha)) / 255)
+    flat[at + 3] = 255
+  }
+  return jpeg.encode({ data: flat, width, height }, quality).data
 }
 
 // A PNG copy at most `side` pixels long, for a picture too large to decode. The size is the original's.
@@ -81,58 +122,43 @@ export async function shrunkCopy(
   path: string,
   side: number,
 ): Promise<{ bytes: Uint8Array; width: number; height: number } | null> {
-  let dir: string | undefined
-  try {
-    dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))
-    const size = await pixelSize(path)
-    const copy = join(dir, "copy.png")
-    if (!size) return null
-    const longest = Math.min(side, Math.max(size.width, size.height))
-    if ((await sips(["-Z", String(longest), "-s", "format", "png", path, "--out", copy])) === null) return null
-    return { bytes: await Bun.file(copy).bytes(), ...size }
-  } catch (error) {
-    log.warn("image could not be shrunk", String(error))
-    return null
-  } finally {
-    if (dir) await rm(dir, { recursive: true, force: true })
-  }
+  const smaller = drawSmaller(await Bun.file(path).bytes(), side)
+  return smaller && { bytes: smaller.png, width: smaller.width, height: smaller.height }
 }
 
-async function shrink(dir: string, file: string, type: PromptImage["mediaType"]): Promise<string | null> {
-  const size = await pixelSize(file)
-  if (!size) return null
-  const side = Math.max(size.width, size.height)
-  if (side > MAX_SIDE) {
-    // sips reads WebP but cannot write it.
-    const extension = type === "image/webp" ? "png" : EXTENSIONS[type]
-    const resized = join(dir, `resized.${extension}`)
-    const format = type === "image/webp" ? ["-s", "format", "png"] : []
-    if ((await sips(["-Z", String(MAX_SIDE), ...format, file, "--out", resized])) === null) return null
-    file = resized
+// Larger than MAX_SIDE: scaled down, as JPEG for a JPEG and PNG otherwise. Over MAX_BYTES: JPEG steps until it fits.
+// `size` is null for a picture the decoder refuses.
+function shrink(
+  bytes: Uint8Array,
+  type: PromptImage["mediaType"],
+  size: { width: number; height: number } | null,
+): Uint8Array | null {
+  const image = open(bytes)
+  if (!image) return null
+  try {
+    const pixels = pixelsOf(image, MAX_SIDE)
+    const resized = size === null || Math.max(size.width, size.height) > MAX_SIDE
+    let out = resized ? (type === "image/jpeg" ? toJpeg(pixels, 90) : encodePng(pixels)) : bytes
+    if (out.length <= MAX_BYTES) return out
+    for (const step of STEPS) {
+      out = toJpeg(step.side < MAX_SIDE ? pixelsOf(image, step.side) : pixels, step.quality)
+      if (out.length <= MAX_BYTES) break
+    }
+    return out
+  } finally {
+    image.dispose()
   }
-  if (Bun.file(file).size <= MAX_BYTES) return file
-  const jpeg = join(dir, "smaller.jpg")
-  for (const step of STEPS) {
-    const resize = step.side < Math.min(side, MAX_SIDE) ? ["-Z", String(step.side)] : []
-    const args = [...resize, "-s", "format", "jpeg", "-s", "formatOptions", String(step.quality), file, "--out", jpeg]
-    // oxlint-disable-next-line no-await-in-loop
-    if ((await sips(args)) === null) return null
-    if (Bun.file(jpeg).size <= MAX_BYTES) break
-  }
-  return jpeg
 }
 
 // Throws ImageTooLarge when even the smallest step does not fit.
-export async function fitImage(bytes: Uint8Array): Promise<PromptImage | null> {
+export function fitImage(bytes: Uint8Array): PromptImage | null {
   const type = mediaTypeOf(bytes)
   if (type === null) return null
-  const dir = await mkdtemp(join(tmpdir(), "yellowcode-image-"))
   try {
-    const source = join(dir, `image.${EXTENSIONS[type]}`)
-    await Bun.write(source, bytes)
-    const file = await shrink(dir, source, type)
-    if (file === null) return null
-    const fitted = await Bun.file(file).bytes()
+    const size = sizeOf(bytes)
+    const fits = size !== null && Math.max(size.width, size.height) <= MAX_SIDE && bytes.length <= MAX_BYTES
+    const fitted = fits ? bytes : shrink(bytes, type, size)
+    if (fitted === null) return null
     const mediaType = mediaTypeOf(fitted)
     if (mediaType === null) return null
     if (fitted.length > MAX_BYTES) {
@@ -145,8 +171,6 @@ export async function fitImage(bytes: Uint8Array): Promise<PromptImage | null> {
     if (error instanceof ImageTooLarge) throw error
     log.warn("image could not be fitted", String(error))
     return null
-  } finally {
-    await rm(dir, { recursive: true, force: true })
   }
 }
 
