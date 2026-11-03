@@ -15,7 +15,18 @@ import type { Modes } from "./modes.ts"
 import { inPlanFolder } from "./plan.ts"
 import { imagesOf, messageOf, promptImages, promptOf } from "./prompts.ts"
 import { createTasks, type Child } from "./tasks.ts"
-import { absolute, blankEnd, called, goesOn, innerCall, kindOf, questionOutcome, resumes, succeeded } from "./tools.ts"
+import {
+  absolute,
+  blankEnd,
+  called,
+  executeNames,
+  goesOn,
+  innerCall,
+  kindOf,
+  questionOutcome,
+  resumes,
+  succeeded,
+} from "./tools.ts"
 import { modelKey, retryReason, type Windows } from "./usage.ts"
 import type { Form, PermissionRequest } from "./wire/asks.ts"
 import type { OpencodeEvent } from "./wire/events.ts"
@@ -105,8 +116,9 @@ type Tool = {
   parent: ToolId | null
   input: Record<string, unknown> | null
   ended: boolean
-  // An `execute` shows as the call of ours its code made.
+  // An `execute` shows as the call of ours its code made, or else names the calls it made.
   inner: boolean
+  names?: string
 }
 
 export type Translator = ReturnType<typeof createTranslator>
@@ -438,9 +450,14 @@ export function createTranslator(options: { lasting?: boolean } = {}) {
     const known = tools.get(id)
     if (known?.name !== "execute" || !known.input || known.inner || known.ended) return []
     const call = innerCall(id, metadata)
-    if (!call) return []
-    known.inner = true
-    return [call]
+    if (call) {
+      known.inner = true
+      return [call]
+    }
+    const names = executeNames(metadata)
+    if (!names || names === known.names) return []
+    known.names = names
+    return [{ ...called(id, known.name, known.input, directory, false), summary: names }]
   }
 
   // A shell's or a subagent's call names what it runs, and an `execute` the calls its code makes.

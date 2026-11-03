@@ -166,6 +166,12 @@ const executeMeta = z.looseObject({
   error: z.boolean().optional(),
 })
 
+// The calls an `execute` made, by name in order, each once, for its row; empty while it made none.
+export function executeNames(metadata: unknown): string {
+  const calls = executeMeta.safeParse(metadata).data?.toolCalls ?? []
+  return [...new Set(calls.map((call) => call.tool))].join(", ")
+}
+
 // The model reaches YellowCode's own tools, our ask and each mod's `mod-<id>` tools, only from `execute` code. An
 // `execute` that made one such call and nothing else shows as that call.
 export function innerCall(id: ToolId, metadata: unknown): Called | null {
