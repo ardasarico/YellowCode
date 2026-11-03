@@ -29,8 +29,10 @@ export function tableSegments(token: Tokens.Table, width: number): Segment[] {
       segments.push({ text: "│", frame: true })
       wrapped.forEach((lines, index) => {
         const text = lines[line] ?? ""
-        const pad = (widths[index] ?? 0) - Bun.stringWidth(text)
-        segments.push({ text: ` ${text}${" ".repeat(Math.max(0, pad))} `, bold })
+        const pad = Math.max(0, (widths[index] ?? 0) - Bun.stringWidth(text))
+        const align = token.align[index]
+        const before = align === "right" ? pad : align === "center" ? Math.floor(pad / 2) : 0
+        segments.push({ text: ` ${" ".repeat(before)}${text}${" ".repeat(pad - before)} `, bold })
         segments.push({ text: "│", frame: true })
       })
       segments.push({ text: "\n" })
