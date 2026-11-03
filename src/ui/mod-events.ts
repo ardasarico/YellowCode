@@ -13,6 +13,10 @@ function lastTurnError(session: Session): string | null {
 
 const onFocus = () => emitModEvent("focus", {})
 
+// The last model the mods were told of. It outlives the App, which a provider switch starts again, and the model is
+// unknown for a moment while another agent starts, so the change is from this one to the next known one.
+let known: string | null = null
+
 // Tells the mods what happens in the session. Only what happens during a turn counts, so loading a transcript fires
 // nothing.
 export function useModEvents(renderer: CliRenderer, session: () => Session, model: () => string | null): void {
@@ -49,8 +53,6 @@ export function useModEvents(renderer: CliRenderer, session: () => Session, mode
       },
     ),
   )
-  // The model is unknown for a moment while another agent starts; the change is from the last known one to the next.
-  let known: string | null = null
   createEffect(
     on(model, (now) => {
       if (now === null) return
