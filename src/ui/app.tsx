@@ -1591,6 +1591,12 @@ export function App(props: AppProps) {
       return
     }
     // Esc interrupts only when nothing else takes it; the draft stays.
+    if (key.name === "escape" && !listOpen() && shellRunning()) {
+      key.preventDefault()
+      key.stopPropagation()
+      props.onShellStop?.()
+      return
+    }
     if (key.name === "escape" && !listOpen() && interruptible()) {
       key.preventDefault()
       key.stopPropagation()
