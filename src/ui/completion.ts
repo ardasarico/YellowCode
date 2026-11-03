@@ -104,9 +104,13 @@ export function useCompletion(options: CompletionOptions) {
   const [selected, setSelected] = createSignal(0)
   let fileRequest = 0
 
+  // The first entry the list shows; the rows shown follow the selection through a longer list.
+  const [top, setTop] = createSignal(0)
+
   const show = (next: Completion | null) => {
     setCompletion(next && next.entries.length > 0 ? next : null)
     setSelected(0)
+    setTop(0)
   }
 
   const close = () => {
@@ -114,11 +118,15 @@ export function useCompletion(options: CompletionOptions) {
     setCompletion(null)
   }
 
-  const shown = () => {
-    const entries = completion()?.entries ?? []
-    return entries.slice(0, suggestionRows(entries.length, options.room()))
+  const entries = () => completion()?.entries ?? []
+  const rowCount = () => suggestionRows(entries().length, options.room())
+  const index = () => Math.max(0, Math.min(selected(), entries().length - 1))
+  const first = () => Math.max(0, Math.min(top(), index(), entries().length - rowCount()), index() - rowCount() + 1)
+  const shown = () => (rowCount() === 0 ? [] : entries().slice(first(), first() + rowCount()))
+  const select = (next: number) => {
+    setSelected(next)
+    setTop(first())
   }
-  const index = () => Math.max(0, Math.min(selected(), shown().length - 1))
 
   const [ghost, setGhost] = createSignal<{ text: string; hint: string } | null>(null)
 
@@ -415,10 +423,11 @@ export function useCompletion(options: CompletionOptions) {
       close()
     } else if (plain && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
-      setSelected((index() + (key.name === "up" ? rows.length - 1 : 1)) % rows.length)
+      const count = entries().length
+      select((index() + (key.name === "up" ? count - 1 : 1)) % count)
     } else if (key.name === "tab" || (plain && key.name === "return")) {
       key.preventDefault()
-      const entry = rows[index()]
+      const entry = entries()[index()]
       if (entry) pick(entry, key.name === "return")
     }
   })
@@ -437,7 +446,7 @@ export function useCompletion(options: CompletionOptions) {
     draft: chips.draft,
     paste: (event: PasteEvent) => chips.paste(event),
     shown,
-    selected: index,
+    selected: () => index() - first(),
     hint,
     historyPosition: () => {
       const current = browsing()
