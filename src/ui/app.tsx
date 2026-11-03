@@ -1340,9 +1340,18 @@ export function App(props: AppProps) {
   }
   renderer.on(CliRenderEvents.SELECTION, copySelection)
   onCleanup(() => renderer.off(CliRenderEvents.SELECTION, copySelection))
+  // A timeline opened while the agent worked has no file changes yet; once the turn ends it opens again with them.
+  let timelineWhileBusy = false
   createEffect(
     on(busy, (running) => {
-      if (!running || untrack(dialog)?.name !== "rewind") return
+      if (untrack(dialog)?.name !== "rewind") return
+      if (!running) {
+        if (!timelineWhileBusy) return
+        timelineWhileBusy = false
+        setDialog(null)
+        void openRewind()
+        return
+      }
       setDialog(null)
       waitNotice()
     }),
@@ -1354,6 +1363,7 @@ export function App(props: AppProps) {
     setDialog({ name: "rewind", extras, late })
   }
   const closeTimeline = () => {
+    timelineWhileBusy = false
     if (timelineFrom !== null) scroll?.scrollTo(timelineFrom)
     timelineFrom = null
     setDialog(null)
@@ -1365,7 +1375,10 @@ export function App(props: AppProps) {
     if (rewind && !prompts) return waitNotice("Nothing to rewind")
     if (!rewind || pending() || previewing || dialog() !== null) return
     // While the agent works the list still opens; only rewinding waits.
-    if (busy() || rewind.working?.() || !canRewind()) return openTimeline(null, null)
+    if (busy() || rewind.working?.() || !canRewind()) {
+      timelineWhileBusy = busy()
+      return openTimeline(null, null)
+    }
     previewing = true
     // The dialog opens on the newest prompt an earlier rewind did not hide.
     const users = userItems()
