@@ -54,7 +54,15 @@ function table(): Row[] {
 const isService = (command: string) => command.includes("opencode") && command.includes(" serve")
 
 // Reads one process's env, only to see whether it runs in the root.
-const runsIn = (pid: number, root: string) => run("ps", ["-Eww", "-o", "command=", "-p", String(pid)]).includes(root)
+// Looks in the process's command line and environment: ps -E shows both on macOS, Linux keeps them in /proc.
+function runsIn(pid: number, root: string): boolean {
+  if (process.platform === "darwin") return run("ps", ["-Eww", "-o", "command=", "-p", String(pid)]).includes(root)
+  try {
+    return ["cmdline", "environ"].some((file) => readFileSync(`/proc/${pid}/${file}`, "utf8").includes(root))
+  } catch {
+    return false
+  }
+}
 
 // Opencode services that are not ours, by pid. Only their command lines are read.
 function userServices(root: string): number[] {
