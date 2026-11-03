@@ -41,7 +41,9 @@ function lastStates(text: string): string {
 }
 
 function body(task: Task): { text: string; color: RGBA } {
-  if (task.output === null) return { text: "output not available", color: theme.muted }
+  // Some agents give a shell's output only once it ends.
+  if (task.output === null)
+    return { text: task.state === "running" ? "output shows when it ends" : "output not available", color: theme.muted }
   const text = lastStates(Bun.stripANSI(task.output).replace(EXIT_MARKER, "")).trimEnd()
   if (text) return { text, color: theme.text }
   return { text: task.state === "running" ? "no output yet" : "no output", color: theme.muted }
