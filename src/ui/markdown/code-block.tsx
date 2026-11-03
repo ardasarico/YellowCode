@@ -84,6 +84,7 @@ export function CodeBlock(props: {
           ref={(element) => (code = element)}
           content={initialCode}
           filetype={infoStringToFiletype(props.lang)}
+          conceal={false}
           syntaxStyle={syntaxStyle()}
           // Unfinished code parses with errors that recolor earlier lines back and forth, so while the block is written
           // its finished lines keep their first colors. The final highlight once the block is done colors everything.

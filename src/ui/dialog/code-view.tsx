@@ -215,6 +215,7 @@ export function CodeView(props: {
             ref={(element) => (code = element)}
             content={text() ?? ""}
             filetype={filetype()}
+            conceal={false}
             syntaxStyle={syntaxStyle()}
             fg={theme.text}
             wrapMode="word"

@@ -72,6 +72,7 @@ function SyntaxRows(props: { rows: DiffRow[]; filetype: string }) {
       <code
         content={content()}
         filetype={props.filetype}
+        conceal={false}
         syntaxStyle={syntaxStyle()}
         fg={theme.text}
         wrapMode="char"
