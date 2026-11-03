@@ -1,6 +1,6 @@
 // The models each provider listed last, kept in ~/.yellowcode/models.json. Only the fields below are kept: an agent's
 // raw rows can carry endpoints, headers and keys.
-import { mkdirSync, readFileSync, renameSync, rmSync } from "node:fs"
+import { mkdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs"
 import { dirname } from "node:path"
 import { z } from "zod"
 import type { AgentKindId } from "../agent/ids.ts"
@@ -43,22 +43,31 @@ export const catalogFile = () => dataPath("models.json")
 
 const empty = (): Catalog => ({ version: 1, providers: {} })
 
+// The last read, kept until the file changes; another YellowCode process may write it too. Callers do not change it.
+let cached: { file: string; mtime: number; size: number; value: Catalog } | null = null
+
 export function readCatalog(file = catalogFile()): Catalog {
   let text: string
+  let stat: { mtimeMs: number; size: number }
   try {
+    stat = statSync(file)
+    if (cached?.file === file && cached.mtime === stat.mtimeMs && cached.size === stat.size) return cached.value
     text = readFileSync(file, "utf8")
   } catch {
     return empty()
   }
   const json = parseJson(text)
   const parsed = json.ok ? catalog.safeParse(json.value) : null
-  return parsed?.success ? parsed.data : empty()
+  const value = parsed?.success ? parsed.data : empty()
+  cached = { file, mtime: stat.mtimeMs, size: stat.size, value }
+  return value
 }
 
 export function writeCatalog(value: Catalog, file = catalogFile()): void {
   const bytes = new TextEncoder().encode(JSON.stringify(catalog.parse(value)))
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
   const temp = writeBeside(file, bytes, 0o600)
+  cached = null
   try {
     renameSync(temp, file)
   } catch (error) {
@@ -71,7 +80,7 @@ const sameRef = (a: ModelRow, b: ModelRow) => a.ref.provider === b.ref.provider 
 
 // A provider's new list replaces its old one; a window learned before stays on a row whose new list has none.
 export function saveListed(provider: AgentKindId, version: string, groups: ModelGroup[], file = catalogFile()): void {
-  const now = readCatalog(file)
+  const now = structuredClone(readCatalog(file))
   const known = now.providers[provider]?.groups.flatMap((one) => one.models) ?? []
   const kept = groups.map((one) => ({
     ...one,
@@ -85,7 +94,7 @@ export function saveListed(provider: AgentKindId, version: string, groups: Model
 
 // A window a turn reported for `model`, put on each of the provider's rows that is or stands for it.
 export function saveWindow(provider: AgentKindId, model: string, window: number, file = catalogFile()): void {
-  const now = readCatalog(file)
+  const now = structuredClone(readCatalog(file))
   const entry = now.providers[provider]
   if (!entry) return
   let changed = false

@@ -937,7 +937,7 @@ export function App(props: AppProps) {
       }),
     ]
   }
-  // A provider the catalog has no list of is listed as the picker opens.
+  // As the picker opens, a provider the catalog has no list of, or one listed by another version, is listed again.
   const openModels = (query = "") => {
     listCatalogs()
     setDialog({ name: "model", query })
@@ -949,11 +949,10 @@ export function App(props: AppProps) {
   const listCatalogs = () => {
     const lists = readCatalogs()
     setCatalogs(lists)
-    for (const [id, known] of lists)
-      if (known === null)
-        void props.models
-          ?.ensure(id)
-          .then(() => setCatalogs((now) => new Map(now).set(id, props.models?.listed(id) ?? [])))
+    for (const id of lists.keys())
+      void props.models
+        ?.ensure(id)
+        .then(() => setCatalogs((now) => new Map(now).set(id, props.models?.listed(id) ?? [])))
   }
   const currentModel = () => {
     const id = settings.model ?? props.model()

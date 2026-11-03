@@ -446,13 +446,29 @@ function childModes(id: AgentKindId): Promise<ModeRow[]> {
 }
 
 const listing = [claude, opencode, codex, pi]
-const catalogOf = (id: AgentKindId): ModelRow[] =>
-  readCatalog().providers[id]?.groups.flatMap((group) => group.models) ?? []
+// null: the provider has no catalog entry.
+const listedRows = (id: AgentKindId): ModelRow[] | null =>
+  readCatalog().providers[id]?.groups.flatMap((group) => group.models) ?? null
+const catalogOf = (id: AgentKindId): ModelRow[] => listedRows(id) ?? []
 
-// A provider without a catalog entry lists its models first.
-async function catalogRows(id: AgentKindId): Promise<ModelRow[]> {
+// Once per provider in this process, on first need: its models are listed when missing or listed by another version.
+const ensured = new Map<AgentKindId, Promise<boolean>>()
+function ensureListed(id: AgentKindId): Promise<boolean> {
   const kind = listing.find((one) => one.id === id)
-  if (kind && !readCatalog().providers[id]) await ensureCatalog(kind, cwd)
+  if (!kind) return Promise.resolve(false)
+  let check = ensured.get(id)
+  if (!check) {
+    check = ensureCatalog(kind, cwd)
+    ensured.set(id, check)
+    void check.then((done) => {
+      if (!done) ensured.delete(id)
+    })
+  }
+  return check
+}
+
+async function catalogRows(id: AgentKindId): Promise<ModelRow[]> {
+  await ensureListed(id)
   return catalogOf(id)
 }
 
@@ -554,7 +570,7 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
       return rows.find((row) => row.id === store.state.permissionMode && row.group === null)?.kind ?? "other"
     },
     models: catalogRows,
-    listed: (id) => readCatalog().providers[id] !== undefined,
+    listed: (id) => listedRows(id) !== null,
     definitions: () =>
       loadDefinitions(
         cwd,
@@ -1125,11 +1141,8 @@ function answerMove(ask: { requestId: string }, reply: AskReply): void {
 // /model and Shift+←→ read the other added providers' models from the catalog, and start one of them.
 const modelSource: ModelSource = {
   added: addedProviders,
-  listed: (id) => readCatalog().providers[id]?.groups.flatMap((group) => group.models) ?? null,
-  ensure: (id) => {
-    const kind = listing.find((one) => one.id === id)
-    return kind ? ensureCatalog(kind, cwd) : Promise.resolve(false)
-  },
+  listed: listedRows,
+  ensure: ensureListed,
   carry: (id, model) => {
     const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
     const label = row?.label ?? model.id
