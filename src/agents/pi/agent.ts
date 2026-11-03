@@ -217,6 +217,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   let catalog: PiModel[] = []
   let model: ModelRef | null = state.model ? { provider: state.model.provider, id: state.model.id } : null
   let window = state.model?.contextWindow ?? null
+  let thinking = state.thinking
   let used = 0
   // The prompts of user messages told since the session opened here, in order; null for one that is not ours.
   let told: (PromptId | null)[] = []
@@ -302,6 +303,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
         continue
       }
       if (parsed.data.type === "thinking_level_changed") {
+        thinking = parsed.data.level
         tell({ type: "effort", effort: parsed.data.level, at: now() })
         continue
       }
@@ -536,6 +538,9 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
 
   const setModel = (choice: ModelRef) =>
     act("the model switch", async () => {
+      // pi resets the thinking level on every set_model, even to the model it runs.
+      if (model?.provider === choice.provider && model.id === choice.id) return
+      const before = thinking
       await pi.command("set_model", { provider: choice.provider, modelId: choice.id })
       model = choice
       info.model = choice
@@ -550,12 +555,19 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
         catalog = catalog.map((one) => (one === picked ? { ...one, levels: read.data.levels } : one))
         tell({ type: "lists", lists: { models: modelGroups(catalog) }, at: now() })
       }
+      // The level the session had goes on with the new model, as it does with the other agents.
+      if (before !== null && read.success && read.data.levels.includes(before)) {
+        await pi.command("set_thinking_level", { level: before })
+        thinking = before
+        tell({ type: "effort", effort: before, at: now() })
+      }
     })
 
   const setEffort = (level: EffortId | null) =>
     act("the thinking level", async () => {
       if (level === null) return
       await pi.command("set_thinking_level", { level })
+      thinking = level
       tell({ type: "effort", effort: level, at: now() })
     })
 
