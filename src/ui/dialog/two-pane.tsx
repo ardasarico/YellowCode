@@ -1,4 +1,4 @@
-import type { KeyEvent } from "@opentui/core"
+import type { KeyEvent, ScrollBoxRenderable } from "@opentui/core"
 import { createMemo, createSignal, For, Show, untrack } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { wrapText } from "../markdown/layout.ts"
@@ -162,6 +162,9 @@ export function TwoPane(props: TwoPaneProps) {
     return true
   }
 
+  // A detail with nothing to select scrolls with ↑↓ when it is taller than its room.
+  let detailScroll: ScrollBoxRenderable | undefined
+
   // ←→ move along the actions, ↑↓ between them and the rows above them.
   const detailKeys = (key: KeyEvent) => {
     const owner = selectedRow()
@@ -176,7 +179,9 @@ export function TwoPane(props: TwoPaneProps) {
       else setPane("list")
     } else if (key.name === "right") {
       if (onActions) setFocus(moveSelection(actionIds(), id, 1))
-    } else if (key.name === "up") setFocus(onActions ? (body.at(-1) ?? id) : moveSelection(body, id, -1))
+    } else if ((key.name === "up" || key.name === "down") && body.length === 0)
+      detailScroll?.scrollBy({ x: 0, y: key.name === "up" ? -1 : 1 })
+    else if (key.name === "up") setFocus(onActions ? (body.at(-1) ?? id) : moveSelection(body, id, -1))
     else if (key.name === "down") {
       if (!onActions) setFocus(id === body.at(-1) ? (actionIds()[0] ?? id) : moveSelection(body, id, 1))
     } else if (key.name === "return") {
@@ -292,16 +297,38 @@ export function TwoPane(props: TwoPaneProps) {
           when={props.actionsOnTop}
           fallback={
             <>
-              <ListView
-                sections={detailSections()}
-                lines={detailLines()}
-                selected={bodySelected()}
-                view={selectedId() ?? ""}
-                rows={Math.max(0, props.api.rows() - ACTION_ROWS - (note() ? 1 : 0))}
-                width={detailList()}
-                pad={detailProps.pad}
-                inset
-              />
+              <Show
+                when={bodyIds().length === 0}
+                fallback={
+                  <ListView
+                    sections={detailSections()}
+                    lines={detailLines()}
+                    selected={bodySelected()}
+                    view={selectedId() ?? ""}
+                    rows={Math.max(0, props.api.rows() - ACTION_ROWS - (note() ? 1 : 0))}
+                    width={detailList()}
+                    pad={detailProps.pad}
+                    inset
+                  />
+                }
+              >
+                <scrollbox
+                  ref={(element: ScrollBoxRenderable) => (detailScroll = element)}
+                  height={Math.max(0, props.api.rows() - ACTION_ROWS - (note() ? 1 : 0))}
+                  flexShrink={0}
+                >
+                  <ListView
+                    sections={detailSections()}
+                    lines={detailLines()}
+                    selected={undefined}
+                    view={selectedId() ?? ""}
+                    rows={detailLines().length}
+                    width={detailList()}
+                    pad={detailProps.pad}
+                    inset
+                  />
+                </scrollbox>
+              </Show>
               <box height={1} />
               <Rule pad={detailProps.pad} />
               <box height={1} paddingLeft={detailProps.pad}>
