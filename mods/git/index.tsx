@@ -21,8 +21,8 @@ function counts(change: Change): string {
   return [change.added ? `+${change.added}` : "", change.removed ? `−${change.removed}` : ""].filter(Boolean).join(" ")
 }
 
-// The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it.
-async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void> {
+// The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it. Answers whether it opened.
+async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<boolean> {
   const diff = await fileDiff(cwd, change)
   const dialog = mod.dialogs.open({
     title: `${change.path}  ${counts(change)}`,
@@ -44,7 +44,12 @@ async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<void>
       )
     },
   })
-  if (!dialog.shown) mod.notify("Close the open dialog first", { level: "info" })
+  if (!dialog.shown) {
+    mod.notify("Close the open dialog first", { level: "info" })
+    return false
+  }
+  await dialog.closed
+  return true
 }
 
 function Row(props: { change: Change; width: number; onOpen: () => void }) {
@@ -109,6 +114,28 @@ export default defineMod({
           </box>
         )
       },
+    })
+
+    // Every change, by keyboard; closing a diff comes back to the list.
+    const pick = async (): Promise<void> => {
+      await refresh()
+      if (state() === null) return mod.notify("Not a git repository", { level: "info" })
+      if (changes().length === 0) return mod.notify("No changes", { level: "info" })
+      const id = await mod.dialogs.choose({
+        title: "Changed files",
+        items: changes().map((change) => ({
+          id: change.path,
+          label: `${change.letter} ${change.path}`,
+          note: counts(change) || undefined,
+        })),
+      })
+      const change = changes().find((item) => item.path === id)
+      if (change && (await showDiff(mod, cwd, change))) await pick()
+    }
+    mod.commands.add({
+      name: "git",
+      description: "List the changed files and show a diff",
+      run: () => void pick().catch((error: unknown) => mod.log.warn("cannot list the changes", error)),
     })
 
     const update = () => void refresh().catch((error: unknown) => mod.log.warn("cannot read git", error))

@@ -56,6 +56,6 @@ If a mod keeps YellowCode from starting, run `yellowcode --no-mods` and turn it 
 
 This repo's [`mods/`](../mods) folder has three mods you can copy into your mods folder:
 
-- `git`: the changed files in the sidebar, with a diff on click.
+- `git`: the changed files in the sidebar, with a diff on click, and `/git` to pick one by keyboard.
 - `csv`: draws `csv` and `tsv` blocks as tables.
 - `terminal`: shells in a pane.
