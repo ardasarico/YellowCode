@@ -140,6 +140,23 @@ export function TabbedDialog<Id extends string>(props: {
     else if (key.name === "escape") props.onClose()
   })
 
+  // The tabs that fit beside the title and "esc", a run that holds the active one; "‹" and "›" mark the rest.
+  const shownTabs = () => {
+    const room = inner() - Bun.stringWidth(props.title) - 2 - 4
+    const widths = props.tabs.map((tab) => Bun.stringWidth(tab.label) + 2)
+    if (widths.reduce((sum, one) => sum + one, 0) <= room) return { tabs: props.tabs, before: false, after: false }
+    const active = Math.max(
+      0,
+      props.tabs.findIndex((tab) => tab.id === props.tab),
+    )
+    let first = active
+    let last = active
+    let used = (widths[active] ?? 0) + 2
+    while (last + 1 < widths.length && used + (widths[last + 1] ?? 0) <= room) used += widths[++last] ?? 0
+    while (first > 0 && used + (widths[first - 1] ?? 0) <= room) used += widths[--first] ?? 0
+    return { tabs: props.tabs.slice(first, last + 1), before: first > 0, after: last < props.tabs.length - 1 }
+  }
+
   // A span's style only ever adds: an unset bg or bold keeps the old one, so each change draws a new span.
   const Strip = () => (
     <box height={1} paddingLeft={PAD_X} paddingRight={PAD_X} flexDirection="row">
@@ -147,7 +164,8 @@ export function TabbedDialog<Id extends string>(props: {
         {props.title}
       </text>
       <text marginLeft={2} wrapMode="none" flexShrink={1}>
-        <For each={props.tabs}>
+        <span style={{ fg: theme.panelMuted }}>{shownTabs().before ? "‹" : ""}</span>
+        <For each={shownTabs().tabs}>
           {(tab) => () => {
             const active = tab.id === props.tab
             const filled = active && focus() === "strip"
@@ -164,6 +182,7 @@ export function TabbedDialog<Id extends string>(props: {
             )
           }}
         </For>
+        <span style={{ fg: theme.panelMuted }}>{shownTabs().after ? "›" : ""}</span>
       </text>
       <box flexGrow={1} />
       <text fg={theme.panelMuted} wrapMode="none" flexShrink={0} marginLeft={1}>
