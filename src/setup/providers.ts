@@ -65,5 +65,7 @@ export async function runProvidersCommand(known: KnownProvider[]): Promise<numbe
   if (!rows.some((row) => row.blocked === null)) exit("No provider is installed.")
   const picked = await askProviders(rows, added)
   if (picked === null) return 130
-  return saveSettings({ ...settings, providers: picked }) ? 0 : 1
+  if (!saveSettings({ ...settings, providers: picked }))
+    exit("Could not save settings.json, so the providers did not change.")
+  return 0
 }
