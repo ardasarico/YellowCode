@@ -278,7 +278,9 @@ function InfoLineBase(props: StatusLineProps) {
   const effort = () => {
     const level = settings.effort
     if (!level) return null
-    const fits = Bun.stringWidth(label()) + `  effort ${level}`.length + 2 + contextWidth(props.context) <= props.width
+    const fits =
+      modeWidth() + Bun.stringWidth(label()) + `  effort ${level}`.length + 2 + contextWidth(props.context) <=
+      props.width
     return fits ? level : null
   }
   const leftWidth = () =>
@@ -315,7 +317,7 @@ function InfoLineBase(props: StatusLineProps) {
         </text>
         <Show when={effort()}>
           {(level) => (
-            <text>
+            <text wrapMode="none">
               <span style={{ fg: theme.muted }}>{"  effort "}</span>
               <span style={{ fg: effortColor(level(), theme.rgb) }}>{level()}</span>
             </text>

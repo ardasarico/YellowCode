@@ -107,7 +107,9 @@ export function InputBlock(props: InputBlockProps) {
   onCleanup(() => props.onDraft?.(completion.draft()))
   const modelLabel = () => {
     if (!props.model) return ""
-    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth())
+    const word = modeWord(props.permissionMode ?? null, props.provider.modes())
+    const modeWidth = word ? Bun.stringWidth(word.text) + 2 : 0
+    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth() - modeWidth)
   }
   const prefixWidth = () => (props.shell ? 2 : 0) + (props.messageTo ? props.messageTo.name.length + 2 : 0)
   const unfold = () =>
@@ -191,7 +193,7 @@ export function InputBlock(props: InputBlockProps) {
               </Show>
               <Show when={settings.effort}>
                 {(level) => (
-                  <text>
+                  <text wrapMode="none">
                     <span style={{ fg: theme.muted }}>effort </span>
                     <span style={{ fg: effortColor(level(), theme.rgb) }}>{level()}</span>
                   </text>
