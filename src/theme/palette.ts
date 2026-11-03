@@ -62,11 +62,22 @@ export function tintsFrom(colors: TerminalColors): Tints | null {
   }
 }
 
+const luminance = (color: string) =>
+  0.2126 * channel(color, 0) + 0.7152 * channel(color, 1) + 0.0722 * channel(color, 2)
+
 export function isDark(background: string | null): boolean {
   const value = hex(background)
-  if (!value) return true
-  const [r, g, b] = [0, 1, 2].map((i) => channel(value, i))
-  return 0.2126 * (r ?? 0) + 0.7152 * (g ?? 0) + 0.0722 * (b ?? 0) < 128
+  return value ? luminance(value) < 128 : true
+}
+
+// Grey text for the terminal theme: ANSI 8, unless it is too close to the background to read (Solarized Dark has them
+// equal), then a mix of background and foreground.
+export function readableGrey(background: string | null, foreground: string | null, grey: string | null): string | null {
+  const back = hex(background)
+  const front = hex(foreground)
+  const own = hex(grey)
+  if (!back || !front || !own || Math.abs(luminance(own) - luminance(back)) >= 48) return null
+  return mix(back, front, 0.55)
 }
 
 // palette holds the 16 ANSI colors as hex where the terminal reported them; images need real RGB values.

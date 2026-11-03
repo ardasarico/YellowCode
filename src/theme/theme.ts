@@ -2,7 +2,7 @@ import { type NativeResourceOwner, RGBA, SyntaxStyle } from "@opentui/core"
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { claudeColor } from "./brand.ts"
-import { mix, type TerminalLook, type Tints } from "./palette.ts"
+import { mix, readableGrey, type TerminalLook, type Tints } from "./palette.ts"
 import { readThemes, type ThemeEntry } from "./theme-file.ts"
 
 type SyntaxTokens<T> = { keyword: T; string: T; number: T; function: T; type: T; comment: T }
@@ -89,6 +89,8 @@ export function terminalTheme(terminal: Terminal): Theme {
     return value ? RGBA.fromHex(value) : null
   }
   const text = RGBA.defaultForeground(terminal.foreground ?? undefined)
+  const grey = readableGrey(terminal.background, terminal.foreground, palette[8] ?? null)
+  const muted = grey ? hex(grey) : ansi(8)
   const onPanel = (amount: number) =>
     tints && terminal.foreground ? hex(mix(tints.tile, terminal.foreground, amount)) : null
   return {
@@ -96,7 +98,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     canvas: RGBA.defaultBackground(terminal.background ?? undefined),
     dim: terminal.background !== null && terminal.foreground !== null,
     text,
-    muted: ansi(8),
+    muted,
     faint: tint("faint") ?? ansi(8),
     panelMuted: onPanel(0.55) ?? ansi(8),
     panelFaint: onPanel(0.45) ?? tint("faint") ?? ansi(8),
@@ -124,7 +126,7 @@ export function terminalTheme(terminal: Terminal): Theme {
     claude: claudeColor(terminal.rgb),
     agents: [6, 5, 2, 3, 4].map((index) => ansi(index)),
     rgb: terminal.rgb,
-    syntax: { keyword: ansi(4), string: ansi(2), number: ansi(3), function: ansi(4), type: ansi(3), comment: ansi(8) },
+    syntax: { keyword: ansi(4), string: ansi(2), number: ansi(3), function: ansi(4), type: ansi(3), comment: muted },
   }
 }
 
