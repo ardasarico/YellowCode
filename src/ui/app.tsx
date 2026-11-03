@@ -1265,7 +1265,7 @@ export function App(props: AppProps) {
     if (!replace && existsSync(path)) return waitNotice(`${name} exists, nothing saved`)
     try {
       await Bun.write(path, exportText())
-      waitNotice(`Exported to ${relative(process.cwd(), path)}`)
+      waitNotice(`Exported to ${relative(path, process.cwd())}`)
     } catch (error) {
       waitNotice(`Could not save ${name}: ${error instanceof Error ? error.message : String(error)}`)
     }
