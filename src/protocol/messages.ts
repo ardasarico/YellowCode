@@ -212,8 +212,20 @@ const streamEvent = z.looseObject({
         ]),
       }),
       z.looseObject({ type: z.literal("content_block_stop"), index: z.number() }),
+      // A message's last word: its whole usage, the reply's own tokens included.
+      z.looseObject({
+        type: z.literal("message_delta"),
+        usage: z
+          .looseObject({
+            input_tokens: z.number().nullable().optional(),
+            output_tokens: z.number().nullable().optional(),
+            cache_creation_input_tokens: z.number().nullable().optional(),
+            cache_read_input_tokens: z.number().nullable().optional(),
+          })
+          .optional(),
+      }),
     ]),
-    ["message_start", "content_block_start", "content_block_delta", "content_block_stop"],
+    ["message_start", "content_block_start", "content_block_delta", "content_block_stop", "message_delta"],
   ),
 })
 

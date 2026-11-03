@@ -74,6 +74,18 @@ export function createStream(tools: Tools, relay: Relay, tasks: Tasks) {
         const block = cursor?.blocks.get(event.index)
         return block && block.kind !== "tool" && open.has(block.part) ? [end(block, null)] : []
       }
+      // The reply is in the context of the next request too, which the assistant line's usage leaves out.
+      case "message_delta": {
+        const usage = event.usage
+        // Older claudes give only the output here; the context is then the assistant line's count.
+        if (!usage || thread !== null || typeof usage.input_tokens !== "number") return []
+        const tokens =
+          usage.input_tokens +
+          (usage.cache_creation_input_tokens ?? 0) +
+          (usage.cache_read_input_tokens ?? 0) +
+          (usage.output_tokens ?? 0)
+        return [{ type: "context.used", tokens }]
+      }
       case "unknown":
         break
     }
