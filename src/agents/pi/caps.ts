@@ -9,7 +9,7 @@ export const PI_CAPS: Capabilities = {
   steer: true,
   queue: true,
   images: true,
-  fileSuggestions: false,
+  fileSuggestions: true,
   askNote: false,
   ownQuestions: false,
   clientTools: "none",

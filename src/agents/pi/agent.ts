@@ -5,6 +5,7 @@ import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../ag
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModelRef, ModeId, Outcome, PromptId } from "../../agent/ids.ts"
 import type { CommandRow, ListName, ModeRow } from "../../agent/lists.ts"
+import { suggestFiles } from "../../input/files.ts"
 import { log } from "../../log/log.ts"
 import { yellowcodeHome } from "../../update/method.ts"
 import { queue, stdioTransport, type Transport } from "../codex/transport.ts"
@@ -591,7 +592,8 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
         tools: [],
       }),
     usage: () => Promise.reject(new Error("Pi usage is not built yet")),
-    files: () => Promise.resolve([]),
+    // Pi has no file search over RPC; its own editor lists the files locally too.
+    files: (query) => suggestFiles(query),
     setClientTools: later("client tools"),
     setMcpServers: later("MCP servers"),
   }
