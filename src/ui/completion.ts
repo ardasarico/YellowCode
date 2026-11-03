@@ -428,7 +428,12 @@ export function useCompletion(options: CompletionOptions) {
     } else if (key.name === "tab" || (plain && key.name === "return")) {
       key.preventDefault()
       const entry = entries()[index()]
-      if (entry) pick(entry, key.name === "return")
+      // A typed name the row only matches inside, like /plan on /prova:planning, may be a command the list does
+      // not show; Enter sends it as typed rather than running another command.
+      if (entry?.kind === "command" && key.name === "return" && entry.match.start > 0) {
+        close()
+        submit()
+      } else if (entry) pick(entry, key.name === "return")
     }
   })
 
