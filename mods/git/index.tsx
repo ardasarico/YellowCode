@@ -22,6 +22,16 @@ function counts(change: Change): string {
 }
 
 // The file's diff in a wide dialog; ↑↓ and PgUp/PgDn scroll it. Answers whether it opened.
+// What a diff with no lines to show says: git's own words for a binary file, a rename or a mode change.
+function noHunks(diff: string): string {
+  if (diff.trim() === "") return "No changes against the last commit."
+  if (/^Binary files /m.test(diff)) return "Binary file changed."
+  const from = /^rename from (.+)$/m.exec(diff)?.[1]
+  if (from) return `Renamed from ${from}, no content changes.`
+  if (/^(old|new) mode /m.test(diff)) return "File mode changed, no content changes."
+  return "No content changes."
+}
+
 async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<boolean> {
   const diff = await fileDiff(cwd, change)
   const dialog = mod.dialogs.open({
@@ -37,7 +47,7 @@ async function showDiff(mod: ModApi, cwd: string, change: Change): Promise<boole
       })
       return (
         <scrollbox ref={(element: ScrollBoxRenderable) => (scroll = element)} width={props.width} height={props.height}>
-          <Show when={diff.trim() !== ""} fallback={<text fg={theme.muted}>No changes against the last commit.</text>}>
+          <Show when={/^@@/m.test(diff)} fallback={<text fg={theme.muted}>{noHunks(diff)}</text>}>
             <Diff diff={diff} lang={extname(change.path).slice(1)} />
           </Show>
         </scrollbox>
