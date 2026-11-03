@@ -57,6 +57,8 @@ export type RewindExtras = {
   shells: { prompt: number; names: string[] }[]
   restores: { prompt: number; paths: string[] }[]
   outside: { prompt: number; path: string }[]
+  // Line counts of files the chat's calls wrote, for a call that reports no patch (a write over a whole file).
+  counts?: { prompt: number; path: string; plus: number; minus: number }[]
   // Works out `restores` for another prompt while the dialog is open.
   dryRun?: (prompt: number) => Promise<string[] | null>
 }
@@ -135,6 +137,10 @@ export function rewindPoints(session: Session, extras: RewindExtras | null): Rew
       const running = tasks.at(-1)
       if (running) started(item, running)
     }
+  }
+  for (const { prompt, path, plus, minus } of extras?.counts ?? []) {
+    const change = points[prompt]?.changes.find((one) => one.path === path && !one.created)
+    if (change && change.plus === 0 && change.minus === 0) Object.assign(change, { plus, minus })
   }
   for (const { prompt, path, plus, minus, edit } of extras?.bash ?? []) {
     const point = points[prompt]

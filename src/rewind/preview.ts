@@ -228,6 +228,8 @@ async function preview(
     const written = new Set(manifest.segments.flatMap((segment) => segment.writes.map((write) => write.path)))
     for (const segment of manifest.segments) {
       for (const change of segment.changes) {
+        if (written.has(change.path) && change.plus !== null && change.minus !== null)
+          (extras.counts ??= []).push({ prompt, path: shown(change.path), plus: change.plus, minus: change.minus })
         if (!written.has(change.path))
           extras.bash.push({
             prompt,
