@@ -1,6 +1,7 @@
 import type { KeyEvent } from "@opentui/core"
 import { createMemo, createSignal, For, Show, untrack } from "solid-js"
 import { theme } from "../../theme/theme.ts"
+import { wrapText } from "../markdown/layout.ts"
 import {
   type DialogItem,
   type DialogLine,
@@ -58,8 +59,14 @@ const DETAIL_FOOTER: FooterAction[] = [
   { key: "esc", action: "back" },
 ]
 
-const textLines = (lines: DialogLine[], text: string): DialogLine[] =>
-  lines.length > 0 ? lines : [{ kind: "text", text: { id: "empty", spans: [{ text, fg: theme.panelMuted }] } }]
+// The empty text wraps in the list pane, which is narrow beside the detail.
+const textLines = (lines: DialogLine[], text: string, width: number): DialogLine[] =>
+  lines.length > 0
+    ? lines
+    : wrapText(text, Math.max(10, width)).map((line, index) => ({
+        kind: "text",
+        text: { id: `empty-${index}`, spans: [{ text: line, fg: theme.panelMuted }] },
+      }))
 
 // The list on the left and the selected row's detail on the right; under an inner width of 90 the detail takes
 // the list's place while it has the focus.
@@ -124,7 +131,9 @@ export function TwoPane(props: TwoPaneProps) {
           rows: rows.map((row) => (isRow(row) && row.id === selectedId() ? { ...row, labelColor: theme.accent } : row)),
         })),
   )
-  const listLines = createMemo(() => textLines(dialogLines(marked(), selectedId()), props.empty(query())))
+  const listLines = createMemo(() =>
+    textLines(dialogLines(marked(), selectedId()), props.empty(query()), narrow() ? listWidth() : listWidth() - GAP),
+  )
   const detailLines = createMemo(() => dialogLines(detailSections(), bodySelected()))
 
   const search = (text: string) => {

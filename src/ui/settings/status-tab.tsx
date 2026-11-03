@@ -17,8 +17,9 @@ export type StatusFacts = {
   model: string | null
   effort: string | null
   permissionMode: string | null
-  mcpServers: number | null
-  plugins: number | null
+  // undefined when the agent has no such list at all.
+  mcpServers: number | null | undefined
+  plugins: number | null | undefined
   skills: number | null
   tools: number | null
   sources: string[]
@@ -76,8 +77,8 @@ export function StatusTab(props: { api: TabApi<SettingsTab>; facts: StatusFacts 
           fact("Effort", facts.effort),
           fact("Permission mode", facts.permissionMode),
           blank("gap-model"),
-          jump("mcp", "MCP servers", facts.mcpServers),
-          jump("plugins", "Plugins", facts.plugins),
+          ...(facts.mcpServers === undefined ? [] : [jump("mcp", "MCP servers", facts.mcpServers)]),
+          ...(facts.plugins === undefined ? [] : [jump("plugins", "Plugins", facts.plugins)]),
           fact("Skills", facts.skills),
           fact("Tools", facts.tools),
           blank("gap-counts"),

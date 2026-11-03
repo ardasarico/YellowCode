@@ -55,8 +55,8 @@ export function SettingsDialog(props: {
       model: props.model,
       effort: settings.effort,
       permissionMode: props.permissionMode === null ? null : modeLabel(props.provider.modes(), props.permissionMode),
-      mcpServers: props.servers?.length ?? null,
-      plugins: plugins()?.length ?? null,
+      mcpServers: props.caps.lists.includes("mcp") ? (props.servers?.length ?? null) : undefined,
+      plugins: props.caps.lists.includes("plugins") ? (plugins()?.length ?? null) : undefined,
       skills: props.provider.skills()?.length ?? info?.skills.length ?? null,
       tools: info ? info.tools.length : null,
       sources: props.provider.settingSources(),
@@ -105,5 +105,9 @@ export function SettingsDialog(props: {
     },
   ]
 
-  return <TabbedDialog title="Settings" tabs={tabs} tab={props.tab} onTab={props.onTab} onClose={props.onClose} />
+  // A list the agent never fills would only open empty.
+  const shown = createMemo(() =>
+    tabs.filter((tab) => (tab.id !== "mcp" && tab.id !== "plugins") || props.caps.lists.includes(tab.id)),
+  )
+  return <TabbedDialog title="Settings" tabs={shown()} tab={props.tab} onTab={props.onTab} onClose={props.onClose} />
 }
