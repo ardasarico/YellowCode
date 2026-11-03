@@ -124,7 +124,12 @@ function resultImages(name: string | undefined, input: unknown, content: ResultC
 // Read numbers each line it gives back; Glob gives one path a line.
 function countOf(name: string | undefined, result: string): Extract<Draft, { type: "tool.end" }>["count"] {
   const lines = result.split("\n").filter((line) => line.trim() !== "")
-  if (name === "Read") return { n: lines.filter((line) => /^\s*\d+\t/.test(line)).length, noun: "line" }
+  if (name === "Read") {
+    const numbered = lines.filter((line) => /^\s*\d+\t/.test(line))
+    // The file's last newline comes back as a numbered empty line.
+    const last = numbered.at(-1)
+    return { n: numbered.length - (last !== undefined && /^\s*\d+\t$/.test(last) ? 1 : 0), noun: "line" }
+  }
   if (name === "Glob") return { n: lines.length, noun: "file" }
   return null
 }
