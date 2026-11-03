@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
+import type { Prompt } from "../../agent/agent.ts"
 import { createSession } from "../../session/session.ts"
 import { z } from "zod"
 import { readFixture } from "./fixture.ts"
@@ -11,21 +12,40 @@ const ROOT = join(import.meta.dir, "..", "..", "..")
 const COMMANDS: Record<string, Via> = { prompt: "start", steer: "steer", follow_up: "queue" }
 const command = z.looseObject({ type: z.string(), message: z.string().optional() })
 
+const promptOf = (id: string, text: string): Prompt => ({
+  id,
+  text,
+  images: [],
+  command: null,
+  to: null,
+  delivery: "queue",
+  kept: [],
+  context: null,
+  shells: [],
+})
+
 // Plays a recording into a store the way the app does: each prompt shows at once, then pi's lines come through the
-// translator.
+// translator. A prompt an Esc took back from pi's queue goes out again as the same prompt.
 function played(name: string, exists: (path: string) => boolean = () => false) {
   const fixture = readFixture(readFileSync(join(ROOT, "fixtures", "pi", `${name}.jsonl`), "utf8"))
   const store = createSession()
   const translator = createTranslator("<root>/project", exists)
+  let held: Prompt[] = []
   let n = 0
   for (const line of fixture.lines) {
     if (line.kind === "out") {
       const sent = command.safeParse(line.msg)
       const via = sent.success ? COMMANDS[sent.data.type] : undefined
       if (sent.success && via && sent.data.message !== undefined) {
-        const id = `prompt-${++n}`
-        translator.sent(id, sent.data.message, via)
-        store.showEarly({ prompt: id, text: sent.data.message, images: [], to: null, history: false, cutPoint: false })
+        const again = held.find((prompt) => prompt.text === sent.data.message)
+        if (again) {
+          held = held.filter((prompt) => prompt !== again)
+          translator.sent(again, again.text, via, true)
+          continue
+        }
+        const prompt = promptOf(`prompt-${++n}`, sent.data.message)
+        translator.sent(prompt, prompt.text, via)
+        store.showEarly({ prompt: prompt.id, text: prompt.text, images: [], to: null, history: false, cutPoint: false })
       }
       continue
     }
@@ -34,8 +54,7 @@ function played(name: string, exists: (path: string) => boolean = () => false) {
     if (reply.success) {
       const cleared = clearedQueue.safeParse(reply.data.data)
       if (reply.data.command === "clear_queue" && cleared.success)
-        for (const one of translator.dropped([...cleared.data.steering, ...cleared.data.followUp], line.t))
-          store.event(one)
+        held = translator.held([...cleared.data.steering, ...cleared.data.followUp])
       continue
     }
     const parsed = event.safeParse(line.msg)
@@ -94,13 +113,12 @@ test("a steer and a follow-up are taken into the running turn", () => {
   }
 })
 
-test("Esc clears the queue, stops the turn, and the next prompt runs", () => {
+test("Esc stops the turn, and what was queued runs next", () => {
   const { items, store } = played("abort")
   const users = items.filter((item) => item?.kind === "user")
   expect(users.map((user) => user?.kind === "user" && [user.text, user.queue])).toEqual([
     ["HANG", null],
-    ["QUEUED", "not sent"],
-    ["AGAIN", null],
+    ["QUEUED", null],
   ])
   const ends = items.filter((item) => item?.kind === "turn-end")
   expect(ends.map((end) => end?.kind === "turn-end" && end.interrupted)).toEqual([true, false])

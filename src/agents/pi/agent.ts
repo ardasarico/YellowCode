@@ -202,6 +202,8 @@ export const openArgs = (options: StartOptions) => [...sessionArgs(options), ...
 const entryOf = (map: Map<string, PromptId>, prompt: PromptId) =>
   [...map].find(([, known]) => known === prompt)?.[0] ?? null
 
+const waitingVia = (prompt: Prompt): Via => (prompt.delivery === "queue" ? "queue" : "steer")
+
 async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   const version = await usable(deps)
   let { pi, state } = await open(deps, options.cwd, openArgs(options))
@@ -223,6 +225,11 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   let named = state.sessionName
   const tell = (...events: AgentEvent[]) => {
     for (const one of events) out.push(one)
+  }
+  // Waiting for the translator to see the run end.
+  const runEnd: (() => void)[] = []
+  const ranOut = () => {
+    for (const done of runEnd.splice(0)) done()
   }
 
   const source = options.resume?.ref.id ?? null
@@ -300,7 +307,9 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
       const events = translator.event(parsed.data, now())
       for (const one of events) if (one.type === "user" && !one.history) told.push(one.prompt)
       tell(...(await settled(events)))
+      if (!translator.running()) ranOut()
     }
+    ranOut()
     if (closed || own !== pi) return
     ended = true
     tell(...asks.gone(now()), ...translator.gone(now()), { type: "ended", problem: GONE, at: now() })
@@ -387,10 +396,10 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   )
   follow(pi)
 
-  async function go(prompt: Prompt, via: Via): Promise<Outcome> {
+  async function go(prompt: Prompt, via: Via, late = false): Promise<Outcome> {
     // pi says the prompt back whole, and the translator knows it by that text.
     const text = prompt.context === null ? prompt.text : `${prompt.context}\n\n${prompt.text}`
-    translator.sent(prompt.id, text, via)
+    translator.sent(prompt, text, via, late)
     const type = via === "start" ? "prompt" : via === "steer" ? "steer" : "follow_up"
     const images = prompt.images.map((image) => ({ type: "image", data: image.base64, mimeType: image.mediaType }))
     try {
@@ -429,7 +438,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
       if (pendingCut !== null) await takeCut(pendingCut)
       if (!translator.running()) return await go(prompt, "start")
       try {
-        return await go(prompt, prompt.delivery === "queue" ? "queue" : "steer")
+        return await go(prompt, waitingVia(prompt))
       } catch (error) {
         if (translator.running()) throw error
         return await go(prompt, "start")
@@ -451,20 +460,44 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     return { ok: true, note: null }
   }
 
-  // Esc: the queue goes first, so pi does not run it once the turn stops.
+  // Esc: pi's queue is taken back before the turn stops, since pi keeps it but runs it only with the next prompt.
+  // What waited is sent again in order and runs next, as on the other agents.
   async function interrupt(): Promise<Outcome> {
     if (ended || closed) return { ok: false, problem: DOWN }
     if (!translator.running()) return { ok: false, problem: IDLE }
     tell({ type: "interrupt", state: "asked", at: now() })
+    let held: Prompt[] = []
+    let stopped = false
     try {
       const cleared = clearedQueue.safeParse(await pi.command("clear_queue"))
-      if (cleared.success) tell(...translator.dropped([...cleared.data.steering, ...cleared.data.followUp], now()))
+      if (cleared.success) held = translator.held([...cleared.data.steering, ...cleared.data.followUp])
       await pi.command("abort")
+      stopped = true
       tell({ type: "interrupt", state: "answered", at: now() })
       return { ok: true, note: null }
     } catch (error) {
       tell({ type: "interrupt", state: "refused", at: now() })
       return { ok: false, problem: problemOf(error) }
+    } finally {
+      await sendAgain(held, stopped)
+    }
+  }
+
+  // `idle`: pi answered the abort, which it does once idle. Its run end may still be on the way to the translator,
+  // which would drop what is steered or queued before it.
+  async function sendAgain(held: Prompt[], idle: boolean): Promise<void> {
+    if (held.length === 0) return
+    if (idle && translator.running()) await new Promise<void>((resolve) => runEnd.push(resolve))
+    let first = idle
+    for (const prompt of held) {
+      try {
+        if (ended || closed) throw new Error(DOWN)
+        // oxlint-disable-next-line no-await-in-loop -- they go out in the order they were sent
+        await go(prompt, first ? "start" : waitingVia(prompt), true)
+        first = false
+      } catch {
+        tell({ type: "user.dropped", prompt: prompt.id, at: now() })
+      }
     }
   }
 

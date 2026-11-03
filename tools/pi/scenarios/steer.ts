@@ -40,14 +40,13 @@ export const followUp: Scenario = {
   },
 }
 
-// Esc: the queue is cleared, then the hanging request is aborted.
+// Esc: the queue is cleared, the hanging request is aborted, and what was queued is sent again.
 export const abort: Scenario = {
   name: "abort",
   script: {
     threads: [
       { match: "HANG", steps: [{ hang: true }] },
-      { match: "QUEUED", steps: [[{ type: "text", text: "Never sent." }]] },
-      { match: "AGAIN", steps: [[{ type: "text", text: "Back after the abort." }]] },
+      { match: "QUEUED", steps: [[{ type: "text", text: "Ran after the abort." }]] },
     ],
   },
   async steps(d) {
@@ -58,6 +57,6 @@ export const abort: Scenario = {
     await d.command("clear_queue")
     await d.command("abort")
     await d.until("agent_settled")
-    await promptAndSettle(d, "AGAIN")
+    await promptAndSettle(d, "QUEUED")
   },
 }

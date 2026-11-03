@@ -2,6 +2,7 @@
 // first is a step of it, and a steered or queued prompt comes in as the user message that opens such a step. Pi does
 // not echo our prompt ids, so a user message is matched to the oldest prompt we sent with the same text, or else the
 // oldest one (a prompt template changes the text).
+import type { Prompt } from "../../agent/agent.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { PromptId, ToolId } from "../../agent/ids.ts"
 import { existsSync } from "node:fs"
@@ -11,18 +12,19 @@ import type { Message, PiEvent, Usage } from "./wire.ts"
 
 export type Via = "start" | "steer" | "queue"
 
-type Own = { id: PromptId; text: string; via: Via }
+// `late`: a prompt sent again after an Esc; the chat shows it waiting until pi takes it in.
+type Own = { prompt: Prompt; text: string; via: Via; late: boolean }
 
 // Events without their time; the translator stamps them.
 type Bare = AgentEvent extends infer E ? (E extends AgentEvent ? Omit<E, "at"> : never) : never
 
 export type Translator = {
-  sent(id: PromptId, text: string, via: Via): void
+  sent(prompt: Prompt, text: string, via: Via, late?: boolean): void
   // The prompt did not go out.
   forget(id: PromptId): void
   event(event: PiEvent, at: number): AgentEvent[]
-  // Pi let these waiting prompts go (a cleared queue).
-  dropped(texts: string[], at: number): AgentEvent[]
+  // The waiting prompts behind the texts of a cleared queue, in the order they were sent; they wait no longer.
+  held(texts: string[]): Prompt[]
   // Pi handled a prompt itself (an extension's command) and started no run.
   handled(id: PromptId, text: string, at: number): AgentEvent[]
   running(): boolean
@@ -100,20 +102,21 @@ export function createTranslator(cwd: string, exists: (path: string) => boolean 
     const prompt = take(text)
     const shown: Bare = {
       type: "user",
-      prompt: prompt?.id ?? null,
+      prompt: prompt?.prompt.id ?? null,
       text,
       images: [],
       to: null,
       history: false,
       cutPoint: true,
     }
+    const taken: Bare[] =
+      prompt && (prompt.via !== "start" || prompt.late) ? [{ type: "user.taken", prompts: [prompt.prompt.id] }] : []
     if (!firstUser) {
       firstUser = true
       stepping = false
-      return [shown]
+      return [shown, ...taken]
     }
-    const taken: Bare[] = prompt && prompt.via !== "start" ? [{ type: "user.taken", prompts: [prompt.id] }] : []
-    return [shown, ...taken, ...step(prompt ? [prompt.id] : [])]
+    return [shown, ...taken, ...step(prompt ? [prompt.prompt.id] : [])]
   }
 
   // Once per write, the first time its path is known.
@@ -239,7 +242,7 @@ export function createTranslator(cwd: string, exists: (path: string) => boolean 
         sessionCostUsd: null,
         prompts: [],
       },
-      ...waiting.map((prompt): Bare => ({ type: "user.dropped", prompt: prompt.id })),
+      ...waiting.map((prompt): Bare => ({ type: "user.dropped", prompt: prompt.prompt.id })),
     ]
     running = false
     tools.clear()
@@ -339,27 +342,30 @@ export function createTranslator(cwd: string, exists: (path: string) => boolean 
   }
 
   function forget(id: PromptId): void {
-    const index = own.findIndex((prompt) => prompt.id === id)
+    const index = own.findIndex((prompt) => prompt.prompt.id === id)
     if (index >= 0) own.splice(index, 1)
   }
 
   return {
-    sent(id, text, via) {
-      own.push({ id, text, via })
+    sent(prompt, text, via, late = false) {
+      own.push({ prompt, text, via, late })
     },
     forget,
     event: (event, at) => stamp(translate(event, at), at),
-    dropped(texts, at) {
+    held(texts) {
       const left = [...texts]
-      const events: Bare[] = []
-      for (const prompt of own.slice()) {
-        const index = left.indexOf(prompt.text)
-        if (prompt.via === "start" || index < 0) continue
-        left.splice(index, 1)
-        own.splice(own.indexOf(prompt), 1)
-        events.push({ type: "user.dropped", prompt: prompt.id })
-      }
-      return stamp(events, at)
+      const waiting = own.filter((prompt) => prompt.via !== "start")
+      const held = new Set(
+        waiting.filter((prompt) => {
+          const index = left.indexOf(prompt.text)
+          if (index >= 0) left.splice(index, 1)
+          return index >= 0
+        }),
+      )
+      // A prompt template changes the text pi keeps.
+      for (const prompt of waiting.filter((one) => !held.has(one)).slice(0, left.length)) held.add(prompt)
+      own.splice(0, own.length, ...own.filter((prompt) => !held.has(prompt)))
+      return waiting.filter((prompt) => held.has(prompt)).map((prompt) => prompt.prompt)
     },
     handled(id, text, at) {
       forget(id)
