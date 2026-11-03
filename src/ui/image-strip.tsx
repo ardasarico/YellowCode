@@ -6,11 +6,12 @@ type ImageChip = Extract<Chip, { kind: "image" }>
 
 export function ImageStrip(props: { chips: PlacedChip[]; marginLeft?: number; onRows?: (rows: number) => void }) {
   const images = () => props.chips.flatMap(({ chip }) => (chip.kind === "image" ? [chip] : []))
+  // One row of thumbnails, so the prompt under it stays on a short screen; the chips name every image.
   return (
     <Show when={images().length > 0}>
       <box
         flexDirection="row"
-        flexWrap="wrap"
+        overflow="hidden"
         gap={1}
         marginLeft={props.marginLeft}
         marginBottom={1}
