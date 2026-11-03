@@ -35,6 +35,19 @@ test("a truncated file keeps the keys it can read, archives the old bytes and wr
   expect(parseJson(readFileSync(path, "utf8"))).toEqual({ ok: true, value: { theme: "dusk", sidebar: "auto" } })
 })
 
+test("a truncated file keeps the lists and objects written before the cut", () => {
+  const loaded = loadSettings(
+    fileWith(
+      '{"providers": ["claude", "pi"], "models": {"favorites": ["pi:a/b"], "hidden": []}, ' +
+        '"lastModel": {"provider": "pi", "ref": {"provider": "a", "id": "b"}}, "agents": {"claude": {"defau',
+    ),
+  )
+  expect(loaded.settings.providers).toEqual(["claude", "pi"])
+  expect(loaded.settings.models).toEqual({ favorites: ["pi:a/b"], hidden: [] })
+  expect(loaded.settings.lastModel).toEqual({ provider: "pi", ref: { provider: "a", id: "b" } })
+  expect(loaded.problem).toBe("settings.json repaired")
+})
+
 test("a file with comments and trailing commas is read and replaced", () => {
   const loaded = loadSettings(fileWith('{\n  // mine\n  "sidebar": "hidden",\n  "editor": "zed",\n}'))
   expect(loaded.settings).toEqual({ ...DEFAULT_SETTINGS, sidebar: "hidden", editor: "zed" })

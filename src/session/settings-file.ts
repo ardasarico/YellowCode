@@ -175,12 +175,33 @@ function parseJsonc(text: string): unknown {
   }
 }
 
+// The array or object right after `"key":`, when the file still has all of it.
+function valueAt(text: string, key: string): unknown {
+  const found = new RegExp(`"${key}"\\s*:\\s*(?=[[{])`).exec(text)
+  if (!found) return undefined
+  const start = found.index + found[0].length
+  let depth = 0
+  let quoted = false
+  for (let at = start; at < text.length; at++) {
+    const char = text[at]
+    if (quoted) {
+      if (char === "\\") at++
+      else if (char === '"') quoted = false
+    } else if (char === '"') quoted = true
+    else if (char === "[" || char === "{") depth++
+    else if ((char === "]" || char === "}") && --depth === 0) return parseJsonc(text.slice(start, at + 1)) ?? undefined
+  }
+  return undefined
+}
+
 function salvage(text: string): Record<string, unknown> {
   const stored: Record<string, unknown> = {}
   for (const key of [...Object.keys(DEFAULT_SETTINGS), LEGACY_MODE, "defaultAgent"]) {
     const match = new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*)"`).exec(text)
-    if (match) stored[key] = match[1]
+    const value = match ? match[1] : valueAt(text, key)
+    if (value !== undefined) stored[key] = value
   }
+  if ("agents" in stored) return stored
   // An agent's entry as saveSettings writes it.
   const agents: Record<string, unknown> = {}
   for (const [, agent = "", mode] of text.matchAll(/"([^"\\]+)"\s*:\s*\{\s*"defaultMode"\s*:\s*"([^"\\]*)"/g))
