@@ -99,7 +99,9 @@ function Rule(props: { width: number }) {
 }
 
 function Directory(props: { workspace: Workspace; width: number }) {
-  const branch = () => (props.workspace.branch ? ` · ${props.workspace.branch}` : "")
+  // A long branch gives way first, so the folder keeps at least half the line.
+  const branch = () =>
+    props.workspace.branch ? ` · ${cut(props.workspace.branch, Math.max(4, Math.floor(props.width / 2) - 3))}` : ""
   const path = () => cutPath(props.workspace.cwd, Math.max(1, props.width - Bun.stringWidth(branch())))
   return (
     <text fg={theme.faint} wrapMode="none">
