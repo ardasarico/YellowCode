@@ -1,7 +1,7 @@
 import { createSignal, Show } from "solid-js"
 import type { PickerGroup, PickerModel } from "../models/picker.ts"
 import { type Definition, fileOf, loadDefinitions, writeModel } from "../subagents/definitions.ts"
-import { modelText } from "../subagents/tool.ts"
+import { modelText } from "../subagents/children.ts"
 import { theme } from "../theme/theme.ts"
 import { Dialog } from "./dialog/dialog.tsx"
 import { openFile } from "./dialog/open-file.ts"

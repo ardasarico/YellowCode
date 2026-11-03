@@ -171,3 +171,35 @@ test("a mode wider than allowed runs only on the user's yes", async () => {
   expect(spawned.ok).toBe(false)
   expect(children.list()).toHaveLength(0)
 })
+
+test("a child that fails before its first turn reports its own time, and a rejected send frees its slot", async () => {
+  const { children, request, results, launcher } = setup(1)
+  const broken: Launcher = { ...launcher, start: () => Promise.reject(new Error("no binary")) }
+  await children.spawn({ ...request("a"), launcher: broken })
+  await tick()
+  expect(results[0]).toMatchObject({ error: "Fake did not start: no binary", durationMs: 10 })
+
+  const rejecting: Launcher = {
+    ...launcher,
+    start: async (options, store) => ({
+      ...(await launcher.start(options, store)),
+      send: () => Promise.reject(new Error("gone")),
+    }),
+  }
+  await children.spawn({ ...request("b"), launcher: rejecting })
+  await children.spawn(request("c"))
+  await tick()
+  await tick()
+  expect(states(children)).toEqual(["failed", "failed", "running"])
+})
+
+test("a spawn waiting for the user's yes is refused once the session closes", async () => {
+  const { request } = setup(1)
+  const yes = Promise.withResolvers<boolean>()
+  const waiting = createChildren({ limit: () => 1, confirm: () => yes.promise, onResult: () => {} })
+  const spawned = waiting.spawn({ ...request("a"), modes: [row("bypass")] })
+  await waiting.closeAll()
+  yes.resolve(true)
+  expect(await spawned).toEqual({ ok: false, problem: "the session closed" })
+  expect(waiting.list()).toHaveLength(0)
+})

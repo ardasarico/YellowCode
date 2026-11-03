@@ -3,11 +3,11 @@ import { z } from "zod"
 import type { Agent, ClientTool } from "../agent/agent.ts"
 import type { Ask, AskReply } from "../agent/ask.ts"
 import type { AgentEvent } from "../agent/events.ts"
-import type { AgentKindId, AskId, ModelRef } from "../agent/ids.ts"
+import type { AgentKindId, AskId } from "../agent/ids.ts"
 import type { ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
 import { subagentMessage } from "../peers/envelope.ts"
 import { childAsks, confirmAsk, modelAsk, type ModelChoice, ownAskId, ownAskOf, pickedOf, ranOf } from "./asks.ts"
-import { type Child, type ChildResult, createChildren, type Launcher } from "./children.ts"
+import { type Child, type ChildResult, createChildren, type Launcher, modelText, nameOf } from "./children.ts"
 import type { Definition } from "./definitions.ts"
 
 // The tools reach the user's own session as client tools of this server; children get none.
@@ -39,8 +39,6 @@ export type SubagentDeps = {
 }
 
 export type ToolResult = { text: string; error: boolean }
-
-export const modelText = (ref: ModelRef) => (ref.provider ? `${ref.provider}/${ref.id}` : ref.id)
 
 // The row an agent file's `model:` names.
 export const rowOf = (rows: ModelRow[], model: string): ModelRow | undefined =>
@@ -144,8 +142,6 @@ function duration(ms: number): string {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`
 }
 
-export const nameOf = (child: Child) => (child.name === "bare" ? modelText(child.model) : child.name)
-
 function resultText(child: Child, result: ChildResult): string {
   const took = duration(result.durationMs)
   const how =
@@ -217,6 +213,7 @@ export function createSubagents(deps: SubagentDeps) {
     const launcher = deps.launcher(provider.id)
     if (!launcher) return { kind: "failed", problem: `${provider.name} cannot run a subagent` }
     const modes = await deps.modes(provider.id)
+    if (closed) return { kind: "failed", problem: "the session closed" }
     if (modes.length === 0)
       return { kind: "failed", problem: `${provider.name} did not say which modes it has, so none can be picked` }
     const name = definition?.name ?? modelText(row.ref)

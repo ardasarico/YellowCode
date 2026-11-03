@@ -77,12 +77,15 @@ type Run = {
   preface: string | null
   // Where the turn's items begin in the store.
   mark: number
-  turnStart: number
 }
 
 type Entry = { child: Child; run: Run }
 
 const EDITS = new Set(["edit", "write"])
+
+export const modelText = (ref: ModelRef) => (ref.provider ? `${ref.provider}/${ref.id}` : ref.id)
+
+export const nameOf = (child: Child) => (child.name === "bare" ? modelText(child.model) : child.name)
 
 function lastText(store: SessionStore, from: number): string {
   const { items, byId } = store.state
@@ -115,6 +118,7 @@ export function createChildren(options: ChildrenOptions) {
   const closeAgent = (agent: Agent) => (options.close ? options.close(agent) : agent.close())
   const entries: Entry[] = []
   let count = 0
+  let closed = false
 
   const changed = (child: Child) => options.onChange?.(child)
   const entryOf = (id: string) => entries.find((entry) => entry.child.id === id)
@@ -122,7 +126,10 @@ export function createChildren(options: ChildrenOptions) {
   function pump(): void {
     for (const entry of entries) {
       if (entries.filter(({ child }) => child.state === "running").length >= options.limit()) return
-      if (entry.child.state === "queued") void begin(entry)
+      if (entry.child.state === "queued")
+        void begin(entry).catch((error: unknown) =>
+          fail(entry, `${entry.run.launcher.name} failed: ${error instanceof Error ? error.message : String(error)}`),
+        )
     }
   }
 
@@ -165,7 +172,6 @@ export function createChildren(options: ChildrenOptions) {
     }
     run.preface = null
     run.mark = child.store.state.items.length
-    run.turnStart = now()
     if (run.launcher.show) run.launcher.show(child.store, prompt)
     else showEarly(child.store, prompt)
     const sent = await child.agent.send(prompt)
@@ -179,7 +185,7 @@ export function createChildren(options: ChildrenOptions) {
     options.onResult(child, {
       text: lastText(child.store, run.mark),
       files: changedFiles(child.store, run.mark),
-      durationMs: child.endedAt - run.turnStart,
+      durationMs: child.endedAt - (child.startedAt ?? child.endedAt),
       error,
     })
     // A message the user sent while it ran.
@@ -202,7 +208,7 @@ export function createChildren(options: ChildrenOptions) {
       options.onResult(child, {
         text: lastText(child.store, run.mark),
         files: changedFiles(child.store, run.mark),
-        durationMs: child.endedAt - run.turnStart,
+        durationMs: child.endedAt - (child.startedAt ?? child.endedAt),
         error: problem,
       })
     pump()
@@ -226,6 +232,7 @@ export function createChildren(options: ChildrenOptions) {
     if (fit.fit === "confirm") request.asking?.()
     if (fit.fit === "confirm" && !(await options.confirm(confirmText(launcher, shown, fit.mode), request.task)))
       return { ok: false, problem: `the user did not let ${shown} run on ${launcher.name}` }
+    if (closed) return { ok: false, problem: "the session closed" }
     const instructions = definition?.instructions ?? ""
     const own = launcher.caps.instructions
     const id = `c${++count}`
@@ -270,7 +277,6 @@ export function createChildren(options: ChildrenOptions) {
       pending: request.prompt,
       preface: !own && instructions ? instructions : null,
       mark: 0,
-      turnStart: 0,
     }
     const entry = { child, run }
     entries.push(entry)
@@ -283,12 +289,12 @@ export function createChildren(options: ChildrenOptions) {
     const entry = entryOf(id)
     if (!entry) return { ok: false, problem: `no subagent ${id}` }
     const { child, run } = entry
-    // A running child takes it once its turn ends.
-    if (child.state === "running") {
+    // A running child takes it once its turn ends, a queued one with the prompt it waits with.
+    if (child.state === "running" || child.state === "queued") {
       run.pending = run.pending === null ? text : `${run.pending}\n\n${text}`
       return { ok: true, note: null }
     }
-    if (child.state !== "idle") return { ok: false, problem: `${child.name} is ${child.state}` }
+    if (child.state !== "idle") return { ok: false, problem: `${nameOf(child)} is ${child.state}` }
     run.pending = text
     child.state = "queued"
     changed(child)
@@ -311,7 +317,7 @@ export function createChildren(options: ChildrenOptions) {
     } else if (child.state === "queued" || child.state === "running") {
       child.state = "stopped"
       child.endedAt = now()
-    } else return { ok: false, problem: `${child.name} is ${child.state}` }
+    } else return { ok: false, problem: `${nameOf(child)} is ${child.state}` }
     changed(child)
     pump()
     return { ok: true, note: null }
@@ -332,8 +338,11 @@ export function createChildren(options: ChildrenOptions) {
     send,
     stop,
     close,
-    // For a parent session that is replaced, cleared or quit.
-    closeAll: () => Promise.all(entries.map(({ child }) => close(child.id))).then(() => {}),
+    // For a parent session that is replaced, cleared or quit; a spawn still waiting for the user's yes is refused.
+    closeAll: () => {
+      closed = true
+      return Promise.all(entries.map(({ child }) => close(child.id))).then(() => {})
+    },
     list: (): Child[] => entries.map(({ child }) => child),
     get: (id: string) => entryOf(id)?.child,
   }

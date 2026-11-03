@@ -40,9 +40,9 @@ import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
 import { moveAsk, moveOf, movedNote } from "./models/move.ts"
 import { buildHandoff, handoffBudget } from "./session/handoff.ts"
 import { ensureCatalog } from "./models/refresh.ts"
-import type { Launcher } from "./subagents/children.ts"
+import { type Launcher, modelText, nameOf } from "./subagents/children.ts"
 import { loadDefinitions } from "./subagents/definitions.ts"
-import { agentClientTools, createSubagents, modelText, nameOf, rowOf, type Subagents } from "./subagents/tool.ts"
+import { agentClientTools, createSubagents, rowOf, type Subagents } from "./subagents/tool.ts"
 import type { ChildActions, ChildView } from "./ui/agents/tree.ts"
 import { tildePath } from "./rewind/common.ts"
 import { follow, showEarly } from "./session/follow.ts"
@@ -90,7 +90,7 @@ import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
-import { sessionMessage } from "./peers/envelope.ts"
+import { readSubagentMessage, sessionMessage } from "./peers/envelope.ts"
 import { startPeers } from "./peers/host.ts"
 import { themeTextSelection } from "./ui/text-selection.ts"
 import { removeViewedImages } from "./ui/dialog/image-view.tsx"
@@ -561,11 +561,19 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
         (provider, model) => addedIds(settings).includes(provider) && rowOf(catalogOf(provider), model) !== undefined,
       ),
     limit: () => settings.maxSubagents,
-    // A result waits for the turn that runs, where the agent can queue it.
+    // A result waits for the turn that runs, where the agent can queue it. One that cannot go out stays in the chat.
     tell: (text) => {
       if (live !== owner()) return
-      if (!sendLive({ text, images: [], to: null, delivery: "queue" }, () => {}))
-        log.warn("a subagent's result did not reach the session")
+      const lost = () => {
+        const message = readSubagentMessage(text)
+        store.event({
+          type: "notice",
+          level: "warning",
+          text: `${message?.name ?? "A subagent"}'s message did not reach the agent:\n${message?.text ?? text}`,
+          at: Date.now(),
+        })
+      }
+      if (!sendLive({ text, images: [], to: null, delivery: "queue" }, lost)) lost()
     },
     close: stop,
     onChange: () => {
@@ -868,6 +876,19 @@ createRoot(() => {
       () => chat().session.state.permissionMode,
       () => (modePicked = false),
       { defer: true },
+    ),
+  )
+  // Claude clears itself, and its subagents go with the conversation.
+  createEffect(
+    on(
+      () => [chat().session, chat().session.state.conversation] as const,
+      ([session], before) => {
+        if (before?.[0] !== session || mode.kind !== "live" || live.store !== session) return
+        const target = live
+        void target.subagents.closeAll()
+        target.subagents = subagentsOf(target.runner, target.store, () => target)
+        showChildren(target.subagents)
+      },
     ),
   )
   createEffect(() => peers?.update({ hidden: settings.peerVisible === "no" }))
@@ -1592,13 +1613,6 @@ function Main() {
                   }
                   void mode.replay.send(prompt)
                   return true
-                }
-                // Claude clears itself, and its subagents go with the conversation.
-                if (message.to === null && /^\/clear(\s|$)/.test(message.text.trim())) {
-                  const target = live
-                  void target.subagents.closeAll()
-                  target.subagents = subagentsOf(target.runner, target.store, () => target)
-                  showChildren(target.subagents)
                 }
                 return empty || sendLive(message, giveBack)
               }}
