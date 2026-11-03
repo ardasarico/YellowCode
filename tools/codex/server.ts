@@ -7,6 +7,7 @@ import { join } from "node:path"
 import type { Socket } from "bun"
 import { stdioTransport, type Transport } from "../../src/agents/codex/transport.ts"
 import { serverEnv, type Root } from "./env.ts"
+import { TMP } from "../tmp.ts"
 
 const USER_HOME = join(homedir(), ".codex")
 const WATCHED = [USER_HOME, join(USER_HOME, "config.toml")]
@@ -105,7 +106,7 @@ export function startBlocker(log: string): { url: string; stop(): void } {
 }
 
 export function startServer(root: Root, proxy: string, options: { keep?: boolean } = {}): Running {
-  if (!root.root.startsWith("/private/tmp/yc-cx-")) throw new Error(`unexpected root ${root.root}`)
+  if (!root.root.startsWith(`${TMP}/yc-cx-`)) throw new Error(`unexpected root ${root.root}`)
   if (existsSync(USER_HOME) && realpathSync(root.codex) === realpathSync(USER_HOME))
     throw new Error("the isolated CODEX_HOME is the user's own")
   const before = WATCHED.map(snapshot)

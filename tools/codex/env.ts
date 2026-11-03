@@ -3,6 +3,7 @@
 import { spawnSync } from "node:child_process"
 import { mkdir, mkdtemp, realpath, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
+import { TMP } from "../tmp.ts"
 
 export const MODEL = "gpt-5.5"
 
@@ -36,7 +37,7 @@ function git(cwd: string, ...args: string[]): void {
 }
 
 export async function makeRoot(name: string, files: Record<string, string | Uint8Array> = {}): Promise<Root> {
-  const root = await realpath(await mkdtemp(`/private/tmp/yc-cx-${name}-`))
+  const root = await realpath(await mkdtemp(`${TMP}/yc-cx-${name}-`))
   const dirs = { home: join(root, "home"), codex: join(root, "codex"), project: join(root, "project") }
   await Promise.all(Object.values(dirs).map((dir) => mkdir(dir, { recursive: true })))
   await Promise.all(

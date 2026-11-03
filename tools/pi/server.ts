@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { stdioTransport, type Transport } from "../../src/agents/codex/transport.ts"
 import { finder, kill, look, snapshot } from "../codex/server.ts"
 import { piEnv, type Root } from "./env.ts"
+import { TMP } from "../tmp.ts"
 
 const USER_AGENT_DIR = join(homedir(), ".pi", "agent")
 // mtime only: none of these is read. The folder itself is left out: pi's launcher makes and removes a lock under it on
@@ -21,7 +22,7 @@ export type Running = {
 }
 
 export function startPi(root: Root, proxy: string, args: string[] = [], options: { keep?: boolean } = {}): Running {
-  if (!root.root.startsWith("/private/tmp/yc-pi-")) throw new Error(`unexpected root ${root.root}`)
+  if (!root.root.startsWith(`${TMP}/yc-pi-`)) throw new Error(`unexpected root ${root.root}`)
   if (existsSync(USER_AGENT_DIR) && realpathSync(root.agent) === realpathSync(USER_AGENT_DIR))
     throw new Error("the isolated agent folder is the user's own")
   const before = WATCHED.map(snapshot)

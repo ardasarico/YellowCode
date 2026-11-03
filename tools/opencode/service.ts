@@ -11,6 +11,7 @@ import { httpTransport, type Endpoint, type Transport } from "../../src/agents/o
 import { createDriver, pick, text } from "./driver.ts"
 import { makeRoot, serviceEnv, withServiceEnv, writeConfig, type Root } from "./env.ts"
 import { startMock } from "./mock.ts"
+import { TMP } from "../tmp.ts"
 
 export const BINARY = join(homedir(), ".opencode", "bin", "opencode")
 // The user's own registration, from the real env. The isolated run must never use this path.
@@ -139,7 +140,7 @@ function registrationOf(file: string): { pid: number; url: string } {
 // With `keep`, the root stays on disk after stop or a failed start.
 export async function startService(root: Root, options: { keep?: boolean } = {}): Promise<Running> {
   if (root.registration === USER_REGISTRATION) throw new Error("the isolated registration is the user's own")
-  if (!root.root.startsWith("/private/tmp/yc-oc-")) throw new Error(`unexpected root ${root.root}`)
+  if (!root.root.startsWith(`${TMP}/yc-oc-`)) throw new Error(`unexpected root ${root.root}`)
   const before = snapshot(USER_REGISTRATION)
   const theirs = userServices(root.root)
   const ours = finder(root.root, theirs)

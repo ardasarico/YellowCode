@@ -18,6 +18,7 @@ import { isRaw, type Scenario } from "./scenario.ts"
 import { scenarios } from "./scenarios/index.ts"
 import { createScrubber } from "./scrub.ts"
 import { startBlocker, startServer, type Running } from "./server.ts"
+import { TMP } from "../tmp.ts"
 
 const OUT = join(import.meta.dir, "..", "..", "fixtures", "codex")
 const QUIET_MS = 750
@@ -237,7 +238,7 @@ function same(name: string, want: string[], got: string[]): boolean {
 }
 
 async function check(scenario: Scenario, keep: boolean): Promise<boolean> {
-  const dir = await mkdtemp("/private/tmp/yc-cx-check-")
+  const dir = await mkdtemp(`${TMP}/yc-cx-check-`)
   const fresh = join(dir, `${scenario.name}.jsonl`)
   try {
     await record(scenario, fresh, keep)

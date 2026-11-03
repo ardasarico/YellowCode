@@ -17,6 +17,7 @@ import { startMock } from "./mock.ts"
 import type { Scenario } from "./scenario.ts"
 import { scenarios } from "./scenarios/index.ts"
 import { startPi } from "./server.ts"
+import { TMP } from "../tmp.ts"
 
 const OUT = join(import.meta.dir, "..", "..", "fixtures", "pi")
 const QUIET_MS = 750
@@ -146,7 +147,7 @@ function same(name: string, want: string[], got: string[]): boolean {
 }
 
 async function check(scenario: Scenario, keep: boolean): Promise<boolean> {
-  const dir = await mkdtemp("/private/tmp/yc-pi-check-")
+  const dir = await mkdtemp(`${TMP}/yc-pi-check-`)
   const fresh = join(dir, `${scenario.name}.jsonl`)
   try {
     await record(scenario, fresh, keep)

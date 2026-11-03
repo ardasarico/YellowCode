@@ -5,6 +5,7 @@ import { realpathSync } from "node:fs"
 import { mkdir, mkdtemp, realpath, symlink, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { MOCK_KEY } from "../../src/agents/opencode/fixture.ts"
+import { TMP } from "../tmp.ts"
 
 export const OPUS = "claude-opus-5-5"
 export const HAIKU = "claude-haiku-5-5"
@@ -56,7 +57,7 @@ export async function makeRoot(
   bin: Record<string, string> = {},
   commit = true,
 ): Promise<Root> {
-  const root = await realpath(await mkdtemp(`/private/tmp/yc-oc-${name}-`))
+  const root = await realpath(await mkdtemp(`${TMP}/yc-oc-${name}-`))
   const dirs = {
     home: join(root, "home"),
     config: join(root, "config"),
