@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "node:fs"
+import { existsSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, extname, resolve } from "node:path"
 import { marked, type Token } from "marked"
@@ -21,6 +21,14 @@ export function readLocalImage(path: string): Buffer | null {
   return stat?.isFile() && stat.size <= MAX_BYTES ? readFileSync(path) : null
 }
 
+function decoded(href: string): string {
+  try {
+    return decodeURI(href)
+  } catch {
+    return href
+  }
+}
+
 export function isLocalImage(href: string): boolean {
   return !/^[a-z][a-z\d+.-]*:/i.test(href)
 }
@@ -28,7 +36,10 @@ export function isLocalImage(href: string): boolean {
 function localImage(token: Token, cwd: string): ChatImage | null {
   if (token.type !== "image" || !isLocalImage(String(token.href))) return null
   const href = String(token.href)
-  const path = href.startsWith("~/") ? resolve(homedir(), href.slice(2)) : resolve(cwd, href)
+  const at = (written: string) =>
+    written.startsWith("~/") ? resolve(homedir(), written.slice(2)) : resolve(cwd, written)
+  // A link's path may be percent-encoded, as Markdown links with spaces or other scripts often are.
+  const path = existsSync(at(href)) ? at(href) : at(decoded(href))
   return { name: basename(path), mediaType: MEDIA_TYPES[extname(path).toLowerCase()] ?? "", data: null, path }
 }
 
