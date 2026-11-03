@@ -431,8 +431,8 @@ export function Sidebar(props: SidebarProps) {
           width={inner()}
           now={now()}
         />
-        {/* On a short terminal the middle sections are clipped first, so usage stays pinned to the bottom. */}
-        <box flexDirection="column" flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} overflow="hidden">
+        {/* On a short terminal the middle sections scroll, so usage stays pinned to the bottom. */}
+        <scrollbox flexGrow={1} flexShrink={1} minHeight={SECTION_GAP} scrollY>
           <For each={body()}>
             {(entry) =>
               "section" in entry ? (
@@ -448,7 +448,7 @@ export function Sidebar(props: SidebarProps) {
               )
             }
           </For>
-        </box>
+        </scrollbox>
         <Usage session={props.session} model={props.model} caps={props.caps} width={inner()} now={now()} />
         <For each={zoneSections("bottom")}>
           {(section) => <ModSection section={section} width={inner()} above={SECTION_GAP} below={0} />}
