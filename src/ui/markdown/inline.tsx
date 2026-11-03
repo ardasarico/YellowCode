@@ -222,6 +222,7 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
   })
   // Carries the selected reference's id so the chat can scroll it into view.
   const selected = () => runs().find((run) => run.ref !== undefined && run.ref === selection())?.ref
+  let pressed: { x: number; y: number } | null = null
   // The run under a click: the visual row's start column in the text plus the clicked column.
   const clicked = (text: TextBufferRenderable, x: number, y: number) => {
     const row = y - text.y
@@ -238,7 +239,14 @@ export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: bool
       <text
         id={selected()}
         fg={props.fg ?? theme.text}
-        onMouseDown={function (event) {
+        onMouseDown={(event) => {
+          pressed = { x: event.x, y: event.y }
+        }}
+        // A link opens on release where it was pressed, so a drag that starts on it selects text instead.
+        onMouseUp={function (event) {
+          const start = pressed
+          pressed = null
+          if (start?.x !== event.x || start.y !== event.y) return
           const run = clicked(this, event.x, event.y)
           const ref = context?.() && run?.ref
           if (ref) {
