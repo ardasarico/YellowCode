@@ -16,6 +16,7 @@ import { historyPage } from "./history.ts"
 import { modelGroups, readModels, type PiModel } from "./models.ts"
 import { promptMap, type PromptMap } from "./prompts.ts"
 import { findSession, listSessions, readSession } from "./sessions.ts"
+import { answerOnce } from "./titles.ts"
 import { createTranslator, type Via } from "./translate.ts"
 import {
   clearedQueue,
@@ -641,6 +642,7 @@ export function piKind(deps: Partial<Deps> = {}): AgentKind {
     detect: () => merged.detect(),
     start: (options) => start(options, merged),
     sessions: (cwd) => Promise.resolve(listSessions(cwd, merged.env)),
+    oneShot: answerOnce,
     async listModels(cwd) {
       await usable(merged)
       const pi = client(merged.spawn(cwd, ["--no-session"]))

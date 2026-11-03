@@ -86,8 +86,9 @@ follow your session only, so a rewind in your session can also undo a subagent's
   your last 12 messages, each cut to 300 characters. With Claude Code that is a `claude -p --model=haiku` call with no
   tools and no saved session. With Codex it is a short thread that is not saved, can change nothing and has no tools,
   on your model at its lowest effort. With opencode it is opencode's own text generation on its default model, outside
-  any session. That is one small extra request each time. Pi gets no such request. Set Session title to your agent's
-  name in `/settings` to turn it off.
+  any session. With Pi it is a `pi --print` call on its default model with no tools, extensions, thinking or saved
+  session. That is one small extra request each time. Set Session title to your agent's name in `/settings` to turn it
+  off.
 - With Claude Code, the `auto` permission mode at start. Codex and opencode start in their own default mode, and Pi has
   only one. Pick another start mode for each agent in `/settings`.
 - Thinking shown as a summary, or hidden if you set Thinking to hidden in `/settings`. The setting does not apply to
