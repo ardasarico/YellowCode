@@ -66,6 +66,8 @@ export function readManifest(folder: string): ManifestResult {
       ok: false,
       problem: `${MANIFEST}: mcpServers.${String(server.path[1])} takes command, args and env, or type "http" or "sse" with url and headers`,
     }
+  if (parsed.error?.issues.some((issue) => issue.path[0] === "entry"))
+    return { ok: false, problem: `${MANIFEST}: "entry" must name a .ts or .tsx file, like "index.tsx"` }
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "manifest"))]
     return { ok: false, problem: `${MANIFEST}: invalid ${fields.join(", ")}` }

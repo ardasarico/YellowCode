@@ -81,6 +81,9 @@ async function loadFor(agent: ModAgent): Promise<void> {
 let modsOff = false
 export const modsAreOff = () => modsOff
 
+// The mods turned off by failures of the moment.
+const turnedOff = new Set<string>()
+
 export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
   modsOff = off
   if (off) {
@@ -89,7 +92,15 @@ export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
   }
   await loadFor(agent)
   mods.onFailure(({ id, late }) => {
-    if (late) setModNotice({ text: `Mod ${id} failed and was turned off · /mods`, problem: true })
+    if (!late) return
+    // Mods that fail together are counted, so the notice does not name only the last one.
+    turnedOff.add(id)
+    const text =
+      turnedOff.size === 1
+        ? `Mod ${id} failed and was turned off · /mods`
+        : `${turnedOff.size} mods failed and were turned off · /mods`
+    setModNotice({ text, problem: true })
+    setTimeout(() => turnedOff.clear(), 0)
   })
 }
 
