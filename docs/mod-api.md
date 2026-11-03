@@ -2,15 +2,31 @@
 
 This guide is for writing a mod. To install and manage mods, see [Mods](mods.md).
 
-A mod is a folder of TypeScript that YellowCode loads at startup. It can add slash commands, shortcuts, panes, sidebar
-sections, dialogs and tools your agent can call, draw tool rows and code blocks its own way, wrap a few parts of the
-screen, and change a message before it is sent. It runs inside the YellowCode process with no sandbox.
+A mod is a folder of TypeScript that YellowCode loads at startup. See [what a mod can add](#what-a-mod-can-add).
+
+> [!WARNING]
+> A mod runs inside the YellowCode process with no sandbox. Install only mods you trust.
+
+**Start:** [A first mod](#a-first-mod) · [Setting up](#setting-up) · [What a mod can add](#what-a-mod-can-add) ·
+[Examples to read](#examples-to-read)
+
+**Basics:** [The manifest](#the-manifest) · [The entry file](#the-entry-file) · [Working on a mod](#working-on-a-mod) ·
+[Settings](#settings) · [Storage](#storage)
+
+**Screen:** [Commands](#commands) · [Shortcuts](#shortcuts) · [Panes](#panes) · [Sidebar sections](#sidebar-sections) ·
+[Dialogs](#dialogs) · [The UI kit](#the-ui-kit) · [Tool rows](#tool-rows) · [Code fences](#code-fences) ·
+[Overrides](#overrides)
+
+**Agent:** [Tools for the agent](#tools-for-the-agent) · [MCP servers in the manifest](#mcp-servers-in-the-manifest) ·
+[Events](#events) · [The app and the session](#the-app-and-the-session)
+
+**Publishing:** [Versions](#versions) · [Getting a mod listed](#getting-a-mod-listed)
 
 ## A first mod
 
 Make a folder for it in the mods folder:
 
-```
+```text
 ~/.config/yellowcode/mods/hello/
   yellowcode-mod.json
   index.tsx
@@ -56,8 +72,8 @@ with what it adds.
 ## Setting up
 
 A mod is a folder in `$XDG_CONFIG_HOME/yellowcode/mods/<id>/`, which is `~/.config/yellowcode/mods/<id>/` when
-`XDG_CONFIG_HOME` is not set. Folders whose name starts with a dot are skipped. YellowCode looks for mods only at
-startup, so restart it after adding a folder.
+`XDG_CONFIG_HOME` is not set. Folders whose name starts with a dot are skipped. YellowCode looks for mods at startup
+and when you switch to another agent, not while it runs, so restart it after adding a folder.
 
 While you work on a mod in another folder you can symlink it there:
 
@@ -120,6 +136,9 @@ Then put this `tsconfig.json` next to it and run `bunx tsc`:
 | [`mod.events`](#events)                                | A handler for tool calls, turn ends and other events                  |
 | [`mod.settings`](#settings), [`mod.storage`](#storage) | Settings the user changes in `/mods`, and values kept across restarts |
 
+The snippets in this guide go inside `setup(mod)` of a `defineMod` call, as in the first example. Imports come from
+`yellowcode/mod`.
+
 ## Examples to read
 
 The mods in this repo's `mods/` folder are complete examples:
@@ -152,8 +171,8 @@ working through every 0.2.x and stops at 0.3.
 
 ### Agents
 
-YellowCode runs one agent at a time, and `agents` says which ones the mod is made for, by id: `"claude"`, `"codex"` or
-`"opencode"`.
+YellowCode runs one agent at a time, and `agents` says which ones the mod is made for, by id: `"claude"`, `"codex"`,
+`"opencode"` or `"pi"`.
 On an agent the list leaves out, the mod does not load at all, and `/mods` shows it as "not for this agent". A mod that
 uses only YellowCode's own API, such as commands, panes, fences or the sidebar, can say `"any"` to load with every
 agent; YellowCode does not check that it stays out of the agent-bound parts. Those are the tools a mod gives the agent
@@ -218,8 +237,9 @@ A mod fails when:
 
 A mod that fails is turned off at once: everything it added is removed and its cleanups run. The rest of YellowCode and
 the other mods keep going, and a part the mod drew goes back to the app's own. The notice line says `! Mod <id> failed
-and was turned off · /mods`, or at startup `! Mod <id> failed · /mods` (`! 2 mods failed · /mods` for more), and `/mods`
-shows the error with the mod's own stack frames. A failed mod loads again on the next start or a reload.
+and was turned off · /mods`, or at startup `! Mod <id> did not load · /mods` (`! 2 mods did not load · /mods` for
+more), and `/mods` shows the error with the mod's own stack frames. A failed mod loads again on the next start or a
+reload.
 
 A tool that throws is different: the agent gets the error message as the tool's result, and the mod stays on.
 
@@ -232,6 +252,8 @@ Declare settings in `defineMod` and they show in the mod's page in `/mods`, wher
 types:
 
 ```tsx
+import { defineMod } from "yellowcode/mod"
+
 export default defineMod({
   settings: {
     greeting: { type: "text", label: "Greeting", default: "Hello" },
@@ -320,6 +342,8 @@ id before its description.
 A name that YellowCode, the agent or a mod loaded earlier already uses is left out, with a warning in the log.
 
 ## Shortcuts
+
+The two shortcuts below use the `pane` and `save` of the [pane example](#panes).
 
 ```tsx
 mod.keys.add({ key: "ctrl+g", run: () => (pane.focused() ? pane.hide() : pane.focus()) })
@@ -651,6 +675,8 @@ as it is drawn now and usually draws it inside:
 This adds the turn's output tokens under the turn-end line:
 
 ```tsx
+import { theme } from "yellowcode/mod"
+
 mod.overrides.wrap("turn-end", (Original) => (props) => (
   <box flexDirection="column">
     <Original {...props} />
@@ -722,8 +748,10 @@ export default defineMod({
 
 Each mod's tools form an MCP server named `mod-<id>`, which YellowCode serves itself, so Claude Code sees this tool as
 `mcp__mod-dice__roll`. Tools are agent-bound: list the agents that take them in `agents`. On an agent that takes no
-tools from YellowCode, `mod.tools.add` adds nothing. `name` is letters, digits, `_` and `-`, up to 64 characters, and
-unique in the mod. `inputSchema` is the JSON schema of the arguments. `run` gets the arguments as the agent sent them,
+tools from YellowCode (Pi), the first `mod.tools.add` stops the mod, and `/mods` lists it as not for that agent. Declare
+such a mod for the agents that take tools, in `agents`. `name` is letters, digits, `_` and `-`, up to 64 characters, and
+unique in the mod. `annotations` takes `readOnlyHint`, `destructiveHint` and `title`; they tell the agent how the tool
+behaves. `inputSchema` is the JSON schema of the arguments. `run` gets the arguments as the agent sent them,
 so check them yourself. It returns the text the agent reads, or `{ text, isError: true }` for an error, and may be
 `async`.
 
@@ -780,6 +808,7 @@ them.
 A few things the app lends every mod:
 
 ```ts
+mod.id // the mod's folder name, the `id` in its manifest
 mod.cwd // the project folder YellowCode was started in
 mod.notify("Pushed to origin") // on the notice line under the prompt, as "<mod name>: Pushed to origin"
 mod.notify("Push failed", { level: "error" }) // "info" (default), "warning" or "error"

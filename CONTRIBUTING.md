@@ -15,7 +15,7 @@ before you spend time on code.
 
 ## Setting up
 
-You need [Bun](https://bun.sh) and a supported agent, installed and logged in.
+You need [Bun](https://bun.sh) and a supported provider, installed and logged in.
 
 ```sh
 git clone https://github.com/ardasarico/YellowCode
@@ -24,7 +24,8 @@ bun install
 bun run dev
 ```
 
-`bun run dev` starts YellowCode in the repo folder. To try it in another project, run `bin/yellowcode` from there.
+`bun run dev` starts YellowCode in the repo folder. To try it in another project, run `bin/yellowcode` from this repo
+while you are in that project, or put it on your PATH.
 
 ### Without an agent
 
@@ -35,7 +36,7 @@ agent, so it needs no login and costs nothing:
 bun run dev --replay fixtures/sessions/chat.jsonl
 ```
 
-Enter sends the next recorded message or answer. `--speed <number|instant>` changes the playback speed. Ctrl+C twice
+Enter sends the next recorded message or answer. `--speed <number|instant>` changes the playback speed. `Ctrl+C` twice
 quits.
 
 ## Making a change
@@ -52,14 +53,17 @@ quits.
 What passes between YellowCode and an agent is not a public API, so a change that reads or sends new messages needs a
 recorded session that shows them.
 
-- Claude Code: the scenarios are in `tools/record/scenarios.ts`. Add one there and run `bun run record <name>`. This
-  runs a live `claude` on your account.
-- Codex, opencode and Pi: the scenarios are in `tools/codex/scenarios/`, `tools/opencode/scenarios/` and
-  `tools/pi/scenarios/`. Add one there and run `bun tools/codex/record.ts <name>`, `bun tools/opencode/record.ts <name>`
-  or `bun tools/pi/record.ts <name>`. These run your installed `codex`, `opencode` from `~/.opencode/bin`, or `pi`, in a
-  throwaway home against a local stand-in for the model API, so they need no login and cost nothing. The recordings go
-  to `fixtures/codex/`, `fixtures/opencode/` and `fixtures/pi/`. `--check` records again and
-  compares the result with the committed one.
+| Provider    | Scenarios                   | Record with                           | Recordings go to     |
+| ----------- | --------------------------- | ------------------------------------- | -------------------- |
+| Claude Code | `tools/record/scenarios.ts` | `bun run record <name>`               | `fixtures/sessions/` |
+| Codex       | `tools/codex/scenarios/`    | `bun tools/codex/record.ts <name>`    | `fixtures/codex/`    |
+| opencode    | `tools/opencode/scenarios/` | `bun tools/opencode/record.ts <name>` | `fixtures/opencode/` |
+| Pi          | `tools/pi/scenarios/`       | `bun tools/pi/record.ts <name>`       | `fixtures/pi/`       |
+
+Add a scenario in its folder and record it. Claude Code runs a live `claude` on your account. The others run your
+installed `codex`, `opencode` from `~/.opencode/bin`, or `pi`, in a throwaway home against a local stand-in for the
+model API, so they need no login and cost nothing. `--check` records again and compares the result with the committed
+one.
 
 Tests compare replays of these recordings with the expected results in `fixtures/goldens/`. When a change alters them
 on purpose, run the tests with `UPDATE_GOLDENS=1` (Claude Code), `UPDATE_CODEX_GOLDENS=1` or `UPDATE_OPENCODE_GOLDENS=1`
@@ -84,9 +88,10 @@ Keep a pull request to one change. Say what it fixes or adds, and how you checke
 To get a mod on the mod list, see [Getting a mod listed](docs/mod-api.md#getting-a-mod-listed).
 
 When YellowCode runs from the repo, it links its own `solid-js`, `@opentui/*` and `yellowcode` into
-`mods/node_modules/` instead of giving them to mods at load time. A mod must then have none of them in its own
-`node_modules`, so leave out `@yellowcode/mod`. A mod kept in another folder gets a link to that folder instead, which
-also gives the API's types; the folder is made the first time YellowCode starts with a mod in place:
+`mods/node_modules/` instead of giving them to mods at load time. A mod must then not install `solid-js`, `@opentui/*`
+or `yellowcode` itself, and does not need the types package `@yellowcode/mod`. A mod kept in another folder can link
+its `node_modules` to YellowCode's, which also gives the API's types. That folder is made the first time YellowCode
+starts with a mod in place:
 
 ```sh
 ln -s ~/.config/yellowcode/mods/node_modules ~/my-mods/hello/node_modules
