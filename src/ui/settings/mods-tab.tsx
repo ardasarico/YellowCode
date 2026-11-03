@@ -6,7 +6,7 @@ import { keyText } from "../../mods/keys.ts"
 import { apiMatches, revokedListing } from "../../mods/install/checks.ts"
 import type { ListedMod } from "../../mods/install/list.ts"
 import { forAgent, incompatibleText } from "../../mods/manifest.ts"
-import { installedNow, installListed, modList, refreshModList, updatedTo } from "../../mods/mods.ts"
+import { installedNow, installListed, modList, modsAreOff, refreshModList, updatedTo } from "../../mods/mods.ts"
 import { counts, modKeys, modPanes, modServerErrors } from "../../mods/registry.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
 import { configPath } from "../../config-path.ts"
@@ -432,7 +432,11 @@ export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption;
       sections={sections()}
       searchPlaceholder="Search mods"
       empty={(query) =>
-        query ? `No mods match "${query}".` : `No mods yet. Put one in ${tildePath(configPath("mods"))}/.`
+        query
+          ? `No mods match "${query}".`
+          : modsAreOff()
+            ? "Mods are off for this run (--no-mods). Start without it to load them."
+            : `No mods yet. Put one in ${tildePath(configPath("mods"))}/.`
       }
       detail={(row, width) => {
         const entry = entryFor(row)

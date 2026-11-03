@@ -77,7 +77,12 @@ async function loadFor(agent: ModAgent): Promise<void> {
   for (const entry of mods.entries) log.info(`mod ${entry.id}: ${entry.status}`, entry.problem ?? undefined)
 }
 
+// Set for a run started with --no-mods, so /mods can say why it lists nothing.
+let modsOff = false
+export const modsAreOff = () => modsOff
+
 export async function startMods(off: boolean, agent: ModAgent): Promise<void> {
+  modsOff = off
   if (off) {
     setModNotice({ text: "Mods are off (--no-mods)", problem: false })
     return
