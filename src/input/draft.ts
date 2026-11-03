@@ -22,8 +22,9 @@ function newlines(text: string): number {
   return text.split("\n").length - 1
 }
 
+// NFC joins a letter and a combining mark into one character, which the prompt draws in one cell.
 export function normalizePaste(text: string): string {
-  return text.replaceAll("\r\n", "\n").replaceAll("\r", "\n")
+  return text.replaceAll("\r\n", "\n").replaceAll("\r", "\n").normalize("NFC")
 }
 
 export function collapses(text: string): boolean {
