@@ -1666,6 +1666,8 @@ export function App(props: AppProps) {
       const next = focus() === "input" ? "chat" : "input"
       setFocus(next)
       if (next === "chat" && selected() === null) moveSelection(-1)
+      // A chat with nothing to select would take the keys with no sign of it.
+      if (next === "chat" && selected() === null) setFocus("input")
       return
     }
     if (focus() !== "chat") return
