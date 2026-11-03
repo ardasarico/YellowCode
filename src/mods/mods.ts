@@ -63,8 +63,11 @@ let loading = Promise.resolve()
 
 async function loadFor(agent: ModAgent): Promise<void> {
   loadedFor = agent
+  // A mod that fails while it loads is reported for its load and for its turn-off; it counts once.
   const failed: string[] = []
-  const stop = mods.onFailure(({ id }) => failed.push(id))
+  const stop = mods.onFailure(({ id }) => {
+    if (!failed.includes(id)) failed.push(id)
+  })
   mods.discover(agent)
   if (mods.entries.length > 0) linkRuntime(mods.folder)
   await mods.loadAll()
