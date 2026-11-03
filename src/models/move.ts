@@ -1,18 +1,7 @@
-import type { Ask, AskOption } from "../agent/ask.ts"
+import { type Ask, onceOption } from "../agent/ask.ts"
 import type { Handoff } from "../session/handoff.ts"
 
 const PREFIX = "move-"
-
-const option = (id: string, effect: AskOption["effect"], label: string): AskOption => ({
-  id,
-  effect,
-  lasts: "once",
-  label,
-  subject: null,
-  note: false,
-  endsTurn: false,
-  mode: null,
-})
 
 const messages = (count: number) => `${count} ${count === 1 ? "message" : "messages"}`
 
@@ -43,7 +32,7 @@ export function moveAsk(id: string, handoff: Handoff, from: string, to: string, 
     writes: [],
     detail: "",
     reason: "",
-    options: [option("switch", "allow", "Switch and send"), option("cancel", "deny", "Cancel")],
+    options: [onceOption("switch", "allow", "Switch and send"), onceOption("cancel", "deny", "Cancel")],
     questions: null,
     plan: null,
     defaultNo: false,

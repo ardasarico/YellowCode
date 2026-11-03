@@ -3,6 +3,7 @@ import { createSignal, untrack } from "solid-js"
 import type { AgentKindId, ModelRef } from "../agent/ids.ts"
 import type { ModelRow } from "../agent/lists.ts"
 import {
+  isModelOf,
   type PickerGroup,
   type PickerLine,
   type PickerModel,
@@ -39,9 +40,6 @@ function lineId(line: PickerLine, section: PickerSection): string {
 
 const letter = (key: KeyEvent, name: string) => !key.ctrl && !key.meta && !key.shift && key.name === name
 
-// A dated or suffixed id such as claude-opus-5-5-20261001[1m] is its plain model's.
-const plain = (id: string) => id.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
-
 // /model: every added provider's models. Enter hands the model to `onPick`, which decides what picking it does.
 export function ModelPicker(props: {
   groups: PickerGroup[]
@@ -54,7 +52,7 @@ export function ModelPicker(props: {
   const [expanded, setExpanded] = createSignal<ReadonlySet<AgentKindId>>(new Set())
   const isCurrent = (model: PickerModel) => {
     const now = props.current
-    return now !== null && model.provider === now.provider && (model.id === now.id || model.id === plain(now.id))
+    return now !== null && isModelOf(model, now)
   }
   const currentModel = () => props.groups.flatMap((group) => group.models ?? []).find(isCurrent)
   // Where the selection goes when its row leaves the list: the row after a hidden one, the first of an expanded rest.

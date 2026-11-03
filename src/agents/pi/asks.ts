@@ -1,23 +1,12 @@
 // Pi extensions' dialogs as YellowCode asks: a confirm is a yes or no, a select a question page with its options, an
 // input or editor a page answered by typing. Pi resolves a dialog itself once its timeout passes, so the ask closes
 // then too.
-import type { Ask, AskOption, AskOutcome, AskReply, QuestionPage } from "../../agent/ask.ts"
+import { type Ask, type AskOutcome, type AskReply, onceOption, type QuestionPage } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId } from "../../agent/ids.ts"
 
 const KEY = "answer"
 const KEEP = "Keep it as it is"
-
-const option = (id: string, effect: AskOption["effect"], label: string): AskOption => ({
-  id,
-  effect,
-  lasts: "once",
-  label,
-  subject: null,
-  note: false,
-  endsTurn: false,
-  mode: null,
-})
 
 const blank = {
   call: null,
@@ -58,7 +47,7 @@ function askOf(id: AskId, raw: Record<string, unknown>): Ask | null {
         title: "Pi extension",
         target: title,
         detail: text(raw["message"]),
-        options: [option("yes", "allow", "Yes"), option("no", "deny", "No")],
+        options: [onceOption("yes", "allow", "Yes"), onceOption("no", "deny", "No")],
         questions: null,
       }
     case "select": {

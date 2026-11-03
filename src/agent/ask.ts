@@ -23,6 +23,18 @@ export type AskOption = {
   grant?: unknown
 }
 
+// An option of our own that holds once.
+export const onceOption = (id: string, effect: AskOption["effect"], label: string): AskOption => ({
+  id,
+  effect,
+  lasts: "once",
+  label,
+  subject: null,
+  note: false,
+  endsTurn: false,
+  mode: null,
+})
+
 export type QuestionPage = {
   // What the answer is filed under: the question text, a field id.
   key: string

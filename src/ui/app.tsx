@@ -3,7 +3,7 @@ import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome } from "../agent/ids.ts"
 import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
-import { favoriteWalk, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
+import { favoriteWalk, isModelOf, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
 import type { Handoff } from "../session/handoff.ts"
 import { ModelPicker, pickerModel } from "./model-picker.tsx"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
@@ -1002,8 +1002,7 @@ export function App(props: AppProps) {
     const favorites = favoriteWalk(groups, marks)
     const walk = favorites.length > 0 ? favorites : (groups[0]?.models ?? []).filter((one) => !marks.hidden(one))
     const now = pendingModel() ?? currentModel()
-    const plain = now?.id.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
-    const at = walk.findIndex((one) => one.provider === now?.provider && (one.id === now.id || one.id === plain))
+    const at = walk.findIndex((one) => now !== null && isModelOf(one, now))
     const next = walk[at === -1 ? 0 : (at + step + walk.length) % walk.length]
     if (!next) return
     if (next.provider === props.agent.id) {

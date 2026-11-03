@@ -24,6 +24,13 @@ export type PickerView = {
   hidden: (model: PickerModel) => boolean
 }
 
+// A dated or suffixed id such as claude-opus-5-5-20261001[1m] is its plain model's.
+const plain = (id: string) => id.replace(/(?:-\d{8})?(?:\[.+\])?$/, "")
+
+// True when `model` is the one `now` names, dated or suffixed or not.
+export const isModelOf = (model: PickerModel, now: { provider: AgentKindId; id: string }): boolean =>
+  model.provider === now.provider && (model.id === now.id || model.id === plain(now.id))
+
 export function matches(model: PickerModel, query: string): boolean {
   const needle = query.trim().toLowerCase()
   if (!needle) return true

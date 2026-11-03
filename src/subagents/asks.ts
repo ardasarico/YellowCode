@@ -1,5 +1,5 @@
 import type { Agent } from "../agent/agent.ts"
-import type { Ask, AskOption, AskReply } from "../agent/ask.ts"
+import { type Ask, type AskOption, type AskReply, onceOption } from "../agent/ask.ts"
 import type { AgentEvent } from "../agent/events.ts"
 import type { AskId } from "../agent/ids.ts"
 import type { ModelRow } from "../agent/lists.ts"
@@ -88,17 +88,6 @@ const ROW = "row-"
 
 export const ownAskId = (id: string): AskId => `${OWN}${id}`
 
-const option = (id: string, effect: AskOption["effect"], label: string): AskOption => ({
-  id,
-  effect,
-  lasts: "once",
-  label,
-  subject: null,
-  note: false,
-  endsTurn: false,
-  mode: null,
-})
-
 const ownAsk = (id: string, title: string, target: string, options: AskOption[]): Ask => ({
   id: ownAskId(id),
   kind: "permission",
@@ -122,7 +111,7 @@ const ownAsk = (id: string, title: string, target: string, options: AskOption[])
 
 // `text` names the provider and the mode the child would run in.
 export const confirmAsk = (id: string, text: string, task: string): Ask =>
-  ownAsk(id, text, task, [option("run", "allow", "Run it"), option(DONT, "deny", "Don't run")])
+  ownAsk(id, text, task, [onceOption("run", "allow", "Run it"), onceOption(DONT, "deny", "Don't run")])
 
 export type ModelChoice = { provider: { id: string; name: string }; row: ModelRow }
 
@@ -130,9 +119,9 @@ export type ModelChoice = { provider: { id: string; name: string }; row: ModelRo
 export const modelAsk = (id: string, model: string, task: string, choices: ModelChoice[]): Ask =>
   ownAsk(id, `Run ${model} for ${task}?`, task, [
     ...choices.map((choice, index) =>
-      option(`${ROW}${index}`, "allow", `${choice.row.label} · ${choice.provider.name}`),
+      onceOption(`${ROW}${index}`, "allow", `${choice.row.label} · ${choice.provider.name}`),
     ),
-    option(DONT, "deny", "Don't run"),
+    onceOption(DONT, "deny", "Don't run"),
   ])
 
 // The id an own ask was made with, if it is one of ours.
