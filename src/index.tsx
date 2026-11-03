@@ -503,9 +503,11 @@ async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; no
   })
   const runner = runnerById(first) ?? claudeRunner
   const model = saved === runner.kind.id ? (stored.lastModel?.ref ?? null) : null
-  const why = saved !== undefined && saved !== runner.kind.id ? found.get(saved) : undefined
+  // With nothing saved, the first added provider is the one meant to open.
+  const meant = saved ?? addedIds(stored)[0]
+  const why = meant !== undefined && meant !== runner.kind.id ? found.get(meant) : undefined
   const reason = why === undefined ? null : why.installed ? why.blocked : "is not installed"
-  const name = runnerById(saved)?.kind.name
+  const name = runnerById(meant)?.kind.name
   return { runner, model, notice: name && reason !== null ? `${name} ${reason} · opened ${runner.kind.name}` : null }
 }
 
