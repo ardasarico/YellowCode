@@ -304,7 +304,8 @@ export function ConfigTab(props: {
         if (query()) search("")
         else if (open) back(open)
         else return false
-      } else if (key.name === "backspace") search(Array.from(query()).slice(0, -1).join(""))
+      } else if (key.ctrl && key.name === "u") search("")
+      else if (key.name === "backspace") search(Array.from(query()).slice(0, -1).join(""))
       else if (printable(key)) search(query() + key.sequence)
       return true
     },

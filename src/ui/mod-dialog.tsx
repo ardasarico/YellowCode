@@ -49,6 +49,7 @@ function Input(props: { options: ModInputOptions; close: Close }) {
     key.preventDefault()
     if (key.name === "return") props.close(text())
     else if (key.name === "escape") props.close(null)
+    else if (key.ctrl && key.name === "u") setText("")
     else if (key.name === "backspace") setText((value) => Array.from(value).slice(0, -1).join(""))
     else if (printable(key)) setText((value) => value + key.sequence)
   })
