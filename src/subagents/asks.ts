@@ -23,9 +23,14 @@ const doing = (ask: Ask): string => {
   return `wants to use ${ask.tool.name}`
 }
 
-// The child's ask as the parent shows it. The options stay the child provider's own, so the answer is the user's.
+// A grant that would outlive the child, such as one written to the project's settings.
+const OUTLIVES = new Set(["project", "everywhere", "kept"])
+
+// The child's ask as the parent shows it. The options are the child provider's own, so the answer is the user's,
+// except those that would keep a grant after the child is gone.
 export const parentCopy = (child: AskingChild, ask: Ask): Ask => ({
   ...ask,
+  options: ask.options.filter((option) => !OUTLIVES.has(option.lasts)),
   id: childAskId(child.id, ask.id),
   title: `${child.name} · ${child.provider} ${doing(ask)}`,
   // These name the child's own tool calls, tasks and client tools, none of which the parent store has.

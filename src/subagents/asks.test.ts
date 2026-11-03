@@ -12,6 +12,19 @@ const edit = (id: string): Ask => ({
   title: "edit",
   target: "src/a.ts",
   writes: ["src/a.ts"],
+  options: [
+    ...peerAsk("x", { from: { id: "", title: "", agent: "" }, to: "", broadcast: false, text: "", images: [] }).options,
+    {
+      id: "always",
+      effect: "allow",
+      lasts: "project",
+      label: null,
+      subject: null,
+      note: false,
+      endsTurn: false,
+      mode: null,
+    },
+  ],
 })
 
 const setup = () => {
@@ -33,7 +46,8 @@ test("a child's ask opens, is answered and closes in the parent", () => {
   const opened = events[0]
   if (opened?.type !== "ask.open") throw new Error("no ask")
   expect(opened.ask).toMatchObject({ id: "child-c1-a1", title: "worker · opencode wants to edit src/a.ts", call: null })
-  expect(opened.ask.options).toEqual(ask.options)
+  expect(opened.ask.options).toEqual(ask.options.filter((option) => option.lasts !== "project"))
+  expect(ask.options.some((option) => option.lasts === "project")).toBe(true)
 
   const reply: AskReply = { type: "option", option: "always", note: null }
   expect(asks.answer("child-c1-a1", reply)).toBe(true)

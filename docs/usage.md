@@ -131,7 +131,8 @@ your [agents](#agent-files), or names a model directly; then you are asked first
   Pi, which asks for nothing, you are asked once in your chat whether it may run. With your session in auto or bypass
   and the agent's permissions on `inherit`, it runs without that ask. An opencode subagent under a session that asks
   runs in build mode and asks you before each edit and shell command.
-- Its permission asks and questions show in your chat, marked with its name.
+- Its permission asks and questions show in your chat, marked with its name. They offer no "always" option, so no
+  grant outlives the subagent.
 - When it finishes, its last message, the files it edited and how long it took come back to your agent as a message.
   It stays open, so your agent can send it more work, until your agent closes it or your session ends.
 - At most 6 run at once; more wait for a free slot. Subagents at once in `/settings` changes the number.
