@@ -56,7 +56,8 @@ yellowcode mod <command>
 - `/` lists commands: YellowCode's own, your agent's, and those your mods add.
 - `@` picks a file to mention.
 - `!` at the start runs a shell command in your project. Its output goes to the agent with your next message.
-- Ctrl+V pastes an image, a file or text. A long paste folds into one line, and Ctrl+X unfolds it.
+- Ctrl+V pastes an image, a file or text. A long paste folds into one line, and Ctrl+X unfolds it. On Linux this needs
+  `wl-clipboard` on Wayland or `xclip` on X11; your terminal's own paste works without them, for text.
 
 ## Commands
 
