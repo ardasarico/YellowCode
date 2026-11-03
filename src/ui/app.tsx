@@ -1649,6 +1649,12 @@ export function App(props: AppProps) {
       void props.knobs?.setExtraEffort(ultracode)
       return
     }
+    if ((key.name === "pageup" || key.name === "pagedown") && !welcome() && scroll) {
+      key.preventDefault()
+      const page = Math.max(1, scroll.viewport.height - 2)
+      scroll.scrollBy({ x: 0, y: key.name === "pageup" ? -page : page })
+      return
+    }
     if (key.name === "end" && !welcome() && !scrollState().atBottom) {
       key.preventDefault()
       jumpDown()
