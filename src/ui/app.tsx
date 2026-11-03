@@ -1817,6 +1817,11 @@ export function App(props: AppProps) {
       setDialog({ name: command === "/context" ? "context" : "usage" })
       return true
     }
+    // A replay has no session to report on, and the message would play the next recorded turn.
+    if (report && props.replay !== null) {
+      waitNotice(`Not available with ${props.agent.name}`)
+      return false
+    }
     const rewinding = command === "/rewind" || command === "/timeline" || command === "/redo"
     const planning = command === "/plan" || command.startsWith("/plan ")
     if (
