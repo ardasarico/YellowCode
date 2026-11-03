@@ -15,7 +15,7 @@ import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, text, title } from "../dialog/detail.ts"
 import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
 import type { FooterAction } from "../dialog/list-view.tsx"
-import { openFolder } from "../dialog/open-file.ts"
+import { openPath } from "../dialog/open-file.ts"
 import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import { TwoPane } from "../dialog/two-pane.tsx"
 import { printable } from "../dialog/list-view.tsx"
@@ -396,7 +396,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption;
     if (id === "retry") refreshModList()
     else if (mod && id === "install") void install(mod)
     else if (mod && id === "folder")
-      void openFolder(`${configPath("mods")}/${mod.id}`).then((opened) => {
+      void openPath(`${configPath("mods")}/${mod.id}`).then((opened) => {
         if (!opened) props.api.notify("Could not open the folder")
       })
   }
@@ -419,7 +419,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption;
         : id === "reload"
           ? props.host.reload(entry.id)
           : id === "folder"
-            ? openFolder(entry.folder).then((opened) => {
+            ? openPath(entry.folder).then((opened) => {
                 if (!opened) props.api.notify("Could not open the folder")
               })
             : null

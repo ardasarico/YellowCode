@@ -41,7 +41,7 @@ async function open(args: string[], command = OPENER): Promise<boolean> {
   return false
 }
 
-export const openFolder = (path: string) => open([path])
+export const openPath = (path: string) => open([path])
 export const openUrl = (url: string) => open([url])
 
 // False when the chosen editor could not open the file and the default app was used instead.

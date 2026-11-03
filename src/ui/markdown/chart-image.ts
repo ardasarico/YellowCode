@@ -8,11 +8,18 @@ export type ChartColors = { muted: string; grid: string; zero: string; series: s
 export type ChartSize = { width: number; height: number; font: number }
 
 const MAX_TICKS = 50
-const FONT = "Menlo"
-const FONT_FILE = "/System/Library/Fonts/Menlo.ttc"
-// Loading every system font takes most of a second per chart; Menlo alone takes a millisecond.
-const FONT_OPTIONS = existsSync(FONT_FILE)
-  ? { loadSystemFonts: false, fontFiles: [FONT_FILE], defaultFontFamily: FONT }
+// Loading every system font takes most of a second per chart; one font file takes a millisecond. Menlo on macOS, then
+// where Debian, Arch and Fedora keep DejaVu Sans Mono.
+const FONTS: [string, string][] = [
+  ["/System/Library/Fonts/Menlo.ttc", "Menlo"],
+  ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", "DejaVu Sans Mono"],
+  ["/usr/share/fonts/TTF/DejaVuSansMono.ttf", "DejaVu Sans Mono"],
+  ["/usr/share/fonts/dejavu-sans-mono-fonts/DejaVuSansMono.ttf", "DejaVu Sans Mono"],
+]
+const found = FONTS.find(([file]) => existsSync(file))
+const FONT = found?.[1] ?? "monospace"
+const FONT_OPTIONS = found
+  ? { loadSystemFonts: false, fontFiles: [found[0]], defaultFontFamily: FONT }
   : { loadSystemFonts: true, defaultFontFamily: FONT }
 
 function niceStep(span: number, count: number): number {
@@ -105,7 +112,7 @@ export function chartSvg(chart: XYChart, size: ChartSize, colors: ChartColors): 
     if (gap > font)
       for (const [px, py] of points) parts.push(`<circle cx="${px}" cy="${py}" r="${font / 5}" fill="${color}"/>`)
   })
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" font-family="${FONT}, monospace">${parts.join("")}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" font-family="${FONT}">${parts.join("")}</svg>`
 }
 
 let collecting = false

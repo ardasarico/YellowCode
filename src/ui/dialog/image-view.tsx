@@ -10,6 +10,7 @@ import { theme } from "../../theme/theme.ts"
 import { cutPath } from "../format.ts"
 import { createDecoded, loadImage } from "../image-label.tsx"
 import { Frame, useViewPanel } from "./frame.tsx"
+import { openPath } from "./open-file.ts"
 import { Footer, PAD_X } from "./list-view.tsx"
 
 let viewedDir: string | undefined
@@ -19,8 +20,8 @@ export function removeViewedImages(): void {
   viewedDir = undefined
 }
 
-// False when Preview could not open it.
-async function openInPreview(image: ChatImage): Promise<boolean> {
+// False when the default app could not open it.
+async function openImage(image: ChatImage): Promise<boolean> {
   try {
     let path = image.path && existsSync(image.path) ? image.path : null
     if (!path && image.data) {
@@ -33,9 +34,7 @@ async function openInPreview(image: ChatImage): Promise<boolean> {
       log.warn("image not found", image.name)
       return false
     }
-    const child = Bun.spawn(["open", path], { stdout: "ignore", stderr: "pipe" })
-    if ((await child.exited) === 0) return true
-    log.warn("open failed", await new Response(child.stderr).text())
+    return await openPath(path)
   } catch (error) {
     log.warn("open failed", error)
   }
@@ -83,7 +82,7 @@ export function ImageView(props: {
   const counter = () => (several() ? `${props.index + 1} / ${props.images.length}  esc` : "esc")
   const actions = () => [
     ...(several() ? [{ key: "←→", action: "previous/next" }] : []),
-    { key: "o", action: "open in Preview" },
+    { key: "o", action: "open" },
     { key: "esc", action: "close" },
   ]
   const actionsWidth = () =>
@@ -103,8 +102,8 @@ export function ImageView(props: {
       const shown = image()
       if (shown) {
         setNotice("")
-        void openInPreview(shown).then((opened) => {
-          if (!opened) setNotice("Could not open it in Preview")
+        void openImage(shown).then((opened) => {
+          if (!opened) setNotice("Could not open it")
         })
       }
     } else if (key.name === "escape") props.onClose()
