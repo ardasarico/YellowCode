@@ -46,6 +46,8 @@ quits.
 - Run `bun run check` before you push. It runs the type check, lint, format check, the mod API types check and the
   tests.
 - If you change the mod API, run `bun run types` and update [the Mod API guide](docs/mod-api.md).
+- Code blocks are highlighted with the grammars in `src/ui/markdown/parsers/`. To add or update one, edit
+  `tools/parsers-config.json` and run `bun run parsers`.
 
 What passes between YellowCode and an agent is not a public API, so a change that reads or sends new messages needs a
 recorded session that shows them.
