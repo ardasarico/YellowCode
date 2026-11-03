@@ -215,11 +215,15 @@ export function ListView(props: ListViewProps) {
   const focus = () => {
     const index = props.lines.findIndex((line) => line.kind === "row" && line.row.id === props.selected)
     if (index === -1) return { from: 0, to: 0 }
-    const from = props.lines[index - 1]?.kind === "title" ? index - 1 : index
+    // With too few rows the row itself stays in view: its title and notes give way first.
+    const more = props.lines.length > props.rows && props.rows >= MORE_MIN_ROWS ? 2 : 0
+    const fit = Math.max(1, props.rows - more)
+    const from = props.lines[index - 1]?.kind === "title" && fit > 1 ? index - 1 : index
     let to = index
     while (props.lines[to + 1]?.kind === "note") to++
     const last = props.lines.findLastIndex((line) => line.kind === "row") === index
-    return { from, to: last ? Math.max(to, Math.min(props.lines.length - 1, from + props.rows - 2)) : to }
+    const end = last ? Math.max(to, Math.min(props.lines.length - 1, from + props.rows - 2)) : to
+    return { from, to: Math.min(end, from + fit - 1) }
   }
   const scroll = createMemo<{ view: string; window: ReturnType<typeof scrollWindow> }>((previous) => {
     const start = previous?.view === props.view ? previous.window.start : 0
