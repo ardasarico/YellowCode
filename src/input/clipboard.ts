@@ -45,7 +45,7 @@ const Output = z.union([
 ])
 
 export const readClipboard: ReadClipboard = async () => {
-  if (process.platform !== "darwin") return null
+  if (process.platform !== "darwin") return readLinuxClipboard()
   const result = await spawnLimited(["osascript", "-l", "JavaScript", "-e", SCRIPT], { timeoutMs: 5000 })
   if (result === null) {
     log.warn("clipboard read timed out")
@@ -70,10 +70,82 @@ export const readClipboard: ReadClipboard = async () => {
     return { kind: "text", text: content.files.join(" ") }
   }
   if ("png" in content) {
-    const image = await fitImage(Buffer.from(content.png, "base64"))
+    const image = fitImage(Buffer.from(content.png, "base64"))
     return image && { kind: "image", image }
   }
   return { kind: "text", text: content.text }
+}
+
+// Shown in place of the pasted content when no clipboard tool is installed.
+export class ClipboardToolMissing extends Error {}
+
+type Tool = { list: string[]; read: (type: string) => string[] }
+const WL_PASTE: Tool = {
+  list: ["wl-paste", "--list-types"],
+  read: (type) => ["wl-paste", "--no-newline", "--type", type],
+}
+const XCLIP: Tool = {
+  list: ["xclip", "-selection", "clipboard", "-t", "TARGETS", "-o"],
+  read: (type) => ["xclip", "-selection", "clipboard", "-t", type, "-o"],
+}
+const TEXT_TYPES = ["text/plain;charset=utf-8", "UTF8_STRING", "text/plain", "STRING"]
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"]
+let toldMissing = false
+
+async function readOutput(command: string[]): Promise<Uint8Array | null> {
+  try {
+    const child = Bun.spawn(command, { stdin: "ignore", stdout: "pipe", stderr: "ignore", timeout: 5000 })
+    const [bytes, code] = await Promise.all([new Response(child.stdout).bytes(), child.exited])
+    return code === 0 ? bytes : null
+  } catch (error) {
+    log.warn("clipboard read failed", { command: command[0], error: String(error) })
+    return null
+  }
+}
+
+// Wayland first, then X11, which also reaches the Wayland clipboard through XWayland. Over SSH there is neither.
+function linuxTool(): Tool | null {
+  const wayland = Boolean(process.env["WAYLAND_DISPLAY"])
+  const x11 = Boolean(process.env["DISPLAY"])
+  if (wayland && Bun.which("wl-paste")) return WL_PASTE
+  if (x11 && Bun.which("xclip")) return XCLIP
+  if ((wayland || x11) && !toldMissing) {
+    toldMissing = true
+    throw new ClipboardToolMissing(`To paste images, install ${wayland ? "wl-clipboard" : "xclip"}`)
+  }
+  return null
+}
+
+// The same order as on macOS: copied files, then text unless it is the address beside a copied image, then the image.
+async function readLinuxClipboard(): Promise<Awaited<ReturnType<ReadClipboard>>> {
+  const tool = linuxTool()
+  if (!tool) return null
+  const listed = await readOutput(tool.list)
+  const types = new Set(
+    new TextDecoder()
+      .decode(listed ?? new Uint8Array())
+      .split("\n")
+      .map((type) => type.trim()),
+  )
+  const text = async (type: string) => new TextDecoder().decode((await readOutput(tool.read(type))) ?? new Uint8Array())
+  if (types.has("text/uri-list")) {
+    const files = (await text("text/uri-list"))
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("file://"))
+      .map((line) => decodeURIComponent(new URL(line).pathname))
+    const [file] = files
+    if (files.length === 1 && file && /\.(png|jpe?g|gif|webp)$/i.test(file)) return { kind: "path", path: file }
+    if (files.length > 0) return { kind: "text", text: files.join(" ") }
+  }
+  const textType = TEXT_TYPES.find((type) => types.has(type))
+  const pasted = textType ? await text(textType) : ""
+  const imageType = IMAGE_TYPES.find((type) => types.has(type))
+  if (pasted.length > 0 && !(imageType && /^(https?|data|blob|file):\S*$/i.test(pasted.trim())))
+    return { kind: "text", text: pasted }
+  const bytes = imageType ? await readOutput(tool.read(imageType)) : null
+  const image = bytes && fitImage(bytes)
+  if (image) return { kind: "image", image }
+  return pasted.length > 0 ? { kind: "text", text: pasted } : null
 }
 
 // macOS has pbcopy; elsewhere the terminal takes the text through OSC 52.

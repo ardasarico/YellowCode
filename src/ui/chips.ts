@@ -16,6 +16,7 @@ import {
   stringIndexes,
   toBufferOffset,
 } from "../input/draft.ts"
+import { ClipboardToolMissing } from "../input/clipboard.ts"
 import { ImageTooLarge } from "../input/image-file.ts"
 
 export type ChipsOptions = {
@@ -35,9 +36,9 @@ const [pasteNotice, setPasteNotice] = createSignal<string | null>(null)
 export { pasteNotice }
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
-// A too large image is left out, with a notice; a pasted path then stays as text.
-function tooLarge(error: unknown, suffix = ""): null {
-  if (!(error instanceof ImageTooLarge)) throw error
+// A too large image is left out, with a notice; a pasted path then stays as text. A missing clipboard tool gets one too.
+function noticeFor(error: unknown, suffix = ""): null {
+  if (!(error instanceof ImageTooLarge) && !(error instanceof ClipboardToolMissing)) throw error
   clearTimeout(noticeTimer)
   setPasteNotice(error.message + suffix)
   noticeTimer = setTimeout(() => setPasteNotice(null), NOTICE_MS)
@@ -176,7 +177,7 @@ export function useChips(options: ChipsOptions) {
 
   const attachPath = async (path: string, text: string) => {
     const back = anchor()
-    const image = await options.loadImage(path).catch((error: unknown) => tooLarge(error, ", kept the path"))
+    const image = await options.loadImage(path).catch((error: unknown) => noticeFor(error, ", kept the path"))
     back()
     if (!image) {
       options.area()?.insertText(text)
@@ -200,7 +201,7 @@ export function useChips(options: ChipsOptions) {
 
   const fromClipboard = async () => {
     const back = anchor()
-    const content = await options.readClipboard().catch((error: unknown) => tooLarge(error))
+    const content = await options.readClipboard().catch((error: unknown) => noticeFor(error))
     back()
     if (content?.kind === "image") insertImage(content.image)
     else if (content?.kind === "path") await attachPath(content.path, content.path)
