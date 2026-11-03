@@ -159,7 +159,8 @@ export function createTools(relay: Relay) {
     const relayed = parent === null && relay.tool(id, name)
     const searching = parent === null && !relayed && name === "ToolSearch"
     if (searching) searches.add(id)
-    const quiet = relayed || searching
+    // A subagent's handback is Claude Code's own step of ending it, not a call to show.
+    const quiet = relayed || searching || name === "SubagentHandback"
     return [{ type: "tool.start", id, parent, name, kind, title: titleOf(name), mcp: shownMcp(name), quiet }]
   }
 

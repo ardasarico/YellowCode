@@ -175,14 +175,28 @@ export function AgentPage(props: PageProps) {
       ids.flatMap((id) => {
         const kind = byId[id]?.kind
         const item = props.session.byId[id]
-        return item && (kind === "tool" || kind === "text" || kind === "thinking") ? [item] : []
+        if (!item || !(kind === "tool" || kind === "text" || kind === "thinking")) return []
+        // A quiet step is one the chat leaves out too, such as Claude Code's own handback.
+        return "quiet" in item && item.quiet ? [] : [item]
       }),
     )
     return items.filter((item) => byId[item.id]?.kind !== "thinking" || (item.kind === "thinking" && item.streaming))
   })
   const prompt = () => agent()?.prompt || task()?.prompt || ""
   // The tool result wraps a foreground agent's report in a hand-back frame; the notification's summary does not.
-  const report = () => (task()?.summary || agent()?.report || "").trim()
+  // Claude Code gives a foreground agent's report in its SubagentHandback call, and the result only points there.
+  const handback = () => {
+    const call = (tool()?.children ?? [])
+      .map((id) => props.session.byId[id])
+      .find((item) => item?.kind === "tool" && item.name === "SubagentHandback")
+    const input = call?.kind === "tool" ? call.input : null
+    const message = input && typeof input === "object" && "message" in input ? input.message : undefined
+    return typeof message === "string" ? message : ""
+  }
+  const report = () => {
+    const given = (task()?.summary || agent()?.report || "").trim()
+    return given.includes("(its SubagentHandback call)") ? handback().trim() || given : given
+  }
   const lastText = () => {
     const last = steps().findLast((item) => item.kind === "text")
     return last?.kind === "text" ? last.markdown.trim() : ""
