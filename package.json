@@ -26,6 +26,7 @@
     "format:check": "oxfmt --check",
     "test": "bun test",
     "types": "bun tools/mod-types.ts",
+    "parsers": "bun node_modules/@opentui/core/lib/tree-sitter/update-assets.js --config tools/parsers-config.json --assets src/ui/markdown/parsers --output src/ui/markdown/parsers/parsers.ts",
     "types:check": "bun tools/mod-types.ts --check",
     "check": "bun run typecheck && bun run lint && bun run format:check && bun run types:check && bun test",
     "build": "bun tools/build.ts",

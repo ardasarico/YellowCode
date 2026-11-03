@@ -1,5 +1,5 @@
 import { appVersion } from "./build-info.ts"
-import { CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
+import { addDefaultParsers, CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
 import { constants } from "node:os"
 import { basename } from "node:path"
@@ -90,6 +90,7 @@ import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
 import { watchFocus } from "./ui/attention.ts"
+import { getParsers } from "./ui/markdown/parsers/parsers.ts"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { readSubagentMessage, sessionMessage } from "./peers/envelope.ts"
 import { startPeers } from "./peers/host.ts"
@@ -755,6 +756,9 @@ const firstInfo = mode.kind === "replay" ? recordedInfo(mode.recording) : null
 const firstServers = firstInfo && mcpRows(firstInfo.mcpServers, firstInfo.tools)
 const firstModel = firstInfo?.model ?? null
 const readOnlyProvider = mode.kind === "live" ? savedProvider(claudeLists) : mode.provider
+// Languages OpenTUI does not bundle, for code blocks, diffs and the file view (tools/parsers-config.json).
+addDefaultParsers(await getParsers())
+
 const renderer = await createCliRenderer({
   exitOnCtrlC: false,
   consoleMode: "disabled",

@@ -59,7 +59,7 @@
       "rules": { "yellowcode/agent-boundary": "off" }
     }
   ],
-  "ignorePatterns": [".agents/**", ".claude/**", ".local/**"],
+  "ignorePatterns": [".agents/**", ".claude/**", ".local/**", "src/ui/markdown/parsers/**"],
   "env": {
     "builtin": true
   }
