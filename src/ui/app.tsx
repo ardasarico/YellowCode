@@ -1808,7 +1808,7 @@ export function App(props: AppProps) {
     const planning = command === "/plan" || command.startsWith("/plan ")
     if (
       (rewinding && !props.rewind) ||
-      (planning && !props.onInterrupt) ||
+      (planning && (!props.onInterrupt || !props.provider.modes().some((mode) => mode.kind === "plan"))) ||
       (command === "/providers" && !props.agents) ||
       (command === "/agents" && (!props.models || props.caps.clientTools === "none"))
     ) {
