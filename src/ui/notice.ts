@@ -63,7 +63,11 @@ export const quitHint = (): Span => ({ text: "Press Ctrl+C again to quit", fg: t
 const rewindHint = (): Span => ({ text: "Press Esc again to rewind", fg: theme.muted })
 export const problemNotice = (problem: string): Span => ({ text: `! ${problem}`, fg: theme.warning, bold: true })
 export const modSpan = (notice: ModNotice): Span =>
-  notice.problem ? problemNotice(notice.text) : { text: notice.text, fg: theme.muted }
+  notice.error
+    ? { text: `✗ ${notice.text}`, fg: theme.error, bold: true }
+    : notice.problem
+      ? problemNotice(notice.text)
+      : { text: notice.text, fg: theme.muted }
 export const startingNotice = (agent: string): Span => ({ text: `Starting ${agent}…`, fg: theme.muted })
 export const updateSpan = (state: UpdateState): Span => ({
   text: updateText(state),

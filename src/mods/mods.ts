@@ -45,8 +45,8 @@ export function modOfError(error: unknown): string | null {
   return entry?.id ?? null
 }
 
-// `problem` is false for the plain "mods are off" line.
-export type ModNotice = { text: string; problem: boolean }
+// `problem` is false for the plain "mods are off" line; `error` is a mod's notice at its error level.
+export type ModNotice = { text: string; problem: boolean; error?: boolean }
 
 const [modNotice, setModNotice] = createSignal<ModNotice | null>(null)
 export { modNotice }
@@ -54,7 +54,7 @@ export const clearModNotice = () => setModNotice(null)
 
 onModNotify((mod, text, level) => {
   const name = mods.entries.find((entry) => entry.id === mod)?.manifest?.name ?? mod
-  setModNotice({ text: `${name}: ${text}`, problem: level !== "info" })
+  setModNotice({ text: `${name}: ${text}`, problem: level !== "info", error: level === "error" })
 })
 
 // The agent the mods loaded for last, and the load of the moment; null while mods are off.
