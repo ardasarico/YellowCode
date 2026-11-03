@@ -51,6 +51,7 @@ export async function answerOnce(rpc: Rpc, prompt: string, cwd: string): Promise
         rpc.fail(message.id, UNSUPPORTED, "YellowCode answers nothing here")
         continue
       }
+      if (message.type === "unreadable") continue
       const found = read(message.method, message.params, message.at)
       if (found.kind !== "notification") continue
       const { notification } = found

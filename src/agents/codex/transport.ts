@@ -22,6 +22,8 @@ export type Incoming =
   // `at` is when app-server sent it (`emittedAtMs`).
   | { type: "notification"; method: string; params: unknown; at: number | null }
   | { type: "request"; id: RpcId; method: string; params: unknown }
+  // A line app-server wrote that is not a JSON-RPC message.
+  | { type: "unreadable" }
 
 export class RpcError extends Error {
   constructor(
@@ -179,6 +181,7 @@ export function rpcClient(transport: Transport): Rpc {
       const parsed = envelope.safeParse(raw)
       if (!parsed.success) {
         log.warn("codex: unreadable message from app-server")
+        incoming.push({ type: "unreadable" })
         continue
       }
       const message = parsed.data

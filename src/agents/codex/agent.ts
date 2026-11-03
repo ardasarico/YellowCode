@@ -344,6 +344,10 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
         tell({ type: "seen", at: lastAt })
         continue
       }
+      if (message.type === "unreadable") {
+        tell({ type: "unreadable", what: "codex", at: lastAt })
+        continue
+      }
       lastAt = message.at ?? lastAt
       if (listChanged(message.method, message.params)) {
         tell({ type: "seen", at: lastAt })

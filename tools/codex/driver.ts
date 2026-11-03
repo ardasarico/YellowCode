@@ -43,7 +43,11 @@ export function createDriver(transport: Transport, options: DriverOptions): Driv
     },
     until(method, match, timeoutMs = timeout) {
       options.onIntent?.("until", { method })
-      return incoming.until(method, (message) => message.method === method && (match?.(message) ?? true), timeoutMs)
+      return incoming.until(
+        method,
+        (message) => message.type !== "unreadable" && message.method === method && (match?.(message) ?? true),
+        timeoutMs,
+      )
     },
     respond(id, result) {
       options.onIntent?.("respond", { id, result })
