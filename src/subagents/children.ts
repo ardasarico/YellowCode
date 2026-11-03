@@ -109,7 +109,7 @@ function changedFiles(store: SessionStore, from: number): string[] {
 }
 
 function confirmText(launcher: Launcher, name: string, mode: ModeRow): string {
-  const how = mode.kind === "bypass" ? "without approvals" : `in ${mode.label}, wider than this session allows`
+  const how = mode.kind === "bypass" ? "without approvals" : `in ${mode.label}, wider than allowed here`
   return `${launcher.name} runs ${name} ${how}. Run it anyway?`
 }
 
