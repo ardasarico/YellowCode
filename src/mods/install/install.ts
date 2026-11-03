@@ -71,8 +71,11 @@ async function download(repo: string, sha: string, temp: string, id: string): Pr
   const base = process.env["YELLOWCODE_CODELOAD"] ?? "https://codeload.github.com"
   const response = await fetch(`${base}/${repo}/tar.gz/${sha}`, { signal: AbortSignal.timeout(120_000) })
   if (!response.ok) throw new Error(`download failed: HTTP ${response.status}`)
+  const bytes = await response.arrayBuffer()
+  const links = tarLinks(Bun.gunzipSync(bytes))
+  if (links.length > 0) throw new Error(`the mod has symlinks: ${links.join(", ")}`)
   const extracted = join(temp, "extracted")
-  await new Bun.Archive(await response.bytes()).extract(extracted)
+  await new Bun.Archive(bytes).extract(extracted)
   const top = readdirSync(extracted)
   if (top.length !== 1 || !statSync(join(extracted, top[0]!)).isDirectory())
     throw new Error("the download is not a single folder")
@@ -80,6 +83,29 @@ async function download(repo: string, sha: string, temp: string, id: string): Pr
   const tree = join(temp, id)
   renameSync(join(extracted, top[0]!), tree)
   return tree
+}
+
+// Bun's extract drops a link that points outside the folder without a word, so links are found in the tar headers.
+function tarLinks(tar: Uint8Array): string[] {
+  const decoder = new TextDecoder()
+  const field = (start: number, length: number) => {
+    const bytes = tar.subarray(start, start + length)
+    const end = bytes.indexOf(0)
+    return decoder.decode(end === -1 ? bytes : bytes.subarray(0, end))
+  }
+  const links: string[] = []
+  for (let at = 0; at + 512 <= tar.length && tar[at] !== 0;) {
+    const size = Number.parseInt(field(at + 124, 12).trim() || "0", 8)
+    const type = tar[at + 156]
+    if (type === 0x31 || type === 0x32) {
+      const prefix = field(at + 345, 155)
+      const name = (prefix ? `${prefix}/` : "") + field(at, 100)
+      // Without the archive's top folder, as the check after extraction names them.
+      links.push(name.slice(name.indexOf("/") + 1))
+    }
+    at += 512 + Math.ceil(size / 512) * 512
+  }
+  return links
 }
 
 async function installDependencies(tree: string): Promise<void> {

@@ -112,6 +112,7 @@ test("installAt installs a pinned mod and refuses bad ones without touching the 
   const cases = [
     { name: "hash mismatch", ...good, hash: publish(plain).hash, problem: "tree hash mismatch" },
     { name: "symlink", ...publish(plain, { link: "index.ts" }), problem: "the mod has symlinks: link" },
+    { name: "outside symlink", ...publish(plain, { out: "/etc/hosts" }), problem: "the mod has symlinks: out" },
     { name: "shared copy", ...publish(withDependency("solid-js")), problem: "installs its own node_modules/solid-js" },
     {
       name: "no bun.lock",
