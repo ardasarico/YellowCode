@@ -25,8 +25,10 @@ export function refTarget(id: string): { itemId: string; index: number } | null 
 
 const readable = new Map<string, boolean>()
 
+// Paths that were missing are checked again, so a file made since becomes a link. One that was a link stays one, so
+// what is drawn and what can be selected agree; the file view says so when it is gone.
 export function forgetRefs(): void {
-  readable.clear()
+  for (const [path, found] of readable) if (!found) readable.delete(path)
 }
 
 // An image, or a text file small enough to preview: not a folder, not binary.
