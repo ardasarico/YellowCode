@@ -220,9 +220,13 @@ function gitBranch(): string | null {
 }
 
 const cwd = process.cwd()
+// The branch is read again after each turn and when the user comes back, since either may have switched it.
+const [branch, setBranch] = createSignal(gitBranch())
 const workspace = {
   cwd: tildePath(cwd),
-  branch: gitBranch(),
+  get branch() {
+    return branch()
+  },
   version: appVersion,
 }
 // The replay's session, or the one live starts with; opening another session brings a new store.
@@ -820,6 +824,7 @@ renderer.on(CliRenderEvents.THEME_MODE, () => void applyTerminal())
 renderer.on(CliRenderEvents.FOCUS, () => {
   renderer.clearPaletteCache()
   void applyTerminal()
+  setBranch(gitBranch())
 })
 // OpenTUI catches a mouse handler's throw; one from a mod's own box turns that mod off.
 renderer.on(CliRenderEvents.HANDLER_ERROR, ({ error }: { error: unknown }) => {
@@ -1003,6 +1008,7 @@ createRoot(() => {
         if (turn !== null || before === null || before === undefined) return
         forgetFiles()
         forgetRefs()
+        setBranch(gitBranch())
       },
     ),
   )
