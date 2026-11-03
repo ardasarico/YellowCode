@@ -121,7 +121,8 @@ export function syncModServers(
         )
         sentTools = tools
         const without = Object.fromEntries(Object.entries(servers).filter(([name]) => !changed.includes(name)))
-        void (changed.length > 0 ? setServers(without).then(() => setServers(servers)) : setServers(servers))
+        // The re-add reads the servers again: a mod turned off meanwhile must not come back with a stale config.
+        void (changed.length > 0 ? setServers(without).then(() => setServers(configs())) : setServers(servers))
       }),
     )
     return dispose

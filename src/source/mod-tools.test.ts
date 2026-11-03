@@ -1,9 +1,12 @@
 import { expect, test } from "bun:test"
+import { createSignal } from "solid-js"
 import { z } from "zod"
+import type { ClientTool } from "../agent/agent.ts"
 import { parseJson } from "../json.ts"
-import { modClientTools } from "../mods/host.ts"
+import { type ModEntry, modClientTools } from "../mods/host.ts"
 import { addTool } from "../mods/registry.ts"
-import { serveModTools } from "./mod-tools.ts"
+import { serveModTools, syncModServers } from "./mod-tools.ts"
+import type { Requests } from "./requests.ts"
 
 function serve(method: string, params: unknown) {
   return new Promise<unknown>((resolve) => {
@@ -63,4 +66,56 @@ test("a mod's tools are listed and called, and a throwing tool is an error Claud
   })
   echo()
   broken()
+})
+
+const tool = (name: string): ClientTool => ({
+  server: "mod-m",
+  name,
+  description: "",
+  inputSchema: {},
+  annotations: null,
+  run: () => Promise.resolve({ text: "", error: false }),
+})
+
+test("a mod turned off while its tools leave one by one is not added back to Claude", async () => {
+  const sent: string[][] = []
+  const requests: Requests = {
+    send: (build) => {
+      const line = parseJson(build("r"))
+      const servers = z
+        .object({ request: z.object({ servers: z.record(z.string(), z.unknown()) }) })
+        .parse(line.ok ? line.value : null).request.servers
+      sent.push(Object.keys(servers))
+      return Promise.resolve({})
+    },
+    settle: () => {},
+    close: () => {},
+  }
+  const [status, setStatus] = createSignal<ModEntry["status"]>("on")
+  const [tools, setTools] = createSignal([tool("a"), tool("b")])
+  const host = {
+    get entries() {
+      const entry: ModEntry = {
+        id: "m",
+        folder: "/mods/m",
+        manifest: null,
+        status: status(),
+        source: "local",
+        problem: null,
+        error: null,
+        loadMs: null,
+        settings: null,
+      }
+      return [entry]
+    },
+    servers: () => ({}),
+  }
+  // oxlint-disable-next-line solid/reactivity -- syncModServers reads it inside its own effect
+  const stop = syncModServers(requests, host, tools)
+  setTools([tool("b")])
+  setStatus("off")
+  setTools([])
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  stop()
+  expect(sent.at(-1)).not.toContain("mod-m")
 })
