@@ -194,7 +194,7 @@ function List(props: { token: Tokens.List; width: number; fg: RGBA; depth: numbe
                 width={props.width - indent() - markerWidth()}
                 fg={props.fg}
                 depth={props.depth + 1}
-                gap={0}
+                gap={item().loose ? 1 : 0}
               />
             </box>
           </box>
