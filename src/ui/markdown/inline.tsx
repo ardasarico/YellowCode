@@ -160,11 +160,11 @@ export function toRuns(
         break
       case "text":
         if (hasChildren(token)) nested(token, style)
-        else if (refAt(token) === undefined || !refs) plain(String(token.text), style)
+        else if (refAt(token) === undefined || !refs) plain(decodeEntities(String(token.text)), style)
         else {
           let nth = 0
           for (const part of textParts(String(token.text), refs.cwd, refs.images)) {
-            if (!part.target) plain(part.text, style)
+            if (!part.target) plain(decodeEntities(part.text), style)
             else {
               const look = part.target.kind === "image" ? { ...style, fg: theme.accent } : style
               pushRef(part.text, look, refAt(token, nth++) ?? "")
@@ -180,6 +180,17 @@ export function toRuns(
     }
   }
   return runs
+}
+
+const NAMED: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" }
+
+// marked leaves character references in text as written; a terminal shows the character.
+export function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
+    if (name[0] !== "#") return NAMED[name.toLowerCase()] ?? whole
+    const code = name[1] === "x" || name[1] === "X" ? Number.parseInt(name.slice(2), 16) : Number(name.slice(1))
+    return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole
+  })
 }
 
 export function Inline(props: { tokens: readonly Token[]; fg?: RGBA; bold?: boolean; underline?: boolean }) {
