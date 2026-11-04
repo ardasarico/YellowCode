@@ -62,6 +62,8 @@ export type CompletionOptions = {
   onEscape?: () => void
   // Called by Backspace on an empty prompt; true when it took the key.
   onBackspaceEmpty?: () => boolean
+  // Called by ↑ on an empty prompt that is not browsing the history; true when it took the key.
+  onUpEmpty?: () => boolean
   // Called when `!` is typed into an empty prompt; true takes the `!` away.
   onBang?: () => boolean
   // Called when ↑ or ↓ puts back a message written to an agent.
@@ -390,7 +392,7 @@ export function useCompletion(options: CompletionOptions) {
     return true
   }
 
-  const leavesDown = () => browsing() === null && area?.plainText === ""
+  const untouched = () => browsing() === null && area?.plainText === ""
 
   useKeyboard((key) => {
     if (!options.focused()) return
@@ -413,8 +415,9 @@ export function useCompletion(options: CompletionOptions) {
         options.onEscape?.()
       } else if (plain && key.name === "backspace" && area?.plainText === "" && options.onBackspaceEmpty?.()) {
         key.preventDefault()
-      } else if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
-      else if (plain && key.name === "down" && options.onLeaveDown && leavesDown()) {
+      } else if (plain && key.name === "up" && untouched() && options.onUpEmpty?.()) key.preventDefault()
+      else if (plain && (key.name === "up" || key.name === "down") && recall(key.name)) key.preventDefault()
+      else if (plain && key.name === "down" && options.onLeaveDown && untouched()) {
         key.preventDefault()
         options.onLeaveDown()
       }

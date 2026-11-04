@@ -177,6 +177,7 @@ export const outgoingCases: Record<string, string> = {
   stopTaskRequest: outgoing.stopTaskRequest("req-28", "task-2"),
   backgroundTasksRequest: outgoing.backgroundTasksRequest("req-29"),
   rewindConversationRequest: outgoing.rewindConversationRequest("req-30", "uuid-3"),
+  cancelQueuedRequest: outgoing.cancelQueuedRequest("req-48", "uuid-3"),
   renameSession: outgoing.renameSession("req-31", "Build notes"),
   "renameSession sessionId": outgoing.renameSession("req-32", "Build notes", "session-1"),
   getSettingsRequest: outgoing.getSettingsRequest("req-33"),
@@ -542,6 +543,9 @@ export function scriptedSessions(): Record<string, { steps: Step[]; emitted: unk
     sent(outgoing.userMessage("Second", [], "uuid-b")),
     recv({ type: "command_lifecycle", command_uuid: "uuid-b", state: "queued" }),
     recv({ type: "command_lifecycle", command_uuid: "uuid-b", state: "started" }),
+    sent(outgoing.userMessage("Taken back", [], "uuid-c")),
+    recv({ type: "command_lifecycle", command_uuid: "uuid-c", state: "queued" }),
+    recv({ type: "command_lifecycle", command_uuid: "uuid-c", state: "cancelled" }),
     recv(reply("msg-4", [text("Done with both.")])),
     recv(result({ user_message_uuids: ["uuid-a"] })),
     ...["req-x", "req-y"].map((id) =>

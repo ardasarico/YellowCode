@@ -794,6 +794,14 @@
       "target_message_uuid": "uuid-3"
     }
   },
+  "cancelQueuedRequest": {
+    "type": "control_request",
+    "request_id": "req-48",
+    "request": {
+      "subtype": "cancel_async_message",
+      "message_uuid": "uuid-3"
+    }
+  },
   "renameSession": {
     "type": "control_request",
     "request_id": "req-31",

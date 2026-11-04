@@ -7,7 +7,7 @@ import type { AgentEvent } from "../../agent/events.ts"
 import type { PromptId } from "../../agent/ids.ts"
 import { log } from "../../log/log.ts"
 import { RpcError, type Rpc } from "./transport.ts"
-import { queuePage, resultOf } from "./wire/thread.ts"
+import { queueDeleted, queuePage, resultOf } from "./wire/thread.ts"
 
 type Waiting = {
   input: unknown[]
@@ -28,6 +28,8 @@ export type Delivery = {
   // What the translator told; a prompt of ours that waited is taken.
   told(events: AgentEvent[]): AgentEvent[]
   queueChanged(): Promise<void>
+  // Only a prompt in the thread's queue comes back; one steered into the turn is Codex's already.
+  withdraw(prompt: PromptId): Promise<boolean>
   // The main thread's turn ended; `ours`: our interrupt ended it.
   turnEnded(ours: boolean, at: number): Promise<AgentEvent[]>
 }
@@ -82,6 +84,18 @@ export function createDelivery(deps: { rpc(): Rpc; thread(): string; running(): 
     }
   }
 
+  async function queued() {
+    const listed = resultOf(
+      await deps
+        .rpc()
+        .request("thread/queue/list", { threadId: deps.thread() })
+        .catch(() => null),
+      queuePage,
+      "thread/queue/list",
+    )
+    return listed.kind === "ok" ? listed.value.data : null
+  }
+
   async function startQueue(): Promise<void> {
     if (![...own.values()].some((waiting) => waiting.via === "queue" && !waiting.left)) return
     await deps
@@ -112,17 +126,24 @@ export function createDelivery(deps: { rpc(): Rpc; thread(): string; running(): 
     },
 
     async queueChanged() {
-      const listed = resultOf(
-        await deps
-          .rpc()
-          .request("thread/queue/list", { threadId: deps.thread() })
-          .catch(() => null),
-        queuePage,
-        "thread/queue/list",
-      )
-      if (listed.kind !== "ok") return
-      const still = new Set(listed.value.data.map((row) => row.clientUserMessageId))
+      const rows = await queued()
+      if (rows === null) return
+      const still = new Set(rows.map((row) => row.clientUserMessageId))
       for (const [id, waiting] of own) if (waiting.via === "queue" && !still.has(id)) waiting.left = true
+    },
+
+    async withdraw(prompt) {
+      const waiting = own.get(prompt)
+      if (waiting?.via !== "queue" || waiting.left) return false
+      const row = (await queued())?.find((one) => one.clientUserMessageId === prompt)
+      if (!row) return false
+      const deleted = await deps
+        .rpc()
+        .request("thread/queue/delete", { threadId: deps.thread(), queuedSubmissionId: row.id })
+        .then((reply) => queueDeleted.safeParse(reply).data?.deleted === true)
+        .catch(() => false)
+      if (deleted) own.delete(prompt)
+      return deleted
     },
 
     async turnEnded(ours, at) {

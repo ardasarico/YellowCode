@@ -147,6 +147,8 @@ export type Agent = {
   // A pending cut goes first. Not ok: the prompt did not go out, and the user's text goes back to the input.
   send(prompt: Prompt): Promise<Outcome>
   interrupt(): Promise<Outcome>
+  // Takes back a prompt still waiting behind the turn; false once the agent has taken it in.
+  withdraw?(prompt: PromptId): Promise<boolean>
   answer(ask: AskId, reply: AskReply): Promise<void>
   // After `ended`: the same session goes on in a new agent process, with the settings it had and the saved ones in
   // `options`.

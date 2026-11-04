@@ -26,12 +26,15 @@
     "2303c940e10d",
     "2303c940e10d",
     "91b8e52d6df5",
-    "716131bee9f7",
-    "6d7584e76739",
-    "3bababcd540d",
-    "933838ac9c3b",
-    "015e70438024",
-    "51c0aa43349b"
+    "1d77bbd1f6c8",
+    "1d77bbd1f6c8",
+    "91b8e52d6df5",
+    "f071b509fe26",
+    "46ea95209ee3",
+    "57be3e9e65a5",
+    "17985cb42c7b",
+    "8bbb3b4038fe",
+    "0b328d962113"
   ],
   "emitted": [],
   "fileOriginals": [],
@@ -81,9 +84,9 @@
       "system-8",
       "user-9",
       "user-10",
-      "text-11",
-      "turn-12",
-      "system-13",
+      "text-12",
+      "turn-13",
+      "system-14",
       "ask-req-q"
     ],
     "byId": {
@@ -322,15 +325,15 @@
         "queue": null,
         "uuid": "uuid-b"
       },
-      "text-11": {
+      "text-12": {
         "kind": "text",
-        "id": "text-11",
+        "id": "text-12",
         "markdown": "Done with both.",
         "streaming": false
       },
-      "turn-12": {
+      "turn-13": {
         "kind": "turn-end",
-        "id": "turn-12",
+        "id": "turn-13",
         "costUsd": 0.01,
         "durationMs": 1200,
         "inputTokens": 120,
@@ -338,11 +341,11 @@
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 27000
+        "endedAt": 30000
       },
-      "system-13": {
+      "system-14": {
         "kind": "system",
-        "id": "system-13",
+        "id": "system-14",
         "text": "Could not read control_response messages (×3)",
         "level": "warning"
       },

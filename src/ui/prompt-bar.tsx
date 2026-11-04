@@ -145,6 +145,7 @@ function PromptInput(
     onQuit: () => props.onQuit?.(),
     onEscape: () => props.onEscape?.(),
     onBackspaceEmpty: () => props.onBackspaceEmpty?.() ?? false,
+    onUpEmpty: () => props.onUpEmpty?.() ?? false,
     onBang: () => props.onBang?.() ?? false,
     onRecall: (to) => props.onRecall?.(to),
     fill: () => props.fill,
@@ -420,6 +421,7 @@ function PromptBarBase(props: PromptBarProps) {
             onEscape={props.onEscape}
             messageTo={props.messageTo}
             onBackspaceEmpty={props.onBackspaceEmpty}
+            onUpEmpty={props.onUpEmpty}
             shell={props.shell}
             onBang={props.onBang}
             onRecall={props.onRecall}

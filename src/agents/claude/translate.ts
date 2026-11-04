@@ -78,7 +78,9 @@ function createTranslator(): ClaudeTranslator {
       case "rate_limit_event":
         return limitsOf(message)
       case "command_lifecycle":
-        return message.state === "queued" ? [] : [{ type: "user.taken", prompts: [message.command_uuid] }]
+        if (message.state === "queued") return []
+        if (message.state === "cancelled") return [{ type: "user.withdrawn", prompt: message.command_uuid }]
+        return [{ type: "user.taken", prompts: [message.command_uuid] }]
       case "tool_progress":
         break
     }

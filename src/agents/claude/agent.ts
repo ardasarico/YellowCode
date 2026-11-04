@@ -18,6 +18,7 @@ import type { SessionEntry, SessionRef } from "../../agent/sessions.ts"
 import { log } from "../../log/log.ts"
 import { projectKey } from "../../project-key.ts"
 import {
+  cancelQueuedReply,
   contextUsage,
   effectiveSettings,
   reloadSkillsReply,
@@ -26,6 +27,7 @@ import {
 } from "../../protocol/messages.ts"
 import {
   backgroundTasksRequest,
+  cancelQueuedRequest,
   getContextUsageRequest,
   getSettingsRequest,
   getUsageRequest,
@@ -492,6 +494,15 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
           return failed(error)
         },
       )
+    },
+    withdraw(prompt) {
+      return current.requests
+        .send((requestId) => cancelQueuedRequest(requestId, prompt))
+        .then((reply) => cancelQueuedReply.safeParse(reply).data?.cancelled === true)
+        .catch((error: unknown) => {
+          log.warn("queued message not withdrawn", problemOf(error))
+          return false
+        })
     },
     answer(id, reply) {
       const ask = store.state.byId[`ask-${id}`]

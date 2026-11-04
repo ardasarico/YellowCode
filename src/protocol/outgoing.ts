@@ -184,6 +184,11 @@ export function backgroundTasksRequest(requestId: string): string {
   return controlRequest(requestId, "background_tasks")
 }
 
+// Drops a message still waiting behind the turn; the reply's `cancelled` is false once claude has taken it in.
+export function cancelQueuedRequest(requestId: string, uuid: string): string {
+  return controlRequest(requestId, "cancel_async_message", { message_uuid: uuid })
+}
+
 // Steps the conversation back to before this prompt; claude takes only its latest remaining prompt.
 export function rewindConversationRequest(requestId: string, uuid: string): string {
   return controlRequest(requestId, "rewind_conversation", { target_message_uuid: uuid })

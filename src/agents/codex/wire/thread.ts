@@ -135,6 +135,8 @@ export const queuePage = z.looseObject({
   nextCursor: z.string().nullable(),
 })
 
+export const queueDeleted = z.looseObject({ deleted: z.boolean() })
+
 export const terminalsPage = z.looseObject({
   data: z.array(z.looseObject({ itemId: z.string(), processId: z.string(), command: z.string() })),
   nextCursor: z.string().nullable(),

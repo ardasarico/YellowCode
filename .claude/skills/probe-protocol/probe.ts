@@ -189,6 +189,23 @@ const scenarios: Record<string, Scenario> = {
   "queue-now": queue({ priority: "now" }),
   "queue-later": queue({ priority: "later" }),
   "queue-uuid": queue({ uuid: crypto.randomUUID() }),
+  "queue-cancel": (() => {
+    const uuid = crypto.randomUUID()
+    return {
+      steps: [
+        user("Run `sleep 6` with the Bash tool, then reply with one word."),
+        { until: toolUse("Bash") },
+        { waitMs: 1000 },
+        user("Also name the capital of France in one word.", { uuid }),
+        { waitMs: 500 },
+        control("cancel_async_message", { message_uuid: uuid }),
+        { until: is("result") },
+        { waitMs: 5000 },
+        control("cancel_async_message", { message_uuid: uuid }),
+        { waitMs: 2000 },
+      ],
+    }
+  })(),
   interrupt: {
     steps: [
       user("Run `sleep 20` with the Bash tool, then reply with one word."),

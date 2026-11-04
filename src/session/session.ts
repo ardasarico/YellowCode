@@ -574,6 +574,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         return
       case "user.dropped":
         return dropQueued(event.prompt)
+      case "user.withdrawn":
+        return withdrawQueued(event.prompt)
       case "turn.step":
         return stepTurn(event.prompts)
       case "turn.end":
@@ -923,6 +925,15 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     update(id, (item) => {
       if (item.kind === "user") item.queue = "not sent"
     })
+    if (state.turn === null && waiting.size === 0) setState("status", "idle")
+  }
+
+  function withdrawQueued(prompt: PromptId): void {
+    early.delete(prompt)
+    const id = waiting.get(prompt)
+    if (!id) return
+    waiting.delete(prompt)
+    drop([id])
     if (state.turn === null && waiting.size === 0) setState("status", "idle")
   }
 

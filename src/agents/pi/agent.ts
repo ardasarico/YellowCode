@@ -504,6 +504,26 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     }
   }
 
+  // pi clears its queue whole, so the rest of it is sent again in order.
+  async function withdraw(id: PromptId): Promise<boolean> {
+    if (ended || closed || !translator.running()) return false
+    const cleared = clearedQueue.safeParse(await pi.command("clear_queue").catch(() => null))
+    if (!cleared.success) return false
+    const held = translator.held([...cleared.data.steering, ...cleared.data.followUp])
+    const gone = held.some((prompt) => prompt.id === id)
+    if (gone) tell({ type: "user.withdrawn", prompt: id, at: now() })
+    for (const prompt of held) {
+      if (prompt.id === id) continue
+      try {
+        // oxlint-disable-next-line no-await-in-loop -- they go out in the order they were sent
+        await go(prompt, translator.running() ? waitingVia(prompt) : "start", true)
+      } catch {
+        tell({ type: "user.dropped", prompt: prompt.id, at: now() })
+      }
+    }
+    return gone
+  }
+
   // The same session goes on in a new pi.
   async function restart(): Promise<Outcome> {
     if (!ended || closed) return { ok: false, problem: "Pi is still running" }
@@ -598,6 +618,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     events: out.items,
     send,
     interrupt,
+    withdraw,
     answer(id, reply) {
       tell(...asks.answer(id, reply, now()))
       return Promise.resolve()

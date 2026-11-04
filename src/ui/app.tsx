@@ -1,7 +1,7 @@
 import type { Agent, AgentKind, Prompt } from "../agent/agent.ts"
 import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
-import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome } from "../agent/ids.ts"
+import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../agent/ids.ts"
 import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
 import { favoriteWalk, isModelOf, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
 import type { Handoff } from "../session/handoff.ts"
@@ -224,6 +224,8 @@ export type AppProps = {
   // Runs a `!` command, and stops the one running.
   onShell?: (command: string) => void
   onShellStop?: () => void
+  // Takes back a message still waiting behind the turn; false once the agent has taken it in.
+  onWithdraw?: (prompt: PromptId) => Promise<boolean>
   // Without them a stop shows that the conversation is saved (a replay or a saved conversation).
   tasks?: Agent["tasks"]
   // Live only: the subagents YellowCode runs for the session, until they close.
@@ -708,6 +710,30 @@ export function App(props: AppProps) {
   }
   // A message sent after a /clear and still waiting is in both; the history skips repeats in a row.
   const history = () => [...cleared(), ...chatHistory()]
+
+  // ↑ asks for each waiting message once; one the agent has taken in by then leaves ↑ to the history.
+  const withdrawTried = new Set<PromptId>()
+  const lastWaiting = () => {
+    let index = -1
+    let found: { prompt: PromptId; draft: Draft } | null = null
+    for (const id of props.session.items) {
+      const item = props.session.byId[id]
+      if (item?.kind !== "user") continue
+      index++
+      if (item.queue !== "queued" || !item.uuid || item.from || item.to || withdrawTried.has(item.uuid)) continue
+      found = { prompt: item.uuid, draft: userDraft(item, index) }
+    }
+    return found
+  }
+  const withdrawLast = () => {
+    const waiting = props.onWithdraw && lastWaiting()
+    if (!waiting) return false
+    withdrawTried.add(waiting.prompt)
+    void props.onWithdraw?.(waiting.prompt).then((gone) => {
+      if (gone) setFill((previous) => ({ draft: waiting.draft, seq: (previous?.seq ?? 0) + 1 }))
+    })
+    return true
+  }
 
   const lastUser = createMemo(() => {
     for (const id of props.session.items.toReversed()) if (props.session.byId[id]?.kind === "user") return id
@@ -1934,6 +1960,7 @@ export function App(props: AppProps) {
       setShellMode(true)
       return true
     },
+    onUpEmpty: withdrawLast,
     onBackspaceEmpty: () => {
       if (shellMode()) {
         setShellMode(false)

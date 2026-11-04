@@ -8,7 +8,7 @@ import { type Accessor, createEffect, createRoot, createSignal, on, type Setter,
 import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
-import type { AgentKindId, ModelRef } from "./agent/ids.ts"
+import type { AgentKindId, ModelRef, PromptId } from "./agent/ids.ts"
 import type { ModeKind, ModelGroup, ModelRow, ModeRow } from "./agent/lists.ts"
 import { createRegistry, type SessionKind } from "./agent/registry.ts"
 import type { HistoryCursor, SessionEntry, SessionRef } from "./agent/sessions.ts"
@@ -1349,10 +1349,14 @@ function sendPrompt(
   const prompt: Prompt = { ...message, id: uuid, command, delivery, kept, context: carried?.text ?? null, shells }
   const run = runOf(target)
   const startsTurn = session.state.status !== "running"
+  for (const [id, entry] of withdrawable) if (!waitsIn(entry.session, id)) withdrawable.delete(id)
+  // What goes out ahead of the text would be lost with it.
+  if (!startsTurn && kept.length === 0 && prompt.context === null) withdrawable.set(uuid, { session, shells })
   const show = target.runner.show ?? showEarly
   show(session, prompt)
   const ready = capture?.before(uuid, target.agent.session.id || null, session)
   const unsent = () => {
+    withdrawable.delete(uuid)
     if (carried && carrying === null) carrying = carried
     capture?.drop(uuid)
     session.notSent(uuid)
@@ -1374,6 +1378,29 @@ function sendPrompt(
     })
     .catch((error: unknown) => log.error("cannot send the message", error))
   if (startsTurn) turnSend = sending
+}
+
+// Messages sent behind a running turn that ↑ may take back, with the `!` commands that went out with them.
+const withdrawable = new Map<PromptId, { session: SessionStore; shells: Prompt["shells"] }>()
+
+const waitsIn = (session: SessionStore, prompt: PromptId) =>
+  session.state.items.some((id) => {
+    const item = session.state.byId[id]
+    return item?.kind === "user" && item.uuid === prompt && item.queue === "queued"
+  })
+
+// The `!` commands go out with the next message instead.
+async function withdrawLive(prompt: PromptId): Promise<boolean> {
+  const entry = withdrawable.get(prompt)
+  const target = live
+  if (!entry || entry.session !== target.store || !target.agent.withdraw) return false
+  withdrawable.delete(prompt)
+  await sending
+  if (runOf(live) !== runOf(target) || !(await target.agent.withdraw(prompt))) return false
+  capture?.drop(prompt)
+  const untold = untoldShells?.session === entry.session ? untoldShells.shells : []
+  if (entry.shells.length > 0) untoldShells = { session: entry.session, shells: [...entry.shells, ...untold] }
+  return true
 }
 
 // With "Ask first" a message waits for the user, asked the way a permission is.
@@ -1720,6 +1747,7 @@ function Main() {
               onQuit={() => void quit()}
               onShell={(command) => runShellCommand(current.session, command)}
               onShellStop={() => shellRun?.stop()}
+              onWithdraw={mode.kind === "live" ? withdrawLive : undefined}
               onInterrupt={
                 mode.kind === "live"
                   ? () => {

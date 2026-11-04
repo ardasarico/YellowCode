@@ -124,6 +124,8 @@ type Events =
   | { type: "user.taken"; prompts: PromptId[] }
   // The agent dropped a waiting prompt.
   | { type: "user.dropped"; prompt: PromptId }
+  // A waiting prompt the user took back; it leaves the chat.
+  | { type: "user.withdrawn"; prompt: PromptId }
 
   // Turns
   // A turn opens with the prompts it takes in. `endedTasks`: the background tasks whose end the agent reported since

@@ -36,6 +36,8 @@ export type InputBlockProps = {
   // The agent the prompt writes to: its label and the keys that leave or restore the mode.
   messageTo?: { id: string; name: string } | null
   onBackspaceEmpty?: () => boolean
+  // Called by ↑ on an empty prompt that is not browsing the history; true when it took the key.
+  onUpEmpty?: () => boolean
   // `!` shell mode, and the call that turns it on when `!` starts an empty prompt (true when it did).
   shell?: boolean
   onBang?: () => boolean
@@ -96,6 +98,7 @@ export function InputBlock(props: InputBlockProps) {
     onQuit: () => props.onQuit?.(),
     onEscape: () => props.onEscape?.(),
     onBackspaceEmpty: () => props.onBackspaceEmpty?.() ?? false,
+    onUpEmpty: () => props.onUpEmpty?.() ?? false,
     onBang: () => props.onBang?.() ?? false,
     onRecall: (to) => props.onRecall?.(to),
     fill: () => props.fill,

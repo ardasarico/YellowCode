@@ -793,6 +793,11 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
     events: out.items,
     send,
     interrupt,
+    async withdraw(prompt) {
+      const gone = await delivery.withdraw(prompt)
+      if (gone) tell({ type: "user.withdrawn", prompt, at: Date.now() })
+      return gone
+    },
     answer(id, reply) {
       asks.answer(id, reply)
       return Promise.resolve()

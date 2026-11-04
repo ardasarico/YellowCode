@@ -308,7 +308,7 @@ const result = z.looseObject({
   local_command: z.string().optional(),
 })
 
-// Where a user message sent with a uuid is: "queued", "started", "completed".
+// Where a user message sent with a uuid is: "queued", "started", "completed", "cancelled".
 const commandLifecycle = z.looseObject({
   type: z.literal("command_lifecycle"),
   command_uuid: z.string(),
@@ -466,6 +466,8 @@ export const questionAnswers = z.looseObject({
 const controlCancelRequest = z.looseObject({ type: z.literal("control_cancel_request"), request_id: z.string() })
 
 // `reason` says why not: stale_target (not the latest prompt), target_not_found, turn_running.
+export const cancelQueuedReply = z.looseObject({ cancelled: z.boolean() })
+
 export const rewindConversationReply = z.looseObject({
   rewound: z.boolean(),
   prefillText: z.string().nullable().optional(),
