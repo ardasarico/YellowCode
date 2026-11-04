@@ -3,7 +3,7 @@ import type { AgentEvent } from "../../agent/events.ts"
 import type { ProtocolMessage } from "../../protocol/messages.ts"
 import { parse, type ParseResult } from "../../protocol/parse.ts"
 import type { SessionEnd } from "../../session/types.ts"
-import type { SessionStore } from "../../session/session.ts"
+import { agentCallOf, type SessionStore } from "../../session/session.ts"
 import type { SourceEvent } from "../../source/source.ts"
 import { createAsks } from "./asks.ts"
 import { showServers } from "./mcp-rows.ts"
@@ -31,10 +31,10 @@ type ClaudeTranslator = {
   interruptFailed(): void
 }
 
-function createTranslator(): ClaudeTranslator {
+function createTranslator(session?: SessionStore): ClaudeTranslator {
   const relay = createRelay()
   const tools = createTools(relay)
-  const tasks = createTasks(tools)
+  const tasks = createTasks(tools, (task) => (session ? agentCallOf(session.state, task) : null))
   const stream = createStream(tools, relay, tasks)
   const asks = createAsks(tools)
   const system = createSystem()
@@ -142,7 +142,7 @@ const translators = new WeakMap<SessionStore, ClaudeTranslator>()
 function translatorOf(session: SessionStore): ClaudeTranslator {
   let translator = translators.get(session)
   if (!translator) {
-    translator = createTranslator()
+    translator = createTranslator(session)
     translators.set(session, translator)
   }
   return translator

@@ -102,7 +102,8 @@
         "agentTitle": null,
         "conversation": 0,
         "compacting": false,
-        "carried": []
+        "carried": [],
+        "unfinished": []
       }
     }
   ],
@@ -209,7 +210,8 @@
         "agentTitle": null,
         "conversation": 0,
         "compacting": false,
-        "carried": []
+        "carried": [],
+        "unfinished": []
       }
     }
   ]

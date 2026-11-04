@@ -411,7 +411,8 @@ export function liveAgentCount(session: Session, node: TreeNode): number {
   return workflow?.agents.filter((agent) => agent.state === "start").length ?? 0
 }
 
-// Top-level agents and workflows that are running or started since the latest user message, in tree order.
+// Top-level agents and workflows that are running, started since the latest user message, or left running by the
+// resumed conversation, in tree order.
 export function activeNodes(session: Session): TreeNode[] {
   const nodes = topNodes(session)
   const byId = unwrap(session.byId)
@@ -424,7 +425,10 @@ export function activeNodes(session: Session): TreeNode[] {
     const tool = session.byId[node.id]
     return tool?.kind !== "tool" || !writing(tool)
   }
-  return nodes.filter((node) => (node.state === "running" || recent.has(node.id)) && started(node))
+  const unfinished = new Set(session.unfinished)
+  return nodes.filter(
+    (node) => unfinished.has(node.id) || ((node.state === "running" || recent.has(node.id)) && started(node)),
+  )
 }
 
 // claude refuses to resume an agent the user stopped, so only top-level agents that ran or failed take messages.

@@ -235,6 +235,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     conversation: options?.cleared ? 1 : 0,
     compacting: false,
     carried: [],
+    unfinished: [],
   })
   const [lists, setPushed] = createSignal<PushedLists>({})
   const push = (pushed: PushedLists) => setPushed((before) => ({ ...before, ...pushed }))
@@ -988,9 +989,12 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     const tool = event.call ? state.byId[event.call] : undefined
     const known = state.tasks[event.id] ?? blankTask(event.id)
     const parentId = knownParent(event.parent) ?? known.parentId
-    const earlier = known.toolUseId ? state.byId[known.toolUseId] : undefined
+    const earlierId = known.toolUseId ?? agentCallOf(state, event.id)
+    const earlier = earlierId ? state.byId[earlierId] : undefined
     const resumes = event.resumed && tool?.kind === "tool" && earlier?.kind === "tool" && !!earlier.agent
     if (resumes && earlier.agent) {
+      // Its run goes on in this call's row, so the row it left unfinished leaves the panel.
+      if (state.unfinished.includes(earlier.id)) setState("unfinished", (ids) => ids.filter((id) => id !== earlier.id))
       const agent: Agent = {
         ...earlier.agent,
         prompt: event.prompt,
@@ -1332,6 +1336,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         for (const id of Object.keys(session.byId)) if (!kept.has(id)) delete session.byId[id]
         session.items = items
         session.carried = carried
+        session.unfinished = []
         for (const [id, task] of Object.entries(session.tasks)) if (task.state !== "running") delete session.tasks[id]
         session.rewound = null
         session.compacting = false
@@ -1395,6 +1400,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     prepend(events) {
       const earlier = createSession({ idPrefix: `p${++prepends}-` })
       for (const event of events) earlier.event(event)
+      // Only the first part read back ends where the conversation ended; work an earlier part leaves running goes on
+      // in the next.
+      if (prepends === 1) setState("unfinished", unfinishedCalls(earlier.state))
       earlier.stopRunning()
       setState("byId", earlier.state.byId)
       setState("items", (ids) => [...earlier.state.items, ...ids])
@@ -1499,6 +1507,24 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       if (state.turn !== null) setState("interrupting", true)
     },
   }
+}
+
+// The Agent call a task read back from a transcript ran under: claude names a task only in its call's result there.
+export function agentCallOf(session: Session, task: TaskId): ItemId | null {
+  for (const item of Object.values(session.byId))
+    if (item.kind === "tool" && item.agent !== null && item.taskId === task) return item.id
+  return null
+}
+
+// The top-level agent and workflow calls still running at the end of `session`.
+function unfinishedCalls(session: Session): ItemId[] {
+  return session.items.filter((id) => {
+    const item = session.byId[id]
+    if (item?.kind !== "tool") return false
+    if (item.agent === null && item.toolKind !== "agent" && item.toolKind !== "workflow") return false
+    const task = item.taskId === null ? undefined : session.tasks[item.taskId]
+    return item.status === "running" || item.agent?.state === "running" || task?.state === "running"
+  })
 }
 
 // A session read back to be looked at, not continued: what it left running shows as stopped, and it ends there.

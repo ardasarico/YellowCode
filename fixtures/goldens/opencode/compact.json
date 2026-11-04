@@ -762,6 +762,7 @@
     "conversation": 0,
     "compacting": false,
     "carried": [],
+    "unfinished": [],
     "modes": [
       {
         "id": "build",

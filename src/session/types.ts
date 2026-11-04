@@ -309,6 +309,8 @@ export type Session = {
   compacting: boolean
   // Agent and workflow calls from before a /clear whose task still ran then: off the chat, still in the agent panel.
   carried: ItemId[]
+  // Agent and workflow calls the resumed conversation left running when it ended: stopped, still in the agent panel.
+  unfinished: ItemId[]
   // The session itself is gone, so it cannot restart; absent otherwise.
   final?: true
 }

@@ -3,9 +3,11 @@ import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createSession, loadHistory, type SessionStore } from "../../session/session.ts"
+import { parse } from "../../protocol/parse.ts"
+import { activeNodes } from "../../ui/agents/tree.ts"
 import { listSessions } from "./session-list.ts"
 import { readTranscript } from "./transcript.ts"
-import { translateLines } from "./translate.ts"
+import { feed, translateLines } from "./translate.ts"
 
 const FOLDER = join(import.meta.dir, "..", "..", "..", "fixtures", "transcripts", "-Users-user-project")
 
@@ -177,7 +179,7 @@ const unfinished = (prefix: string) => [
     type: "user",
     parent_tool_use_id: null,
     message: { role: "user", content: [{ type: "tool_result", tool_use_id: `${prefix}agent`, content: "launched" }] },
-    tool_use_result: { isAsync: true },
+    tool_use_result: { isAsync: true, agentId: `${prefix}task` },
   }),
 ]
 
@@ -192,6 +194,40 @@ test("work with no recorded outcome shows as stopped, in the first part and in e
     ["Bash", "stopped", null],
     ["Agent", "done", "stopped"],
   ])
+})
+
+test("a resumed session keeps the agents it left running in the panel, stopped; earlier parts add none", () => {
+  const session = createSession({ starting: true })
+  session.prepend(translateLines(unfinished("a")))
+  session.prepend(translateLines(unfinished("b")))
+  const left = session.state.unfinished
+  expect(left).toHaveLength(1)
+  expect(left[0]).toBe("aagent")
+  expect(activeNodes(session.state).find((node) => node.id === left[0])?.state).toBe("stopped")
+})
+
+test("an agent left unfinished and woken by a message runs in the message's row, its lines with it", () => {
+  const session = createSession({ starting: true })
+  session.prepend(translateLines(unfinished("a")))
+  const live = [
+    {
+      type: "assistant",
+      parent_tool_use_id: null,
+      message: { id: "m1", content: [{ type: "tool_use", id: "send", name: "SendMessage", input: { to: "atask" } }] },
+    },
+    { type: "system", subtype: "background_tasks_changed", tasks: [{ task_id: "atask", task_type: "local_agent" }] },
+    { type: "system", subtype: "task_started", task_id: "atask", tool_use_id: "send", task_type: "local_agent" },
+    {
+      type: "assistant",
+      parent_tool_use_id: "aagent",
+      message: { id: "m2", content: [{ type: "tool_use", id: "inner", name: "Bash", input: { command: "true" } }] },
+    },
+  ]
+  for (const message of live) feed(session, "in", parse(JSON.stringify(message)), 0)
+  const send = session.state.byId["send"]
+  expect(send?.kind === "tool" && [send.agent?.state, send.children]).toEqual(["running", ["inner"]])
+  expect(session.state.unfinished).toEqual([])
+  expect(activeNodes(session.state).find((node) => node.id === "send")?.state).toBe("running")
 })
 
 const agentCall = (id: string) => ({

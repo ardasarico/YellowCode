@@ -1761,6 +1761,7 @@
     "conversation": 0,
     "compacting": false,
     "carried": [],
+    "unfinished": [],
     "model": {
       "provider": "mock",
       "id": "gpt-5.5"

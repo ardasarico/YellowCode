@@ -80,7 +80,8 @@ type Known = { call: ToolId | null; kind: TaskKind; agent: boolean; background: 
 
 // Background tasks as the reducer keeps them, as far as the adapter needs them: which call a resumed agent's lines
 // belong to, which tasks are background shells, and which tasks ended before a turn opened.
-export function createTasks(tools: Tools) {
+// `readBack`: the Agent call a task ran under in the part of the conversation read back from its transcript, if any.
+export function createTasks(tools: Tools, readBack: (task: TaskId) => ToolId | null = () => null) {
   const tasks = new Map<TaskId, Known>()
   // The task each call started or woke.
   const taskOf = new Map<ToolId, TaskId>()
@@ -103,7 +104,10 @@ export function createTasks(tools: Tools) {
     const known = tasks.get(message.task_id)
     const call = message.tool_use_id ?? null
     const callKind = call === null ? undefined : tools.callKind(call)
-    const resumed = callKind === "message" && !!known?.agent
+    // An agent the conversation ran before this claude started; its lines still name that first call.
+    const first = known?.agent || callKind !== "message" ? null : readBack(message.task_id)
+    if (first) taskOf.set(first, message.task_id)
+    const resumed = callKind === "message" && (!!known?.agent || first !== null)
     const type = message.task_type ?? ""
     tasks.set(message.task_id, {
       call,

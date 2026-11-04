@@ -78,6 +78,7 @@ import { AgentPanel, childWord, panelNodes, shownNodes } from "./agents/agent-pa
 import { AgentView } from "./agents/agent-view.tsx"
 import {
   type ChildActions,
+  type TreeNode,
   childCloses,
   childIdOf,
   childNodes,
@@ -1156,7 +1157,13 @@ export function App(props: AppProps) {
   }
 
   const children = createMemo(() => childNodes(props.children?.list() ?? [], topNodes(props.session).length))
-  const panel = createMemo(() => (pending() ? [] : panelNodes(props.session, children())))
+  // Agents the resumed conversation left unfinished stay in the panel until closed there.
+  const [closedUnfinished, setClosedUnfinished] = createSignal<ReadonlySet<string>>(new Set())
+  const unfinishedCloses = (node: TreeNode) =>
+    node.state !== "running" && props.session.unfinished.includes(node.id) && !closedUnfinished().has(node.id)
+  const panel = createMemo(() =>
+    pending() ? [] : panelNodes(props.session, children()).filter((node) => !closedUnfinished().has(node.id)),
+  )
   const [panelPick, setPanelPick] = createSignal<string | null>(null)
   const panelShown = () => shownNodes(panel(), focus() === "panel" ? panelPick() : null)
   const panelIds = () => panelShown().map((node) => node.id)
@@ -1200,10 +1207,11 @@ export function App(props: AppProps) {
     setFocus("input")
     return null
   }
-  const closeChild = (id: string) => {
-    const node = children().find((entry) => entry.id === id)
+  const closePanelNode = (id: string) => {
+    const node = panel().find((entry) => entry.id === id)
     const childId = node ? childIdOf(node) : null
-    if (node && childId && childCloses(node)) void props.children?.close(childId)
+    if (node && unfinishedCloses(node)) setClosedUnfinished((closed) => new Set([...closed, id]))
+    else if (node && childId && childCloses(node)) void props.children?.close(childId)
   }
   const openFromPanel = (id: string) => {
     setFocus("input")
@@ -1592,7 +1600,7 @@ export function App(props: AppProps) {
       key.preventDefault()
       key.stopPropagation()
       const id = panelSelected()
-      if (id) closeChild(id)
+      if (id) closePanelNode(id)
       return
     }
     if (focus() === "panel" && !key.ctrl && !key.meta && !key.shift && key.name === "m") {
@@ -2277,7 +2285,8 @@ export function App(props: AppProps) {
                   })()}
                   canClose={(() => {
                     const node = panel().find((entry) => entry.id === panelSelected())
-                    return node?.kind === "child" && childCloses(node)
+                    if (!node) return false
+                    return node.kind === "child" ? childCloses(node) : unfinishedCloses(node)
                   })()}
                 />
               </box>
