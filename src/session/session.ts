@@ -1219,10 +1219,19 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
           if (tool.kind === "tool" && tool.local) tool.local.told = true
         })
     }
+    const running = state.status === "running"
+    // A prompt that only carries `!` output starts a turn without a row of its own.
+    if (user.text === "" && user.images.length === 0) {
+      if (user.history) return
+      if (shownEarly && prompt !== null) early.set(prompt, !running)
+      if (!running) setState("interrupting", false)
+      setState("turn", "user")
+      setState("status", "running")
+      return
+    }
     const id = newId("user")
     // Only a message sent during a turn waits; one sent while idle starts its own turn. Prompts read back from history
     // all ran already. One shown before it goes out waits until it does, but looks queued only behind a running turn.
-    const running = state.status === "running"
     const queued = (running || shownEarly) && prompt !== null && !user.history
     const to = user.to && { id: user.to.task, name: user.to.name }
     const text = withoutHandoff(user.text)
@@ -1475,11 +1484,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       const startsTurn = early.get(prompt)
       early.delete(prompt)
       const id = waiting.get(prompt)
-      if (!id) return
       waiting.delete(prompt)
-      update(id, (item) => {
-        if (item.kind === "user") item.queue = "not sent"
-      })
+      if (id)
+        update(id, (item) => {
+          if (item.kind === "user") item.queue = "not sent"
+        })
       if (startsTurn && waiting.size === 0) {
         setState("turn", null)
         setState("status", "idle")

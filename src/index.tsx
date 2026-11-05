@@ -1538,7 +1538,14 @@ function runShellCommand(session: SessionStore, command: string): void {
     session.endShell(id, output, code, byUser)
     if (told) return
     const shells = untoldShells?.session === session ? untoldShells.shells : []
-    untoldShells = { session, shells: [...shells, { command, output }] }
+    const pending = { session, shells: [...shells, { command, output }] }
+    untoldShells = pending
+    // An idle agent reads the output at once and answers it; a busy one gets it with the next message.
+    if (live.store !== session || session.state.status !== "idle") return
+    const restore = () => {
+      if (untoldShells === null) untoldShells = pending
+    }
+    if (!sendLive({ text: "", images: [], to: null }, restore)) restore()
   })
 }
 
