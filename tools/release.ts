@@ -1,9 +1,10 @@
 // Makes a release: bun run release beta|stable [--dry-run] [--from <branch>]
 // beta: commits the new version on top of main, builds it, and after a yes pushes it with its tag, publishes a GitHub
 // prerelease and points the beta channel at it. stable: rebuilds the last beta's commit under the stable version,
-// checks that it holds the same code, and publishes it. --from <branch> releases a stable hotfix from that branch.
+// checks that it holds the same code, and publishes it with its "## <version>" section of CHANGELOG.md as the notes.
+// --from <branch> releases a stable hotfix from that branch.
 import { createHash } from "node:crypto"
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import packageJson from "../package.json"
@@ -89,10 +90,29 @@ function bump(version: string, part: "minor" | "patch"): string {
   return part === "minor" ? `${major}.${minor + 1}.0` : `${major}.${minor}.${patch + 1}`
 }
 
-// The beta after the current one, or the first beta of the next version once that version is out as stable.
+// A feature since the last stable makes the next version a minor one, only fixes a patch.
 function nextBeta(current: string, stable: Release | null): string {
-  if (stable && !newer(base(current), stable.version)) return `${bump(stable.version, "minor")}-beta.1`
-  return current.includes("-beta.") ? `${base(current)}-beta.${betaNumber(current) + 1}` : `${current}-beta.1`
+  if (!stable)
+    return current.includes("-beta.") ? `${base(current)}-beta.${betaNumber(current) + 1}` : `${current}-beta.1`
+  const subjects = git("log", "--format=%s", `${stable.commit}..HEAD`).split("\n")
+  const target = bump(stable.version, subjects.some((subject) => /^feat[(!:]/.test(subject)) ? "minor" : "patch")
+  if (current.includes("-beta.") && !newer(target, base(current)))
+    return `${base(current)}-beta.${betaNumber(current) + 1}`
+  return `${target}-beta.1`
+}
+
+// The section of CHANGELOG.md under "## <version>", up to the next version.
+function changelogSection(version: string): string {
+  const file = join(REPO, "CHANGELOG.md")
+  if (!existsSync(file)) return ""
+  const lines = readFileSync(file, "utf8").split("\n")
+  const start = lines.indexOf(`## ${version}`)
+  if (start === -1) return ""
+  const end = lines.findIndex((line, index) => index > start && line.startsWith("## "))
+  return lines
+    .slice(start + 1, end === -1 ? undefined : end)
+    .join("\n")
+    .trim()
 }
 
 function ask(question: string, fallback: string): string {
@@ -226,6 +246,17 @@ if (channel === "beta") {
   source = checkout(commit)
 }
 
+const previous = [channels.beta, channels.stable]
+  .filter((release) => release !== null)
+  .toSorted((a, b) => Bun.semver.order(b.version, a.version))[0]
+const notes =
+  channel === "stable"
+    ? changelogSection(version)
+    : previous
+      ? `Pre-release. Changes since v${previous.version}: https://github.com/${GITHUB}/compare/v${previous.version}...v${version}`
+      : "Pre-release."
+if (!notes) fail(`CHANGELOG.md has no "## ${version}" section; write the notes first`)
+
 const bundle = await bundleHash(source)
 if (channel === "stable" && !values.from && bundle !== channels.beta?.bundle)
   fail(`the rebuild of ${commit.slice(0, 7)} differs from the beta's code; nothing was published`)
@@ -293,7 +324,8 @@ run(
     GITHUB,
     "--title",
     tag,
-    "--generate-notes",
+    "--notes",
+    notes,
     ...(channel === "beta" ? ["--prerelease"] : ["--latest"]),
   ],
   REPO,
