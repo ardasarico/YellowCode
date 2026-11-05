@@ -17,6 +17,7 @@ const COMMON = {
   author: "Arda Sarı",
   homepage: `https://github.com/${GITHUB}`,
   repository: { type: "git", url: `git+https://github.com/${GITHUB}.git` },
+  keywords: ["claude-code", "codex", "opencode", "pi", "coding-agent", "ai", "tui", "terminal", "cli"],
 }
 
 // Finds the binary of the platform package installed with this one: inside its node_modules (npm), or next to it
@@ -101,8 +102,16 @@ export function writeNpmPackages(version: string): string[] {
     },
     { text: SHIM },
   )
-  writeFileSync(join(main, "README.md"), npmReadme(readFileSync(join(REPO, "README.md"), "utf8")))
+  writeFileSync(join(main, "README.md"), npmReadme(readFileSync(join(REPO, "README.md"), "utf8")) + packageList())
   return [...folders, main, writeTypesPackage(root, version)]
+}
+
+const npmLink = (name: string) => `- [${name}](https://www.npmjs.com/package/${name})`
+
+// npm's Dependencies tab leaves out optional dependencies, so the README names the packages instead.
+function packageList(): string {
+  const platforms = PLATFORMS.map((platform) => `${npmLink(platformPackage(platform))}: the ${platform} binary`)
+  return `\n## Packages\n\n${[...platforms, `${npmLink("@yellowcode/mod")}: types for writing mods`].join("\n")}\n`
 }
 
 // npm shows the README away from the repo, so its relative links and images point at GitHub instead.
