@@ -673,6 +673,16 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   // Claude takes the mods' servers on its own path (syncModServers).
   mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
   relay: relayCall,
+  followUp: (text) => {
+    const lost = () =>
+      live.store.event({
+        type: "notice",
+        level: "warning",
+        text: `This did not reach the agent:\n${text}`,
+        at: Date.now(),
+      })
+    if (!sendLive({ text, images: [], to: null, delivery: "queue" }, lost)) lost()
+  },
 })
 
 // A call opencode gave this YellowCode for a session it does not run: a subagent's call goes to the session that runs

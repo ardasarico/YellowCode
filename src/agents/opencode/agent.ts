@@ -443,6 +443,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     down: () => ended,
     version: deps.appVersion,
     tell: (events) => out.push(...events),
+    late: (said) => options.followUp?.(said),
     at: () => lastAt,
   })
   own.setTools(options.clientTools)

@@ -27,11 +27,17 @@ const ATTACH_MS = 500
 const ATTACH_CAP_MS = 3000
 // A socket that listed its tools and closed is opened again after this; any other, when the event stream connects again.
 const RETRY_MS = 500
+// opencode gives up on a call to a server YellowCode hosts after 10 minutes, whatever its settings say. An ask answers
+// its call a little before then and stays open; an answer after that goes out as the user's next message.
+const ANSWER_BY_MS = 9 * 60_000
 
 // What a call from another session of the folder gets, such as one of the user's own opencode TUI.
 export const ELSEWHERE =
   "This tool asks the user of YellowCode's own session only. Use your own question tool instead, or go on without asking."
 export const NOT_OURS = "This tool runs for YellowCode's own session only, so it did not run."
+export const STILL_OPEN =
+  "The user has not answered yet. The question stays open on their screen, and their answers will come as their " +
+  "next message. End your turn now and wait for it. Do not ask again."
 
 const ASK_TOOL = {
   name: "ask",
@@ -98,6 +104,10 @@ export type OwnMcpDeps = {
   down(): boolean
   version: string
   tell(events: AgentEvent[]): void
+  // The answers to an ask whose call was already answered with STILL_OPEN.
+  late(said: string): void
+  // ANSWER_BY_MS unless a test says otherwise.
+  answerByMs?: number
   at(): number
 }
 
@@ -261,11 +271,13 @@ function serveMcp(deps: OwnMcpDeps, name: string, handlers: McpHandlers): McpSer
 
 type Served = { server: McpServer; tools: readonly ClientTool[] }
 
+type OpenAsk = { input: unknown; reply(reply: RelayedReply): void; late: boolean; timer: Timer | undefined }
+
 const listing = (tools: readonly ClientTool[]) => JSON.stringify(tools.map(mcpToolEntry))
 
 export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
-  // Open asks by id, with how each call gets its answer.
-  const open = new Map<AskId, { input: unknown; reply(reply: RelayedReply): void }>()
+  // Open asks by id, with how each call gets its answer. A late one's call is over.
+  const open = new Map<AskId, OpenAsk>()
   let asked = 0
   // The client tools' servers by name.
   const servers = new Map<string, Served>()
@@ -274,6 +286,7 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
   let leaving = Promise.resolve()
 
   function settle(id: AskId, outcome: Extract<AgentEvent, { type: "ask.close" }>["outcome"]): void {
+    clearTimeout(open.get(id)?.timer)
     open.delete(id)
     deps.tell([{ type: "ask.close", id, outcome, at: deps.at() }])
   }
@@ -288,14 +301,22 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
     const input = parsed.arguments
     const problem = ownAskProblem({ toolName: OWN_ASK, input })
     if (problem !== null) return Promise.resolve(text(`${NOT_SHOWN}${problem}.`, true))
+    // The model asked again, so a late ask is of no use any more.
+    for (const [old, known] of open) if (known.late) settle(old, { status: "cancelled" })
     const id = `own_${++asked}`
     const done = Promise.withResolvers<RelayedReply>()
-    open.set(id, { input, reply: done.resolve })
+    const entry: OpenAsk = { input, reply: done.resolve, late: false, timer: undefined }
+    open.set(id, entry)
     signal.addEventListener("abort", () => {
-      if (!open.has(id)) return
+      if (!open.has(id) || entry.late) return
       settle(id, { status: "cancelled" })
       done.resolve(failure(-32800, "Cancelled"))
     })
+    entry.timer = setTimeout(() => {
+      if (signal.aborted) return
+      entry.late = true
+      done.resolve(text(STILL_OPEN))
+    }, deps.answerByMs ?? ANSWER_BY_MS)
     deps.tell([{ type: "ask.open", ask: ownAsk(id, handle ?? id, input), at: deps.at() }])
     return done.promise
   }
@@ -340,7 +361,8 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
       if (!known) return false
       if (reply.type === "answers") {
         const { said, answers, notes } = ownAskAnswered(known.input, reply.answers)
-        known.reply(text(said))
+        if (known.late) deps.late(said)
+        else known.reply(text(said))
         settle(id, { status: "answered", answers, notes })
         return true
       }
@@ -388,6 +410,7 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
     },
     close() {
       closed = true
+      for (const known of open.values()) clearTimeout(known.timer)
       for (const server of all()) server.close()
     },
   }

@@ -11,7 +11,7 @@ import { QUESTION_TO_CHAT, SUBAGENT_ASK } from "../../protocol/outgoing.ts"
 import { createSession } from "../../session/session.ts"
 import { formAsk, formReply } from "./asks.ts"
 import { readFixture, type HttpLine } from "./fixture.ts"
-import { ELSEWHERE, NOT_OURS, type OwnMcpDeps, startOwnMcp } from "./own-mcp.ts"
+import { ELSEWHERE, NOT_OURS, type OwnMcpDeps, STILL_OPEN, startOwnMcp } from "./own-mcp.ts"
 import { realClock } from "./sse.ts"
 import { channel, type Socket, type Transport } from "./transport.ts"
 
@@ -236,10 +236,13 @@ function own(
   heard: AgentEvent[] = [],
   session = "ses_1",
   relay: OwnMcpDeps["relay"] = () => Promise.resolve(null),
+  extra: Pick<OwnMcpDeps, "late" | "answerByMs"> | Record<string, never> = {},
 ) {
   return startOwnMcp({
     transport: () => fake.transport,
     clock: realClock,
+    late: () => {},
+    ...extra,
     session: () => session,
     subagent: () => Promise.resolve(false),
     relay,
@@ -278,6 +281,31 @@ test("an ask whose socket closes is cancelled, and the socket opens again", asyn
   await Bun.sleep(600)
   expect(heard.at(-1)).toMatchObject({ type: "ask.close", outcome: { status: "cancelled" } })
   expect(fake.opened).toBe(2)
+  server.close()
+})
+
+test("an ask left open near opencode's call limit answers its call, stays open, and its answers go out later", async () => {
+  const fake = sockets()
+  const socket = fake.give()
+  const heard: AgentEvent[] = []
+  const late: string[] = []
+  const server = own(fake, heard, "ses_1", undefined, { answerByMs: 0, late: (said) => late.push(said) })
+  const input = { questions: [{ question: "Which?", header: "Pick", options: [{ label: "A" }, { label: "B" }] }] }
+  socket.push({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "ask", arguments: input } })
+  await Bun.sleep(20)
+  expect(socket.sent).toEqual([{ jsonrpc: "2.0", id: 2, result: { content: [{ type: "text", text: STILL_OPEN }] } }])
+  socket.push({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 2 } })
+  await Bun.sleep(20)
+  const opened = heard.find((event) => event.type === "ask.open")
+  if (opened?.type !== "ask.open") throw new Error("no ask")
+  expect(heard.some((event) => event.type === "ask.close")).toBe(false)
+  server.answer(opened.ask.id, {
+    type: "answers",
+    answers: { values: { "Which?": ["A"] }, fields: {}, notes: {}, note: "" },
+  })
+  expect(late).toHaveLength(1)
+  expect(late[0]).toContain('"Which?"="A"')
+  expect(heard.at(-1)).toMatchObject({ type: "ask.close", outcome: { status: "answered" } })
   server.close()
 })
 

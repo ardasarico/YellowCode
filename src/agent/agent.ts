@@ -72,6 +72,8 @@ export type StartOptions = {
   asks?: boolean
   // Passes a call whose caller is not this session's on to the YellowCode that runs it; null when none does.
   relay?(call: RelayedCall, signal: AbortSignal): Promise<RelayedReply | null>
+  // Sends `text` as the user's next message, such as answers to an ask whose call the agent already gave up on.
+  followUp?(text: string): void
 }
 
 // The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on
