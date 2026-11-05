@@ -23,25 +23,25 @@
     }
   },
   "beta": {
-    "version": "0.1.0-beta.1",
-    "commit": "0061bd291e68b153d8bedab5cd827764a2307138",
-    "bundle": "105a030d0bb1e2c2005b559767975bb3ee72734cf11136887f674bd74b32ebc0",
+    "version": "0.1.1-beta.1",
+    "commit": "f5f857cdc6d37cc82dea2c3f78507f513076fe83",
+    "bundle": "0b469466d9652f610a8c85c2aeb101554e54f0c27efb9718a229d37e0452f86b",
     "assets": {
       "darwin-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-darwin-arm64.tar.gz",
-        "sha256": "d7b795c5483ef7c8aae20e299796283ae486efa6b23cd841baf943aeb31724da"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1-beta.1/yellowcode-darwin-arm64.tar.gz",
+        "sha256": "4efb8696067ea27973495e4cd39997ca2a80102998899fd96827e3690f6ebae0"
       },
       "darwin-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-darwin-x64.tar.gz",
-        "sha256": "e8857953424f5596772d3188b40a86e533e92a4b75c48d739ef627e4d2adc215"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1-beta.1/yellowcode-darwin-x64.tar.gz",
+        "sha256": "8d3d30a5d1710c2369636560dff6b3f4080b324aa162cd94a65ace3a6ac92ba8"
       },
       "linux-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-linux-x64.tar.gz",
-        "sha256": "4b602040b3d70a7b158811be5964ff586a62e0e4504f8cf92c6116489e2d94ed"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1-beta.1/yellowcode-linux-x64.tar.gz",
+        "sha256": "cd0b8f719f55d8c7e49ee107009c4ea7366393fd6df28a894cd57e245526b80f"
       },
       "linux-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.0-beta.1/yellowcode-linux-arm64.tar.gz",
-        "sha256": "8278c55e62e5943c093a434b7cd2a2fabb070cff3ef66672d49c0f77976c5032"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1-beta.1/yellowcode-linux-arm64.tar.gz",
+        "sha256": "2bc844d4ccf3ac41a15e3b8b034e5e95d7b385b61c7b76fa4ec16b672975cb39"
       }
     }
   }
