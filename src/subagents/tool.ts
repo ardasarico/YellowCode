@@ -9,6 +9,7 @@ import { subagentMessage } from "../peers/envelope.ts"
 import { childAsks, confirmAsk, modelAsk, type ModelChoice, ownAskId, ownAskOf, pickedOf, ranOf } from "./asks.ts"
 import { type Child, type ChildResult, createChildren, type Launcher, modelText, nameOf } from "./children.ts"
 import type { Definition } from "./definitions.ts"
+import { resolveName } from "./mentions.ts"
 
 // The tools reach the user's own session as client tools of this server; children get none.
 export const AGENTS_SERVER = OWN_AGENTS_SERVER
@@ -32,6 +33,8 @@ export type SubagentDeps = {
   // False while the provider's models are not listed yet.
   listed(provider: AgentKindId): boolean
   definitions(): Definition[]
+  // The @ names in the user's own messages of the session.
+  mentioned(): string[]
   limit(): number
   // A message for the parent's model, sent as a prompt.
   tell(text: string): void
@@ -45,18 +48,6 @@ export type ToolResult = { text: string; error: boolean }
 // The row an agent file's `model:` names.
 export const rowOf = (rows: ModelRow[], model: string): ModelRow | undefined =>
   rows.find((row) => modelText(row.ref) === model) ?? rows.find((row) => row.ref.id === model)
-
-// The rows a name the parent's model gave stands for: an id or a label, with or without the inner provider.
-export function rowsNamed(rows: ModelRow[], name: string): ModelRow[] {
-  const wanted = name.trim().toLowerCase()
-  const found = new Map<string, ModelRow>()
-  for (const row of rows) {
-    const names = [row.ref.id, row.label, modelText(row.ref)]
-    if (row.ref.provider) names.push(`${row.ref.provider}/${row.label}`)
-    if (names.some((one) => one.toLowerCase() === wanted)) found.set(modelText(row.ref), row)
-  }
-  return [...found.values()]
-}
 
 const ID = { type: "string", description: "The subagent's id, as run returned it, such as c1; not an agent name." }
 const TAKES_ID = "Takes `id`, the subagent's id that `run` returned (such as c1), not the agent's name."
@@ -74,7 +65,8 @@ export const AGENT_TOOLS = [
     description:
       "Start a subagent: a session of its own, often another provider's model, that works on `task` while you go " +
       "on. Give `agent` to run one of the agents listed by `agents`, or `model` (a model id or name) to run that " +
-      "model with no agent, only your task. It works in the same folder as you, so split the work so that you and " +
+      "model with no agent, only your task. A @name in the user's message that names a model or an agent means " +
+      "that one; pass the name as `model` or `agent`. It works in the same folder as you, so split the work so that you and " +
       "your subagents never edit the same files. Write the task so it stands alone: the subagent has none of your " +
       "context. This returns at once with the subagent's id, or says the user is asked first. The result (its last " +
       "message, the files it edited and how long it took) arrives later as a message; do not wait or poll for it. " +
@@ -247,12 +239,10 @@ export function createSubagents(deps: SubagentDeps) {
     })
   }
 
-  async function choicesFor(model: string): Promise<ModelChoice[]> {
+  async function allChoices(): Promise<ModelChoice[]> {
     const providers = deps.providers()
     const lists = await Promise.all(providers.map((provider) => deps.models(provider.id)))
-    return providers.flatMap((provider, index) =>
-      rowsNamed(lists[index] ?? [], model).map((row) => ({ provider, row })),
-    )
+    return providers.flatMap((provider, index) => (lists[index] ?? []).map((row) => ({ provider, row })))
   }
 
   async function run(input: unknown): Promise<ToolResult> {
@@ -274,8 +264,21 @@ export function createSubagents(deps: SubagentDeps) {
       return begunText(await begin({ definition, provider, row, task }), provider)
     }
     if (model === undefined) return error("Give agent or model.")
-    const choices = await choicesFor(model)
+    const all = await allChoices()
+    const choices = resolveName(model, all)
     if (choices.length === 0) return error(`No added provider lists a model named ${model}.`)
+    // A model the user's own message named alone runs without asking.
+    const mentioned = new Set(
+      deps.mentioned().flatMap((name) => {
+        const found = resolveName(name, all)
+        return found.length === 1 ? found : []
+      }),
+    )
+    const named = choices.filter((choice) => mentioned.has(choice))
+    if (named.length === 1 && named[0]) {
+      const { provider, row } = named[0]
+      return begunText(await begin({ definition: null, provider, row, task }), provider)
+    }
     // The user's pick both confirms the run and chooses among same-named models.
     void ask((id) => modelAsk(id, model, task, choices)).then(async (reply) => {
       const index = reply === null ? null : pickedOf(reply)

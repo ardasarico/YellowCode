@@ -3,7 +3,14 @@ import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../agent/ids.ts"
 import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
-import { favoriteWalk, isModelOf, modelsNamed, type PickerGroup, type PickerModel } from "../models/picker.ts"
+import {
+  favoriteWalk,
+  isModelOf,
+  matches as modelMatches,
+  modelsNamed,
+  type PickerGroup,
+  type PickerModel,
+} from "../models/picker.ts"
 import type { Handoff } from "../session/handoff.ts"
 import { ModelPicker, pickerModel } from "./model-picker.tsx"
 import type { SettingRow, SettingValue } from "../agent/settings.ts"
@@ -24,7 +31,9 @@ import { createStore } from "solid-js/store"
 import { findCommand, findModCommand, OWN_COMMANDS, untitledCommand } from "../input/commands.ts"
 import { type Draft, draftFromMessage } from "../input/draft.ts"
 import { planReturn } from "../session/plan-mode.ts"
-import type { InputProvider } from "../input/provider.ts"
+import type { InputProvider, Mentionable } from "../input/provider.ts"
+import type { Definition } from "../subagents/definitions.ts"
+import { mentionName } from "../subagents/mentions.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
 import { ContextDialog } from "./context/context-dialog.tsx"
@@ -172,6 +181,8 @@ const BACKGROUND_HINT_MS = 3000
 const PLAN_START = "Implement the plan."
 // YellowCode's own knob commands, for an agent that has none of its own.
 const OWN_KNOBS: Partial<Record<string, Knob>> = { model: "model", effort: "effort" }
+const MENTION_MODELS = 6
+
 const NO_LIMITS: Session["usage"]["limits"] = { fiveHour: null, week: null, models: {} }
 
 export type AppProps = {
@@ -274,6 +285,8 @@ export type ModelSource = {
   listed: (id: AgentKindId) => ModelRow[] | null
   // Lists the provider's models into the catalog; never rejects.
   ensure: (id: AgentKindId) => Promise<unknown>
+  // The agents a subagent can run as now.
+  agents: () => Pick<Definition, "name" | "description">[]
   // The conversation as text for a new session on the model, or why it cannot go there.
   carry: (provider: AgentKindId, model: ModelRef) => { ok: true; handoff: Handoff } | { ok: false; problem: string }
   // Asks before a message moves the conversation; true when the user lets it.
@@ -964,6 +977,30 @@ export function App(props: AppProps) {
       }),
     ]
   }
+  // What `@` lists above the files: the models a subagent can run on, favorites first, then the agents.
+  const mentionables = (query: string): Mentionable[] => {
+    const models = props.models
+    if (!models || props.caps.clientTools === "none") return []
+    const groups = modelGroups(readCatalogs())
+    const names = new Map(groups.map((group) => [group.provider, group.name]))
+    const all = groups.flatMap((group) => group.models ?? []).filter((one) => !isHidden(one.provider, one.ref))
+    const choices = all.map((model) => ({ provider: { id: model.provider }, row: model, model }))
+    const found = choices.filter(({ model }) => modelMatches(model, query))
+    const favorite = ({ model }: (typeof choices)[number]) => isFavorite(model.provider, model.ref)
+    const shown = [...found.filter(favorite), ...found.filter((one) => !favorite(one))].slice(0, MENTION_MODELS)
+    const needle = query.trim().toLowerCase()
+    return [
+      ...shown.map((choice) => ({
+        name: mentionName(choice, choices),
+        note: [names.get(choice.model.provider), choice.model.ref.provider].filter(Boolean).join(" · "),
+      })),
+      ...models
+        .agents()
+        .filter((one) => one.name.toLowerCase().includes(needle))
+        .map((one) => ({ name: one.name, note: one.description })),
+    ]
+  }
+  const promptProvider = createMemo((): InputProvider => ({ ...props.provider, mentionables }))
   // As the picker opens, a provider the catalog has no list of, or one listed by another version, is listed again.
   const openModels = (query = "") => {
     listCatalogs()
@@ -1998,7 +2035,7 @@ export function App(props: AppProps) {
                 : `${props.agent.name} is not running`
               : `Message ${props.agent.name}`,
     model: pendingText() ?? settings.model ?? props.model(),
-    provider: props.provider,
+    provider: promptProvider(),
     onSubmit: submit,
     onQuit: pressQuit,
     onEscape: pressEscape,

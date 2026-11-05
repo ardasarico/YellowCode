@@ -103,6 +103,7 @@ import { watchFocus } from "./ui/attention.ts"
 import { modelName } from "./ui/format.ts"
 import { getParsers } from "./ui/markdown/parsers/parsers.ts"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
+import { mentionNames } from "./input/token.ts"
 import { readSubagentMessage, sessionMessage } from "./peers/envelope.ts"
 import { startPeers } from "./peers/host.ts"
 import { themeTextSelection } from "./ui/text-selection.ts"
@@ -611,6 +612,12 @@ const childActions: ChildActions = {
   close: (id) => live.subagents.close(id),
 }
 
+const definitions = () =>
+  loadDefinitions(
+    cwd,
+    (provider, model) => addedIds(settings).includes(provider) && rowOf(catalogOf(provider), model) !== undefined,
+  )
+
 function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Subagents {
   const made: Subagents = createSubagents({
     cwd,
@@ -625,11 +632,13 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
     },
     models: catalogRows,
     listed: (id) => listedRows(id) !== null,
-    definitions: () =>
-      loadDefinitions(
-        cwd,
-        (provider, model) => addedIds(settings).includes(provider) && rowOf(catalogOf(provider), model) !== undefined,
-      ),
+    definitions,
+    mentioned: () =>
+      store.state.items.flatMap((id) => {
+        const item = store.state.byId[id]
+        if (item?.kind !== "user" || item.from || item.to || readSubagentMessage(item.text)) return []
+        return mentionNames(item.text)
+      }),
     limit: () => settings.maxSubagents,
     // A result waits for the turn that runs, where the agent can queue it. One that cannot go out stays in the chat.
     tell: (text) => {
@@ -1242,6 +1251,7 @@ const modelSource: ModelSource = {
   added: addedProviders,
   listed: listedRows,
   ensure: ensureListed,
+  agents: () => definitions().filter((one) => one.active),
   carry: (id, model) => {
     const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
     const label = row?.resolves ? modelName(row.resolves) : (row?.label ?? model.id)

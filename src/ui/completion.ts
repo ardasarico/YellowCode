@@ -240,12 +240,22 @@ export function useCompletion(options: CompletionOptions) {
       return
     }
     const request = fileRequest
+    // Models and agents need no lookup, so they show at once and the files join them below.
+    const mentions: Suggestion[] = token.quoted
+      ? []
+      : (options.provider().mentionables?.(token.query) ?? []).map(({ name, note }) => ({
+          kind: "mention",
+          name,
+          note,
+        }))
+    if (mentions.length > 0) show({ kind: "file", start: token.start, entries: mentions })
     void options
       .provider()
       .files(token.query)
       .then((paths) => {
         if (request !== fileRequest) return
-        show({ kind: "file", start: token.start, entries: paths.map((path) => ({ kind: "file", path })) })
+        const files: Suggestion[] = paths.map((path) => ({ kind: "file", path }))
+        show({ kind: "file", start: token.start, entries: [...mentions, ...files] })
       })
       .catch((error: unknown) => log.warn("file suggestions failed", String(error)))
   }
@@ -370,7 +380,7 @@ export function useCompletion(options: CompletionOptions) {
       return
     }
     const token = atToken(text, cursorIndex(area))
-    if (token) edit(replaceToken(text, token, entry.path))
+    if (token) edit(replaceToken(text, token, entry.kind === "mention" ? entry.name : entry.path))
     else close()
   }
 

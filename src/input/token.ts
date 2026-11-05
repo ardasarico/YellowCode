@@ -65,6 +65,12 @@ function mentions(text: string, cursor: number): Mention[] {
   return found
 }
 
+// The names a text @-mentions, without the @ and quotes.
+export const mentionNames = (text: string): string[] =>
+  mentions(text, text.length)
+    .map(({ start, end, quoted, closed }) => text.slice(start + (quoted ? 2 : 1), quoted && closed ? end - 1 : end))
+    .filter((name) => name.length > 0)
+
 export function atToken(text: string, cursor: number): AtToken | null {
   for (const { start, end, quoted, closed } of mentions(text, cursor)) {
     const from = start + (quoted ? 2 : 1)

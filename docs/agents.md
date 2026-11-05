@@ -9,6 +9,11 @@ Your agent can run subagents: sessions of their own, on any provider you added, 
 goes on. Ask for one, for example "have a Codex model write the tests for this". Your agent runs one of your
 [agent files](#agent-files), or names a model directly; then you are asked first which model runs, if any.
 
+To name the model, type `@` and part of its name: the models and agents a subagent can run as show above the files,
+favorites first. Picking one writes its shortest unique name, such as `@deepseek-v4-flash`, or the provider in front
+when two rows share it (`@opencode/openrouter/deepseek-v4-flash`). The message still goes to your agent, which decides
+what to run. A model you named this way in your own message runs without the ask.
+
 Claude Code, Codex and opencode sessions get the tools to run subagents. A Pi session gets none, but Pi can run as a
 subagent of another session.
 

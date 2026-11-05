@@ -3,6 +3,9 @@ import type { Knob, ModelGroup, ModelRow, ModeRow, PluginRow, SkillRow } from ".
 import type { SessionInfo } from "../session/types.ts"
 import type { Command } from "./commands.ts"
 
+// `name` is the text a pick writes after the @.
+export type Mentionable = { name: string; note: string }
+
 export type InputProvider = {
   commands: Accessor<Command[]>
   // A command the agent has that YellowCode does not offer; typed, it does not go out.
@@ -27,4 +30,6 @@ export type InputProvider = {
   // The subscription the account is on, such as "Claude Pro"; null when the agent has not said.
   plan: Accessor<string | null>
   files(query: string): Promise<string[]>
+  // The models and agents a `@` lists above the files, for a session that can start subagents.
+  mentionables?(query: string): Mentionable[]
 }

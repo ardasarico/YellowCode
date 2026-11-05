@@ -15,6 +15,8 @@ export type Suggestion =
     }
   | { kind: "file"; path: string }
   | { kind: "value"; value: string; note: string }
+  // A model or an agent a subagent can run as.
+  | { kind: "mention"; name: string; note: string }
 
 const MAX_SUGGESTION_ROWS = 6
 const INDENT = 2
@@ -114,6 +116,8 @@ export function SuggestionList(props: {
               if (value.kind === "command") return labelParts(commandPieces(value), value.description, textWidth())
               if (value.kind === "value")
                 return labelParts([{ text: value.value, fg: theme.text }], value.note, textWidth())
+              if (value.kind === "mention")
+                return labelParts([{ text: `@${value.name}`, fg: theme.text }], value.note, textWidth())
               return fileParts(value.path, textWidth())
             }
             return (
