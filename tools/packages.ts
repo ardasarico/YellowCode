@@ -1,5 +1,5 @@
 // The npm packages and the Homebrew formula of a release, written from its built binaries and tarballs.
-import { chmodSync, cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import packageJson from "../package.json"
 import type { Platform, Release } from "../src/update/channels.ts"
@@ -92,12 +92,25 @@ export function writeNpmPackages(version: string): string[] {
       version,
       ...COMMON,
       bin: { yellowcode: "bin/yellowcode" },
-      files: ["bin/yellowcode", "LICENSE"],
+      files: ["bin/yellowcode", "LICENSE", "README.md"],
       optionalDependencies: Object.fromEntries(PLATFORMS.map((platform) => [platformPackage(platform), version])),
     },
     { text: SHIM },
   )
+  writeFileSync(join(main, "README.md"), npmReadme(readFileSync(join(REPO, "README.md"), "utf8")))
   return [...folders, main, writeTypesPackage(root, version)]
+}
+
+// npm shows the README away from the repo, so its relative links and images point at GitHub instead.
+export function npmReadme(readme: string): string {
+  const raw = `https://raw.githubusercontent.com/${GITHUB}/main/`
+  const blob = `https://github.com/${GITHUB}/blob/main/`
+  const relative = String.raw`(?!https?:|#|mailto:)([^"()\s]+)`
+  return readme
+    .replace(new RegExp(String.raw`\b(src|srcset)="${relative}"`, "g"), `$1="${raw}$2"`)
+    .replace(new RegExp(String.raw`\bhref="${relative}"`, "g"), `href="${blob}$1"`)
+    .replace(new RegExp(String.raw`!\[([^\]]*)\]\(${relative}\)`, "g"), `![$1](${raw}$2)`)
+    .replace(new RegExp(String.raw`(?<!!)\]\(${relative}\)`, "g"), `](${blob}$1)`)
 }
 
 const TYPES_README = `# @yellowcode/mod
