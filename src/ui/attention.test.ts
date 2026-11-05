@@ -41,6 +41,7 @@ const ask: Ask = {
 const turnEnd: TurnEnd = {
   kind: "turn-end",
   id: "end-1",
+  by: "user",
   costUsd: 0,
   durationMs: 0,
   inputTokens: 0,
@@ -70,6 +71,7 @@ test("each state pings only at the levels that allow it", () => {
     ],
     [sessionWith([{ ...ask, status: "allowed" }], "running"), null, null],
     [sessionWith([turnEnd]), "Done", null],
+    [sessionWith([{ ...turnEnd, by: "agent" }]), null, null],
     [sessionWith([{ ...turnEnd, error: "rate limited\nretry later" }]), "Error: rate limited", "Error: rate limited"],
     [sessionWith([]), null, null],
   ]

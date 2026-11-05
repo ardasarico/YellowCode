@@ -11,7 +11,7 @@
     "087925990222",
     "087925990222",
     "a348db7530ad",
-    "5f0fefa9fea1"
+    "b99eb9693ee0"
   ],
   "fileOriginals": [],
   "state": {
@@ -170,6 +170,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.0009235100000000001,
         "durationMs": 1187,
         "inputTokens": 2,

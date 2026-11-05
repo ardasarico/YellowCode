@@ -19,7 +19,7 @@
     "201301a0e456",
     "7b1a0abf9f86",
     "a5ed565b9c9e",
-    "006a6e13f890"
+    "f30275cb5a13"
   ],
   "fileOriginals": [],
   "state": {
@@ -1655,6 +1655,7 @@
       "turn-7": {
         "kind": "turn-end",
         "id": "turn-7",
+        "by": "user",
         "costUsd": 0.00139139,
         "durationMs": 3422,
         "inputTokens": 4,

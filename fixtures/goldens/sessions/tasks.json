@@ -73,7 +73,7 @@
     "fad4f85d0df5",
     "fad4f85d0df5",
     "fad4f85d0df5",
-    "1a40750c3ce6"
+    "fd7c2c249456"
   ],
   "fileOriginals": [],
   "state": {
@@ -415,6 +415,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.05879999999999999,
         "durationMs": 485,
         "inputTokens": 8400,

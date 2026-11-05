@@ -192,6 +192,8 @@ export type Ask = {
 export type TurnEnd = {
   kind: "turn-end"
   id: ItemId
+  // Who started the turn: the user's message, or the agent itself (a background task's end).
+  by: "user" | "agent"
   costUsd: number
   durationMs: number
   inputTokens: number

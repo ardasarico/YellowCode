@@ -94,7 +94,7 @@
     "e4ae679c87ff",
     "ec65b44e455e",
     "ec65b44e455e",
-    "141c960f7361"
+    "8515502c40ec"
   ],
   "fileOriginals": [
     {
@@ -449,6 +449,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.0017845300000000003,
         "durationMs": 5657,
         "inputTokens": 8,

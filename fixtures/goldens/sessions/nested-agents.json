@@ -124,7 +124,7 @@
     "15cfcd8ec27d",
     "202863ffb14a",
     "202863ffb14a",
-    "4fd23137b6ea"
+    "58724d040626"
   ],
   "fileOriginals": [],
   "state": {
@@ -533,6 +533,7 @@
       "turn-9": {
         "kind": "turn-end",
         "id": "turn-9",
+        "by": "user",
         "costUsd": 0.005888854999999999,
         "durationMs": 15955,
         "inputTokens": 4,

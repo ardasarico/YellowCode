@@ -16,7 +16,7 @@
     "710f4429feab",
     "710f4429feab",
     "710f4429feab",
-    "263ff5037014"
+    "45bfbfc91778"
   ],
   "emitted": [],
   "fileOriginals": [],
@@ -511,6 +511,7 @@
       "turn-2": {
         "kind": "turn-end",
         "id": "turn-2",
+        "by": "user",
         "costUsd": 0.01,
         "durationMs": 1200,
         "inputTokens": 120,

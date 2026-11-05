@@ -856,6 +856,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       return
     }
     settleTurn()
+    const by = state.turn ?? "user"
     const interrupted = state.interrupting || event.interrupted
     if (interrupted) cutLastText()
     // An interrupt ends its turn with an error, which is no error to the user.
@@ -869,6 +870,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         {
           kind: "turn-end",
           id: newId("turn"),
+          by,
           costUsd: event.sessionCostUsd ?? 0,
           durationMs: event.durationMs,
           inputTokens: event.inputTokens,

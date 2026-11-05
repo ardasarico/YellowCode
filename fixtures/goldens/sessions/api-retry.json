@@ -20,12 +20,12 @@
     "bc7c74945e3c",
     "bc7c74945e3c",
     "bc7c74945e3c",
-    "6c9cc9970f05",
-    "9eead8160735",
-    "9eead8160735",
-    "9eead8160735",
-    "9eead8160735",
-    "a88f31471904"
+    "391b86fa5e29",
+    "926b97bdc774",
+    "926b97bdc774",
+    "926b97bdc774",
+    "926b97bdc774",
+    "db46e4d2d0d8"
   ],
   "fileOriginals": [],
   "state": {
@@ -172,6 +172,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.0084,
         "durationMs": 1823,
         "inputTokens": 1200,
@@ -192,6 +193,7 @@
       "turn-6": {
         "kind": "turn-end",
         "id": "turn-6",
+        "by": "user",
         "costUsd": 0.0084,
         "durationMs": 15,
         "inputTokens": 0,

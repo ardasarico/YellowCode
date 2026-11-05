@@ -42,7 +42,7 @@
     "ed647079f25a",
     "21b5ec998f75",
     "21b5ec998f75",
-    "8fcf8817c08b"
+    "af888c189fd5"
   ],
   "fileOriginals": [],
   "state": {
@@ -349,6 +349,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.00147032,
         "durationMs": 2902,
         "inputTokens": 6,

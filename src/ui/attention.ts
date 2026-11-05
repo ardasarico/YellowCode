@@ -21,8 +21,10 @@ export function attentionState(session: Session): Attention {
     const item = session.byId[session.items[index] ?? ""]
     if (item?.kind === "system" && item.level === "error") return { state: "error", id: item.id, error: item.text }
     if (item?.kind !== "turn-end") continue
-    if (item.error === null) return { state: "done", id: item.id }
-    return { state: "error", id: item.id, error: item.error }
+    if (item.error !== null) return { state: "error", id: item.id, error: item.error }
+    // A turn the agent started itself (a background task's end) is not the user's answer, so it does not say done.
+    if (item.by === "agent") return { state: "idle", id: null }
+    return { state: "done", id: item.id }
   }
   return { state: "idle", id: null }
 }

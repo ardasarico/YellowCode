@@ -35,7 +35,7 @@
     "ccd28003ff4c",
     "9a6bb91c2758",
     "9a6bb91c2758",
-    "77ba2008a250"
+    "9ea9c3e8ca6c"
   ],
   "fileOriginals": [
     {
@@ -300,6 +300,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.00118575,
         "durationMs": 2023,
         "inputTokens": 4,

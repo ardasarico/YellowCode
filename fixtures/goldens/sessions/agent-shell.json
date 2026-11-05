@@ -104,7 +104,7 @@
     "e35dc9864bbb",
     "ad4e75d0f49e",
     "ad4e75d0f49e",
-    "92a31f58a28a"
+    "e319e1b780ee"
   ],
   "fileOriginals": [],
   "state": {
@@ -419,6 +419,7 @@
       "turn-7": {
         "kind": "turn-end",
         "id": "turn-7",
+        "by": "user",
         "costUsd": 0.00310284,
         "durationMs": 17296,
         "inputTokens": 4,

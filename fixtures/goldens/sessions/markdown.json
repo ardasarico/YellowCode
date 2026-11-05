@@ -242,7 +242,7 @@
     "20c2fbdd2baa",
     "20c2fbdd2baa",
     "d493380084bb",
-    "90631cfd955a"
+    "cd8da4ae9619"
   ],
   "fileOriginals": [],
   "state": {
@@ -402,6 +402,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.0017641100000000002,
         "durationMs": 7638,
         "inputTokens": 2,

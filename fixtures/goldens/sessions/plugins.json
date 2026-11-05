@@ -19,7 +19,7 @@
     "2f18116d30e9",
     "2f18116d30e9",
     "43034c44d4cd",
-    "b259bafce0b0"
+    "ce41e501f859"
   ],
   "fileOriginals": [],
   "state": {
@@ -317,6 +317,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.004556,
         "durationMs": 7327,
         "inputTokens": 2,
