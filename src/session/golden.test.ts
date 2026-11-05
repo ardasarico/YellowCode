@@ -171,6 +171,7 @@ for (const name of sessionNames) {
     const fileOriginals = recordOriginals(session, steps)
     for (const entry of entries) {
       feed(session, entry.dir, parse(entry.line), entry.t)
+      session.flush()
       steps.push(hash(session))
     }
     checkReplay(`sessions/${name}.json`, { steps, fileOriginals, state: snapshot(session) }, (index) => {

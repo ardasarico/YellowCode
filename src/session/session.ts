@@ -1,4 +1,4 @@
-import { type Accessor, createSignal } from "solid-js"
+import { type Accessor, batch, createSignal } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import type { Ask as AgentAsk, AskOption, AskOutcome, AskReply } from "../agent/ask.ts"
 import type { AgentEvent, BackgroundTask, SessionInfo as AgentInfo } from "../agent/events.ts"
@@ -44,6 +44,8 @@ export type SessionStore = {
   // A message shown early never went out.
   notSent(prompt: PromptId): void
   stopRunning(): void
+  // Writes streamed text that is still held back.
+  flush(): void
   // Claude's own server and plugin lists, and the server rows it shows for them.
   setLists(lists: Partial<Pick<Session, "mcpServers" | "plugins"> & Pick<Lists, "mcp">>): void
   setPermissionMode(mode: string): void
@@ -79,6 +81,7 @@ const planOption = (id: string, effect: "allow" | "deny"): AskOption => ({
 })
 
 const FIVE_HOURS = 5 * 60
+const FLUSH_MS = 50
 const WEEK = 7 * 24 * 60
 
 const MARKERS = ["`", "**", "__", "*", "_"]
@@ -313,6 +316,30 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     if (state.byId[id]) setState("byId", id, produce(change))
   }
 
+  // Each streamed text is a layout pass over the whole chat, so deltas are written together at most every FLUSH_MS.
+  const heldText = new Map<ItemId, string>()
+  let flushTimer: ReturnType<typeof setTimeout> | null = null
+
+  function holdText(id: ItemId, text: string): void {
+    heldText.set(id, (heldText.get(id) ?? "") + text)
+    flushTimer ??= setTimeout(flushText, FLUSH_MS)
+  }
+
+  function flushText(): void {
+    if (flushTimer) clearTimeout(flushTimer)
+    flushTimer = null
+    if (heldText.size === 0) return
+    const held = [...heldText]
+    heldText.clear()
+    batch(() => {
+      for (const [id, text] of held)
+        update(id, (item) => {
+          if (item.kind === "text") item.markdown += text
+          else if (item.kind === "thinking") item.text += text
+        })
+    })
+  }
+
   // Removes top-level items with everything they own.
   function drop(ids: ItemId[]): void {
     const gone = new Set<ItemId>()
@@ -468,12 +495,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       case "text.delta":
       case "thinking.delta": {
         const id = partOf(event.part)
-        const text = event.text
-        if (id)
-          update(id, (item) => {
-            if (item.kind === "text" && event.type === "text.delta") item.markdown += text
-            else if (item.kind === "thinking" && event.type === "thinking.delta") item.text += text
-          })
+        if (id) holdText(id, event.text)
         return
       }
       case "text.end": {
@@ -1316,6 +1338,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
   }
 
   function stopRunning(): void {
+    flushText()
     for (const task of Object.values(state.tasks)) if (task.state === "running") finishTask(task.id, "stopped")
     for (const item of Object.values(state.byId)) {
       if (item.kind !== "tool" || (item.status !== "running" && item.agent?.state !== "running")) continue
@@ -1431,8 +1454,10 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     event(event) {
       // A start or end of the agent alone keeps the clock of the last event and does not start the session's.
       if (event.type !== "starting" && event.type !== "ended") tick(event.at)
+      if (event.type !== "text.delta" && event.type !== "thinking.delta") flushText()
       onEvent(event)
     },
+    flush: flushText,
     prepend(events) {
       const earlier = createSession({ idPrefix: `p${++prepends}-` })
       for (const event of events) earlier.event(event)
