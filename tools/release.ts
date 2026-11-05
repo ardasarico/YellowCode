@@ -303,7 +303,14 @@ git("commit", "-q", "-m", `release: point ${channel} at ${tag}`, CHANNELS_FILE)
 git("push", "origin", "main")
 if (isPublic) {
   // The platform packages go first, so the main package never points at a version that is not there yet.
-  for (const folder of npmFolders) run(["npm", "publish", "--access", "public", "--tag", npmTag], folder)
+  // npm asks for a one-time password or a browser login on each publish, so it talks to the terminal.
+  for (const folder of npmFolders) {
+    const publish = Bun.spawnSync(["npm", "publish", "--access", "public", "--tag", npmTag], {
+      cwd: folder,
+      stdio: ["inherit", "inherit", "inherit"],
+    })
+    if (publish.exitCode !== 0) fail(`npm publish failed in ${folder}; publish the rest by hand`)
+  }
   if (channel === "stable" && hasTap) {
     const tap = join(DIST, ".tap")
     rmSync(tap, { recursive: true, force: true })
