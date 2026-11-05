@@ -20,6 +20,7 @@ const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next ·
 const SHORT_HINTS = "↑↓ · ←→ · space · enter · n · esc"
 const NOTE_HINTS = "enter save · esc drop"
 const NOTE_GAP = 2
+const ROW_GAP = 1
 
 // `answers` holds the chosen step per row, -1 while open. `cursor` is the step ←→ stand on; it stays in its column
 // when ↑↓ change the row.
@@ -88,9 +89,8 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
   // Every page takes the height of the tallest, so the ask does not jump.
   const pageHeight = (from: number) => {
     const steps = stacked() ? stepRows().length : 0
-    return labelRows()
-      .slice(from, from + pageSize())
-      .reduce((sum, lines) => sum + lines.length + steps, 0)
+    const page = labelRows().slice(from, from + pageSize())
+    return page.reduce((sum, lines) => sum + lines.length + steps, 0) + (page.length - 1) * ROW_GAP
   }
   const tallestPage = createMemo(() => {
     let tallest = 0
@@ -208,7 +208,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
                 <Show
                   when={stacked()}
                   fallback={
-                    <box id={`row-${offset}`} flexDirection="row">
+                    <box id={`row-${offset}`} flexDirection="row" marginTop={offset > 0 ? ROW_GAP : 0}>
                       <text
                         width={labelWidth()}
                         flexShrink={0}
@@ -245,7 +245,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
                     </box>
                   }
                 >
-                  <box id={`row-${offset}`} flexDirection="column">
+                  <box id={`row-${offset}`} flexDirection="column" marginTop={offset > 0 ? ROW_GAP : 0}>
                     <text wrapMode="none" fg={labelColor()} attributes={labelAttributes()}>
                       {label()}
                     </text>
