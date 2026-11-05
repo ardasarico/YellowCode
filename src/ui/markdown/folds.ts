@@ -9,6 +9,7 @@ import { hasData, parseChart } from "./chart.ts"
 import { columnsOf } from "./columns.ts"
 import { type Entry, groupDetails, isDetails, nestedEntries } from "./details.ts"
 import { parseGantt } from "./gantt.ts"
+import { rowCode } from "./row.ts"
 import { parseStats, statsCode } from "./stats.ts"
 import { LONG_TREE, parseTree, treeCode } from "./tree.ts"
 
@@ -54,6 +55,7 @@ function foldable(entry: Entry): boolean {
   const diff = diffOf(entry)
   if (diff) return codeDiffRows(diff).length > HEAD_LIMIT
   if (columnsOf(entry)) return false
+  if (rowCode(entry)) return false
   const stats = statsCode(entry)
   if (stats && parseStats(stats.text)) return false
   const tree = treeCode(entry)

@@ -38,6 +38,8 @@ import { imageLines } from "./images.ts"
 import { Inline, RefContext } from "./inline.tsx"
 import { toUnicode } from "./math.ts"
 import { refNumbers } from "./refs.ts"
+import { parseRow, rowCode } from "./row.ts"
+import { RowView } from "./row-view.tsx"
 import { parseStats, statsCode } from "./stats.ts"
 import { StatsView } from "./stats-view.tsx"
 import { Table } from "./table.tsx"
@@ -260,6 +262,9 @@ function BlockView(props: BlockProps) {
       </Case>
       <Case when={statsCode(props.token)}>
         {(token) => <StatsBlock token={token()} streaming={props.streaming} width={props.width} />}
+      </Case>
+      <Case when={rowCode(props.token)}>
+        {(token) => <RowBlock token={token()} streaming={props.streaming} width={props.width} />}
       </Case>
       <Case when={!inColumn && columnsCode(props.token)}>
         {(token) => (
@@ -503,6 +508,18 @@ function LongCode(props: { token: Tokens.Code; streaming: boolean; bare: boolean
         <MoreLine fold={fold} hidden={lines().length - FOLDED_CODE} />
       </box>
     </box>
+  )
+}
+
+function RowBlock(props: { token: Tokens.Code; streaming: boolean; width: number }) {
+  const sections = createMemo(() => parseRow(finishedText(props.token.text, props.streaming)))
+  return (
+    <Switch fallback={<Code token={props.token} streaming={props.streaming} />}>
+      <Case when={sections()}>{(value) => <RowView sections={value()} width={props.width} />}</Case>
+      <Match when={props.streaming}>
+        <box />
+      </Match>
+    </Switch>
   )
 }
 
