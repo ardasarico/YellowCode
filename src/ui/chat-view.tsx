@@ -1,5 +1,16 @@
 import type { Renderable, ScrollBoxRenderable } from "@opentui/core"
-import { type Accessor, createEffect, createMemo, For, Match, on, Show, Switch } from "solid-js"
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  on,
+  onCleanup,
+  Show,
+  Switch,
+} from "solid-js"
 import type { SettingChange } from "../agent/settings.ts"
 import type { Command } from "../input/commands.ts"
 import { shellNodeId } from "../session/shells.ts"
@@ -69,6 +80,9 @@ type RowProps = ChatProps & {
   agentIndex: number
   waiting: number
   viewport: () => Renderable | undefined
+  // The height a row far off screen keeps while it draws nothing.
+  frozen: number | undefined
+  onBox: (box: Renderable) => void
 }
 
 function RowView(props: RowProps) {
@@ -93,7 +107,9 @@ function RowView(props: RowProps) {
 
   return (
     <box
+      ref={props.onBox}
       marginTop={gap()}
+      height={props.frozen}
       renderAfter={function () {
         const id = props.selected
         if (!id || theme.selection !== null) return
@@ -110,116 +126,122 @@ function RowView(props: RowProps) {
         }
       }}
     >
-      <Switch>
-        <Match when={item("user")}>
-          {(user) => (
-            <UserMessageRow
-              item={user()}
-              commands={props.commands}
-              settingChange={props.settingChange}
-              selected={props.selected === user().id}
-              expanded={props.expanded[user().id] === true}
-              selection={props.selected}
-              onOverflow={props.onOverflow}
-              onToggle={props.onToggle}
-              onOpenImage={props.onOpenImage}
-            />
-          )}
-        </Match>
-        <Match when={props.row.kind === "tool" && peerSend()}>
-          {(tool) => (
-            <PeerSendRow
-              item={tool()}
-              selected={props.selected === tool().id}
-              expanded={props.expanded[tool().id] === true}
-            />
-          )}
-        </Match>
-        <Match when={props.row.kind === "tool" && item("tool")?.toolKind === "todo" && item("tool")}>
-          {(tool) => <TodoRow session={props.session} item={tool()} selected={props.selected === tool().id} />}
-        </Match>
-        <Match when={(props.row.kind === "tool" || props.row.kind === "brief") && item("tool")}>
-          {(tool) => (
-            <ToolCallRow
-              item={tool()}
-              ask={props.ask}
-              task={props.session.tasks[tool().taskId ?? ""]}
-              cwd={props.session.info?.cwd ?? ""}
-              selected={props.selected === tool().id}
-              expanded={props.expanded[tool().id] === true}
-              selection={props.selected}
-              brief={props.row.kind === "brief"}
-              onToggle={props.onToggle}
-              onOpenShell={openShell}
-              onOpenImage={props.onOpenImage}
-            />
-          )}
-        </Match>
-        <Match when={props.row.kind === "group" ? props.row : undefined}>
-          {(group) => (
-            <ToolGroupRow
-              session={props.session}
-              id={group().id}
-              members={group().members}
-              cwd={props.session.info?.cwd ?? ""}
-              selection={props.selected}
-              expanded={props.expanded}
-              askOf={props.askOf}
-              onToggle={props.onToggle}
-            />
-          )}
-        </Match>
-        <Match when={props.row.kind === "agent" ? item("tool") : undefined}>
-          {(tool) => (
-            <AgentRow
-              item={tool()}
-              index={props.agentIndex}
-              session={props.session}
-              selected={props.selected === tool().id}
-              docked={props.docked(tool().id)}
-              onOpen={props.onOpenAgent}
-            />
-          )}
-        </Match>
-        <Match when={item("text")}>
-          {(text) => (
-            <box>
-              <Markdown
-                markdown={text().markdown}
-                streaming={text().streaming}
-                width={props.width}
-                chat={{
-                  itemId: text().id,
-                  selection: props.selected,
-                  expanded: props.expanded,
-                  images: props.imagesBefore(text().id),
-                  onOpenImage: props.onOpenImage,
-                  onOpenRef: props.onOpenRef,
-                  onToggle: props.onToggle,
-                }}
+      <Show when={props.frozen === undefined}>
+        <Switch>
+          <Match when={item("user")}>
+            {(user) => (
+              <UserMessageRow
+                item={user()}
+                commands={props.commands}
+                settingChange={props.settingChange}
+                selected={props.selected === user().id}
+                expanded={props.expanded[user().id] === true}
+                selection={props.selected}
+                onOverflow={props.onOverflow}
+                onToggle={props.onToggle}
+                onOpenImage={props.onOpenImage}
               />
-            </box>
-          )}
-        </Match>
-        <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
-        <Match when={item("thinking")}>
-          {(thinking) => (
-            <ThinkingRow
-              item={thinking()}
-              selected={props.selected === thinking().id}
-              expanded={props.expanded[thinking().id] === true}
-              onToggle={props.onToggle}
-            />
-          )}
-        </Match>
-        <Match when={item("shell-end")}>
-          {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
-        </Match>
-        <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} waiting={props.waiting} />}</Match>
-      </Switch>
+            )}
+          </Match>
+          <Match when={props.row.kind === "tool" && peerSend()}>
+            {(tool) => (
+              <PeerSendRow
+                item={tool()}
+                selected={props.selected === tool().id}
+                expanded={props.expanded[tool().id] === true}
+              />
+            )}
+          </Match>
+          <Match when={props.row.kind === "tool" && item("tool")?.toolKind === "todo" && item("tool")}>
+            {(tool) => <TodoRow session={props.session} item={tool()} selected={props.selected === tool().id} />}
+          </Match>
+          <Match when={(props.row.kind === "tool" || props.row.kind === "brief") && item("tool")}>
+            {(tool) => (
+              <ToolCallRow
+                item={tool()}
+                ask={props.ask}
+                task={props.session.tasks[tool().taskId ?? ""]}
+                cwd={props.session.info?.cwd ?? ""}
+                selected={props.selected === tool().id}
+                expanded={props.expanded[tool().id] === true}
+                selection={props.selected}
+                brief={props.row.kind === "brief"}
+                onToggle={props.onToggle}
+                onOpenShell={openShell}
+                onOpenImage={props.onOpenImage}
+              />
+            )}
+          </Match>
+          <Match when={props.row.kind === "group" ? props.row : undefined}>
+            {(group) => (
+              <ToolGroupRow
+                session={props.session}
+                id={group().id}
+                members={group().members}
+                cwd={props.session.info?.cwd ?? ""}
+                selection={props.selected}
+                expanded={props.expanded}
+                askOf={props.askOf}
+                onToggle={props.onToggle}
+              />
+            )}
+          </Match>
+          <Match when={props.row.kind === "agent" ? item("tool") : undefined}>
+            {(tool) => (
+              <AgentRow
+                item={tool()}
+                index={props.agentIndex}
+                session={props.session}
+                selected={props.selected === tool().id}
+                docked={props.docked(tool().id)}
+                onOpen={props.onOpenAgent}
+              />
+            )}
+          </Match>
+          <Match when={item("text")}>
+            {(text) => (
+              <box>
+                <Markdown
+                  markdown={text().markdown}
+                  streaming={text().streaming}
+                  width={props.width}
+                  chat={{
+                    itemId: text().id,
+                    selection: props.selected,
+                    expanded: props.expanded,
+                    images: props.imagesBefore(text().id),
+                    onOpenImage: props.onOpenImage,
+                    onOpenRef: props.onOpenRef,
+                    onToggle: props.onToggle,
+                  }}
+                />
+              </box>
+            )}
+          </Match>
+          <Match when={item("system")}>{(system) => <SystemRow item={system()} />}</Match>
+          <Match when={item("thinking")}>
+            {(thinking) => (
+              <ThinkingRow
+                item={thinking()}
+                selected={props.selected === thinking().id}
+                expanded={props.expanded[thinking().id] === true}
+                onToggle={props.onToggle}
+              />
+            )}
+          </Match>
+          <Match when={item("shell-end")}>
+            {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
+          </Match>
+          <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} waiting={props.waiting} />}</Match>
+        </Switch>
+      </Show>
     </box>
   )
 }
+
+const holdsSelection = (row: Row, selected: string | null) =>
+  selected !== null &&
+  (selected === row.id || selected.startsWith(`${row.id}/`) || (row.kind === "group" && row.members.includes(selected)))
 
 // A row keeps its object while it stays the same, so its view does not run again.
 export function createRows(session: () => Session) {
@@ -294,10 +316,66 @@ export function ChatView(props: ChatViewProps) {
     return item?.kind === "system" && item.level === "info"
   })
 
-  createEffect(() => {
-    const id = props.selected
-    if (id) scroll?.scrollChildIntoView(id)
-  })
+  // Every layout pass walks every node in the chat, so rows far off screen draw as an empty box of their height.
+  // The turn still running and the selected row always draw.
+  const boxes = new Map<string, Renderable>()
+  const heights = new Map<string, number>()
+  const [frozen, setFrozen] = createSignal<ReadonlySet<string>>(new Set())
+  let lastView = ""
+  createEffect(
+    on(
+      () => props.width,
+      () => {
+        heights.clear()
+        setFrozen(new Set<string>())
+      },
+      { defer: true },
+    ),
+  )
+  const turnStart = createMemo(() => props.rows().findLastIndex((row) => row.kind === "user"))
+  // A selection in a frozen row can only scroll into view once the row is laid out again.
+  let scrollToSelected: string | null = null
+  let placingFrames = 0
+  createEffect(
+    on(
+      () => props.selected,
+      (id) => {
+        scrollToSelected = null
+        if (scroll) scroll.content.viewportCulling = true
+        if (!id) return
+        const row = props.rows().find((candidate) => holdsSelection(candidate, id))
+        if (row && frozen().has(row.id) && scroll) {
+          scrollToSelected = id
+          placingFrames = 0
+          scroll.content.viewportCulling = false
+          setFrozen(new Set([...frozen()].filter((frozenId) => frozenId !== row.id)))
+        } else scroll?.scrollChildIntoView(id)
+      },
+    ),
+  )
+
+  function freezeFar(box: ScrollBoxRenderable): void {
+    const view = `${box.scrollTop}:${box.scrollHeight}:${box.viewport.height}:${props.selected}:${props.rows().length}`
+    if (view === lastView) return
+    lastView = view
+    const page = box.viewport.height
+    const top = box.viewport.y
+    const bottom = top + page
+    const before = frozen()
+    const next = new Set<string>()
+    props.rows().forEach((row, index) => {
+      const element = boxes.get(row.id)
+      if (!element) return
+      const isFrozen = before.has(row.id)
+      if (!isFrozen) heights.set(row.id, element.height)
+      if (index >= turnStart() || holdsSelection(row, props.selected)) return
+      // A row draws again a page before it comes into view and stops two pages after it left, so scrolling back and
+      // forth does not build it over and over.
+      const margin = isFrozen ? page : 2 * page
+      if (element.y + element.height < top - margin || element.y > bottom + margin) next.add(row.id)
+    })
+    if (next.size !== before.size || [...next].some((id) => !before.has(id))) setFrozen(next)
+  }
 
   return (
     <scrollbox
@@ -325,6 +403,17 @@ export function ChatView(props: ChatViewProps) {
         leftAtHeight = atBottom ? null : (leftAtHeight ?? this.scrollHeight)
         props.onScrollState({ atBottom, newLines: this.scrollHeight - (leftAtHeight ?? this.scrollHeight) })
         shifted = false
+        // Rows off screen get no layout while the viewport culls them, so the one with the selection is placed in a
+        // frame without culling.
+        if (scrollToSelected) {
+          placingFrames += 1
+          if ((this.content.findDescendantById(scrollToSelected)?.height ?? 0) > 0 || placingFrames > 3) {
+            this.scrollChildIntoView(scrollToSelected)
+            scrollToSelected = null
+            this.content.viewportCulling = true
+          } else this.requestRender()
+        }
+        freezeFar(this)
       }}
       flexGrow={1}
       stickyScroll
@@ -351,6 +440,10 @@ export function ChatView(props: ChatViewProps) {
           const ask = createMemo(() => askByTool().get(id) ?? null)
           const previous = createMemo(() => previousKind().get(id))
           const index = createMemo(() => agentIndex().get(id) ?? 0)
+          onCleanup(() => {
+            boxes.delete(id)
+            heights.delete(id)
+          })
           return (
             <Show when={rowById().get(id)}>
               {(row) => (
@@ -364,6 +457,8 @@ export function ChatView(props: ChatViewProps) {
                   agentIndex={index()}
                   waiting={id === latestEnd() ? waitingAgents() : 0}
                   viewport={() => scroll?.viewport}
+                  frozen={frozen().has(id) ? heights.get(id) : undefined}
+                  onBox={(box) => boxes.set(id, box)}
                 />
               )}
             </Show>
