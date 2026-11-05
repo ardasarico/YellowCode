@@ -162,12 +162,23 @@ async function pack(
   return { files: [...names, "SHA256SUMS"].map((name) => join(folder, name)), assets }
 }
 
+// The version a release gets when none is given, so the workflow's run shows it in its name.
+function suggested(channels: Channels): string {
+  if (channel === "beta") return nextBeta(packageJson.version, channels.stable)
+  if (values.from) return channels.stable ? bump(channels.stable.version, "patch") : ""
+  return channels.beta ? base(channels.beta.version) : ""
+}
+
 // The release itself runs on GitHub from origin's code, so local commits must be pushed first.
 async function startWorkflow(): Promise<never> {
   if (git("branch", "--show-current") !== "main") fail("run it on main")
   git("fetch", "origin")
   if (git("rev-list", "--count", "origin/main..main") !== "0") fail("main has commits origin does not; push them first")
-  const inputs = [`channel=${channel}`, `version=${values.version ?? ""}`, `from=${values.from ?? ""}`]
+  const inputs = [
+    `channel=${channel}`,
+    `version=${values.version ?? suggested(readChannels())}`,
+    `from=${values.from ?? ""}`,
+  ]
   const since = Date.now() - 60_000
   run(
     ["gh", "workflow", "run", "release.yml", "--repo", GITHUB, "--ref", "main", ...inputs.flatMap((i) => ["-f", i])],
@@ -247,7 +258,7 @@ let source: string
 
 if (channel === "beta") {
   const current = packageJson.version
-  version = chosen("Beta version", nextBeta(current, channels.stable))
+  version = chosen("Beta version", suggested(channels))
   if (!/^\d+\.\d+\.\d+-beta\.\d+$/.test(version)) fail(`${version} is not like 1.2.3-beta.4`)
   if (channels.beta && !newer(version, channels.beta.version))
     fail(`${version} is not newer than ${channels.beta.version}`)
@@ -260,7 +271,7 @@ if (channel === "beta") {
 } else {
   if (values.from) {
     if (!channels.stable) fail("there is no stable release to fix")
-    version = chosen("Hotfix version", bump(channels.stable.version, "patch"))
+    version = chosen("Hotfix version", suggested(channels))
     commit = git("rev-parse", `origin/${branch}`)
   } else {
     if (!channels.beta) fail("there is no beta to make stable")
