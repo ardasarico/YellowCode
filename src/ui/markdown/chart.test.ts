@@ -32,3 +32,12 @@ test("an xychart reads labels, the y range and every series", () => {
 test("an empty data list is no data rather than a zero", () => {
   expect(parseChart("xychart-beta\n  bar []")).toMatchObject({ series: [] })
 })
+
+test("a quoted name before the data names its series", () => {
+  expect(parseChart('xychart-beta\n  line "hits" [1, 2]\n  bar [3]')).toMatchObject({
+    series: [
+      { kind: "line", values: [1, 2], name: "hits" },
+      { kind: "bar", values: [3] },
+    ],
+  })
+})

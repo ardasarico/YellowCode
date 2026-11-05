@@ -1,7 +1,7 @@
 import { cut } from "../format.ts"
 
 export type Slice = { label: string; value: number }
-export type Series = { kind: "bar" | "line"; values: number[] }
+export type Series = { kind: "bar" | "line"; values: number[]; name?: string }
 export type Chart =
   | { type: "pie"; title: string; slices: Slice[] }
   | {
@@ -43,14 +43,15 @@ export function parseChart(code: string): Chart | null {
       const titled = /^title\s+(.+)$/.exec(line)
       const xAxis = /^x-axis\b.*\[(.*)\]$/.exec(line)
       const yAxis = /^y-axis\b.*?(-?[\d.]+)\s*-->\s*(-?[\d.]+)$/.exec(line)
-      const data = /^(bar|line)\b.*\[(.*)\]$/.exec(line)
+      const data = /^(bar|line)\b(.*?)\[(.*)\]$/.exec(line)
       if (titled) title = unquote(titled[1] ?? "")
       else if (xAxis) labels = list(xAxis[1] ?? "")
       else if (yAxis) range = [Number(yAxis[1]), Number(yAxis[2])]
       else if (data) {
-        const values = list(data[2] ?? "").map((item) => (item ? Number(item) : Number.NaN))
+        const values = list(data[3] ?? "").map((item) => (item ? Number(item) : Number.NaN))
+        const name = unquote(data[2] ?? "")
         if (values.length > 0 && values.every(Number.isFinite))
-          series.push({ kind: data[1] === "line" ? "line" : "bar", values })
+          series.push({ kind: data[1] === "line" ? "line" : "bar", values, ...(name ? { name } : {}) })
       }
     }
     return { type: "xy", title, labels, range, series, horizontal: /\bhorizontal\b/.test(head) }
@@ -64,12 +65,11 @@ export function hasData(chart: Chart): boolean {
 
 export const isLineChart = (chart: Chart) => chart.type === "xy" && chart.series.some((one) => one.kind === "line")
 
-const EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"]
 const LOWER = ["", "▁", "▂", "▃", "▄", "▅", "▆", "▇"]
 
+// A horizontal bar in whole cells. The glyph leaves a gap above it, so bars on adjacent rows stay apart.
 export function bar(value: number, max: number, width: number): string {
-  const units = Math.max(0, Math.round((value / (max || 1)) * width * 8))
-  return "█".repeat(Math.floor(units / 8)) + (EIGHTHS[units % 8] ?? "")
+  return "▆".repeat(Math.max(1, Math.round((value / (max || 1)) * width)))
 }
 
 // One row of a vertical bar, counted from the top of a chart `height` rows tall.

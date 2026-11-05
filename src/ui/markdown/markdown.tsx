@@ -378,7 +378,7 @@ function Note(props: { children: string }) {
   )
 }
 
-// A mermaid block that draws shows a kind line, which toggles to its source. One that cannot draw stays code, with a
+// A mermaid block that draws shows its title, or its kind when it has none, on a line that toggles to its source. One that cannot draw stays code, with a
 // note when its type is one we draw.
 function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: number }) {
   const fold = useFold(() => props.token)
@@ -387,6 +387,7 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
   const chart = createMemo(() => parseChart(text()))
   const gantt = createMemo(() => (chart() ? null : parseGantt(text())))
   const drawing = createMemo(() => (chart() || gantt() ? null : drawDiagram(text(), props.width - 2, props.streaming)))
+  const title = () => chart()?.title || gantt()?.title
   const kind = () => {
     const value = chart()
     if (value) return value.type === "pie" ? "pie" : "chart"
@@ -428,7 +429,9 @@ function MermaidBlock(props: { token: Tokens.Code; streaming: boolean; width: nu
         <box flexDirection="column">
           <box paddingLeft={2}>
             <FoldLine fold={fold} verbs={wide() === undefined ? ["source", "diagram"] : undefined} gap="  ">
-              <span style={{ fg: theme.muted }}>{kind()}</span>
+              <Show when={title()} fallback={<span style={{ fg: theme.muted }}>{kind()}</span>}>
+                <span style={{ fg: theme.text, bold: true }}>{title()}</span>
+              </Show>
             </FoldLine>
           </box>
           <Switch>

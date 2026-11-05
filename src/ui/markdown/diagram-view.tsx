@@ -20,7 +20,6 @@ const LABEL_COLUMNS = 24
 const GANTT_COLUMNS = 56
 const GUIDE_GAP = 6
 const MONTH = 30.44 * DAY
-const TONE = 0.18
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 const artColor = (cls: Cls) => (cls === "text" || cls === "title" ? theme.text : theme.muted)
@@ -34,20 +33,19 @@ const hex = (color: RGBA) =>
     .map((value) => value.toString(16).padStart(2, "0"))
     .join("")}`
 
-const mix = (value: number, under: number) => Math.round(value * (1 - TONE) + under * TONE)
-
-// Every second bar is a shade toward the background, so bars that touch still read as separate rows.
-function toned(color: RGBA): RGBA {
-  const [r, g, b] = color.toInts()
-  const [br, bg, bb] = theme.canvas.toInts()
-  return RGBA.fromInts(mix(r, br), mix(g, bg), mix(b, bb))
-}
-
-function Title(props: { children: string }) {
+// Named series, in their colours; a chart with fewer than two names has nothing to tell apart.
+function Legend(props: { chart: XYChart }) {
+  const named = () =>
+    props.chart.series.flatMap((one, index) => (one.name ? [{ name: one.name, color: seriesColor(index) }] : []))
+  const pieces = () =>
+    named().flatMap((one, at) => [
+      { text: `${at ? "   " : ""}● `, fg: one.color },
+      { text: one.name, fg: theme.muted },
+    ])
   return (
-    <Show when={props.children}>
-      <text fg={theme.text}>
-        <span style={{ bold: true }}>{props.children}</span>
+    <Show when={named().length > 1}>
+      <text wrapMode="none">
+        <For each={pieces()}>{(piece) => <span style={{ fg: piece.fg }}>{piece.text}</span>}</For>
       </text>
     </Show>
   )
@@ -124,7 +122,7 @@ function VerticalBars(props: { rows: BarRow[]; width: number }) {
   )
 }
 
-// Pie slices as horizontal bars in their own colours; xychart bars upright unless asked for `horizontal` or their
+// Pie slices as horizontal bars in the series colours; xychart bars upright unless asked for `horizontal` or their
 // labels do not fit under them.
 export function ChartBars(props: { chart: Chart; width: number }) {
   const rows = createMemo((): BarRow[] => {
@@ -135,7 +133,7 @@ export function ChartBars(props: { chart: Chart; width: number }) {
         label: slice.label,
         value: slice.value,
         shown: `${Math.round((slice.value / total) * 100)}%`,
-        color: theme.agents[index % theme.agents.length] ?? theme.accent,
+        color: seriesColor(index),
       }))
     }
     const values = chart.series.find((one) => one.kind === "bar")?.values ?? []
@@ -143,7 +141,7 @@ export function ChartBars(props: { chart: Chart; width: number }) {
       label: chart.labels[index] ?? String(index + 1),
       value,
       shown: String(value),
-      color: index % 2 ? toned(theme.accent) : theme.accent,
+      color: theme.accent,
     }))
   })
   const upright = () => {
@@ -153,7 +151,6 @@ export function ChartBars(props: { chart: Chart; width: number }) {
   }
   return (
     <box flexDirection="column">
-      <Title>{props.chart.title}</Title>
       <Show when={upright()} fallback={<HorizontalBars rows={rows()} width={props.width} />}>
         <VerticalBars rows={rows()} width={props.width} />
       </Show>
@@ -193,7 +190,7 @@ export function LineChartText(props: { chart: XYChart; width: number }) {
   }
   return (
     <box flexDirection="column">
-      <Title>{props.chart.title}</Title>
+      <Legend chart={props.chart} />
       <For each={rows()}>
         {(spans, index) => (
           <text wrapMode="none">
@@ -253,7 +250,7 @@ export function LineChartImage(props: { chart: XYChart; width: number }) {
       }}
     >
       <Show when={!cell() || image()} fallback={<LineChartText chart={props.chart} width={props.width} />}>
-        <Title>{props.chart.title}</Title>
+        <Legend chart={props.chart} />
         <Show when={image()}>
           {(source) => (
             <Show when={!blank()} fallback={<box width={columns()} height={IMAGE_ROWS} />}>
@@ -363,7 +360,6 @@ export function GanttView(props: { gantt: Gantt; width: number }) {
   const sections = () => [...new Set(tasks().map((task) => task.section))]
   return (
     <box flexDirection="column">
-      <Title>{props.gantt.title}</Title>
       <text wrapMode="none" fg={theme.muted}>
         {" ".repeat(labelWidth()) + axis()}
       </text>
