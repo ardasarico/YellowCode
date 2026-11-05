@@ -78,10 +78,14 @@ export function writeNpmPackages(version: string): string[] {
       description: `${DESCRIPTION}: the ${platform} binary of the yellowcode package`,
       os: [OS_CPU[platform].os],
       cpu: [OS_CPU[platform].cpu],
-      files: ["bin/yellowcode", "LICENSE", LICENSES],
+      files: ["bin/yellowcode", "LICENSE", LICENSES, "README.md"],
     }
     writePackage(folder, manifest, { from: join(DIST, `yellowcode-${platform}`) })
     writeFileSync(join(folder, LICENSES), thirdPartyLicenses(join(DIST, ".stage", platform)))
+    writeFileSync(
+      join(folder, "README.md"),
+      `# ${platformPackage(platform)}\n\nThe ${platform} binary of [YellowCode](https://github.com/${GITHUB}). Install \`yellowcode\` instead; it picks this package for you.\n`,
+    )
     return folder
   })
   const main = join(root, "yellowcode")
