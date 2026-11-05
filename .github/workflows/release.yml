@@ -1,0 +1,66 @@
+name: Release
+
+# Started from the Actions tab or with `bun run release beta|stable`. Publishes only when the checks pass.
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        type: choice
+        options: [beta, stable]
+        required: true
+      version:
+        description: Version, empty for the suggested one
+        type: string
+        default: ""
+      from:
+        description: Branch of a stable hotfix, empty for main
+        type: string
+        default: ""
+      dry_run:
+        description: Build and list everything, publish nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    uses: ./.github/workflows/check.yml
+    with:
+      ref: ${{ inputs.from || 'main' }}
+
+  release:
+    needs: check
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@latest
+      - run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: bun install --frozen-lockfile
+      - run: bun tools/release.ts "$CHANNEL" ${VERSION:+--version "$VERSION"} ${FROM:+--from "$FROM"} ${DRY_RUN:+--dry-run}
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+          FROM: ${{ inputs.from }}
+          DRY_RUN: ${{ inputs.dry_run && 'yes' || '' }}
+          GH_TOKEN: ${{ github.token }}

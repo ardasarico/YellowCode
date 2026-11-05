@@ -1,11 +1,14 @@
 name: Check
 
-# Not on every push: `bun run release` pushes a release-check/* branch and publishes only when this passes there.
+# Not on every push: on pull requests, by hand, and before every release (release.yml calls it).
 on:
-  push:
-    branches: ["release-check/**"]
   pull_request:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -23,6 +26,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.3

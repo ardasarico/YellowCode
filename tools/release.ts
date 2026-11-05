@@ -1,6 +1,8 @@
-// Makes a release: bun run release beta|stable [--dry-run] [--from <branch>]
-// beta: commits the new version on top of main, builds it, and after a yes pushes it with its tag, publishes a GitHub
-// prerelease and points the beta channel at it. stable: rebuilds the last beta's commit under the stable version,
+// Makes a release: bun run release beta|stable [--version <version>] [--from <branch>] [--dry-run]
+// Releases run on GitHub (.github/workflows/release.yml); here the command starts that workflow and follows it, and
+// --dry-run builds and lists everything without publishing.
+// beta: commits the new version on top of main, builds it, pushes it with its tag, publishes a GitHub prerelease and
+// points the beta channel at it. stable: rebuilds the last beta's commit under the stable version,
 // checks that it holds the same code, and publishes it with its "## <version>" section of CHANGELOG.md as the notes.
 // --from <branch> releases a stable hotfix from that branch.
 import { createHash } from "node:crypto"
@@ -37,48 +39,6 @@ function run(command: string[], cwd: string): string {
 function fail(message: string): never {
   console.error(`release: ${message}`)
   process.exit(1)
-}
-
-// CI runs on a branch pushed for it while the binaries build here; nothing is published unless it passes.
-function startCheck(commit: string, version: string): string {
-  const branch = `release-check/v${version}`
-  git("push", "-q", "--force", "origin", `${commit}:refs/heads/${branch}`)
-  return branch
-}
-
-async function waitForCheck(branch: string): Promise<void> {
-  const list = [
-    "gh",
-    "run",
-    "list",
-    "--repo",
-    GITHUB,
-    "--workflow",
-    "check.yml",
-    "--branch",
-    branch,
-    "--json",
-    "databaseId",
-  ]
-  let id = ""
-  for (let tries = 0; !id && tries < 60; tries++) {
-    // oxlint-disable-next-line no-await-in-loop
-    if (tries > 0) await Bun.sleep(5000)
-    id = run([...list, "-q", ".[0].databaseId // empty"], REPO)
-  }
-  let passed = false
-  if (id) {
-    console.log(`Waiting for CI: https://github.com/${GITHUB}/actions/runs/${id}`)
-    const watch = Bun.spawn(["gh", "run", "watch", id, "--repo", GITHUB, "--exit-status", "--interval", "15"], {
-      stdout: "ignore",
-      stderr: "ignore",
-    })
-    passed = (await watch.exited) === 0
-  }
-  git("push", "-q", "origin", "--delete", branch)
-  if (!id) fail(`CI did not start on ${branch}; nothing was published`)
-  if (!passed) fail(`CI failed; nothing was published`)
-  console.log("CI passed.")
 }
 
 const base = (version: string) => version.replace(/-beta\.\d+$/, "")
@@ -202,15 +162,81 @@ async function pack(
   return { files: [...names, "SHA256SUMS"].map((name) => join(folder, name)), assets }
 }
 
+// The release itself runs on GitHub from origin's code, so local commits must be pushed first.
+async function startWorkflow(): Promise<never> {
+  if (git("branch", "--show-current") !== "main") fail("run it on main")
+  git("fetch", "origin")
+  if (git("rev-list", "--count", "origin/main..main") !== "0") fail("main has commits origin does not; push them first")
+  const inputs = [`channel=${channel}`, `version=${values.version ?? ""}`, `from=${values.from ?? ""}`]
+  const since = Date.now() - 60_000
+  run(
+    ["gh", "workflow", "run", "release.yml", "--repo", GITHUB, "--ref", "main", ...inputs.flatMap((i) => ["-f", i])],
+    REPO,
+  )
+  let id = ""
+  for (let tries = 0; !id && tries < 30; tries++) {
+    // oxlint-disable-next-line no-await-in-loop
+    await Bun.sleep(3000)
+    const runs = run(
+      [
+        "gh",
+        "run",
+        "list",
+        "--repo",
+        GITHUB,
+        "--workflow",
+        "release.yml",
+        "--event",
+        "workflow_dispatch",
+        "--json",
+        "databaseId,createdAt",
+      ],
+      REPO,
+    )
+    const started = parseRuns(runs).find((entry) => Date.parse(entry.createdAt) >= since)
+    id = started ? String(started.databaseId) : ""
+  }
+  if (!id) fail(`the release workflow did not start; see https://github.com/${GITHUB}/actions`)
+  console.log(`Release ${channel}: https://github.com/${GITHUB}/actions/runs/${id}`)
+  const watch = Bun.spawn(["gh", "run", "watch", id, "--repo", GITHUB, "--exit-status", "--interval", "15"], {
+    stdio: ["inherit", "inherit", "inherit"],
+  })
+  process.exit(await watch.exited)
+}
+
+function parseRuns(text: string): { databaseId: number; createdAt: string }[] {
+  const parsed: unknown = JSON.parse(text)
+  if (!Array.isArray(parsed)) return []
+  return parsed.flatMap((entry: unknown) =>
+    typeof entry === "object" &&
+    entry !== null &&
+    "databaseId" in entry &&
+    typeof entry.databaseId === "number" &&
+    "createdAt" in entry &&
+    typeof entry.createdAt === "string"
+      ? [{ databaseId: entry.databaseId, createdAt: entry.createdAt }]
+      : [],
+  )
+}
+
 const { values, positionals } = parseArgs({
   allowPositionals: true,
-  options: { "dry-run": { type: "boolean", default: false }, from: { type: "string" } },
+  options: {
+    "dry-run": { type: "boolean", default: false },
+    from: { type: "string" },
+    version: { type: "string" },
+  },
 })
 const channel = positionals[0]
-if (channel !== "beta" && channel !== "stable") fail("usage: bun run release beta|stable [--dry-run] [--from <branch>]")
+if (channel !== "beta" && channel !== "stable")
+  fail("usage: bun run release beta|stable [--version <version>] [--from <branch>] [--dry-run]")
 if (values.from && channel !== "stable") fail("--from is for a stable hotfix")
 const dryRun = values["dry-run"]
 const branch = values.from ?? "main"
+const onGitHub = process.env["GITHUB_ACTIONS"] === "true"
+const chosen = (question: string, fallback: string) => values.version || (onGitHub ? fallback : ask(question, fallback))
+
+if (!dryRun && !onGitHub) await startWorkflow()
 
 checkRepo(branch, dryRun)
 const channels = readChannels()
@@ -221,7 +247,7 @@ let source: string
 
 if (channel === "beta") {
   const current = packageJson.version
-  version = ask("Beta version", nextBeta(current, channels.stable))
+  version = chosen("Beta version", nextBeta(current, channels.stable))
   if (!/^\d+\.\d+\.\d+-beta\.\d+$/.test(version)) fail(`${version} is not like 1.2.3-beta.4`)
   if (channels.beta && !newer(version, channels.beta.version))
     fail(`${version} is not newer than ${channels.beta.version}`)
@@ -234,7 +260,7 @@ if (channel === "beta") {
 } else {
   if (values.from) {
     if (!channels.stable) fail("there is no stable release to fix")
-    version = ask("Hotfix version", bump(channels.stable.version, "patch"))
+    version = chosen("Hotfix version", bump(channels.stable.version, "patch"))
     commit = git("rev-parse", `origin/${branch}`)
   } else {
     if (!channels.beta) fail("there is no beta to make stable")
@@ -260,7 +286,6 @@ if (!notes) fail(`CHANGELOG.md has no "## ${version}" section; write the notes f
 const bundle = await bundleHash(source)
 if (channel === "stable" && !values.from && bundle !== channels.beta?.bundle)
   fail(`the rebuild of ${commit.slice(0, 7)} differs from the beta's code; nothing was published`)
-const checkBranch = dryRun ? null : startCheck(commit, version)
 const { files, assets } = await pack(version, channel, source)
 const tag = `v${version}`
 const release: Release = { version, commit, bundle, assets }
@@ -275,7 +300,6 @@ const isPublic = run(["gh", "repo", "view", GITHUB, "--json", "visibility", "-q"
 // Homebrew waits until the tap repo exists; until then stable releases leave it out.
 const hasTap = Bun.spawnSync(["gh", "repo", "view", TAP], { stdout: "ignore", stderr: "ignore" }).exitCode === 0
 const npmTag = channel === "beta" ? "beta" : "latest"
-if (isPublic && !dryRun && Bun.spawnSync(["npm", "whoami"]).exitCode !== 0) fail("log in to npm first (npm login)")
 
 steps.push(
   `tag ${tag} on ${commit.slice(0, 7)}`,
@@ -304,11 +328,9 @@ console.log(`\nSteps:\n${steps.map((step, index) => `  ${index + 1}. ${step}`).j
 
 git("worktree", "remove", "--force", source)
 if (dryRun) {
-  console.log("Dry run: CI did not run, and nothing was pushed or published.")
+  console.log("Dry run: nothing was pushed or published.")
   process.exit(0)
 }
-if (checkBranch) await waitForCheck(checkBranch)
-if (ask("Publish?", "no").toLowerCase() !== "yes") fail("stopped; nothing was pushed or published")
 
 if (channel === "beta") git("merge", "--ff-only", "-q", commit)
 git("tag", tag, commit)
@@ -335,7 +357,7 @@ git("commit", "-q", "-m", `release: point ${channel} at ${tag}`, CHANNELS_FILE)
 git("push", "origin", "main")
 if (isPublic) {
   // The platform packages go first, so the main package never points at a version that is not there yet.
-  // npm asks for a one-time password or a browser login on each publish, so it talks to the terminal.
+  // npm signs in through the workflow's identity (trusted publishing) and adds provenance.
   for (const folder of npmFolders) {
     const publish = Bun.spawnSync(["npm", "publish", "--access", "public", "--tag", npmTag], {
       cwd: folder,
