@@ -21,6 +21,7 @@ import { OWN_ASK_INIT } from "./own-ask-tool.ts"
 import { createRequests, refusal, type Requests, RequestTimeout } from "./requests.ts"
 import type { Source } from "./source.ts"
 import { createTaskControls, type TaskControls } from "./tasks.ts"
+import { chromeArgs } from "../agents/claude/chrome.ts"
 
 const INVALID_LOG_EVERY = 100
 const EXIT_WAIT_MS = 3000
@@ -151,7 +152,7 @@ export function connect(options: {
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn, lean)])
+  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn, lean), ...chromeArgs()])
   const requests = createRequests((line) => source.send(line))
   const controls = createControls({ requests, provider, session, launch, onKnobs })
   const mcp = createMcpControls({ requests, session })
