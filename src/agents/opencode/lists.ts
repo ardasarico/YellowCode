@@ -149,7 +149,18 @@ export async function readSkills(transport: Transport, project: string): Promise
 
 const command = z.looseObject({ name: z.string(), description: z.string().optional() })
 
-// opencode does not say which commands are its own.
+// opencode lists no /compact; YellowCode runs it through the session's compact request.
+export const COMPACT: CommandRow = {
+  name: "compact",
+  description: "Summarize the conversation to free up context",
+  argumentHint: "",
+  aliases: [],
+  builtin: true,
+  setting: null,
+  knob: null,
+}
+
+// opencode does not say which commands are its own. /compact is always the session's summary, as in opencode's TUI.
 export async function readCommands(transport: Transport): Promise<CommandRow[] | null> {
   const path = "/api/command"
   const reply = await transport.request({ method: "GET", path }).catch(() => null)
@@ -158,7 +169,7 @@ export async function readCommands(transport: Transport): Promise<CommandRow[] |
     log.warn(`opencode: could not read the commands (${answer?.kind === "error" ? answer.status : "no answer"})`)
     return null
   }
-  return rowsOf(answer.value.data, command, "command").map((row) => ({
+  const rows = rowsOf(answer.value.data, command, "command").map((row) => ({
     name: row.name,
     description: row.description ?? "",
     argumentHint: "",
@@ -167,6 +178,7 @@ export async function readCommands(transport: Transport): Promise<CommandRow[] |
     setting: null,
     knob: null,
   }))
+  return [...rows.filter((row) => row.name !== COMPACT.name), COMPACT]
 }
 
 type Plugin = z.output<typeof pluginInfo>

@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { replayAgent } from "../../../tools/opencode/agent-driver.ts"
 import type { AgentScenario } from "../../../tools/opencode/scenario.ts"
-import { compact, compactFailed, usage } from "../../../tools/opencode/scenarios/usage.ts"
+import { compact, compactCommand, compactFailed, usage } from "../../../tools/opencode/scenarios/usage.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import { createSession } from "../../session/session.ts"
 import { readFixture } from "./fixture.ts"
@@ -130,4 +130,20 @@ test("the Go allowance reads as the 5-hour and weekly windows, and a used up one
   expect(store.state.usage.limits.week?.utilization).toBe(0.42)
   expect(store.state.usage.warning?.type).toBe("five_hour")
   expect(store.state.usage.warning?.status).toBe("rejected")
+})
+
+// A typed /compact goes through the session's compact request, not as a prompt, and is a turn of its own.
+test("/compact compacts the session and shows as typed", async () => {
+  const { events, store } = await replayed(compactCommand)
+  expect(told(events, "compacted")).toHaveLength(1)
+  const users = Object.values(store.state.byId).flatMap((item) =>
+    item.kind === "user" ? [[item.text, item.queue]] : [],
+  )
+  expect(users).toEqual([
+    ["LIMA one", null],
+    ["/compact", null],
+    ["LIMA two, after the summary", null],
+  ])
+  expect(told(events, "turn.end").map((event) => event.local)).toEqual([false, true, false])
+  expect(store.state.compacting).toBe(false)
 })

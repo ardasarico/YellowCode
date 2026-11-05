@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { replayAgent } from "../../../tools/opencode/agent-driver.ts"
 import type { AgentScenario } from "../../../tools/opencode/scenario.ts"
-import { interrupt, steer } from "../../../tools/opencode/scenarios/steer.ts"
+import { interrupt, steer, withdraw } from "../../../tools/opencode/scenarios/steer.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import { createSession, type SessionStore } from "../../session/session.ts"
 import { readFixture, type HttpLine } from "./fixture.ts"
@@ -172,4 +172,17 @@ test("a command waiting for its message takes the first one not shown yet", () =
     { prompt: "p1", text: "/hello the team" },
   ])
   expect(translator.messageFor("p1")).toBe("msg_cmd")
+})
+
+test("a prompt taken back with ↑ leaves opencode's inbox and the chat, and the other one still runs", async () => {
+  const { events, ends } = await replayed(withdraw)
+  expect(told(events, "user.withdrawn")).toMatchObject([{ prompt: "prompt-2" }])
+  expect(told(events, "user.dropped")).toEqual([])
+  expect(ends.at(-1)).toEqual({
+    status: "idle",
+    queue: [
+      ["KILO read the readme", null],
+      ["KILO queued: stays", null],
+    ],
+  })
 })

@@ -33,6 +33,7 @@ import { listSessions } from "./sessions.ts"
 import { eventStream, realClock, type Clock } from "./sse.ts"
 import { answerOnce } from "./titles.ts"
 import { childTitle, deleteLeftovers, deleteSession } from "./leftovers.ts"
+import { COMPACT } from "./lists.ts"
 import { createTranslator, type Translator, type WireModel } from "./translate.ts"
 import { channel, httpTransport, type Endpoint, type Transport } from "./transport.ts"
 import { contextReport, defaultModel, defaultRef, readLimits, readWindows } from "./usage.ts"
@@ -88,6 +89,8 @@ const realDeps: Deps = {
 // chat shows the next prompt only once the conversation went back. Not ok: the prompt must not go out.
 export type OpencodeAgent = Agent & {
   connected(count: number): Promise<void>
+  // The model the session runs on, which titles use first; null until opencode said.
+  model(): WireModel | null
   goBack(before: PromptId | null): Promise<{ ok: true } | { ok: false; problem: string }>
 }
 
@@ -537,6 +540,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     await switching
     await picking
     await own.attached()
+    if (prompt.command?.name === COMPACT.name) return compact(prompt)
     if (prompt.command) return sendCommand(prompt, prompt.command)
     translator.sending(prompt.id)
     const sent = await transport
@@ -559,6 +563,33 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     return { ok: true, note: null }
   }
 
+  // opencode summarizes the session as a turn of its own, which the stream tells; the prompt shows as typed.
+  async function compact(prompt: Prompt): Promise<Outcome> {
+    if (session === null) return { ok: false, problem: "opencode is not connected" }
+    if (translator.running()) return { ok: false, problem: "opencode compacts between turns only" }
+    if (prompt.command?.args) return { ok: false, problem: "opencode's /compact takes no instructions" }
+    const sent = await transport
+      .request({ method: "POST", path: `/api/session/${session}/compact`, body: { delivery: prompt.delivery } })
+      .catch(() => null)
+    const answer = sent ? answerOf(sent, z.unknown(), "compact") : null
+    if (answer?.kind !== "ok")
+      return {
+        ok: false,
+        problem: answer?.kind === "error" && answer.message ? answer.message : "opencode did not compact the session",
+      }
+    out.push({
+      type: "user",
+      prompt: prompt.id,
+      text: prompt.text,
+      images: [],
+      to: null,
+      history: false,
+      cutPoint: false,
+      at: lastAt,
+    })
+    return { ok: true, note: null }
+  }
+
   // opencode answers a command with no message id; the message it makes of the command's template shows as typed.
   async function sendCommand(prompt: Prompt, command: { name: string; args: string }): Promise<Outcome> {
     if (session === null) return { ok: false, problem: "opencode is not connected" }
@@ -573,6 +604,20 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       ok: false,
       problem: answer?.kind === "error" && answer.message ? answer.message : "opencode did not run the command",
     }
+  }
+
+  // A prompt still in opencode's inbox comes back out; one it took in meanwhile stays.
+  async function withdraw(prompt: PromptId): Promise<boolean> {
+    if (ended || session === null) return false
+    const inbox = encodeURIComponent(translator.messageFor(prompt))
+    const reply = await transport
+      .request({ method: "DELETE", path: `/api/session/${session}/inbox/${inbox}` })
+      .catch(() => null)
+    const answer = reply ? answerOf(reply, z.unknown(), "inbox cancel") : null
+    if (answer?.kind !== "ok") return false
+    translator.withdrawn(prompt)
+    out.push({ type: "user.withdrawn", prompt, at: lastAt })
+    return true
   }
 
   // One revert request, settled once its event came; a lost event stops the wait after REVERT_MS.
@@ -925,6 +970,8 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     caps: OPENCODE_CAPS,
     events: out,
     send,
+    withdraw,
+    model: () => translator.model(),
     interrupt,
     answer: replyTo,
     restart,
@@ -998,6 +1045,8 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
   listModes(cwd: string): Promise<ModeRow[]>
 } {
   const merged = { ...realDeps, ...deps }
+  // The session last started, whose model makes the titles.
+  let latest: OpencodeAgent | null = null
   let checked: ReturnType<typeof usable> | null = null
   // The lists share one look for the service while it runs, and a failed one holds until the next detection or start,
   // so each list does not start the service again.
@@ -1040,7 +1089,10 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
         .catch((error: unknown) =>
           log.warn("opencode: leftover sessions not read", error instanceof Error ? error.message : String(error)),
         )
-      return connect(options, merged)
+      return connect(options, merged).then((agent) => {
+        latest = agent
+        return agent
+      })
     },
     sessions: async (cwd) => listSessions(await service(cwd), cwd),
     // Any folder will do for reading a session by its id.
@@ -1053,7 +1105,7 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
     listModes: async (cwd) => (await readModes(await service(cwd)))?.rows ?? [],
     oneShot: (prompt, cwd) =>
       service(cwd).then(
-        (transport) => answerOnce(transport, prompt),
+        (transport) => answerOnce(transport, prompt, latest?.model() ?? null),
         (error: unknown) => {
           log.warn("opencode: session title failed", error instanceof Error ? error.message : String(error))
           return null

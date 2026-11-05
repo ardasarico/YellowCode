@@ -183,6 +183,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0,
         "durationMs": 45,
         "inputTokens": 1200,

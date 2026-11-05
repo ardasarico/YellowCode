@@ -261,8 +261,8 @@
     "items": [
       "user-1",
       "call_mock0001",
-      "user-2",
       "turn-3",
+      "user-2",
       "text-4",
       "turn-5"
     ],
@@ -324,6 +324,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0,
         "durationMs": 249,
         "inputTokens": 1200,
@@ -342,6 +343,7 @@
       "turn-5": {
         "kind": "turn-end",
         "id": "turn-5",
+        "by": "agent",
         "costUsd": 0,
         "durationMs": 22,
         "inputTokens": 1200,

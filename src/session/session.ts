@@ -838,7 +838,13 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
   }
 
   function cutLastText(): void {
-    const id = state.items.at(-1)
+    let id: ItemId | undefined
+    for (const shown of state.items.toReversed()) {
+      const item = state.byId[shown]
+      if (item?.kind === "user" && item.queue === "queued") continue
+      id = shown
+      break
+    }
     const item = id ? state.byId[id] : undefined
     if (!id || item?.kind !== "text") return
     const markdown = withoutOpenMarkers(item.markdown)
@@ -859,6 +865,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     const by = state.turn ?? "user"
     const interrupted = state.interrupting || event.interrupted
     if (interrupted) cutLastText()
+    // Prompts the turn took in belong above its end row.
+    for (const prompt of event.prompts) settleQueued(prompt)
     // An interrupt ends its turn with an error, which is no error to the user.
     const error = interrupted ? null : event.error
     const retries = event.error !== null && retryId ? retryAttempt : 0
@@ -910,10 +918,26 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     if (state.status === "idle") setState("status", "running")
   }
 
+  // A waiting message shows below everything until it settles, then takes its place where the chat is at that moment:
+  // what the turn before it said after it was sent stays above it.
+  function moveToEnd(id: ItemId): void {
+    const at = state.items.indexOf(id)
+    if (at === -1 || at === state.items.length - 1) return
+    setState(
+      "items",
+      produce((ids) => {
+        ids.splice(at, 1)
+        ids.push(id)
+      }),
+    )
+  }
+
   function settleQueued(prompt: PromptId): void {
     const id = waiting.get(prompt)
     if (!id) return
     waiting.delete(prompt)
+    const shown = state.byId[id]
+    if (shown?.kind === "user" && shown.queue === "queued") moveToEnd(id)
     update(id, (item) => {
       if (item.kind === "user") item.queue = null
     })
@@ -925,6 +949,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     const id = waiting.get(prompt)
     if (!id) return
     waiting.delete(prompt)
+    moveToEnd(id)
     update(id, (item) => {
       if (item.kind === "user") item.queue = "not sent"
     })
@@ -1487,6 +1512,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       early.delete(prompt)
       const id = waiting.get(prompt)
       waiting.delete(prompt)
+      if (id) moveToEnd(id)
       if (id)
         update(id, (item) => {
           if (item.kind === "user") item.queue = "not sent"

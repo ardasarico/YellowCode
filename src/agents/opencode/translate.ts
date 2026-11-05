@@ -217,6 +217,11 @@ export function createTranslator(options: { lasting?: boolean } = {}) {
   // Without a pick, what is told follows what opencode runs, once anything was told.
   const follows = () => picked === null && shown !== null
 
+  function messageFor(prompt: PromptId): string {
+    for (const [message, known] of own) if (known === prompt) return message
+    return messageOf(prompt)
+  }
+
   function selected(agent: ModeId): Events {
     mode = agent
     const told: Events = [{ type: "mode", mode: agent, at: 0 }]
@@ -937,6 +942,8 @@ export function createTranslator(options: { lasting?: boolean } = {}) {
     child: (session: string) => tasks.child(session) !== undefined,
     // Background shells whose end was not told yet, which a resync asks opencode about.
     runningShells: () => tasks.runningShells(),
+    // A turn of the main session is going on.
+    running: () => turn !== null,
     // What a resync found of such a shell: it ended (`gone`: opencode no longer knows it).
     shellFound(id: string, found: { exit?: number; status: string } | "gone", at: number): Events {
       return stamp(
@@ -966,15 +973,16 @@ export function createTranslator(options: { lasting?: boolean } = {}) {
       own.delete(messageOf(prompt))
       if (command?.id === prompt) command = null
     },
+    // The user took our waiting prompt back out of opencode's inbox; its cancel event says nothing more.
+    withdrawn(prompt: PromptId): void {
+      dropped.add(messageFor(prompt))
+    },
     // Our command goes out now; it shows as typed.
     commanding(prompt: Prompt): void {
       command = prompt
     },
     // The message of our prompt, the id we gave unless opencode chose another.
-    messageFor(prompt: PromptId): string {
-      for (const [message, known] of own) if (known === prompt) return message
-      return messageOf(prompt)
-    },
+    messageFor,
     // opencode took our prompt as message `message`, the id we gave unless it chose another.
     sent(prompt: Prompt, message: string, at: number): Events {
       own.set(message, prompt.id)

@@ -1828,6 +1828,11 @@ export function App(props: AppProps) {
         setRenamed(name)
         return true
       }
+      // Only claude makes a name of its own; any other agent's /rename is YellowCode's, which needs one.
+      if (props.agent.id !== "claude") {
+        waitNotice("Type the name after /rename")
+        return false
+      }
       // The agent makes the name; its title change brings it here.
       adoptTitleUntil = Date.now() + ADOPT_TITLE_MS
     }

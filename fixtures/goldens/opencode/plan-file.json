@@ -554,6 +554,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.025409999999999995,
         "durationMs": 397,
         "inputTokens": 3600,
@@ -634,6 +635,7 @@
       "turn-8": {
         "kind": "turn-end",
         "id": "turn-8",
+        "by": "user",
         "costUsd": 0.03380999999999999,
         "durationMs": 25,
         "inputTokens": 1200,

@@ -159,11 +159,19 @@ export function allowlistFor(path: string): ((body: unknown, status: number) => 
 
 // The `data` of a GET answer (the answer itself where it is a bare list), kept through the allowlist; null, logged as
 // `what`, when opencode did not give it.
+// Paths that failed last time: a failure that repeats, such as the limits read after every turn, is logged once.
+const failing = new Set<string>()
+
 export async function readAllowed(transport: Transport, path: string, what: string): Promise<unknown> {
   const reply = await transport.request({ method: "GET", path }).catch(() => null)
   const kept = reply ? { status: reply.status, body: allowlistFor(path)?.(reply.body, reply.status) } : null
   const answer = kept ? answerOf(kept, z.union([z.array(z.unknown()), dataOf(z.unknown())]), path) : null
-  if (answer?.kind === "ok") return Array.isArray(answer.value) ? answer.value : answer.value.data
-  log.warn(`opencode: could not read ${what} (${answer?.kind === "error" ? answer.status : "no answer"})`)
+  if (answer?.kind === "ok") {
+    failing.delete(path)
+    return Array.isArray(answer.value) ? answer.value : answer.value.data
+  }
+  if (!failing.has(path))
+    log.warn(`opencode: could not read ${what} (${answer?.kind === "error" ? answer.status : "no answer"})`)
+  failing.add(path)
   return null
 }

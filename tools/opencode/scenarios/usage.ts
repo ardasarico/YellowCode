@@ -121,3 +121,38 @@ export const compactFailed: AgentScenario = {
     await a.close()
   },
 }
+
+// A turn, then the user types /compact, which YellowCode runs through the session's compact request, then a turn on
+// the summary.
+export const compactCommand: AgentScenario = {
+  name: "compact-command",
+  script: {
+    title: "Compacting by command",
+    threads: [
+      {
+        match: "LIMA one",
+        steps: [{ blocks: [{ type: "text", text: "The first turn is done." }], usage: { input: 2000 } }],
+      },
+      {
+        match: "LIMA two, after",
+        always: { blocks: [{ type: "text", text: "Going on from the summary." }], usage: { input: 3000 } },
+        steps: [],
+      },
+    ],
+  },
+  async run(a) {
+    await a.start()
+    // As the app does at the start, so the typed /compact names a listed command.
+    a.refresh("commands")
+    await a.until("lists")
+    await a.send("LIMA one")
+    await a.until("turn.end")
+    const sent = await a.send("/compact")
+    if (!sent.ok) throw new Error(sent.problem)
+    await a.until("compacted")
+    await a.until("turn.end")
+    await a.send("LIMA two, after the summary")
+    await a.until("turn.end")
+    await a.close()
+  },
+}

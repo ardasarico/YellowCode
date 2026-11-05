@@ -321,8 +321,8 @@
     "items": [
       "user-1",
       "text-2",
-      "user-3",
       "turn-4",
+      "user-3",
       "text-5",
       "turn-6"
     ],
@@ -354,6 +354,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.00021,
         "durationMs": 173,
         "inputTokens": 0,
@@ -372,6 +373,7 @@
       "turn-6": {
         "kind": "turn-end",
         "id": "turn-6",
+        "by": "agent",
         "costUsd": 0.00861,
         "durationMs": 170,
         "inputTokens": 1200,

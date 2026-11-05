@@ -513,11 +513,11 @@
     "items": [
       "user-1",
       "text-2",
-      "user-3",
-      "user-4",
       "user-5",
       "toolu_mock0001",
+      "user-3",
       "text-6",
+      "user-4",
       "text-7",
       "turn-8"
     ],
@@ -611,6 +611,7 @@
       "turn-8": {
         "kind": "turn-end",
         "id": "turn-8",
+        "by": "user",
         "costUsd": 0.025409999999999995,
         "durationMs": 1011,
         "inputTokens": 3600,

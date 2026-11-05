@@ -1,0 +1,602 @@
+{
+  "events": [
+    {
+      "type": "ready",
+      "at": 0
+    },
+    {
+      "type": "lists",
+      "lists": {
+        "modes": [
+          {
+            "id": "build",
+            "label": "build",
+            "description": "The default agent. Executes tools based on configured permissions.",
+            "kind": "auto",
+            "cycle": true,
+            "available": true,
+            "group": null
+          },
+          {
+            "id": "plan",
+            "label": "plan",
+            "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+            "kind": "plan",
+            "cycle": true,
+            "available": true,
+            "group": null
+          }
+        ]
+      },
+      "at": 1793886704337
+    },
+    {
+      "type": "mode",
+      "mode": "build",
+      "at": 1793886704337
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-1",
+      "text": "KILO read the readme",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793886704831
+    },
+    {
+      "type": "turn.open",
+      "prompts": [],
+      "endedTasks": [],
+      "at": 1793886704832
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-1"
+      ],
+      "at": 1793886704838
+    },
+    {
+      "type": "title",
+      "title": "Taking back",
+      "at": 1793886704907
+    },
+    {
+      "type": "reply",
+      "at": 1793886705151
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793886705151
+    },
+    {
+      "type": "context.window",
+      "tokens": 200000,
+      "at": 1793886705151
+    },
+    {
+      "type": "text.start",
+      "part": "msg_1:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793886705153
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-2",
+      "text": "KILO queued: taken back",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793886705157
+    },
+    {
+      "type": "user",
+      "prompt": "prompt-3",
+      "text": "KILO queued: stays",
+      "images": [],
+      "to": null,
+      "history": false,
+      "cutPoint": true,
+      "at": 1793886705160
+    },
+    {
+      "type": "user.withdrawn",
+      "prompt": "prompt-2",
+      "at": 1793886705153
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_1:text:0",
+      "text": "Reading the readme first.",
+      "at": 1793886705254
+    },
+    {
+      "type": "text.end",
+      "part": "msg_1:text:0",
+      "text": "Reading the readme first.",
+      "at": 1793886705291
+    },
+    {
+      "type": "tool.start",
+      "id": "toolu_mock0001",
+      "parent": null,
+      "name": "read",
+      "kind": "read",
+      "title": "read",
+      "mcp": null,
+      "quiet": false,
+      "at": 1793886705292
+    },
+    {
+      "type": "tool.called",
+      "id": "toolu_mock0001",
+      "kind": null,
+      "name": null,
+      "title": null,
+      "mcp": null,
+      "input": {
+        "path": "README.md"
+      },
+      "summary": "<root>/project/README.md",
+      "detail": null,
+      "command": null,
+      "background": false,
+      "questions": null,
+      "agent": null,
+      "message": null,
+      "todos": null,
+      "at": 1793886705334
+    },
+    {
+      "type": "tool.end",
+      "id": "toolu_mock0001",
+      "status": "done",
+      "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+      "images": [],
+      "patch": null,
+      "created": false,
+      "content": null,
+      "unchanged": false,
+      "exitCode": null,
+      "count": {
+        "n": 3,
+        "noun": "line"
+      },
+      "outcome": null,
+      "background": false,
+      "task": null,
+      "files": [],
+      "at": 1793886705337
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793886705346
+    },
+    {
+      "type": "reply",
+      "at": 1793886705364
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793886705364
+    },
+    {
+      "type": "text.start",
+      "part": "msg_2:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793886705365
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "Read it.",
+      "at": 1793886705393
+    },
+    {
+      "type": "text.end",
+      "part": "msg_2:text:0",
+      "text": "Read it.",
+      "at": 1793886705393
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793886705402
+    },
+    {
+      "type": "user.taken",
+      "prompts": [
+        "prompt-3"
+      ],
+      "at": 1793886705404
+    },
+    {
+      "type": "reply",
+      "at": 1793886705415
+    },
+    {
+      "type": "turn.step",
+      "prompts": [],
+      "at": 1793886705415
+    },
+    {
+      "type": "text.start",
+      "part": "msg_3:text:0",
+      "parent": null,
+      "text": "",
+      "local": false,
+      "quiet": false,
+      "at": 1793886705416
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_3:text:0",
+      "text": "The one that stayed is done.",
+      "at": 1793886705518
+    },
+    {
+      "type": "text.end",
+      "part": "msg_3:text:0",
+      "text": "The one that stayed is done.",
+      "at": 1793886705547
+    },
+    {
+      "type": "context.used",
+      "tokens": 1200,
+      "at": 1793886705557
+    },
+    {
+      "type": "turn.end",
+      "error": null,
+      "interrupted": false,
+      "local": false,
+      "durationMs": 726,
+      "inputTokens": 3600,
+      "outputTokens": 540,
+      "tokens": 4140,
+      "sessionCostUsd": 0.025409999999999995,
+      "prompts": [],
+      "at": 1793886705558
+    },
+    {
+      "type": "ended",
+      "problem": null,
+      "at": 1793886705558
+    }
+  ],
+  "outputs": [
+    {
+      "history": {
+        "events": [
+          {
+            "type": "user",
+            "prompt": "prompt-1",
+            "text": "KILO read the readme",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793886704838
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793886704846
+          },
+          {
+            "type": "reply",
+            "at": 1793886704846
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793886704846
+          },
+          {
+            "type": "text.start",
+            "part": "msg_1:text:0",
+            "parent": null,
+            "text": "Reading the readme first.",
+            "local": false,
+            "quiet": false,
+            "at": 1793886704846
+          },
+          {
+            "type": "text.end",
+            "part": "msg_1:text:0",
+            "text": "Reading the readme first.",
+            "at": 1793886704846
+          },
+          {
+            "type": "tool.start",
+            "id": "toolu_mock0001",
+            "parent": null,
+            "name": "read",
+            "kind": "read",
+            "title": "read",
+            "mcp": null,
+            "quiet": false,
+            "at": 1793886704846
+          },
+          {
+            "type": "tool.called",
+            "id": "toolu_mock0001",
+            "kind": null,
+            "name": null,
+            "title": null,
+            "mcp": null,
+            "input": {
+              "path": "README.md"
+            },
+            "summary": "<root>/project/README.md",
+            "detail": null,
+            "command": null,
+            "background": false,
+            "questions": null,
+            "agent": null,
+            "message": null,
+            "todos": null,
+            "at": 1793886704846
+          },
+          {
+            "type": "tool.end",
+            "id": "toolu_mock0001",
+            "status": "done",
+            "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+            "images": [],
+            "patch": null,
+            "created": false,
+            "content": null,
+            "unchanged": false,
+            "exitCode": null,
+            "count": {
+              "n": 3,
+              "noun": "line"
+            },
+            "outcome": null,
+            "background": false,
+            "task": null,
+            "files": [],
+            "at": 1793886704846
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793886704846
+          },
+          {
+            "type": "reply",
+            "at": 1793886705351
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793886705351
+          },
+          {
+            "type": "text.start",
+            "part": "msg_2:text:0",
+            "parent": null,
+            "text": "Read it.",
+            "local": false,
+            "quiet": false,
+            "at": 1793886705351
+          },
+          {
+            "type": "text.end",
+            "part": "msg_2:text:0",
+            "text": "Read it.",
+            "at": 1793886705351
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793886705351
+          },
+          {
+            "type": "user",
+            "prompt": "prompt-3",
+            "text": "KILO queued: stays",
+            "images": [],
+            "to": null,
+            "history": true,
+            "cutPoint": true,
+            "at": 1793886705404
+          },
+          {
+            "type": "turn.open",
+            "prompts": [],
+            "endedTasks": [],
+            "at": 1793886705408
+          },
+          {
+            "type": "reply",
+            "at": 1793886705408
+          },
+          {
+            "type": "turn.step",
+            "prompts": [],
+            "at": 1793886705408
+          },
+          {
+            "type": "text.start",
+            "part": "msg_3:text:0",
+            "parent": null,
+            "text": "The one that stayed is done.",
+            "local": false,
+            "quiet": false,
+            "at": 1793886705408
+          },
+          {
+            "type": "text.end",
+            "part": "msg_3:text:0",
+            "text": "The one that stayed is done.",
+            "at": 1793886705408
+          },
+          {
+            "type": "context.used",
+            "tokens": 1200,
+            "at": 1793886705408
+          }
+        ],
+        "earlier": null
+      }
+    }
+  ],
+  "state": {
+    "info": null,
+    "status": "ended",
+    "items": [
+      "user-1",
+      "text-2",
+      "toolu_mock0001",
+      "text-5",
+      "user-4",
+      "text-6",
+      "turn-7"
+    ],
+    "byId": {
+      "user-1": {
+        "kind": "user",
+        "id": "user-1",
+        "text": "KILO read the readme",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-1"
+      },
+      "text-2": {
+        "kind": "text",
+        "id": "text-2",
+        "markdown": "Reading the readme first.",
+        "streaming": false
+      },
+      "user-4": {
+        "kind": "user",
+        "id": "user-4",
+        "text": "KILO queued: stays",
+        "images": [],
+        "to": null,
+        "queue": null,
+        "uuid": "prompt-3"
+      },
+      "toolu_mock0001": {
+        "kind": "tool",
+        "id": "toolu_mock0001",
+        "name": "read",
+        "toolKind": "read",
+        "title": "read",
+        "server": null,
+        "inputText": "{\"path\":\"README.md\"}",
+        "input": {
+          "path": "README.md"
+        },
+        "summary": "<root>/project/README.md",
+        "detail": null,
+        "background": false,
+        "status": "done",
+        "result": "Read file README.md, lines 1-3\n1: # demo\n2: \n3: A small project for opencode recordings.",
+        "children": [],
+        "patch": null,
+        "createdFile": false,
+        "content": null,
+        "images": [],
+        "unchanged": false,
+        "count": {
+          "n": 3,
+          "noun": "line"
+        },
+        "files": [],
+        "questions": null,
+        "outcome": null,
+        "agent": null,
+        "taskId": null
+      },
+      "text-5": {
+        "kind": "text",
+        "id": "text-5",
+        "markdown": "Read it.",
+        "streaming": false
+      },
+      "text-6": {
+        "kind": "text",
+        "id": "text-6",
+        "markdown": "The one that stayed is done.",
+        "streaming": false
+      },
+      "turn-7": {
+        "kind": "turn-end",
+        "id": "turn-7",
+        "by": "user",
+        "costUsd": 0.025409999999999995,
+        "durationMs": 726,
+        "inputTokens": 3600,
+        "outputTokens": 540,
+        "error": null,
+        "retries": 0,
+        "interrupted": false,
+        "endedAt": 1793886705558
+      }
+    },
+    "tasks": {},
+    "mcpServers": null,
+    "plugins": null,
+    "usage": {
+      "startedAt": 1800000000000,
+      "tokens": 4140,
+      "costUsd": 0.025409999999999995,
+      "context": {
+        "used": 1200,
+        "window": 200000
+      },
+      "limits": {
+        "fiveHour": null,
+        "week": null,
+        "models": {}
+      },
+      "warning": null
+    },
+    "rewound": null,
+    "interrupting": false,
+    "turn": null,
+    "permissionMode": "build",
+    "agentTitle": "Taking back",
+    "conversation": 0,
+    "compacting": false,
+    "carried": [],
+    "unfinished": [],
+    "modes": [
+      {
+        "id": "build",
+        "label": "build",
+        "description": "The default agent. Executes tools based on configured permissions.",
+        "kind": "auto",
+        "cycle": true,
+        "available": true,
+        "group": null
+      },
+      {
+        "id": "plan",
+        "label": "plan",
+        "description": "Read-only agent for exploring the codebase and planning work before implementation.",
+        "kind": "plan",
+        "cycle": true,
+        "available": true,
+        "group": null
+      }
+    ]
+  }
+}

@@ -1391,15 +1391,22 @@ function sendPrompt(
     session.notSent(uuid)
     giveBack?.()
   }
+  const typedAt = Date.now()
+  let readyAt = typedAt
   sending = sending
     .then(() => ready)
     .then(() => {
+      readyAt = Date.now()
       // An agent started since (a restart, another session) is not the one the message was typed for.
       if (runOf(live) !== run) {
         log.warn("the agent changed before the message went out; dropped it")
         return unsent()
       }
       return target.agent.send(prompt).then((sent) => {
+        // A message the user waits on longer than this before the agent has it is worth a line in the log.
+        const held = Date.now() - typedAt
+        if (held > HELD_LOG_MS)
+          log.warn("message held before it reached the agent", { ms: held, beforeSend: readyAt - typedAt })
         if (sent.ok) return
         unsent()
         setControlProblem({ text: sent.problem })
@@ -1408,6 +1415,8 @@ function sendPrompt(
     .catch((error: unknown) => log.error("cannot send the message", error))
   if (startsTurn) turnSend = sending
 }
+
+const HELD_LOG_MS = 1000
 
 // Messages sent behind a running turn that ↑ may take back, with the `!` commands that went out with them.
 const withdrawable = new Map<PromptId, { session: SessionStore; shells: Prompt["shells"] }>()

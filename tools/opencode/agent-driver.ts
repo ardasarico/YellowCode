@@ -38,6 +38,8 @@ export type AgentDriver = {
   cut(before: PromptId): Promise<Outcome>
   undoCut(): Promise<Outcome>
   interrupt(): Promise<Outcome>
+  // ↑ on a waiting prompt: true when it came back out of opencode's inbox.
+  withdraw(prompt: PromptId): Promise<boolean>
   setMode(mode: ModeId): Promise<Outcome>
   setModel(model: ModelRef): Promise<Outcome>
   setEffort(effort: EffortId | null): Promise<Outcome>
@@ -230,6 +232,10 @@ export function createAgentDriver(
     interrupt() {
       intent("interrupt")
       return running().agent.interrupt()
+    },
+    withdraw(prompt) {
+      intent("withdraw", { prompt })
+      return running().agent.withdraw?.(prompt) ?? Promise.resolve(false)
     },
     setMode(mode) {
       intent("setMode", { mode })

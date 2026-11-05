@@ -75,3 +75,39 @@ export const interrupt: AgentScenario = {
     await a.close()
   },
 }
+
+// While a step streams, a prompt waits in opencode's inbox and the user takes it back with ↑; a second one stays and
+// runs after the last step.
+export const withdraw: AgentScenario = {
+  name: "withdraw",
+  config: allowed,
+  script: {
+    title: "Taking back",
+    delayMs: 40,
+    threads: [
+      {
+        match: "KILO",
+        steps: [
+          {
+            blocks: [{ type: "text", text: "Reading the readme first." }, tool("read", { path: "README.md" })],
+            waitMs: 300,
+          },
+          [{ type: "text", text: "Read it." }],
+          [{ type: "text", text: "The one that stayed is done." }],
+        ],
+      },
+    ],
+  },
+  async run(a) {
+    await a.start()
+    await a.send("KILO read the readme")
+    await a.until("text.start")
+    await a.send("KILO queued: taken back", [], "queue")
+    await a.send("KILO queued: stays", [], "queue")
+    if (!(await a.withdraw("prompt-2"))) throw new Error("the waiting prompt was not taken back")
+    await a.until("user.withdrawn")
+    await a.until("turn.end")
+    await a.history(a.session())
+    await a.close()
+  },
+}

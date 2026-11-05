@@ -625,6 +625,7 @@
       "turn-3": {
         "kind": "turn-end",
         "id": "turn-3",
+        "by": "user",
         "costUsd": 0.04181,
         "durationMs": 62,
         "inputTokens": 2000,
@@ -662,6 +663,7 @@
       "turn-7": {
         "kind": "turn-end",
         "id": "turn-7",
+        "by": "user",
         "costUsd": 0.06581,
         "durationMs": 33,
         "inputTokens": 3000,
@@ -689,6 +691,7 @@
       "turn-10": {
         "kind": "turn-end",
         "id": "turn-10",
+        "by": "user",
         "costUsd": 0.11241,
         "durationMs": 31,
         "inputTokens": 1000,
@@ -726,6 +729,7 @@
       "turn-14": {
         "kind": "turn-end",
         "id": "turn-14",
+        "by": "user",
         "costUsd": 0.14041,
         "durationMs": 171,
         "inputTokens": 4000,

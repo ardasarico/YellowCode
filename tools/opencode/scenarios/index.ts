@@ -14,10 +14,10 @@ import { rawText } from "./raw-text.ts"
 import { rawTools } from "./raw-tools.ts"
 import { fork, sessions, title } from "./sessions.ts"
 import { rules, settings } from "./settings.ts"
-import { interrupt, steer } from "./steer.ts"
+import { interrupt, steer, withdraw } from "./steer.ts"
 import { bgShell, bgSubagent, subagent, tools } from "./tools.ts"
 import { error, text, twoTurns } from "./turns.ts"
-import { compact, compactFailed, usage } from "./usage.ts"
+import { compact, compactCommand, compactFailed, usage } from "./usage.ts"
 
 export const scenarios: Scenario[] = [
   rawHello,
@@ -38,6 +38,7 @@ export const scenarios: Scenario[] = [
   bgSubagent,
   permissions,
   steer,
+  withdraw,
   interrupt,
   ownAsk,
   nativeForm,
@@ -48,6 +49,7 @@ export const scenarios: Scenario[] = [
   cutElsewhere,
   usage,
   compact,
+  compactCommand,
   compactFailed,
   models,
   agentModel,

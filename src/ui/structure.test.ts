@@ -42,7 +42,8 @@ const result = {
   usage: { input_tokens: 0, output_tokens: 0 },
 }
 
-// A turn with a tool and a message queued during it; `endFirst` ends that turn, then the queued message runs.
+// A turn with a tool and a message queued during it; `endFirst` ends that turn, then the queued message runs. The
+// queued message shows below the turn it waited for, not where it was sent.
 function queuedRows(endFirst: (send: (line: string) => void, receive: (message: object) => void) => void) {
   const session = createSession()
   const send = (line: string) => feed(session, "out", parse(line), 0)
@@ -54,6 +55,7 @@ function queuedRows(endFirst: (send: (line: string) => void, receive: (message: 
   })
   send(userMessage("after that", [], "u2"))
   endFirst(send, receive)
+  receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
   receive({ type: "assistant", message: { id: "b", content: [{ type: "text", text: "the queued one ran" }] } })
   receive({ ...result, user_message_uuids: ["u2"] })
   return buildRows(session.state).map((row) => (row.kind === "end" ? `end×${row.turnEnds.length}` : row.kind))
@@ -65,7 +67,7 @@ test("an interrupted or failed turn keeps its end row when a queued message runs
     receive({ ...result, subtype: "error_during_execution", is_error: true })
   })
   const failed = queuedRows((_, receive) => receive({ ...result, is_error: true, result: "API Error: 529 Overloaded" }))
-  for (const rows of [interrupted, failed]) expect(rows).toEqual(["user", "tool", "user", "end×1", "markdown", "end×1"])
+  for (const rows of [interrupted, failed]) expect(rows).toEqual(["user", "tool", "end×1", "user", "markdown", "end×1"])
 })
 
 test("a finished turn keeps its own end row when the turn claude starts next is interrupted or fails", () => {
@@ -121,4 +123,24 @@ test("finished reads, searches and commands fold, and those in a row share one g
     text: "Ran 2 shell commands, searched 1 pattern",
     failed: 1,
   })
+})
+
+test("a message queued while the agent writes stays below its output until the agent takes it in", () => {
+  const session = createSession()
+  const send = (line: string) => feed(session, "out", parse(line), 0)
+  const receive = (message: object) => feed(session, "in", parse(JSON.stringify(message)), 0)
+  const kinds = () => buildRows(session.state).map((row) => row.kind)
+  send(userMessage("run it"))
+  receive({ type: "assistant", message: { id: "a", content: [{ type: "text", text: "first" }] } })
+  send(userMessage("after that", [], "u2"))
+  receive({
+    type: "assistant",
+    message: { id: "a2", content: [{ type: "tool_use", id: "t1", name: "Bash", input: {} }] },
+  })
+  expect(kinds()).toEqual(["user", "markdown", "tool", "user"])
+  receive({ ...result, subtype: "success", is_error: false })
+  expect(kinds()).toEqual(["user", "markdown", "tool", "end", "user"])
+  receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
+  receive({ type: "assistant", message: { id: "b", content: [{ type: "text", text: "second" }] } })
+  expect(kinds()).toEqual(["user", "markdown", "tool", "end", "user", "markdown"])
 })

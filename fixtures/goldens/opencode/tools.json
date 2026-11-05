@@ -1704,6 +1704,7 @@
       "turn-4": {
         "kind": "turn-end",
         "id": "turn-4",
+        "by": "user",
         "costUsd": 0.07580999999999999,
         "durationMs": 1569,
         "inputTokens": 10800,

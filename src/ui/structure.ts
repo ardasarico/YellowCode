@@ -46,6 +46,8 @@ export function buildRows(session: Session): Row[] {
 
   const span = hiddenSpan(session.items, session.rewound)
   let shown: Set<ItemId> | null = null
+  // Messages waiting for the agent stay below everything until it takes them in (see moveToEnd in the session).
+  const waiting: ItemId[] = []
   for (const [index, id] of session.items.entries()) {
     if (span && index >= span.start && index < span.end) {
       if (index === span.start) {
@@ -65,6 +67,10 @@ export function buildRows(session: Session): Row[] {
     }
 
     if (item.kind === "ask") continue
+    if (item.kind === "user" && item.queue === "queued") {
+      waiting.push(id)
+      continue
+    }
     if ((item.kind === "text" || item.kind === "tool") && item.quiet && !(item.kind === "tool" && item.agent)) continue
     if (item.kind === "tool" && item.toolKind === "todo" && !todoChange(session, id)) continue
 
@@ -90,7 +96,7 @@ export function buildRows(session: Session): Row[] {
     }
     rows.push({ kind: rowKind(item), id })
   }
-  return fold(session, rows)
+  return [...fold(session, rows), ...waiting.map((id): Row => ({ kind: "user", id }))]
 }
 
 const FOLDED_KINDS = new Set<ToolKind>(["shell", "read", "search"])

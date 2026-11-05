@@ -25,14 +25,38 @@ const CLEAR: CommandRow = {
   knob: null,
 }
 
+const row = (name: string, description: string, argumentHint = "", knob: CommandRow["knob"] = null): CommandRow => ({
+  name,
+  description,
+  argumentHint,
+  aliases: [],
+  builtin: true,
+  setting: null,
+  knob,
+})
+
+// What YellowCode does itself for an agent that lists no such command: the knobs, the context report, a name for the
+// session and plan mode.
+const HANDLED: CommandRow[] = [
+  row("model", "Choose the model", "[model]", "model"),
+  row("effort", "Choose the effort level", "[level]", "effort"),
+  row("context", "See how full the context is"),
+  row("rename", "Name this session", "<name>"),
+]
+const PLAN = row("plan", "Switch to plan mode, or plan what follows", "[task]")
+
 // The lists of the session on screen, for an agent that tells them as events: its commands, then `own` (/clear by
-// default), YellowCode's commands and the mods'.
+// default), the ones YellowCode handles, YellowCode's commands and the mods'.
 export const listedProvider = (
   store: () => SessionStore,
   files: (query: string) => Promise<string[]>,
   own: CommandRow[] = [CLEAR],
 ): InputProvider => ({
-  commands: () => withModCommands(agentCommands([...(store().lists().commands ?? []), ...own], [])),
+  commands: () => {
+    const planning = (store().state.modes ?? []).some((mode) => mode.kind === "plan")
+    const handled = planning ? [...HANDLED, PLAN] : HANDLED
+    return withModCommands(agentCommands([...(store().lists().commands ?? []), ...own, ...handled], []))
+  },
   blocked: () => false,
   setting: () => null,
   knob: () => null,
