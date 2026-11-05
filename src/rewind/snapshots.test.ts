@@ -21,7 +21,19 @@ afterAll(() => {
 function git(cwd: string, ...args: string[]): string {
   const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_")))
   const result = Bun.spawnSync(
-    ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "protocol.file.allow=always", ...args],
+    // Background maintenance after a commit would add and remove lock files while a test lists .git.
+    [
+      "git",
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@example.com",
+      "-c",
+      "protocol.file.allow=always",
+      "-c",
+      "maintenance.auto=false",
+      ...args,
+    ],
     { cwd, env },
   )
   if (result.exitCode !== 0) throw new Error(result.stderr.toString())
