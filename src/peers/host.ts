@@ -1,8 +1,8 @@
 import { basename } from "node:path"
-import type { ClientTool } from "../agent/agent.ts"
+import type { ClientTool, RelayedCall, RelayedReply } from "../agent/agent.ts"
 import { loadImage } from "../input/image-file.ts"
-import { type Inbox, openInbox, type PeerAnswer, type PeerMessage } from "./inbox.ts"
-import { deliver } from "./outbox.ts"
+import { type Inbox, openInbox, type PeerAnswer, type PeerMessage, type Take } from "./inbox.ts"
+import { deliver, relay } from "./outbox.ts"
 import { defaultPeersDir, listPeers, openRegistry, type PeerState } from "./registry.ts"
 import { projectOf } from "./project.ts"
 import { gitDiff, type PeerContext, peerClientTools } from "./tools.ts"
@@ -20,6 +20,10 @@ export type PeerHost = {
   release(id: string, run: boolean): void
   // How the user is asked before a broadcast goes to every session on the machine.
   confirmWith(confirm: (message: string) => Promise<boolean>): void
+  // Passes a tool call on to the other sessions; the answer of the one that runs its caller, else null.
+  relay(call: RelayedCall, signal: AbortSignal): Promise<RelayedReply | null>
+  // How a call another session passed on runs here.
+  takeWith(take: Take): void
   close(): void
 }
 
@@ -33,6 +37,7 @@ export async function startPeers(cwd: string, start: PeerSelf, dir = defaultPeer
   let send: ((message: PeerMessage) => boolean) | null = null
   let hold: ((id: string, message: PeerMessage) => boolean) | null = null
   let confirm: ((message: string) => Promise<boolean>) | null = null
+  let take: Take | null = null
   const held = new Map<string, PeerMessage>()
   // Set while a sent message has not yet made the session busy, so a second one waits for its own idle moment.
   let starting = false
@@ -64,7 +69,9 @@ export async function startPeers(cwd: string, start: PeerSelf, dir = defaultPeer
 
   let inbox: Inbox
   try {
-    inbox = await openInbox(registry.socket, handle)
+    inbox = await openInbox(registry.socket, handle, (call, signal, claim) =>
+      take ? take(call, signal, claim) : Promise.resolve(null),
+    )
   } catch (error) {
     registry.remove()
     throw error
@@ -104,6 +111,22 @@ export async function startPeers(cwd: string, start: PeerSelf, dir = defaultPeer
     },
     confirmWith(next) {
       confirm = next
+    },
+    relay(call, signal) {
+      const others = listPeers(dir).filter((record) => record.pid !== process.pid)
+      return new Promise((resolve) => {
+        let left = others.length
+        if (left === 0) return resolve(null)
+        for (const record of others)
+          void relay(record.socket, call, signal).then((reply) => {
+            left -= 1
+            if (reply !== null) resolve(reply)
+            else if (left === 0) resolve(null)
+          })
+      })
+    },
+    takeWith(next) {
+      take = next
     },
     release(id, run) {
       const message = held.get(id)

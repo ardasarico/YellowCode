@@ -439,6 +439,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     clock: deps.clock,
     session: () => session,
     subagent,
+    relay: (call, signal) => options.relay?.(call, signal) ?? Promise.resolve(null),
     down: () => ended,
     version: deps.appVersion,
     tell: (events) => out.push(...events),
@@ -974,6 +975,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       return Promise.resolve({ ok: true, note: null })
     },
     setMcpServers: later("MCP servers"),
+    take: (call, signal, claim) => own.take(call, signal, claim),
     goBack,
     connected(count) {
       const done = Promise.withResolvers<void>()

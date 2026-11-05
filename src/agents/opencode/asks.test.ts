@@ -11,7 +11,7 @@ import { QUESTION_TO_CHAT, SUBAGENT_ASK } from "../../protocol/outgoing.ts"
 import { createSession } from "../../session/session.ts"
 import { formAsk, formReply } from "./asks.ts"
 import { readFixture, type HttpLine } from "./fixture.ts"
-import { ELSEWHERE, NOT_OURS, startOwnMcp } from "./own-mcp.ts"
+import { ELSEWHERE, NOT_OURS, type OwnMcpDeps, startOwnMcp } from "./own-mcp.ts"
 import { realClock } from "./sse.ts"
 import { channel, type Socket, type Transport } from "./transport.ts"
 
@@ -201,7 +201,7 @@ test("a form with no field a page fits, or a required one it cannot fit, offers 
 
 // Sockets that fail to open until the test gives one.
 function sockets() {
-  let ready: (Socket & { push(frame: unknown): void }) | null = null
+  let ready: (Socket & { push(frame: unknown): void; sent: unknown[] }) | null = null
   const state = {
     opened: 0,
     transport: {
@@ -216,7 +216,14 @@ function sockets() {
     } satisfies Transport,
     give() {
       const frames = channel<unknown>()
-      const socket = { frames, send: () => {}, close: () => frames.end(), push: (frame: unknown) => frames.push(frame) }
+      const sent: unknown[] = []
+      const socket = {
+        frames,
+        sent,
+        send: (frame: unknown) => sent.push(frame),
+        close: () => frames.end(),
+        push: (frame: unknown) => frames.push(frame),
+      }
       ready = socket
       return socket
     },
@@ -224,12 +231,18 @@ function sockets() {
   return state
 }
 
-function own(fake: ReturnType<typeof sockets>, heard: AgentEvent[] = []) {
+function own(
+  fake: ReturnType<typeof sockets>,
+  heard: AgentEvent[] = [],
+  session = "ses_1",
+  relay: OwnMcpDeps["relay"] = () => Promise.resolve(null),
+) {
   return startOwnMcp({
     transport: () => fake.transport,
     clock: realClock,
-    session: () => "ses_1",
+    session: () => session,
     subagent: () => Promise.resolve(false),
+    relay,
     down: () => false,
     version: "0",
     tell: (events) => heard.push(...events),
@@ -290,4 +303,40 @@ test("a socket that listed its tools opens again after every drop, and none open
   server.close()
   await Bun.sleep(600)
   expect(fake.opened).toBe(3)
+})
+
+test("a call of another YellowCode's session that opencode gave to ours is passed on, and its answer comes back", async () => {
+  const theirs = sockets()
+  theirs.give()
+  const heard: AgentEvent[] = []
+  const owner = own(theirs, heard)
+  const ours = sockets()
+  const socket = ours.give()
+  const claimed: string[] = []
+  const server = own(ours, [], "ses_2", (call, signal) => owner.take(call, signal, () => claimed.push(call.caller)))
+  const input = { questions: [{ question: "Which?", header: "Pick", options: [{ label: "A" }, { label: "B" }] }] }
+  const meta = { "ai.opencode/sessionID": "ses_1" }
+  socket.push({ jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "ask", arguments: input, _meta: meta } })
+  await Bun.sleep(20)
+  const opened = heard.find((event) => event.type === "ask.open")
+  expect(claimed).toEqual(["ses_1"])
+  if (opened?.type !== "ask.open") throw new Error("no ask")
+  owner.answer(opened.ask.id, {
+    type: "answers",
+    answers: { values: { Pick: ["A"] }, fields: {}, notes: {}, note: "" },
+  })
+  await Bun.sleep(20)
+  const [reply] = socket.sent
+  expect(reply).toMatchObject({ jsonrpc: "2.0", id: 7 })
+  expect(toolResult.parse(reply).result.isError).toBeUndefined()
+  const nobody = { name: "ask", arguments: input, _meta: { "ai.opencode/sessionID": "ses_9" } }
+  socket.push({ jsonrpc: "2.0", id: 8, method: "tools/call", params: nobody })
+  await Bun.sleep(20)
+  expect(socket.sent).toContainEqual({
+    jsonrpc: "2.0",
+    id: 8,
+    result: { content: [{ type: "text", text: ELSEWHERE }], isError: true },
+  })
+  server.close()
+  owner.close()
 })

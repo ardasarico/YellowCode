@@ -43,6 +43,12 @@ export type McpLaunch =
   | { name: string; command: string; args: string[]; env: Record<string, string> }
   | { name: string; url: string; headers: Record<string, string> }
 
+// A tool call an agent's service gave this YellowCode for a session another one runs: opencode serves every
+// YellowCode of a folder from one service and gives each call to the one that connected last.
+export type RelayedCall = { server: string; caller: string; params: unknown }
+// The call's MCP answer.
+export type RelayedReply = { result: unknown } | { error: { code: number; message: string } }
+
 export type StartOptions = {
   cwd: string
   // `fork` opens a copy ("Open a copy here"); `at` starts the copy before that prompt.
@@ -64,6 +70,8 @@ export type StartOptions = {
   plain: boolean
   // Asks before every edit and shell command, whatever the mode allows. Only a launcher with `asking` gets it.
   asks?: boolean
+  // Passes a call whose caller is not this session's on to the YellowCode that runs it; null when none does.
+  relay?(call: RelayedCall, signal: AbortSignal): Promise<RelayedReply | null>
 }
 
 // The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on
@@ -184,6 +192,9 @@ export type Agent = {
   // For caps.clientTools and caps.mcpServers "live".
   setClientTools(tools: ClientTool[]): Promise<Outcome>
   setMcpServers(servers: McpLaunch[]): Promise<Outcome>
+  // Runs a call another YellowCode passed on (StartOptions.relay) when its caller is this session or one of its
+  // subagents, and calls `claim` before it does; null when the caller is not ours.
+  take?(call: RelayedCall, signal: AbortSignal, claim: () => void): Promise<RelayedReply | null>
   // Only on a replay.
   replayStatus?(): "playing" | "waiting" | "finished"
 }

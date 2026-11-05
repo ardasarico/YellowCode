@@ -66,6 +66,7 @@ export type ChildrenOptions = {
   take?(child: Child, event: AgentEvent, launcher: Launcher): boolean
   close?(agent: Agent): Promise<void>
   now?(): number
+  relay?: StartOptions["relay"]
 }
 
 type Run = {
@@ -273,6 +274,7 @@ export function createChildren(options: ChildrenOptions) {
         ephemeral: true,
         plain: !(definition?.plugins ?? false),
         asks: fit.asks,
+        relay: options.relay,
       },
       pending: request.prompt,
       preface: !own && instructions ? instructions : null,

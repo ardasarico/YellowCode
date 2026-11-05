@@ -1,6 +1,6 @@
 import { OWN_AGENTS_SERVER } from "../protocol/messages.ts"
 import { z } from "zod"
-import type { Agent, ClientTool } from "../agent/agent.ts"
+import type { Agent, ClientTool, StartOptions } from "../agent/agent.ts"
 import type { Ask, AskReply } from "../agent/ask.ts"
 import type { AgentEvent } from "../agent/events.ts"
 import type { AgentKindId, AskId } from "../agent/ids.ts"
@@ -17,6 +17,8 @@ export type Provider = { id: AgentKindId; name: string }
 
 export type SubagentDeps = {
   cwd: string
+  // For a child whose service gives it its parent's tool calls (StartOptions.relay).
+  relay?: StartOptions["relay"]
   // The parent's chat, where the asks open.
   parent: { event(event: AgentEvent): void }
   // The added providers.
@@ -207,6 +209,7 @@ export function createSubagents(deps: SubagentDeps) {
         event,
       ) && !launcher.keepsAsks,
     close: (agent) => deps.close(agent),
+    relay: deps.relay,
   })
 
   async function begin({ definition, provider, row, task }: Target): Promise<Begun> {

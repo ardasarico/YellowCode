@@ -5,7 +5,7 @@ import { join } from "node:path"
 import { readSessionMessage, sessionMessage } from "./envelope.ts"
 import { startPeers } from "./host.ts"
 import { openInbox, type PeerMessage } from "./inbox.ts"
-import { deliver } from "./outbox.ts"
+import { deliver, relay } from "./outbox.ts"
 import { sameProject } from "./project.ts"
 import { listPeers, openRegistry, type PeerRecord } from "./registry.ts"
 import { callPeerTool, type PeerContext, readResultLine } from "./tools.ts"
@@ -46,11 +46,15 @@ test("lists live records and prunes dead ones", async () => {
 test("delivers to the current session and refuses stale ids and gone sockets", async () => {
   const socket = join(temp, "inbox.sock")
   const got: PeerMessage[] = []
-  const inbox = await openInbox(socket, (message) => {
-    if (message.to !== "s1") return { error: "not-active" }
-    got.push(message)
-    return { ok: "run" }
-  })
+  const inbox = await openInbox(
+    socket,
+    (message) => {
+      if (message.to !== "s1") return { error: "not-active" }
+      got.push(message)
+      return { ok: "run" }
+    },
+    () => Promise.resolve(null),
+  )
   const message: PeerMessage = {
     from: { id: "s0", title: "a", agent: "opencode" },
     to: "s1",
@@ -238,4 +242,24 @@ test("a busy session runs its messages one by one, each in its own idle moment",
   expect(await deliver(socket, peerMessage("four", "s2"))).toEqual({ error: "hidden" })
   host.close()
   expect(existsSync(socket)).toBe(false)
+})
+
+test("a passed-on call runs past the claim timeout once claimed, and a session that does not own it says no", async () => {
+  const socket = join(temp, "relay.sock")
+  const inbox = await openInbox(
+    socket,
+    () => ({ error: "not-active" }),
+    async (call, _signal, claim) => {
+      if (call.caller !== "s1") return null
+      claim()
+      await Bun.sleep(60)
+      return { result: { said: call.params } }
+    },
+  )
+  const signal = new AbortController().signal
+  expect(await relay(socket, { server: "x", caller: "s1", params: "hi" }, signal, 20)).toEqual({
+    result: { said: "hi" },
+  })
+  expect(await relay(socket, { server: "x", caller: "s2", params: "hi" }, signal, 20)).toBeNull()
+  inbox.close()
 })

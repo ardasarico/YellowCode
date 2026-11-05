@@ -5,7 +5,17 @@ import { constants } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
-import type { Agent, AgentKind, ClientTool, Detection, Prompt, RestartOptions, StartOptions } from "./agent/agent.ts"
+import type {
+  Agent,
+  AgentKind,
+  ClientTool,
+  Detection,
+  Prompt,
+  RelayedCall,
+  RelayedReply,
+  RestartOptions,
+  StartOptions,
+} from "./agent/agent.ts"
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
 import type { AgentKindId, ModelRef, PromptId } from "./agent/ids.ts"
@@ -604,6 +614,7 @@ const childActions: ChildActions = {
 function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Subagents {
   const made: Subagents = createSubagents({
     cwd,
+    relay: relayCall,
     parent: store,
     providers: addedProviders,
     launcher: (id) => launchers.find((one) => one.id === id) ?? null,
@@ -661,7 +672,15 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   clientTools: clientTools(),
   // Claude takes the mods' servers on its own path (syncModServers).
   mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
+  relay: relayCall,
 })
+
+// A call opencode gave this YellowCode for a session it does not run: a subagent's call goes to the session that runs
+// now, any other to the other YellowCodes.
+async function relayCall(call: RelayedCall, signal: AbortSignal): Promise<RelayedReply | null> {
+  const here = await live.agent.take?.(call, signal, () => {})
+  return here ?? (await peers?.relay(call, signal)) ?? null
+}
 
 // Each call goes to the session that runs now.
 const subagentTools = agentClientTools((name, input) => live.subagents.call(name, input))
@@ -1442,6 +1461,8 @@ function answerHeld(id: string, ask: { requestId: string }, reply: AskReply): vo
   peers?.release(id, run)
 }
 
+// A tool call another YellowCode was given for this one's session runs in the session running now.
+peers?.takeWith((call, signal, claim) => live.agent.take?.(call, signal, claim) ?? Promise.resolve(null))
 // A message from another session goes out as a prompt of the session running now.
 peers?.sendWith((message) => {
   const text = sessionMessage({ ...message.from, broadcast: message.broadcast, text: message.text })

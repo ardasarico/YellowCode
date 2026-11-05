@@ -1,10 +1,11 @@
 // YellowCode's own ask, served to opencode as the MCP server `yellowcode` over its client-mcp socket, and the client
 // tools, one socket per `ClientTool.server`. opencode lists client tools in Code Mode's catalog only, so the model
 // calls `tools.yellowcode.ask(...)` or `tools["mod-x"].name(...)` from an `execute` call. Every session of the folder
-// sees the tools; only a call of our main session opens an ask, and only ours and its subagents' run a client tool.
-// The user's answer is the call's result.
+// sees the tools, and opencode gives each call to the YellowCode that connected last, so a call of a session another
+// YellowCode runs is passed on to it (OwnMcpDeps.relay). Only a call of our main session opens an ask, and only ours
+// and its subagents' run a client tool. The user's answer is the call's result.
 import { z } from "zod"
-import type { ClientTool } from "../../agent/agent.ts"
+import type { ClientTool, RelayedCall, RelayedReply } from "../../agent/agent.ts"
 import type { Ask, AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId } from "../../agent/ids.ts"
@@ -51,10 +52,11 @@ const cancelled = z.looseObject({ requestId: rpcId })
 
 type RpcId = z.output<typeof rpcId>
 
-const result = (id: RpcId, value: unknown) => ({ jsonrpc: "2.0", id, result: value })
-const failure = (id: RpcId, code: number, message: string) => ({ jsonrpc: "2.0", id, error: { code, message } })
-const text = (id: RpcId, said: string, isError = false) =>
-  result(id, { content: [{ type: "text", text: said }], ...(isError ? { isError } : {}) })
+const respond = (id: RpcId, reply: RelayedReply) => ({ jsonrpc: "2.0", id, ...reply })
+const failure = (code: number, message: string): RelayedReply => ({ error: { code, message } })
+const text = (said: string, isError = false): RelayedReply => ({
+  result: { content: [{ type: "text", text: said }], ...(isError ? { isError } : {}) },
+})
 
 function ownAsk(id: AskId, handle: RpcId, input: unknown): Ask {
   const pages = ownAskPages.safeParse(input).data?.questions ?? []
@@ -90,6 +92,8 @@ export type OwnMcpDeps = {
   session(): string | null
   // Whether `session` is a subagent of our session; a call of a session that is not ours is turned down either way.
   subagent(session: string): Promise<boolean>
+  // Passes a call of a session that is not ours on to the YellowCode that runs it; null when none does.
+  relay(call: RelayedCall, signal: AbortSignal): Promise<RelayedReply | null>
   // The event stream is down, so the socket waits for it to come back.
   down(): boolean
   version: string
@@ -104,6 +108,8 @@ export type OwnMcp = {
   answer(id: AskId, reply: AskReply): boolean
   // The client tools from now on: a new server opens its socket, a gone one closes it, a changed one says so.
   setTools(tools: readonly ClientTool[]): void
+  // A call another YellowCode passed on: null when its caller is not ours, else `claim` is called and the call runs.
+  take(call: RelayedCall, signal: AbortSignal, claim: () => void): Promise<RelayedReply | null>
   // The event stream connected again: a socket that is down opens again now.
   wake(): void
   close(): void
@@ -112,10 +118,8 @@ export type OwnMcp = {
 type McpHandlers = {
   capabilities: Record<string, unknown>
   tools(): unknown[]
-  call(socket: Socket, id: RpcId, params: unknown): Promise<void>
-  cancelled?(socket: Socket, request: RpcId): void
-  // The socket closed; the calls it carried are over on opencode's side too.
-  closed?(socket: Socket): void
+  // `signal` aborts once opencode cancels the call or the socket closes; the reply then goes nowhere.
+  call(id: RpcId, params: unknown, signal: AbortSignal): Promise<RelayedReply>
 }
 
 type McpServer = {
@@ -149,37 +153,48 @@ function serveMcp(deps: OwnMcpDeps, name: string, handlers: McpHandlers): McpSer
   // Reads one connection until it closes. Says whether opencode got as far as listing the tools.
   async function serve(socket: Socket): Promise<boolean> {
     let listed = false
+    const running = new Map<RpcId, AbortController>()
     for await (const frame of socket.frames) {
       const message = rpc.safeParse(frame).data
       if (!message) continue
       const { id, method, params } = message
       if (id === undefined) {
         const gone = method === "notifications/cancelled" ? cancelled.safeParse(params).data?.requestId : undefined
-        if (gone !== undefined) handlers.cancelled?.(socket, gone)
+        if (gone !== undefined) running.get(gone)?.abort()
         continue
       }
       if (method === "initialize") {
         const version = initialize.safeParse(params).data?.protocolVersion ?? PROTOCOL
         socket.send(
-          result(id, {
-            protocolVersion: version,
-            capabilities: handlers.capabilities,
-            serverInfo: { name, version: deps.version },
+          respond(id, {
+            result: {
+              protocolVersion: version,
+              capabilities: handlers.capabilities,
+              serverInfo: { name, version: deps.version },
+            },
           }),
         )
-      } else if (method === "ping") socket.send(result(id, {}))
+      } else if (method === "ping") socket.send(respond(id, { result: {} }))
       else if (method === "tools/list") {
-        socket.send(result(id, { tools: handlers.tools() }))
+        socket.send(respond(id, { result: { tools: handlers.tools() } }))
         listed = true
         const done = ready
         void deps.clock.sleep(ATTACH_MS, new AbortController().signal).then(() => done?.())
-      } else if (method === "tools/call")
+      } else if (method === "tools/call") {
+        const control = new AbortController()
+        running.set(id, control)
         void handlers
-          .call(socket, id, params)
+          .call(id, params, control.signal)
+          .then((reply) => {
+            if (!control.signal.aborted) socket.send(respond(id, reply))
+          })
           .catch((error: unknown) => log.error(`opencode: a call to ${name} failed`, error))
-      else socket.send(failure(id, -32601, `Method not found: ${method}`))
+          .finally(() => {
+            if (running.get(id) === control) running.delete(id)
+          })
+      } else socket.send(respond(id, failure(-32601, `Method not found: ${method}`)))
     }
-    handlers.closed?.(socket)
+    for (const control of running.values()) control.abort()
     return listed
   }
 
@@ -249,8 +264,8 @@ type Served = { server: McpServer; tools: readonly ClientTool[] }
 const listing = (tools: readonly ClientTool[]) => JSON.stringify(tools.map(mcpToolEntry))
 
 export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
-  // Open asks by id, with the call each answers.
-  const open = new Map<AskId, { handle: RpcId; socket: Socket; input: unknown }>()
+  // Open asks by id, with how each call gets its answer.
+  const open = new Map<AskId, { input: unknown; reply(reply: RelayedReply): void }>()
   let asked = 0
   // The client tools' servers by name.
   const servers = new Map<string, Served>()
@@ -263,32 +278,39 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
     deps.tell([{ type: "ask.close", id, outcome, at: deps.at() }])
   }
 
-  async function askCall(socket: Socket, id: RpcId, params: unknown): Promise<void> {
+  const passOn = (server: string, caller: string, params: unknown, signal: AbortSignal) =>
+    deps.relay({ server, caller, params }, signal)
+
+  // `handle` is opencode's id for the call, or the ask's own for one passed on.
+  function openAsk(params: unknown, signal: AbortSignal, handle?: RpcId): Promise<RelayedReply> {
     const parsed = callOf.safeParse(params).data
-    if (parsed?.name !== ASK_TOOL.name) return socket.send(failure(id, -32602, `Unknown tool: ${parsed?.name}`))
-    const from = callerOf(params)
-    if (from !== undefined && from !== deps.session())
-      return socket.send(text(id, (await deps.subagent(from)) ? SUBAGENT_ASK : ELSEWHERE, true))
+    if (parsed?.name !== ASK_TOOL.name) return Promise.resolve(failure(-32602, `Unknown tool: ${parsed?.name}`))
     const input = parsed.arguments
     const problem = ownAskProblem({ toolName: OWN_ASK, input })
-    if (problem !== null) return socket.send(text(id, `${NOT_SHOWN}${problem}.`, true))
-    const ask = `own_${++asked}`
-    open.set(ask, { handle: id, socket, input })
-    deps.tell([{ type: "ask.open", ask: ownAsk(ask, id, input), at: deps.at() }])
+    if (problem !== null) return Promise.resolve(text(`${NOT_SHOWN}${problem}.`, true))
+    const id = `own_${++asked}`
+    const done = Promise.withResolvers<RelayedReply>()
+    open.set(id, { input, reply: done.resolve })
+    signal.addEventListener("abort", () => {
+      if (!open.has(id)) return
+      settle(id, { status: "cancelled" })
+      done.resolve(failure(-32800, "Cancelled"))
+    })
+    deps.tell([{ type: "ask.open", ask: ownAsk(id, handle ?? id, input), at: deps.at() }])
+    return done.promise
   }
 
-  const cancelOn = (socket: Socket, handle?: RpcId) => {
-    for (const [ask, known] of open)
-      if (known.socket === socket && (handle === undefined || known.handle === handle))
-        settle(ask, { status: "cancelled" })
+  async function askCall(handle: RpcId, params: unknown, signal: AbortSignal): Promise<RelayedReply> {
+    const from = callerOf(params)
+    if (from === undefined || from === deps.session()) return openAsk(params, signal, handle)
+    if (await deps.subagent(from)) return text(SUBAGENT_ASK, true)
+    return (await passOn(OWN_SERVER, from, params, signal)) ?? text(ELSEWHERE, true)
   }
 
   const ask = serveMcp(deps, OWN_SERVER, {
     capabilities: { tools: {} },
     tools: () => [ASK_TOOL],
     call: askCall,
-    cancelled: cancelOn,
-    closed: (socket) => cancelOn(socket),
   })
 
   function clientServer(name: string, tools: readonly ClientTool[]): Served {
@@ -297,11 +319,12 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
       server: serveMcp(deps, name, {
         capabilities: { tools: { listChanged: true } },
         tools: () => entry.tools.map(mcpToolEntry),
-        async call(socket, id, params) {
+        async call(_id, params, signal) {
           const from = callerOf(params)
-          if (from === undefined || (from !== deps.session() && !(await deps.subagent(from))))
-            return socket.send(text(id, NOT_OURS, true))
-          socket.send(result(id, await callClientTool(entry.tools, params)))
+          if (from === undefined) return text(NOT_OURS, true)
+          if (from === deps.session() || (await deps.subagent(from)))
+            return { result: await callClientTool(entry.tools, params) }
+          return (await passOn(name, from, params, signal)) ?? text(NOT_OURS, true)
         },
       }),
     }
@@ -317,13 +340,13 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
       if (!known) return false
       if (reply.type === "answers") {
         const { said, answers, notes } = ownAskAnswered(known.input, reply.answers)
-        known.socket.send(text(known.handle, said))
+        known.reply(text(said))
         settle(id, { status: "answered", answers, notes })
         return true
       }
       const chat = reply.type === "declined" && reply.chat
       const said = chat ? QUESTION_TO_CHAT : TOOL_DECLINED
-      known.socket.send(text(known.handle, said, true))
+      known.reply(text(said, true))
       settle(id, { status: "denied", said, why: chat ? "chat" : "declined", note: "" })
       return true
     },
@@ -346,6 +369,19 @@ export function startOwnMcp(deps: OwnMcpDeps): OwnMcp {
         known.tools = list
         if (changed) known.server.changed()
       }
+    },
+    async take({ server, caller, params }, signal, claim) {
+      if (closed) return null
+      const main = caller === deps.session()
+      if (!main && !(await deps.subagent(caller))) return null
+      if (server === OWN_SERVER) {
+        claim()
+        return main ? openAsk(params, signal) : text(SUBAGENT_ASK, true)
+      }
+      const entry = servers.get(server)
+      if (!entry) return null
+      claim()
+      return { result: await callClientTool(entry.tools, params) }
     },
     wake() {
       for (const server of all()) server.wake()

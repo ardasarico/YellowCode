@@ -1,6 +1,7 @@
 import { rmSync } from "node:fs"
-import { createServer } from "node:net"
+import { createServer, type Socket } from "node:net"
 import { z } from "zod"
+import type { RelayedCall, RelayedReply } from "../agent/agent.ts"
 import { parseJson } from "../json.ts"
 import { log } from "../log/log.ts"
 
@@ -17,6 +18,21 @@ const MESSAGE = z.object({
   ),
 })
 
+// A tool call another YellowCode was given for a session it does not run (StartOptions.relay).
+const RELAY = z.object({ relay: z.object({ server: z.string(), caller: z.string(), params: z.unknown() }) })
+
+// The session that runs the caller says so at once, and answers once the call is done.
+export const RELAY_ANSWER = z.union([
+  z.object({ ok: z.literal("claimed") }),
+  z.object({ error: z.enum(["not-ours", "failed"]) }),
+  z.object({
+    relayed: z.union([
+      z.object({ error: z.object({ code: z.number(), message: z.string() }) }),
+      z.object({ result: z.unknown() }),
+    ]),
+  }),
+])
+
 export const ANSWER = z.union([
   z.object({ ok: z.enum(["run", "queued", "held"]) }),
   z.object({ error: z.enum(["not-active", "hidden", "failed"]) }),
@@ -25,14 +41,31 @@ export const ANSWER = z.union([
 export type PeerMessage = z.infer<typeof MESSAGE>
 export type PeerAnswer = z.infer<typeof ANSWER>
 export type Inbox = { close(): void }
+export type Take = (call: RelayedCall, signal: AbortSignal, claim: () => void) => Promise<RelayedReply | null>
 
-// One JSON line in, one JSON line back, per connection.
-export function openInbox(socket: string, handle: (message: PeerMessage) => PeerAnswer): Promise<Inbox> {
+const line = (value: unknown) => `${JSON.stringify(value)}\n`
+
+// A passed-on call stays open until it is done; the sender closing it cancels the call.
+function takeRelayed(connection: Socket, call: RelayedCall, take: Take): void {
+  const control = new AbortController()
+  connection.on("close", () => control.abort())
+  void take(call, control.signal, () => connection.write(line({ ok: "claimed" })))
+    .then((reply) => connection.end(line(reply === null ? { error: "not-ours" } : { relayed: reply })))
+    .catch((error: unknown) => {
+      log.error("a passed-on call failed", error)
+      connection.end(line({ error: "failed" }))
+    })
+}
+
+// One JSON line in, one JSON line back, per connection; a passed-on call may get a claim line first.
+export function openInbox(socket: string, handle: (message: PeerMessage) => PeerAnswer, take: Take): Promise<Inbox> {
   const server = createServer((connection) => {
     const chunks: Buffer[] = []
     let size = 0
+    let read = false
     connection.on("error", () => connection.destroy())
     connection.on("data", (chunk: Buffer) => {
+      if (read) return
       chunks.push(chunk)
       size += chunk.length
       if (size > MAX_BYTES) {
@@ -40,8 +73,11 @@ export function openInbox(socket: string, handle: (message: PeerMessage) => Peer
         return
       }
       if (!chunk.includes(0x0a)) return
-      const line = Buffer.concat(chunks).toString("utf8").split("\n")[0] ?? ""
-      const json = parseJson(line)
+      const first = Buffer.concat(chunks).toString("utf8").split("\n")[0] ?? ""
+      read = true
+      const json = parseJson(first)
+      const relayed = json.ok ? RELAY.safeParse(json.value) : null
+      if (relayed?.success) return takeRelayed(connection, relayed.data.relay, take)
       const parsed = json.ok ? MESSAGE.safeParse(json.value) : null
       if (!parsed?.success) {
         connection.destroy()
@@ -54,7 +90,7 @@ export function openInbox(socket: string, handle: (message: PeerMessage) => Peer
         log.error("a peer message failed", error)
         answer = { error: "failed" }
       }
-      connection.end(`${JSON.stringify(answer)}\n`)
+      connection.end(line(answer))
     })
   })
   // A file left at this path belongs to a dead process with our pid.
