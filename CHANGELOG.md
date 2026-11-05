@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed
+
+- Claude in Chrome works in YellowCode when you turned it on in Claude Code with `/chrome`.
+
+### Changed
+
+- npm packages are published from GitHub Actions with signed provenance, and their pages have a README.
+
 ## 0.1.0
 
 The first release. YellowCode runs Claude Code, Codex, opencode and Pi in one terminal UI, each through its own binary
