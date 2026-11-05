@@ -70,7 +70,7 @@ Every key is required, every color is a `#rrggbb` hex string, and `agents` needs
 | `agents`      | The colors agents are drawn in, used in turn; the second one also marks `!` shell commands. |
 | `syntax`      | Code highlighting: `keyword`, `string`, `number`, `function`, `type` and `comment`.         |
 
-The mark your provider shows after each answer, like Claude's orange spark, keeps its own color.
+The mark your provider shows after each answer, like Claude Code's orange Clawd, keeps its own color.
 
 ## When a theme does not load
 
