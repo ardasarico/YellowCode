@@ -5,10 +5,10 @@ import { z } from "zod"
 import { appVersion } from "../build-info.ts"
 import { parseJson } from "../json.ts"
 import { log } from "../log/log.ts"
-import { type Channel, type Channels, parseChannels, type Release } from "./channels.ts"
+import { type Channel, CHANNELS, type Channels, parseChannels, type Release } from "./channels.ts"
 
 const CHANNELS_URL = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/release/channels.json"
-export const CHECK_EVERY = 20 * 60 * 60 * 1000
+export const CHECK_EVERY = 60 * 60 * 1000
 
 export const autoUpdateOff = () => process.env["YELLOWCODE_DISABLE_AUTOUPDATE"] === "1"
 
@@ -36,9 +36,9 @@ function cacheFile(): string {
   return join(base && isAbsolute(base) ? base : join(homedir(), ".cache"), "yellowcode", "update.json")
 }
 
-const Cached = z.object({ checkedAt: z.number(), text: z.string() })
+const Cached = z.object({ checkedAt: z.number(), channel: z.enum(CHANNELS).optional(), text: z.string() })
 
-export function lastCheck(): { checkedAt: number; channels: Channels } | null {
+export function lastCheck(): { checkedAt: number; channel?: Channel; channels: Channels } | null {
   let text: string
   try {
     text = readFileSync(cacheFile(), "utf8")
@@ -48,12 +48,15 @@ export function lastCheck(): { checkedAt: number; channels: Channels } | null {
   const json = parseJson(text)
   const cached = json.ok ? Cached.safeParse(json.value).data : undefined
   const parsed = cached ? parseChannels(cached.text, true) : null
-  return cached && parsed?.ok ? { checkedAt: cached.checkedAt, channels: parsed.channels } : null
+  return cached && parsed?.ok
+    ? { checkedAt: cached.checkedAt, channel: cached.channel, channels: parsed.channels }
+    : null
 }
 
 // The channel file, or null when it cannot be fetched or read; a failed check stays quiet, only a failed install is
-// shown. A private repo answers 404 here.
-export async function fetchChannels(now = Date.now()): Promise<Channels | null> {
+// shown. A private repo answers 404 here. The cache keeps the channel the check was for, so a start after a channel
+// change checks again at once.
+export async function fetchChannels(channel: Channel, now = Date.now()): Promise<Channels | null> {
   const url = process.env["YELLOWCODE_CHANNELS"] ?? CHANNELS_URL
   let text: string
   try {
@@ -75,7 +78,7 @@ export async function fetchChannels(now = Date.now()): Promise<Channels | null> 
   const file = cacheFile()
   try {
     mkdirSync(dirname(file), { recursive: true })
-    writeFileSync(`${file}.tmp`, JSON.stringify({ checkedAt: now, text }))
+    writeFileSync(`${file}.tmp`, JSON.stringify({ checkedAt: now, channel, text }))
     renameSync(`${file}.tmp`, file)
   } catch (error) {
     log.warn("cannot cache the channel file", error)

@@ -94,7 +94,7 @@ export async function runUpdateCommand(args: string[]): Promise<number> {
   }
   if (args[0]) return switchTo(args[0].replace(/^v/, ""))
   const channel = channelFor(method, loadSettings(undefined, false).settings.updates ?? defaultChannel())
-  const channels = await fetchChannels()
+  const channels = await fetchChannels(channel)
   if (!channels) {
     say("Couldn't reach the release list. Check the connection and try again.")
     return 1

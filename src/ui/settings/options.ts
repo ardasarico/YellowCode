@@ -16,6 +16,7 @@ import { setTheme, theme, themeEntries, themeId } from "../../theme/theme.ts"
 import type { DialogItem, DialogSection } from "../dialog/list.ts"
 import { editorChoices, editorName } from "../dialog/open-file.ts"
 import { defaultChannel, installMethod } from "../../update/method.ts"
+import { channelChanged } from "../../update/updater.ts"
 
 type SettingOption<V extends string = string> = { value: V; label: string; note?: string; tag?: string }
 
@@ -191,9 +192,16 @@ const UPDATES: SettingDefinition = {
   ],
   value: () => settings.updates ?? defaultChannel(),
   set(value) {
-    if (value === "stable" || value === "beta") setSetting("updates", value)
+    if (value !== "stable" && value !== "beta") return
+    const before = UPDATES.value()
+    setSetting("updates", value)
+    if (value !== before) channelChanged()
   },
-  reset: () => resetSetting("updates"),
+  reset() {
+    const before = UPDATES.value()
+    resetSetting("updates")
+    if (UPDATES.value() !== before) channelChanged()
+  },
 }
 
 // YellowCode's own settings, with what it keeps for the agent among them.
