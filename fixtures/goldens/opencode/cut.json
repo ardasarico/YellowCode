@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793234415293
+      "at": 1793924144764
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234415293
+      "at": 1793924144764
     },
     {
       "type": "user",
@@ -43,39 +43,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234415782
+      "at": 1793924145234
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234415784
+      "at": 1793924145235
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234415788
+      "at": 1793924145240
     },
     {
       "type": "title",
       "title": "Cutting back",
-      "at": 1793234415806
+      "at": 1793924145259
     },
     {
       "type": "reply",
-      "at": 1793234415831
+      "at": 1793924145287
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234415831
+      "at": 1793924145287
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234415831
+      "at": 1793924145287
     },
     {
       "type": "tool.start",
@@ -86,7 +86,7 @@
       "title": "write",
       "mcp": null,
       "quiet": false,
-      "at": 1793234415832
+      "at": 1793924145288
     },
     {
       "type": "tool.called",
@@ -107,7 +107,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234415833
+      "at": 1793924145290
     },
     {
       "type": "tool.end",
@@ -133,21 +133,21 @@
           "after": "one\n"
         }
       ],
-      "at": 1793234415841
+      "at": 1793924145293
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234415875
+      "at": 1793924145325
     },
     {
       "type": "reply",
-      "at": 1793234415886
+      "at": 1793924145337
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234415886
+      "at": 1793924145337
     },
     {
       "type": "text.start",
@@ -156,24 +156,24 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234415887
+      "at": 1793924145338
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:0",
       "text": "One done.",
-      "at": 1793234415888
+      "at": 1793924145338
     },
     {
       "type": "text.end",
       "part": "msg_2:text:0",
       "text": "One done.",
-      "at": 1793234415888
+      "at": 1793924145338
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234415895
+      "at": 1793924145346
     },
     {
       "type": "turn.end",
@@ -186,7 +186,7 @@
       "tokens": 2760,
       "sessionCostUsd": 0.017009999999999997,
       "prompts": [],
-      "at": 1793234415897
+      "at": 1793924145348
     },
     {
       "type": "user",
@@ -196,29 +196,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234415899
+      "at": 1793924145350
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234415899
+      "at": 1793924145351
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793234415901
+      "at": 1793924145352
     },
     {
       "type": "reply",
-      "at": 1793234415911
+      "at": 1793924145363
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234415911
+      "at": 1793924145363
     },
     {
       "type": "tool.start",
@@ -229,7 +229,7 @@
       "title": "edit",
       "mcp": null,
       "quiet": false,
-      "at": 1793234415911
+      "at": 1793924145364
     },
     {
       "type": "tool.called",
@@ -251,7 +251,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234415912
+      "at": 1793924145365
     },
     {
       "type": "tool.end",
@@ -299,21 +299,21 @@
           "after": null
         }
       ],
-      "at": 1793234415915
+      "at": 1793924145367
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234415951
+      "at": 1793924145396
     },
     {
       "type": "reply",
-      "at": 1793234415996
+      "at": 1793924145412
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234415996
+      "at": 1793924145412
     },
     {
       "type": "text.start",
@@ -322,37 +322,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234415997
+      "at": 1793924145413
     },
     {
       "type": "text.delta",
       "part": "msg_4:text:0",
       "text": "Two done.",
-      "at": 1793234416001
+      "at": 1793924145414
     },
     {
       "type": "text.end",
       "part": "msg_4:text:0",
       "text": "Two done.",
-      "at": 1793234416001
+      "at": 1793924145414
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234416008
+      "at": 1793924145421
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 110,
+      "durationMs": 72,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.03380999999999999,
       "prompts": [],
-      "at": 1793234416009
+      "at": 1793924145423
     },
     {
       "type": "user",
@@ -362,29 +362,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234416011
+      "at": 1793924145425
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234416011
+      "at": 1793924145426
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-3"
       ],
-      "at": 1793234416013
+      "at": 1793924145427
     },
     {
       "type": "reply",
-      "at": 1793234416023
+      "at": 1793924145437
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234416023
+      "at": 1793924145437
     },
     {
       "type": "tool.start",
@@ -395,7 +395,7 @@
       "title": "write",
       "mcp": null,
       "quiet": false,
-      "at": 1793234416024
+      "at": 1793924145438
     },
     {
       "type": "tool.called",
@@ -416,7 +416,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234416025
+      "at": 1793924145475
     },
     {
       "type": "tool.end",
@@ -442,21 +442,21 @@
           "after": "three\n"
         }
       ],
-      "at": 1793234416026
+      "at": 1793924145477
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234416059
+      "at": 1793924145507
     },
     {
       "type": "reply",
-      "at": 1793234416071
+      "at": 1793924145519
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234416071
+      "at": 1793924145519
     },
     {
       "type": "text.start",
@@ -465,37 +465,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234416072
+      "at": 1793924145520
     },
     {
       "type": "text.delta",
       "part": "msg_6:text:0",
       "text": "Three done.",
-      "at": 1793234416072
+      "at": 1793924145520
     },
     {
       "type": "text.end",
       "part": "msg_6:text:0",
       "text": "Three done.",
-      "at": 1793234416072
+      "at": 1793924145520
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234416079
+      "at": 1793924145528
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 69,
+      "durationMs": 107,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.05060999999999999,
       "prompts": [],
-      "at": 1793234416080
+      "at": 1793924145533
     },
     {
       "type": "user",
@@ -505,29 +505,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234416113
+      "at": 1793924145568
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234416114
+      "at": 1793924145568
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-4"
       ],
-      "at": 1793234416115
+      "at": 1793924145569
     },
     {
       "type": "reply",
-      "at": 1793234416125
+      "at": 1793924145583
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234416125
+      "at": 1793924145583
     },
     {
       "type": "text.start",
@@ -536,42 +536,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234416125
+      "at": 1793924145584
     },
     {
       "type": "text.delta",
       "part": "msg_7:text:0",
       "text": "Back after the first turn.",
-      "at": 1793234416137
+      "at": 1793924145590
     },
     {
       "type": "text.end",
       "part": "msg_7:text:0",
       "text": "Back after the first turn.",
-      "at": 1793234416137
+      "at": 1793924145590
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234416145
+      "at": 1793924145598
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 32,
+      "durationMs": 31,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.059009999999999986,
       "prompts": [],
-      "at": 1793234416146
+      "at": 1793924145599
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234416146
+      "at": 1793924145599
     }
   ],
   "outputs": [
@@ -586,22 +586,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234415788
+            "at": 1793924145240
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "reply",
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "tool.start",
@@ -612,7 +612,7 @@
             "title": "write",
             "mcp": null,
             "quiet": false,
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "tool.called",
@@ -633,7 +633,7 @@
             "agent": null,
             "message": null,
             "todos": null,
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "tool.end",
@@ -659,21 +659,21 @@
                 "after": "one\n"
               }
             ],
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234415796
+            "at": 1793924145248
           },
           {
             "type": "reply",
-            "at": 1793234415879
+            "at": 1793924145329
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234415879
+            "at": 1793924145329
           },
           {
             "type": "text.start",
@@ -682,18 +682,18 @@
             "text": "One done.",
             "local": false,
             "quiet": false,
-            "at": 1793234415879
+            "at": 1793924145329
           },
           {
             "type": "text.end",
             "part": "msg_2:text:0",
             "text": "One done.",
-            "at": 1793234415879
+            "at": 1793924145329
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234415879
+            "at": 1793924145329
           },
           {
             "type": "user",
@@ -703,22 +703,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234416115
+            "at": 1793924145569
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234416117
+            "at": 1793924145572
           },
           {
             "type": "reply",
-            "at": 1793234416117
+            "at": 1793924145572
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234416117
+            "at": 1793924145572
           },
           {
             "type": "text.start",
@@ -727,18 +727,18 @@
             "text": "Back after the first turn.",
             "local": false,
             "quiet": false,
-            "at": 1793234416117
+            "at": 1793924145572
           },
           {
             "type": "text.end",
             "part": "msg_7:text:0",
             "text": "Back after the first turn.",
-            "at": 1793234416117
+            "at": 1793924145572
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234416117
+            "at": 1793924145572
           }
         ],
         "earlier": null
@@ -822,7 +822,7 @@
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234415897
+        "endedAt": 1793924145348
       },
       "user-10": {
         "kind": "user",
@@ -844,13 +844,13 @@
         "id": "turn-12",
         "by": "user",
         "costUsd": 0.059009999999999986,
-        "durationMs": 32,
+        "durationMs": 31,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234416146
+        "endedAt": 1793924145599
       }
     },
     "tasks": {},

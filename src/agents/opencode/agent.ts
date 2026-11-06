@@ -1,4 +1,5 @@
 import { lstat } from "node:fs/promises"
+import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { z } from "zod"
 import { appVersion } from "../../build-info.ts"
 import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
@@ -170,6 +171,19 @@ async function denyQuestions(transport: Transport, info: Session): Promise<void>
     .request({ method: "PATCH", path: `/api/session/${info.id}`, body: { permissions: [...rules, QUESTION_DENY] } })
     .catch(() => null)
   if (reply?.status !== 204 && reply?.status !== 200) log.warn("opencode: the question rule did not go on the session")
+}
+
+// YellowCode's instructions stay on the session until it is left, so opencode's own screen never gets them.
+const instructionsPath = (id: string) => `/api/experimental/session/${id}/instructions/entries/yellowcode`
+
+async function addInstructions(transport: Transport, id: string, options: StartOptions): Promise<void> {
+  const body = { value: instructionsFor(options.instructions) }
+  const reply = await transport.request({ method: "PUT", path: instructionsPath(id), body }).catch(() => null)
+  if (reply?.status !== 204 && reply?.status !== 200) log.warn("opencode: YellowCode's instructions did not go on")
+}
+
+async function dropInstructions(transport: Transport, id: string): Promise<void> {
+  await transport.request({ method: "DELETE", path: instructionsPath(id) }).catch(() => null)
 }
 
 // Leaving the session gives opencode's question tool back to it, keeping the rules as they are now.
@@ -477,6 +491,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   const ref = { agent: OPENCODE, id: session }
   // A new session without an agent of its own runs opencode's default, which it lists first.
   if (modes) out.push(...translator.modes(modes, made.agent ?? wanted ?? modes.rows[0]?.id ?? null, lastAt))
+  await addInstructions(transport, made.id, options)
   if (options.resume) await denyQuestions(transport, made)
   if (options.resume) await attach(made)
   if (options.resume && wanted !== null && wanted !== made.agent) await setMode(wanted)
@@ -985,7 +1000,9 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       if (session === null || deleted !== null) return
       if (!options.ephemeral && ended) return
       // A session not kept goes, mid-turn too; opencode stops the turn itself.
-      const leave = options.ephemeral ? deleteSession(transport, session) : allowQuestions(transport, session)
+      const leave = options.ephemeral
+        ? deleteSession(transport, session)
+        : Promise.all([allowQuestions(transport, session), dropInstructions(transport, session)])
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<void>((resolve) => (timer = setTimeout(resolve, LEAVE_MS)))
       await Promise.race([leave, late]).finally(() => clearTimeout(timer))

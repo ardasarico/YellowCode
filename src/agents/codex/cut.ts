@@ -27,6 +27,7 @@ export function createCuts(deps: {
   rpc(): Rpc
   thread(): string
   legacy(): boolean
+  developerInstructions: string
   lookup: Pick<Translator, "turnOf" | "cutAfter" | "cutFrom">
   // The session goes on in this copy.
   forked(opened: ThreadStart): void
@@ -53,7 +54,12 @@ export function createCuts(deps: {
   async function fork(beforeTurnId: string): Promise<Outcome> {
     const reply = await deps
       .rpc()
-      .request("thread/fork", { threadId: deps.thread(), beforeTurnId, excludeTurns: true })
+      .request("thread/fork", {
+        threadId: deps.thread(),
+        beforeTurnId,
+        excludeTurns: true,
+        developerInstructions: deps.developerInstructions,
+      })
       .catch((error: unknown) => {
         log.warn("codex: the copy before the turn was refused", String(error))
         return null

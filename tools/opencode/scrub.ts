@@ -1,5 +1,6 @@
 // Makes a recording machine-independent before it is written: the root becomes <root>, ports become names, and
 // opencode's random ids become per-prefix counters in order of first appearance (so their sort order is not kept).
+import { PROMPT_IN_JSON } from "../../src/agent/yellowcode-prompt.ts"
 
 export type ScrubContext = {
   root: string
@@ -23,6 +24,7 @@ export function createScrubber(context: ScrubContext): (line: unknown) => string
     [context.home, "<home>"],
     ...context.ports.map(([port, name]): [string, string] => [`127.0.0.1:${port}`, `127.0.0.1:<${name}>`]),
   ]
+  swaps.push([PROMPT_IN_JSON, "<yellowcode>"])
   if (context.host.length >= 4) swaps.push([context.host, "<host>"])
 
   const rename = (text: string) =>

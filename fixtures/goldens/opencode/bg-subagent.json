@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793234381810
+      "at": 1793924108626
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234381810
+      "at": 1793924108626
     },
     {
       "type": "user",
@@ -43,39 +43,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234382287
+      "at": 1793924109094
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234382288
+      "at": 1793924109095
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234382292
+      "at": 1793924109100
     },
     {
       "type": "title",
       "title": "Background helpers",
-      "at": 1793234382315
+      "at": 1793924109123
     },
     {
       "type": "reply",
-      "at": 1793234382604
+      "at": 1793924109412
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234382604
+      "at": 1793924109412
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234382604
+      "at": 1793924109412
     },
     {
       "type": "tool.start",
@@ -86,7 +86,7 @@
       "title": "subagent",
       "mcp": null,
       "quiet": false,
-      "at": 1793234382605
+      "at": 1793924109413
     },
     {
       "type": "tool.called",
@@ -115,7 +115,7 @@
       },
       "message": null,
       "todos": null,
-      "at": 1793234382609
+      "at": 1793924109417
     },
     {
       "type": "task.start",
@@ -131,13 +131,13 @@
       "prompt": "WHISKEY read it",
       "workflow": "",
       "agentType": "general",
-      "at": 1793234382614
+      "at": 1793924109422
     },
     {
       "type": "tool.end",
       "id": "toolu_mock0001",
       "status": "done",
-      "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+      "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
       "images": [],
       "patch": null,
       "created": false,
@@ -149,21 +149,21 @@
       "background": true,
       "task": "ses_2",
       "files": [],
-      "at": 1793234382615
+      "at": 1793924109423
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234382630
+      "at": 1793924109438
     },
     {
       "type": "reply",
-      "at": 1793234382648
+      "at": 1793924109457
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234382648
+      "at": 1793924109457
     },
     {
       "type": "text.start",
@@ -172,43 +172,43 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234382649
+      "at": 1793924109458
     },
     {
       "type": "text.delta",
       "part": "msg_3:text:0",
       "text": "It runs in the background.",
-      "at": 1793234382654
+      "at": 1793924109461
     },
     {
       "type": "text.end",
       "part": "msg_3:text:0",
       "text": "It runs in the background.",
-      "at": 1793234382654
+      "at": 1793924109461
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234382661
+      "at": 1793924109469
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 374,
+      "durationMs": 375,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.017009999999999997,
       "prompts": [],
-      "at": 1793234382662
+      "at": 1793924109470
     },
     {
       "type": "subagent.model",
       "call": "toolu_mock0001",
       "model": "claude-opus-5-5",
-      "at": 1793234383161
+      "at": 1793924109960
     },
     {
       "type": "tool.start",
@@ -219,7 +219,7 @@
       "title": "read",
       "mcp": null,
       "quiet": false,
-      "at": 1793234383162
+      "at": 1793924109961
     },
     {
       "type": "tool.called",
@@ -239,7 +239,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234383164
+      "at": 1793924109965
     },
     {
       "type": "task.progress",
@@ -247,9 +247,9 @@
       "activity": "README.md",
       "lastTool": "read",
       "toolUses": 1,
-      "durationMs": 550,
+      "durationMs": 543,
       "tokens": 0,
-      "at": 1793234383164
+      "at": 1793924109965
     },
     {
       "type": "tool.end",
@@ -270,7 +270,7 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793234383167
+      "at": 1793924109968
     },
     {
       "type": "text.start",
@@ -279,19 +279,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234383186
+      "at": 1793924109989
     },
     {
       "type": "text.delta",
       "part": "msg_5:text:0",
       "text": "A demo.",
-      "at": 1793234383186
+      "at": 1793924109989
     },
     {
       "type": "text.end",
       "part": "msg_5:text:0",
       "text": "A demo.",
-      "at": 1793234383186
+      "at": 1793924109989
     },
     {
       "type": "task.end",
@@ -302,14 +302,14 @@
         "outputFile": null,
         "usage": {
           "toolUses": 1,
-          "durationMs": 581,
+          "durationMs": 576,
           "tokens": 2760
         },
         "stoppedByUser": false,
         "exitCode": null
       },
       "call": "toolu_mock0001",
-      "at": 1793234383195
+      "at": 1793924109998
     },
     {
       "type": "turn.open",
@@ -317,16 +317,16 @@
       "endedTasks": [
         "ses_2"
       ],
-      "at": 1793234383197
+      "at": 1793924110000
     },
     {
       "type": "reply",
-      "at": 1793234383207
+      "at": 1793924110011
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234383207
+      "at": 1793924110011
     },
     {
       "type": "text.start",
@@ -335,37 +335,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234383207
+      "at": 1793924110012
     },
     {
       "type": "text.delta",
       "part": "msg_7:text:0",
       "text": "The helper finished.",
-      "at": 1793234383213
+      "at": 1793924110016
     },
     {
       "type": "text.end",
       "part": "msg_7:text:0",
       "text": "The helper finished.",
-      "at": 1793234383213
+      "at": 1793924110016
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234383220
+      "at": 1793924110024
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 24,
+      "durationMs": 25,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.04221,
       "prompts": [],
-      "at": 1793234383221
+      "at": 1793924110025
     },
     {
       "type": "user",
@@ -375,29 +375,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234383223
+      "at": 1793924110027
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234383223
+      "at": 1793924110028
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793234383224
+      "at": 1793924110029
     },
     {
       "type": "reply",
-      "at": 1793234383233
+      "at": 1793924110039
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234383233
+      "at": 1793924110039
     },
     {
       "type": "tool.start",
@@ -408,7 +408,7 @@
       "title": "subagent",
       "mcp": null,
       "quiet": false,
-      "at": 1793234383234
+      "at": 1793924110040
     },
     {
       "type": "tool.called",
@@ -436,7 +436,7 @@
       },
       "message": null,
       "todos": null,
-      "at": 1793234383235
+      "at": 1793924110041
     },
     {
       "type": "task.start",
@@ -452,13 +452,13 @@
       "prompt": "YANKEE read it slowly",
       "workflow": "",
       "agentType": "general",
-      "at": 1793234383237
+      "at": 1793924110043
     },
     {
       "type": "subagent.model",
       "call": "toolu_mock0003",
       "model": "claude-opus-5-5",
-      "at": 1793234383248
+      "at": 1793924110055
     },
     {
       "type": "tool.start",
@@ -469,7 +469,7 @@
       "title": "read",
       "mcp": null,
       "quiet": false,
-      "at": 1793234383249
+      "at": 1793924110056
     },
     {
       "type": "tool.called",
@@ -489,7 +489,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234383250
+      "at": 1793924110057
     },
     {
       "type": "task.progress",
@@ -497,9 +497,9 @@
       "activity": "src/a.ts",
       "lastTool": "read",
       "toolUses": 1,
-      "durationMs": 13,
+      "durationMs": 14,
       "tokens": 0,
-      "at": 1793234383250
+      "at": 1793924110057
     },
     {
       "type": "tool.end",
@@ -520,20 +520,20 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793234383251
+      "at": 1793924110059
     },
     {
       "type": "task.update",
       "id": "ses_3",
       "error": null,
       "background": true,
-      "at": 1793234383254
+      "at": 1793924110061
     },
     {
       "type": "tool.end",
       "id": "toolu_mock0003",
       "status": "done",
-      "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+      "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
       "images": [],
       "patch": null,
       "created": false,
@@ -545,21 +545,21 @@
       "background": true,
       "task": "ses_3",
       "files": [],
-      "at": 1793234383254
+      "at": 1793924110061
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234383269
+      "at": 1793924110077
     },
     {
       "type": "reply",
-      "at": 1793234383287
+      "at": 1793924110099
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234383287
+      "at": 1793924110099
     },
     {
       "type": "text.start",
@@ -568,37 +568,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234383287
+      "at": 1793924110100
     },
     {
       "type": "text.delta",
       "part": "msg_12:text:0",
       "text": "Moved on.",
-      "at": 1793234383288
+      "at": 1793924110100
     },
     {
       "type": "text.end",
       "part": "msg_12:text:0",
       "text": "Moved on.",
-      "at": 1793234383288
+      "at": 1793924110100
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234383295
+      "at": 1793924110108
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 73,
+      "durationMs": 82,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.06741,
       "prompts": [],
-      "at": 1793234383296
+      "at": 1793924110110
     },
     {
       "type": "text.start",
@@ -607,19 +607,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234385770
+      "at": 1793924112579
     },
     {
       "type": "text.delta",
       "part": "msg_13:text:0",
       "text": "Says hello.",
-      "at": 1793234385772
+      "at": 1793924112581
     },
     {
       "type": "text.end",
       "part": "msg_13:text:0",
       "text": "Says hello.",
-      "at": 1793234385772
+      "at": 1793924112581
     },
     {
       "type": "task.end",
@@ -630,14 +630,14 @@
         "outputFile": null,
         "usage": {
           "toolUses": 1,
-          "durationMs": 2552,
+          "durationMs": 2555,
           "tokens": 2760
         },
         "stoppedByUser": false,
         "exitCode": null
       },
       "call": "toolu_mock0003",
-      "at": 1793234385789
+      "at": 1793924112598
     },
     {
       "type": "turn.open",
@@ -645,16 +645,16 @@
       "endedTasks": [
         "ses_3"
       ],
-      "at": 1793234385791
+      "at": 1793924112600
     },
     {
       "type": "reply",
-      "at": 1793234385808
+      "at": 1793924112661
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234385808
+      "at": 1793924112661
     },
     {
       "type": "text.start",
@@ -663,42 +663,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234385809
+      "at": 1793924112662
     },
     {
       "type": "text.delta",
       "part": "msg_15:text:0",
       "text": "The slow helper finished.",
-      "at": 1793234385858
+      "at": 1793924112677
     },
     {
       "type": "text.end",
       "part": "msg_15:text:0",
       "text": "The slow helper finished.",
-      "at": 1793234385858
+      "at": 1793924112677
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234385866
+      "at": 1793924112685
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 75,
+      "durationMs": 87,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.08420999999999998,
       "prompts": [],
-      "at": 1793234385866
+      "at": 1793924112687
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234385866
+      "at": 1793924112687
     }
   ],
   "outputs": [
@@ -713,22 +713,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234382292
+            "at": 1793924109100
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "reply",
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.start",
@@ -739,7 +739,7 @@
             "title": "subagent",
             "mcp": null,
             "quiet": false,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.called",
@@ -768,7 +768,7 @@
             },
             "message": null,
             "todos": null,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.start",
@@ -779,7 +779,7 @@
             "title": "read",
             "mcp": null,
             "quiet": false,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.called",
@@ -799,7 +799,7 @@
             "agent": null,
             "message": null,
             "todos": null,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.end",
@@ -820,7 +820,7 @@
             "background": false,
             "task": null,
             "files": [],
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "text.start",
@@ -829,19 +829,19 @@
             "text": "A demo.",
             "local": false,
             "quiet": false,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "text.end",
             "part": "msg_5:text:0",
             "text": "A demo.",
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "tool.end",
             "id": "toolu_mock0001",
             "status": "done",
-            "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+            "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
             "images": [],
             "patch": null,
             "created": false,
@@ -853,21 +853,21 @@
             "background": true,
             "task": "ses_2",
             "files": [],
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234382299
+            "at": 1793924109107
           },
           {
             "type": "reply",
-            "at": 1793234382635
+            "at": 1793924109443
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234382635
+            "at": 1793924109443
           },
           {
             "type": "text.start",
@@ -876,33 +876,33 @@
             "text": "It runs in the background.",
             "local": false,
             "quiet": false,
-            "at": 1793234382635
+            "at": 1793924109443
           },
           {
             "type": "text.end",
             "part": "msg_3:text:0",
             "text": "It runs in the background.",
-            "at": 1793234382635
+            "at": 1793924109443
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234382635
+            "at": 1793924109443
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "reply",
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "text.start",
@@ -911,18 +911,18 @@
             "text": "The helper finished.",
             "local": false,
             "quiet": false,
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "text.end",
             "part": "msg_7:text:0",
             "text": "The helper finished.",
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234383200
+            "at": 1793924110004
           },
           {
             "type": "user",
@@ -932,22 +932,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234383224
+            "at": 1793924110029
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "reply",
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.start",
@@ -958,7 +958,7 @@
             "title": "subagent",
             "mcp": null,
             "quiet": false,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.called",
@@ -986,7 +986,7 @@
             },
             "message": null,
             "todos": null,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.start",
@@ -997,7 +997,7 @@
             "title": "read",
             "mcp": null,
             "quiet": false,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.called",
@@ -1017,7 +1017,7 @@
             "agent": null,
             "message": null,
             "todos": null,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.end",
@@ -1038,7 +1038,7 @@
             "background": false,
             "task": null,
             "files": [],
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "text.start",
@@ -1047,19 +1047,19 @@
             "text": "Says hello.",
             "local": false,
             "quiet": false,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "text.end",
             "part": "msg_13:text:0",
             "text": "Says hello.",
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "tool.end",
             "id": "toolu_mock0003",
             "status": "done",
-            "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+            "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
             "images": [],
             "patch": null,
             "created": false,
@@ -1071,21 +1071,21 @@
             "background": true,
             "task": "ses_3",
             "files": [],
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234383226
+            "at": 1793924110031
           },
           {
             "type": "reply",
-            "at": 1793234383273
+            "at": 1793924110080
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234383273
+            "at": 1793924110080
           },
           {
             "type": "text.start",
@@ -1094,33 +1094,33 @@
             "text": "Moved on.",
             "local": false,
             "quiet": false,
-            "at": 1793234383273
+            "at": 1793924110080
           },
           {
             "type": "text.end",
             "part": "msg_12:text:0",
             "text": "Moved on.",
-            "at": 1793234383273
+            "at": 1793924110080
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234383273
+            "at": 1793924110080
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234385798
+            "at": 1793924112607
           },
           {
             "type": "reply",
-            "at": 1793234385798
+            "at": 1793924112607
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234385798
+            "at": 1793924112607
           },
           {
             "type": "text.start",
@@ -1129,18 +1129,18 @@
             "text": "The slow helper finished.",
             "local": false,
             "quiet": false,
-            "at": 1793234385798
+            "at": 1793924112607
           },
           {
             "type": "text.end",
             "part": "msg_15:text:0",
             "text": "The slow helper finished.",
-            "at": 1793234385798
+            "at": 1793924112607
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234385798
+            "at": 1793924112607
           }
         ],
         "earlier": null
@@ -1192,7 +1192,7 @@
         "detail": null,
         "background": true,
         "status": "done",
-        "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+        "result": "The subagent is working in the background (sessionID: ses_2). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
         "children": [
           "toolu_mock0002",
           "text-4"
@@ -1215,7 +1215,7 @@
           "tokens": 2760,
           "state": "completed",
           "toolUses": 1,
-          "durationMs": 581,
+          "durationMs": 576,
           "report": "A demo.",
           "error": null,
           "activity": "README.md",
@@ -1234,13 +1234,13 @@
         "id": "turn-3",
         "by": "user",
         "costUsd": 0.017009999999999997,
-        "durationMs": 374,
+        "durationMs": 375,
         "inputTokens": 2400,
         "outputTokens": 360,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234382662
+        "endedAt": 1793924109470
       },
       "toolu_mock0002": {
         "kind": "tool",
@@ -1291,13 +1291,13 @@
         "id": "turn-6",
         "by": "agent",
         "costUsd": 0.04221,
-        "durationMs": 24,
+        "durationMs": 25,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234383221
+        "endedAt": 1793924110025
       },
       "user-7": {
         "kind": "user",
@@ -1325,7 +1325,7 @@
         "detail": null,
         "background": false,
         "status": "done",
-        "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.",
+        "result": "The subagent is working in the background (sessionID: ses_3). You will be notified automatically when it finishes.\nDO NOT sleep, poll for progress, ask the subagent for status, or duplicate this subagent's work; avoid working with the same files or topics it is using.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID.",
         "children": [
           "toolu_mock0004",
           "text-10"
@@ -1348,7 +1348,7 @@
           "tokens": 2760,
           "state": "completed",
           "toolUses": 1,
-          "durationMs": 2552,
+          "durationMs": 2555,
           "report": "Says hello.",
           "error": null,
           "activity": "src/a.ts",
@@ -1399,13 +1399,13 @@
         "id": "turn-9",
         "by": "user",
         "costUsd": 0.06741,
-        "durationMs": 73,
+        "durationMs": 82,
         "inputTokens": 2400,
         "outputTokens": 360,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234383296
+        "endedAt": 1793924110110
       },
       "text-10": {
         "kind": "text",
@@ -1424,13 +1424,13 @@
         "id": "turn-12",
         "by": "agent",
         "costUsd": 0.08420999999999998,
-        "durationMs": 75,
+        "durationMs": 87,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234385866
+        "endedAt": 1793924112687
       }
     },
     "tasks": {
@@ -1451,7 +1451,7 @@
         "activity": "README.md",
         "lastTool": "read",
         "toolUses": 1,
-        "durationMs": 581,
+        "durationMs": 576,
         "tokens": 2760,
         "summary": "A demo.",
         "outputFile": null,
@@ -1481,7 +1481,7 @@
         "activity": "src/a.ts",
         "lastTool": "read",
         "toolUses": 1,
-        "durationMs": 2552,
+        "durationMs": 2555,
         "tokens": 2760,
         "summary": "Says hello.",
         "outputFile": null,

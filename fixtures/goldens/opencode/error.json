@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793234282492
+      "at": 1793924014881
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234282492
+      "at": 1793924014881
     },
     {
       "type": "user",
@@ -43,147 +43,147 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234282985
+      "at": 1793924015351
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234282990
+      "at": 1793924015352
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234282998
+      "at": 1793924015357
     },
     {
       "type": "title",
       "title": "Broken",
-      "at": 1793234283036
+      "at": 1793924015376
     },
     {
       "type": "reply",
-      "at": 1793234283088
+      "at": 1793924015403
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234283088
+      "at": 1793924015403
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234283088
+      "at": 1793924015403
     },
     {
       "type": "retry",
       "attempt": 1,
       "max": null,
-      "delayMs": 1926,
+      "delayMs": 2204,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234283090
+      "at": 1793924015404
     },
     {
       "type": "retry",
       "attempt": 2,
       "max": null,
-      "delayMs": 3465,
+      "delayMs": 3969,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234285042
+      "at": 1793924017637
     },
     {
       "type": "retry",
       "attempt": 3,
       "max": null,
-      "delayMs": 9109,
+      "delayMs": 9577,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234288538
+      "at": 1793924021641
     },
     {
       "type": "retry",
       "attempt": 4,
       "max": null,
-      "delayMs": 10988,
+      "delayMs": 9360,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234297859
+      "at": 1793924031274
     },
     {
       "type": "retry",
       "attempt": 5,
       "max": null,
-      "delayMs": 10380,
+      "delayMs": 8395,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234308871
+      "at": 1793924040654
     },
     {
       "type": "retry",
       "attempt": 6,
       "max": null,
-      "delayMs": 9590,
+      "delayMs": 9372,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234319294
+      "at": 1793924049064
     },
     {
       "type": "retry",
       "attempt": 7,
       "max": null,
-      "delayMs": 9489,
+      "delayMs": 9675,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234328932
+      "at": 1793924058453
     },
     {
       "type": "retry",
       "attempt": 8,
       "max": null,
-      "delayMs": 10537,
+      "delayMs": 10256,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234338516
+      "at": 1793924068148
     },
     {
       "type": "retry",
       "attempt": 9,
       "max": null,
-      "delayMs": 10613,
+      "delayMs": 8236,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234349073
+      "at": 1793924078432
     },
     {
       "type": "retry",
       "attempt": 10,
       "max": null,
-      "delayMs": 10958,
+      "delayMs": 10770,
       "status": 500,
       "reason": "server_error",
-      "at": 1793234359729
+      "at": 1793924086682
     },
     {
       "type": "turn.end",
       "error": "The mock is broken",
       "interrupted": false,
       "local": false,
-      "durationMs": 87798,
+      "durationMs": 82156,
       "inputTokens": 0,
       "outputTokens": 0,
       "tokens": 0,
       "sessionCostUsd": 0.00021,
       "prompts": [],
-      "at": 1793234370788
+      "at": 1793924097508
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234370788
+      "at": 1793924097508
     }
   ],
   "outputs": [],
@@ -209,13 +209,13 @@
         "id": "turn-3",
         "by": "user",
         "costUsd": 0.00021,
-        "durationMs": 87798,
+        "durationMs": 82156,
         "inputTokens": 0,
         "outputTokens": 0,
         "error": "The mock is broken",
         "retries": 10,
         "interrupted": false,
-        "endedAt": 1793234370788
+        "endedAt": 1793924097508
       }
     },
     "tasks": {},

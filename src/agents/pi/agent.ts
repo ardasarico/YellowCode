@@ -1,5 +1,6 @@
 // One pi session on a `pi --mode rpc` of its own, spawned in the session's folder. Commands go to stdin as JSON lines
 // and are paired with their responses by id; everything else pi writes is a session event or an extension's request.
+import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { join } from "node:path"
 import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
@@ -196,7 +197,12 @@ function sessionArgs(options: StartOptions): string[] {
 }
 
 // Plain: without the user's extensions (pi's plugins and hooks) and MCP servers.
-const leanArgs = (options: StartOptions) => (options.plain ? ["--no-extensions", "--no-mcp"] : [])
+// YellowCode's instructions go with every start, as pi keeps no system prompt in the session.
+const leanArgs = (options: StartOptions) => [
+  ...(options.plain ? ["--no-extensions", "--no-mcp"] : []),
+  "--append-system-prompt",
+  instructionsFor(options.instructions),
+]
 
 export const openArgs = (options: StartOptions) => [...sessionArgs(options), ...leanArgs(options)]
 

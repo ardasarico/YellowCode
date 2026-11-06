@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793244013837
+      "at": 1793924164984
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793244013837
+      "at": 1793924164984
     },
     {
       "type": "lists",
@@ -51,6 +51,15 @@
           {
             "name": "review",
             "description": "review changes [commit|branch|pr], defaults to uncommitted",
+            "argumentHint": "",
+            "aliases": [],
+            "builtin": false,
+            "setting": null,
+            "knob": null
+          },
+          {
+            "name": "goal",
+            "description": "keep working until an objective is met [pause|resume|clear]",
             "argumentHint": "",
             "aliases": [],
             "builtin": false,
@@ -77,7 +86,7 @@
           }
         ]
       },
-      "at": 1793244013907
+      "at": 1793924165043
     },
     {
       "type": "lists",
@@ -129,7 +138,7 @@
           }
         ]
       },
-      "at": 1793244013907
+      "at": 1793924165043
     },
     {
       "type": "lists",
@@ -151,14 +160,14 @@
           }
         ]
       },
-      "at": 1793244013907
+      "at": 1793924165043
     },
     {
       "type": "lists",
       "lists": {
         "plugins": []
       },
-      "at": 1793244013907
+      "at": 1793924165043
     },
     {
       "type": "lists",
@@ -180,7 +189,7 @@
           }
         ]
       },
-      "at": 1793244015975
+      "at": 1793924167077
     },
     {
       "type": "lists",
@@ -202,7 +211,7 @@
           }
         ]
       },
-      "at": 1793244015975
+      "at": 1793924167077
     },
     {
       "type": "lists",
@@ -224,7 +233,7 @@
           }
         ]
       },
-      "at": 1793244016048
+      "at": 1793924167141
     },
     {
       "type": "lists",
@@ -246,7 +255,7 @@
           }
         ]
       },
-      "at": 1793244016048
+      "at": 1793924167141
     },
     {
       "type": "lists",
@@ -268,7 +277,7 @@
           }
         ]
       },
-      "at": 1793244016100
+      "at": 1793924167189
     },
     {
       "type": "user",
@@ -278,39 +287,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793244017106
+      "at": 1793924168203
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793244017107
+      "at": 1793924168204
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793244017111
+      "at": 1793924168210
     },
     {
       "type": "title",
       "title": "Lists",
-      "at": 1793244017129
+      "at": 1793924168229
     },
     {
       "type": "reply",
-      "at": 1793244017152
+      "at": 1793924168257
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793244017152
+      "at": 1793924168257
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793244017152
+      "at": 1793924168257
     },
     {
       "type": "text.start",
@@ -319,42 +328,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793244017153
+      "at": 1793924168258
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:0",
       "text": "Hello, team.",
-      "at": 1793244017153
+      "at": 1793924168259
     },
     {
       "type": "text.end",
       "part": "msg_2:text:0",
       "text": "Hello, team.",
-      "at": 1793244017153
+      "at": 1793924168259
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793244017161
+      "at": 1793924168266
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 55,
+      "durationMs": 64,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.00861,
       "prompts": [],
-      "at": 1793244017162
+      "at": 1793924168268
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793244017162
+      "at": 1793924168268
     }
   ],
   "outputs": [
@@ -400,13 +409,13 @@
         "id": "turn-3",
         "by": "user",
         "costUsd": 0.00861,
-        "durationMs": 55,
+        "durationMs": 64,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793244017162
+        "endedAt": 1793924168268
       }
     },
     "tasks": {},
@@ -471,6 +480,15 @@
       {
         "name": "review",
         "description": "review changes [commit|branch|pr], defaults to uncommitted",
+        "argumentHint": "",
+        "aliases": [],
+        "builtin": false,
+        "setting": null,
+        "knob": null
+      },
+      {
+        "name": "goal",
+        "description": "keep working until an objective is met [pause|resume|clear]",
         "argumentHint": "",
         "aliases": [],
         "builtin": false,

@@ -1,7 +1,7 @@
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { OWN_AGENTS, OWN_ASK, OWN_SESSIONS } from "../protocol/messages.ts"
-import { APPEND_SYSTEM_PROMPT } from "./append-prompt.ts"
+import { instructionsFor } from "../agent/yellowcode-prompt.ts"
 
 export const CLAUDE_STREAM_ARGS = [
   "-p",
@@ -65,6 +65,6 @@ export function claudeArgs(
     launch.mode,
     ...bypass,
     "--append-system-prompt",
-    [APPEND_SYSTEM_PROMPT, ...(lean.instructions ?? [])].join("\n\n"),
+    instructionsFor(lean.instructions ?? []),
   ]
 }

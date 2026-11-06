@@ -8,6 +8,7 @@
 // under it.
 import type { Fixture, HttpLine, SseLine, WsLine } from "./fixture.ts"
 import type { Request, Reply, Socket, Transport } from "./transport.ts"
+import { withPlaceholder } from "../../agent/yellowcode-prompt.ts"
 
 export type ReplayTransport = Transport & {
   // Events from..to-1 (counted among the fixture's events, every stream's in order) never arrive.
@@ -76,7 +77,8 @@ export function replayTransport(fixture: Fixture): ReplayTransport {
   }
   const later = (stopped: Promise<void>) => Promise.race([new Promise<void>((resolve) => wake.push(resolve)), stopped])
 
-  function request(req: Request): Promise<Reply> {
+  function request(sent: Request): Promise<Reply> {
+    const req = { ...sent, body: withPlaceholder(sent.body) }
     const key = keyOf(req.method, req.path, req.query, req.body)
     const open = exchanges.filter((exchange) => !used.has(exchange))
     const same = open.filter((exchange) => keyOf(exchange.method, exchange.path, exchange.query, exchange.body) === key)

@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793292872459
+      "at": 1793923985800
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793292872459
+      "at": 1793923985800
     },
     {
       "type": "lists",
@@ -567,9 +567,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-opus-4-5"
+                  "id": "claude-opus-4-5-20251101"
                 },
-                "label": "Claude Opus 4.5 (latest)",
+                "label": "Claude Opus 4.5",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -596,9 +596,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-opus-4-5-20251101"
+                  "id": "claude-opus-4-5"
                 },
-                "label": "Claude Opus 4.5",
+                "label": "Claude Opus 4.5 (latest)",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -675,9 +675,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-sonnet-4-5"
+                  "id": "claude-sonnet-4-5-20250929"
                 },
-                "label": "Claude Sonnet 4.5 (latest)",
+                "label": "Claude Sonnet 4.5",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -700,9 +700,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-sonnet-4-5-20250929"
+                  "id": "claude-sonnet-4-5"
                 },
-                "label": "Claude Sonnet 4.5",
+                "label": "Claude Sonnet 4.5 (latest)",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -772,7 +772,7 @@
           }
         ]
       },
-      "at": 1793292872462
+      "at": 1793923985824
     },
     {
       "type": "model",
@@ -780,12 +780,12 @@
         "provider": "anthropic",
         "id": "claude-opus-5-5"
       },
-      "at": 1793292872482
+      "at": 1793923985824
     },
     {
       "type": "effort",
       "effort": "default",
-      "at": 1793292872482
+      "at": 1793923985824
     },
     {
       "type": "user",
@@ -795,39 +795,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292872935
+      "at": 1793923986270
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292872936
+      "at": 1793923986271
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793292872941
+      "at": 1793923986276
     },
     {
       "type": "title",
       "title": "Switching models",
-      "at": 1793292872964
+      "at": 1793923986299
     },
     {
       "type": "reply",
-      "at": 1793292872988
+      "at": 1793923986322
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292872988
+      "at": 1793923986322
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793292872988
+      "at": 1793923986322
     },
     {
       "type": "text.start",
@@ -836,19 +836,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292872989
+      "at": 1793923986323
     },
     {
       "type": "text.delta",
       "part": "msg_1:text:0",
       "text": "One.",
-      "at": 1793292872990
+      "at": 1793923986324
     },
     {
       "type": "text.end",
       "part": "msg_1:text:0",
       "text": "One.",
-      "at": 1793292872990
+      "at": 1793923986324
     },
     {
       "type": "text.start",
@@ -857,24 +857,24 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292872991
+      "at": 1793923986325
     },
     {
       "type": "text.delta",
       "part": "msg_1:text:1",
       "text": "(claude-opus-5-5, effort none)",
-      "at": 1793292872991
+      "at": 1793923986326
     },
     {
       "type": "text.end",
       "part": "msg_1:text:1",
       "text": "(claude-opus-5-5, effort none)",
-      "at": 1793292872992
+      "at": 1793923986326
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873000
+      "at": 1793923986334
     },
     {
       "type": "turn.end",
@@ -887,12 +887,12 @@
       "tokens": 1380,
       "sessionCostUsd": 0.00861,
       "prompts": [],
-      "at": 1793292873001
+      "at": 1793923986336
     },
     {
       "type": "effort",
       "effort": "high",
-      "at": 1793292873001
+      "at": 1793923986336
     },
     {
       "type": "user",
@@ -902,29 +902,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292873005
+      "at": 1793923986341
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292873006
+      "at": 1793923986341
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793292873007
+      "at": 1793923986342
     },
     {
       "type": "reply",
-      "at": 1793292873018
+      "at": 1793923986353
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292873018
+      "at": 1793923986353
     },
     {
       "type": "text.start",
@@ -933,19 +933,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873018
+      "at": 1793923986354
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:0",
       "text": "Two.",
-      "at": 1793292873019
+      "at": 1793923986355
     },
     {
       "type": "text.end",
       "part": "msg_2:text:0",
       "text": "Two.",
-      "at": 1793292873019
+      "at": 1793923986355
     },
     {
       "type": "text.start",
@@ -954,37 +954,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873019
+      "at": 1793923986355
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:1",
       "text": "(claude-opus-5-5, effort high)",
-      "at": 1793292873034
+      "at": 1793923986369
     },
     {
       "type": "text.end",
       "part": "msg_2:text:1",
       "text": "(claude-opus-5-5, effort high)",
-      "at": 1793292873034
+      "at": 1793923986369
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873042
+      "at": 1793923986378
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 37,
+      "durationMs": 38,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.017009999999999997,
       "prompts": [],
-      "at": 1793292873043
+      "at": 1793923986379
     },
     {
       "type": "model",
@@ -992,12 +992,12 @@
         "provider": "anthropic",
         "id": "claude-haiku-5-5"
       },
-      "at": 1793292873043
+      "at": 1793923986379
     },
     {
       "type": "effort",
       "effort": "high",
-      "at": 1793292873043
+      "at": 1793923986379
     },
     {
       "type": "user",
@@ -1007,29 +1007,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292873046
+      "at": 1793923986383
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292873046
+      "at": 1793923986384
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-3"
       ],
-      "at": 1793292873047
+      "at": 1793923986385
     },
     {
       "type": "reply",
-      "at": 1793292873058
+      "at": 1793923986399
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292873058
+      "at": 1793923986399
     },
     {
       "type": "text.start",
@@ -1038,19 +1038,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873058
+      "at": 1793923986400
     },
     {
       "type": "text.delta",
       "part": "msg_3:text:0",
       "text": "Three.",
-      "at": 1793292873059
+      "at": 1793923986401
     },
     {
       "type": "text.end",
       "part": "msg_3:text:0",
       "text": "Three.",
-      "at": 1793292873059
+      "at": 1793923986401
     },
     {
       "type": "text.start",
@@ -1059,37 +1059,37 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873059
+      "at": 1793923986401
     },
     {
       "type": "text.delta",
       "part": "msg_3:text:1",
       "text": "(claude-haiku-5-5, effort high)",
-      "at": 1793292873073
+      "at": 1793923986411
     },
     {
       "type": "text.end",
       "part": "msg_3:text:1",
       "text": "(claude-haiku-5-5, effort high)",
-      "at": 1793292873074
+      "at": 1793923986411
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873081
+      "at": 1793923986422
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 36,
+      "durationMs": 40,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.017219999999999996,
       "prompts": [],
-      "at": 1793292873082
+      "at": 1793923986424
     },
     {
       "type": "model",
@@ -1097,12 +1097,12 @@
         "provider": "lab",
         "id": "claude-lab-1"
       },
-      "at": 1793292873082
+      "at": 1793923986424
     },
     {
       "type": "effort",
       "effort": "high",
-      "at": 1793292873082
+      "at": 1793923986424
     },
     {
       "type": "user",
@@ -1112,29 +1112,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292873085
+      "at": 1793923986428
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292873085
+      "at": 1793923986428
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-4"
       ],
-      "at": 1793292873086
+      "at": 1793923986430
     },
     {
       "type": "reply",
-      "at": 1793292873099
+      "at": 1793923986440
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292873099
+      "at": 1793923986440
     },
     {
       "type": "text.start",
@@ -1143,19 +1143,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873100
+      "at": 1793923986441
     },
     {
       "type": "text.delta",
       "part": "msg_4:text:0",
       "text": "Four.",
-      "at": 1793292873101
+      "at": 1793923986442
     },
     {
       "type": "text.end",
       "part": "msg_4:text:0",
       "text": "Four.",
-      "at": 1793292873101
+      "at": 1793923986442
     },
     {
       "type": "text.start",
@@ -1164,42 +1164,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873101
+      "at": 1793923986442
     },
     {
       "type": "text.delta",
       "part": "msg_4:text:1",
       "text": "(claude-lab-1, effort high)",
-      "at": 1793292873112
+      "at": 1793923986512
     },
     {
       "type": "text.end",
       "part": "msg_4:text:1",
       "text": "(claude-lab-1, effort high)",
-      "at": 1793292873112
+      "at": 1793923986512
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873121
+      "at": 1793923986520
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 37,
+      "durationMs": 94,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.017219999999999996,
       "prompts": [],
-      "at": 1793292873122
+      "at": 1793923986522
     },
     {
       "type": "effort",
       "effort": "default",
-      "at": 1793292873122
+      "at": 1793923986522
     },
     {
       "type": "user",
@@ -1209,29 +1209,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292873162
+      "at": 1793923986526
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292873162
+      "at": 1793923986526
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-5"
       ],
-      "at": 1793292873164
+      "at": 1793923986528
     },
     {
       "type": "reply",
-      "at": 1793292873175
+      "at": 1793923986538
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292873175
+      "at": 1793923986538
     },
     {
       "type": "text.start",
@@ -1240,19 +1240,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873175
+      "at": 1793923986539
     },
     {
       "type": "text.delta",
       "part": "msg_5:text:0",
       "text": "Five.",
-      "at": 1793292873176
+      "at": 1793923986540
     },
     {
       "type": "text.end",
       "part": "msg_5:text:0",
       "text": "Five.",
-      "at": 1793292873176
+      "at": 1793923986540
     },
     {
       "type": "text.start",
@@ -1261,24 +1261,24 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873176
+      "at": 1793923986540
     },
     {
       "type": "text.delta",
       "part": "msg_5:text:1",
       "text": "(claude-lab-1, effort none)",
-      "at": 1793292873191
+      "at": 1793923986555
     },
     {
       "type": "text.end",
       "part": "msg_5:text:1",
       "text": "(claude-lab-1, effort none)",
-      "at": 1793292873191
+      "at": 1793923986555
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873199
+      "at": 1793923986563
     },
     {
       "type": "turn.end",
@@ -1291,12 +1291,12 @@
       "tokens": 1380,
       "sessionCostUsd": 0.017219999999999996,
       "prompts": [],
-      "at": 1793292873200
+      "at": 1793923986564
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793292873200
+      "at": 1793923986564
     },
     {
       "type": "ready",
@@ -1893,9 +1893,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-opus-4-5"
+                  "id": "claude-opus-4-5-20251101"
                 },
-                "label": "Claude Opus 4.5 (latest)",
+                "label": "Claude Opus 4.5",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -1922,9 +1922,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-opus-4-5-20251101"
+                  "id": "claude-opus-4-5"
                 },
-                "label": "Claude Opus 4.5",
+                "label": "Claude Opus 4.5 (latest)",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -2001,9 +2001,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-sonnet-4-5"
+                  "id": "claude-sonnet-4-5-20250929"
                 },
-                "label": "Claude Sonnet 4.5 (latest)",
+                "label": "Claude Sonnet 4.5",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -2026,9 +2026,9 @@
               {
                 "ref": {
                   "provider": "anthropic",
-                  "id": "claude-sonnet-4-5-20250929"
+                  "id": "claude-sonnet-4-5"
                 },
-                "label": "Claude Sonnet 4.5",
+                "label": "Claude Sonnet 4.5 (latest)",
                 "note": "",
                 "resolves": null,
                 "efforts": [
@@ -2108,29 +2108,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793292873710
+      "at": 1793923987119
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793292873712
+      "at": 1793923987120
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-6"
       ],
-      "at": 1793292873717
+      "at": 1793923987123
     },
     {
       "type": "reply",
-      "at": 1793292873776
+      "at": 1793923987134
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793292873776
+      "at": 1793923987134
     },
     {
       "type": "text.start",
@@ -2139,19 +2139,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873777
+      "at": 1793923987135
     },
     {
       "type": "text.delta",
       "part": "msg_15:text:0",
       "text": "Six.",
-      "at": 1793292873781
+      "at": 1793923987136
     },
     {
       "type": "text.end",
       "part": "msg_15:text:0",
       "text": "Six.",
-      "at": 1793292873781
+      "at": 1793923987136
     },
     {
       "type": "text.start",
@@ -2160,42 +2160,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793292873782
+      "at": 1793923987136
     },
     {
       "type": "text.delta",
       "part": "msg_15:text:1",
       "text": "(claude-lab-1, effort none)",
-      "at": 1793292873798
+      "at": 1793923987150
     },
     {
       "type": "text.end",
       "part": "msg_15:text:1",
       "text": "(claude-lab-1, effort none)",
-      "at": 1793292873798
+      "at": 1793923987150
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793292873806
+      "at": 1793923987159
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 95,
+      "durationMs": 40,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.017219999999999996,
       "prompts": [],
-      "at": 1793292873807
+      "at": 1793923987160
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793292873807
+      "at": 1793923987160
     }
   ],
   "state": {
@@ -2260,7 +2260,7 @@
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873001
+        "endedAt": 1793923986336
       },
       "user-5": {
         "kind": "user",
@@ -2288,13 +2288,13 @@
         "id": "turn-8",
         "by": "user",
         "costUsd": 0.017009999999999997,
-        "durationMs": 37,
+        "durationMs": 38,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873043
+        "endedAt": 1793923986379
       },
       "user-9": {
         "kind": "user",
@@ -2322,13 +2322,13 @@
         "id": "turn-12",
         "by": "user",
         "costUsd": 0.017219999999999996,
-        "durationMs": 36,
+        "durationMs": 40,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873082
+        "endedAt": 1793923986424
       },
       "user-13": {
         "kind": "user",
@@ -2356,13 +2356,13 @@
         "id": "turn-16",
         "by": "user",
         "costUsd": 0.017219999999999996,
-        "durationMs": 37,
+        "durationMs": 94,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873122
+        "endedAt": 1793923986522
       },
       "user-17": {
         "kind": "user",
@@ -2396,7 +2396,7 @@
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873200
+        "endedAt": 1793923986564
       },
       "user-21": {
         "kind": "user",
@@ -2424,13 +2424,13 @@
         "id": "turn-24",
         "by": "user",
         "costUsd": 0.017219999999999996,
-        "durationMs": 95,
+        "durationMs": 40,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793292873807
+        "endedAt": 1793923987160
       }
     },
     "tasks": {},
@@ -3009,9 +3009,9 @@
           {
             "ref": {
               "provider": "anthropic",
-              "id": "claude-opus-4-5"
+              "id": "claude-opus-4-5-20251101"
             },
-            "label": "Claude Opus 4.5 (latest)",
+            "label": "Claude Opus 4.5",
             "note": "",
             "resolves": null,
             "efforts": [
@@ -3038,9 +3038,9 @@
           {
             "ref": {
               "provider": "anthropic",
-              "id": "claude-opus-4-5-20251101"
+              "id": "claude-opus-4-5"
             },
-            "label": "Claude Opus 4.5",
+            "label": "Claude Opus 4.5 (latest)",
             "note": "",
             "resolves": null,
             "efforts": [
@@ -3117,9 +3117,9 @@
           {
             "ref": {
               "provider": "anthropic",
-              "id": "claude-sonnet-4-5"
+              "id": "claude-sonnet-4-5-20250929"
             },
-            "label": "Claude Sonnet 4.5 (latest)",
+            "label": "Claude Sonnet 4.5",
             "note": "",
             "resolves": null,
             "efforts": [
@@ -3142,9 +3142,9 @@
           {
             "ref": {
               "provider": "anthropic",
-              "id": "claude-sonnet-4-5-20250929"
+              "id": "claude-sonnet-4-5"
             },
-            "label": "Claude Sonnet 4.5",
+            "label": "Claude Sonnet 4.5 (latest)",
             "note": "",
             "resolves": null,
             "efforts": [

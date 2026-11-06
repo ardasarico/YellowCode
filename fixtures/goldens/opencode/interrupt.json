@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793234393043
+      "at": 1793924122456
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234393043
+      "at": 1793924122456
     },
     {
       "type": "user",
@@ -43,34 +43,34 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234393523
+      "at": 1793924122928
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234393524
+      "at": 1793924122929
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234393531
+      "at": 1793924122933
     },
     {
       "type": "reply",
-      "at": 1793234393577
+      "at": 1793924122972
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234393577
+      "at": 1793924122972
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234393577
+      "at": 1793924122972
     },
     {
       "type": "text.start",
@@ -79,18 +79,18 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234393579
+      "at": 1793924122973
     },
     {
       "type": "title",
       "title": "Stopping",
-      "at": 1793234393584
+      "at": 1793924122985
     },
     {
       "type": "text.delta",
       "part": "msg_1:text:0",
       "text": "Starting a long answer, and then",
-      "at": 1793234393682
+      "at": 1793924123075
     },
     {
       "type": "user",
@@ -100,58 +100,58 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234393684
+      "at": 1793924123077
     },
     {
       "type": "interrupt",
       "state": "asked",
-      "at": 1793234393682
+      "at": 1793924123075
     },
     {
       "type": "interrupt",
       "state": "answered",
-      "at": 1793234393682
+      "at": 1793924123075
     },
     {
       "type": "text.end",
       "part": "msg_1:text:0",
       "text": "Starting a long answer, and then",
-      "at": 1793234393686
+      "at": 1793924123079
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": true,
       "local": false,
-      "durationMs": 173,
+      "durationMs": 162,
       "inputTokens": 0,
       "outputTokens": 0,
       "tokens": 0,
       "sessionCostUsd": 0.00021,
       "prompts": [],
-      "at": 1793234393697
+      "at": 1793924123091
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234393698
+      "at": 1793924123092
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793234393699
+      "at": 1793924123094
     },
     {
       "type": "reply",
-      "at": 1793234393710
+      "at": 1793924123106
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234393710
+      "at": 1793924123106
     },
     {
       "type": "text.start",
@@ -160,52 +160,58 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234393711
+      "at": 1793924123107
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:0",
-      "text": "Stopped there. What else?",
-      "at": 1793234393812
+      "text": "Stopped there. What else",
+      "at": 1793924123209
+    },
+    {
+      "type": "text.delta",
+      "part": "msg_2:text:0",
+      "text": "?",
+      "at": 1793924123257
     },
     {
       "type": "text.end",
       "part": "msg_2:text:0",
       "text": "Stopped there. What else?",
-      "at": 1793234393852
+      "at": 1793924123258
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234393867
+      "at": 1793924123269
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 170,
+      "durationMs": 179,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.00861,
       "prompts": [],
-      "at": 1793234393868
+      "at": 1793924123271
     },
     {
       "type": "interrupt",
       "state": "asked",
-      "at": 1793234393868
+      "at": 1793924123271
     },
     {
       "type": "interrupt",
       "state": "refused",
-      "at": 1793234393868
+      "at": 1793924123271
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234393868
+      "at": 1793924123271
     }
   ],
   "outputs": [
@@ -220,22 +226,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234393531
+            "at": 1793924122933
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234393539
+            "at": 1793924122940
           },
           {
             "type": "reply",
-            "at": 1793234393539
+            "at": 1793924122940
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234393539
+            "at": 1793924122940
           },
           {
             "type": "text.start",
@@ -244,26 +250,26 @@
             "text": "Starting a long answer, and then",
             "local": false,
             "quiet": false,
-            "at": 1793234393539
+            "at": 1793924122940
           },
           {
             "type": "text.end",
             "part": "msg_1:text:0",
             "text": "Starting a long answer, and then",
-            "at": 1793234393539
+            "at": 1793924122940
           },
           {
             "type": "turn.end",
             "error": null,
             "interrupted": true,
             "local": false,
-            "durationMs": 158,
+            "durationMs": 151,
             "inputTokens": 0,
             "outputTokens": 0,
             "tokens": 0,
             "sessionCostUsd": null,
             "prompts": [],
-            "at": 1793234393697
+            "at": 1793924123091
           },
           {
             "type": "user",
@@ -273,22 +279,22 @@
             "to": null,
             "history": true,
             "cutPoint": true,
-            "at": 1793234393699
+            "at": 1793924123094
           },
           {
             "type": "turn.open",
             "prompts": [],
             "endedTasks": [],
-            "at": 1793234393702
+            "at": 1793924123097
           },
           {
             "type": "reply",
-            "at": 1793234393702
+            "at": 1793924123097
           },
           {
             "type": "turn.step",
             "prompts": [],
-            "at": 1793234393702
+            "at": 1793924123097
           },
           {
             "type": "text.start",
@@ -297,18 +303,18 @@
             "text": "Stopped there. What else?",
             "local": false,
             "quiet": false,
-            "at": 1793234393702
+            "at": 1793924123097
           },
           {
             "type": "text.end",
             "part": "msg_2:text:0",
             "text": "Stopped there. What else?",
-            "at": 1793234393702
+            "at": 1793924123097
           },
           {
             "type": "context.used",
             "tokens": 1200,
-            "at": 1793234393702
+            "at": 1793924123097
           }
         ],
         "earlier": null
@@ -356,13 +362,13 @@
         "id": "turn-4",
         "by": "user",
         "costUsd": 0.00021,
-        "durationMs": 173,
+        "durationMs": 162,
         "inputTokens": 0,
         "outputTokens": 0,
         "error": null,
         "retries": 0,
         "interrupted": true,
-        "endedAt": 1793234393697
+        "endedAt": 1793924123091
       },
       "text-5": {
         "kind": "text",
@@ -375,13 +381,13 @@
         "id": "turn-6",
         "by": "agent",
         "costUsd": 0.00861,
-        "durationMs": 170,
+        "durationMs": 179,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234393868
+        "endedAt": 1793924123271
       }
     },
     "tasks": {},

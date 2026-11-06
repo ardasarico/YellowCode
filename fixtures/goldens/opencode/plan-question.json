@@ -28,17 +28,17 @@
           }
         ]
       },
-      "at": 1793234412852
+      "at": 1793924142309
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234412852
+      "at": 1793924142309
     },
     {
       "type": "mode",
       "mode": "plan",
-      "at": 1793234412897
+      "at": 1793924142355
     },
     {
       "type": "user",
@@ -48,39 +48,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234413329
+      "at": 1793924142782
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234413330
+      "at": 1793924142783
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234413335
+      "at": 1793924142789
     },
     {
       "type": "title",
       "title": "Plan questions",
-      "at": 1793234413358
+      "at": 1793924142810
     },
     {
       "type": "reply",
-      "at": 1793234413646
+      "at": 1793924143099
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234413646
+      "at": 1793924143099
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234413646
+      "at": 1793924143099
     },
     {
       "type": "text.start",
@@ -89,19 +89,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234413648
+      "at": 1793924143101
     },
     {
       "type": "text.delta",
       "part": "msg_3:text:0",
       "text": "Looking first.",
-      "at": 1793234413657
+      "at": 1793924143109
     },
     {
       "type": "text.end",
       "part": "msg_3:text:0",
       "text": "Looking first.",
-      "at": 1793234413657
+      "at": 1793924143109
     },
     {
       "type": "tool.start",
@@ -112,7 +112,7 @@
       "title": "read",
       "mcp": null,
       "quiet": false,
-      "at": 1793234413658
+      "at": 1793924143110
     },
     {
       "type": "tool.called",
@@ -132,7 +132,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234413664
+      "at": 1793924143115
     },
     {
       "type": "tool.end",
@@ -153,21 +153,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793234413667
+      "at": 1793924143119
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234413676
+      "at": 1793924143128
     },
     {
       "type": "reply",
-      "at": 1793234413689
+      "at": 1793924143142
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234413689
+      "at": 1793924143142
     },
     {
       "type": "tool.start",
@@ -178,7 +178,7 @@
       "title": "edit",
       "mcp": null,
       "quiet": false,
-      "at": 1793234413690
+      "at": 1793924143143
     },
     {
       "type": "tool.called",
@@ -200,7 +200,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234413691
+      "at": 1793924143144
     },
     {
       "type": "tool.end",
@@ -218,21 +218,21 @@
       "background": false,
       "task": null,
       "files": [],
-      "at": 1793234413694
+      "at": 1793924143146
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234413701
+      "at": 1793924143154
     },
     {
       "type": "reply",
-      "at": 1793234413712
+      "at": 1793924143166
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234413712
+      "at": 1793924143166
     },
     {
       "type": "text.start",
@@ -241,42 +241,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234413713
+      "at": 1793924143167
     },
     {
       "type": "text.delta",
       "part": "msg_5:text:0",
       "text": "Should the JSON include the log lines, or only the versions?",
-      "at": 1793234413736
+      "at": 1793924143188
     },
     {
       "type": "text.end",
       "part": "msg_5:text:0",
       "text": "Should the JSON include the log lines, or only the versions?",
-      "at": 1793234413736
+      "at": 1793924143188
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234413744
+      "at": 1793924143196
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 415,
+      "durationMs": 414,
       "inputTokens": 3600,
       "outputTokens": 540,
       "tokens": 4140,
       "sessionCostUsd": 0.025409999999999995,
       "prompts": [],
-      "at": 1793234413745
+      "at": 1793924143197
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234413746
+      "at": 1793924143199
     },
     {
       "type": "user",
@@ -286,29 +286,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234413748
+      "at": 1793924143201
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234413748
+      "at": 1793924143202
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793234413750
+      "at": 1793924143203
     },
     {
       "type": "reply",
-      "at": 1793234413760
+      "at": 1793924143213
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234413760
+      "at": 1793924143213
     },
     {
       "type": "tool.start",
@@ -319,7 +319,7 @@
       "title": "write",
       "mcp": null,
       "quiet": false,
-      "at": 1793234413760
+      "at": 1793924143214
     },
     {
       "type": "tool.called",
@@ -340,7 +340,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234413761
+      "at": 1793924143215
     },
     {
       "type": "tool.end",
@@ -366,21 +366,21 @@
           "after": "Notes\n"
         }
       ],
-      "at": 1793234413764
+      "at": 1793924143218
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234413770
+      "at": 1793924143226
     },
     {
       "type": "reply",
-      "at": 1793234413781
+      "at": 1793924143237
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234413781
+      "at": 1793924143237
     },
     {
       "type": "text.start",
@@ -389,42 +389,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234413782
+      "at": 1793924143238
     },
     {
       "type": "text.delta",
       "part": "msg_8:text:0",
       "text": "Noted.",
-      "at": 1793234413782
+      "at": 1793924143238
     },
     {
       "type": "text.end",
       "part": "msg_8:text:0",
       "text": "Noted.",
-      "at": 1793234413782
+      "at": 1793924143238
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234413790
+      "at": 1793924143245
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 42,
+      "durationMs": 44,
       "inputTokens": 2400,
       "outputTokens": 360,
       "tokens": 2760,
       "sessionCostUsd": 0.04220999999999999,
       "prompts": [],
-      "at": 1793234413790
+      "at": 1793924143246
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234413790
+      "at": 1793924143246
     }
   ],
   "outputs": [],
@@ -533,13 +533,13 @@
         "id": "turn-4",
         "by": "user",
         "costUsd": 0.025409999999999995,
-        "durationMs": 415,
+        "durationMs": 414,
         "inputTokens": 3600,
         "outputTokens": 540,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234413745
+        "endedAt": 1793924143197
       },
       "user-5": {
         "kind": "user",
@@ -599,13 +599,13 @@
         "id": "turn-7",
         "by": "user",
         "costUsd": 0.04220999999999999,
-        "durationMs": 42,
+        "durationMs": 44,
         "inputTokens": 2400,
         "outputTokens": 360,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234413790
+        "endedAt": 1793924143246
       }
     },
     "tasks": {},

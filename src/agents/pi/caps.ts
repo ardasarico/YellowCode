@@ -14,7 +14,7 @@ export const PI_CAPS: Capabilities = {
   ownQuestions: false,
   clientTools: "none",
   mcpServers: "none",
-  instructions: false,
+  instructions: true,
   planSignal: "none",
   cut: true,
   fork: true,

@@ -1,5 +1,6 @@
 // One Codex thread on a `codex app-server` of its own, spawned in the session's folder. The kind's lists read a
 // short-lived app-server each.
+import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { appVersion } from "../../build-info.ts"
 import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
@@ -177,11 +178,13 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
   const { resume, model } = options
   if (options.ephemeral && resume !== null) throw new Error("A session Codex does not keep cannot resume")
   const servers = serverConfig(options.mcpServers)
+  const developerInstructions = instructionsFor(options.instructions)
   const sent =
     resume === null
       ? rpc.request("thread/start", {
           cwd: options.cwd,
           historyMode: "paginated",
+          developerInstructions,
           dynamicTools: dynamicTools(options.clientTools),
           ...(options.ephemeral ? { ephemeral: true } : {}),
           ...withConfig(servers, options.plain ? PLAIN : {}),
@@ -193,10 +196,16 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
         ? rpc.request("thread/fork", {
             threadId: resume.ref.id,
             excludeTurns: true,
+            developerInstructions,
             ...servers,
             ...(resume.at === null ? {} : { beforeTurnId: await turnOf(rpc, resume.ref.id, resume.at) }),
           })
-        : rpc.request("thread/resume", { threadId: resume.ref.id, excludeTurns: true, ...servers })
+        : rpc.request("thread/resume", {
+            threadId: resume.ref.id,
+            excludeTurns: true,
+            developerInstructions,
+            ...servers,
+          })
   const reply = await sent.catch((error: unknown) => {
     throw error instanceof RpcError && WRITER.test(error.message) ? new Error(HELD) : error
   })
@@ -402,6 +411,7 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
   let interrupting: string | null = null
   const delivery = createDelivery({ rpc: () => rpc, thread: () => session, running: () => translator.running() })
   const cuts = createCuts({
+    developerInstructions: instructionsFor(options.instructions),
     rpc: () => rpc,
     thread: () => session,
     legacy: () => legacy,

@@ -28,17 +28,17 @@
           }
         ]
       },
-      "at": 1793234410457
+      "at": 1793924139890
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234410457
+      "at": 1793924139890
     },
     {
       "type": "mode",
       "mode": "plan",
-      "at": 1793234410500
+      "at": 1793924139933
     },
     {
       "type": "user",
@@ -48,39 +48,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234410935
+      "at": 1793924140360
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234410936
+      "at": 1793924140361
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793234410941
+      "at": 1793924140366
     },
     {
       "type": "title",
       "title": "Plan a JSON report",
-      "at": 1793234410965
+      "at": 1793924140389
     },
     {
       "type": "reply",
-      "at": 1793234411253
+      "at": 1793924140678
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234411253
+      "at": 1793924140678
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793234411253
+      "at": 1793924140678
     },
     {
       "type": "text.start",
@@ -89,19 +89,19 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234411254
+      "at": 1793924140679
     },
     {
       "type": "text.delta",
       "part": "msg_3:text:0",
       "text": "Writing the plan.",
-      "at": 1793234411263
+      "at": 1793924140688
     },
     {
       "type": "text.end",
       "part": "msg_3:text:0",
       "text": "Writing the plan.",
-      "at": 1793234411263
+      "at": 1793924140688
     },
     {
       "type": "tool.start",
@@ -112,7 +112,7 @@
       "title": "write",
       "mcp": null,
       "quiet": false,
-      "at": 1793234411264
+      "at": 1793924140689
     },
     {
       "type": "tool.called",
@@ -133,7 +133,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234411270
+      "at": 1793924140694
     },
     {
       "type": "tool.end",
@@ -159,21 +159,21 @@
           "after": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add one test\n"
         }
       ],
-      "at": 1793234411273
+      "at": 1793924140699
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234411283
+      "at": 1793924140708
     },
     {
       "type": "reply",
-      "at": 1793234411295
+      "at": 1793924140722
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234411295
+      "at": 1793924140722
     },
     {
       "type": "tool.start",
@@ -184,7 +184,7 @@
       "title": "edit",
       "mcp": null,
       "quiet": false,
-      "at": 1793234411296
+      "at": 1793924140723
     },
     {
       "type": "tool.called",
@@ -206,7 +206,7 @@
       "agent": null,
       "message": null,
       "todos": null,
-      "at": 1793234411297
+      "at": 1793924140724
     },
     {
       "type": "tool.end",
@@ -262,21 +262,21 @@
           "after": null
         }
       ],
-      "at": 1793234411300
+      "at": 1793924140728
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234411307
+      "at": 1793924140735
     },
     {
       "type": "reply",
-      "at": 1793234411318
+      "at": 1793924140747
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234411318
+      "at": 1793924140747
     },
     {
       "type": "text.start",
@@ -285,49 +285,49 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234411318
+      "at": 1793924140748
     },
     {
       "type": "text.delta",
       "part": "msg_5:text:0",
       "text": "The plan is ready.",
-      "at": 1793234411324
+      "at": 1793924140752
     },
     {
       "type": "text.end",
       "part": "msg_5:text:0",
       "text": "The plan is ready.",
-      "at": 1793234411324
+      "at": 1793924140752
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234411332
+      "at": 1793924140760
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 397,
+      "durationMs": 400,
       "inputTokens": 3600,
       "outputTokens": 540,
       "tokens": 4140,
       "sessionCostUsd": 0.025409999999999995,
       "prompts": [],
-      "at": 1793234411333
+      "at": 1793924140761
     },
     {
       "type": "plan",
       "text": "# Report as JSON\n\n1. Add a --json flag to report.ts\n2. Print the summary as JSON\n3. Add two tests\n",
       "path": "<root>/home/.opencode/plan/report-json.md",
       "next": "build",
-      "at": 1793234411333
+      "at": 1793924140761
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793234411334
+      "at": 1793924140763
     },
     {
       "type": "user",
@@ -337,29 +337,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793234411336
+      "at": 1793924140765
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793234411336
+      "at": 1793924140766
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793234411338
+      "at": 1793924140767
     },
     {
       "type": "reply",
-      "at": 1793234411348
+      "at": 1793924140777
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793234411348
+      "at": 1793924140777
     },
     {
       "type": "text.start",
@@ -368,42 +368,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793234411348
+      "at": 1793924140778
     },
     {
       "type": "text.delta",
       "part": "msg_7:text:0",
       "text": "Implementing it now.",
-      "at": 1793234411352
+      "at": 1793924140782
     },
     {
       "type": "text.end",
       "part": "msg_7:text:0",
       "text": "Implementing it now.",
-      "at": 1793234411352
+      "at": 1793924140782
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793234411360
+      "at": 1793924140791
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 25,
+      "durationMs": 26,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.03380999999999999,
       "prompts": [],
-      "at": 1793234411361
+      "at": 1793924140792
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793234411361
+      "at": 1793924140792
     }
   ],
   "outputs": [],
@@ -556,13 +556,13 @@
         "id": "turn-4",
         "by": "user",
         "costUsd": 0.025409999999999995,
-        "durationMs": 397,
+        "durationMs": 400,
         "inputTokens": 3600,
         "outputTokens": 540,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234411333
+        "endedAt": 1793924140761
       },
       "ask-plan-5": {
         "kind": "ask",
@@ -637,13 +637,13 @@
         "id": "turn-8",
         "by": "user",
         "costUsd": 0.03380999999999999,
-        "durationMs": 25,
+        "durationMs": 26,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793234411361
+        "endedAt": 1793924140792
       }
     },
     "tasks": {},

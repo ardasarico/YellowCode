@@ -9,22 +9,22 @@
         "to": null,
         "history": true,
         "cutPoint": true,
-        "at": 1793234272576
+        "at": 1793924000965
       },
       {
         "type": "turn.open",
         "prompts": [],
         "endedTasks": [],
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "reply",
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "turn.step",
         "prompts": [],
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "thinking.start",
@@ -32,13 +32,13 @@
         "parent": null,
         "text": "The readme is short, so read it whole.",
         "live": false,
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "thinking.end",
         "part": "msg_1:reasoning:0",
         "text": "The readme is short, so read it whole.",
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "text.start",
@@ -47,13 +47,13 @@
         "text": "Let me read it.",
         "local": false,
         "quiet": false,
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "text.end",
         "part": "msg_1:text:0",
         "text": "Let me read it.",
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "tool.start",
@@ -64,7 +64,7 @@
         "title": "read",
         "mcp": null,
         "quiet": false,
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "tool.called",
@@ -84,7 +84,7 @@
         "agent": null,
         "message": null,
         "todos": null,
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "tool.end",
@@ -105,21 +105,21 @@
         "background": false,
         "task": null,
         "files": [],
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "context.used",
         "tokens": 1200,
-        "at": 1793234272584
+        "at": 1793924000973
       },
       {
         "type": "reply",
-        "at": 1793234272673
+        "at": 1793924001033
       },
       {
         "type": "turn.step",
         "prompts": [],
-        "at": 1793234272673
+        "at": 1793924001033
       },
       {
         "type": "text.start",
@@ -128,18 +128,18 @@
         "text": "It describes a small demo project.",
         "local": false,
         "quiet": false,
-        "at": 1793234272673
+        "at": 1793924001033
       },
       {
         "type": "text.end",
         "part": "msg_2:text:0",
         "text": "It describes a small demo project.",
-        "at": 1793234272673
+        "at": 1793924001033
       },
       {
         "type": "context.used",
         "tokens": 1200,
-        "at": 1793234272673
+        "at": 1793924001033
       },
       {
         "type": "user",
@@ -149,22 +149,22 @@
         "to": null,
         "history": true,
         "cutPoint": true,
-        "at": 1793234272785
+        "at": 1793924001067
       },
       {
         "type": "turn.open",
         "prompts": [],
         "endedTasks": [],
-        "at": 1793234272790
+        "at": 1793924001077
       },
       {
         "type": "reply",
-        "at": 1793234272790
+        "at": 1793924001077
       },
       {
         "type": "turn.step",
         "prompts": [],
-        "at": 1793234272790
+        "at": 1793924001077
       },
       {
         "type": "text.start",
@@ -173,18 +173,18 @@
         "text": "There is one source file, src/a.ts.",
         "local": false,
         "quiet": false,
-        "at": 1793234272790
+        "at": 1793924001077
       },
       {
         "type": "text.end",
         "part": "msg_3:text:0",
         "text": "There is one source file, src/a.ts.",
-        "at": 1793234272790
+        "at": 1793924001077
       },
       {
         "type": "context.used",
         "tokens": 1200,
-        "at": 1793234272790
+        "at": 1793924001077
       }
     ],
     "earlier": null

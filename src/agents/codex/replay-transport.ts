@@ -5,6 +5,7 @@
 // than one app-server is replayed one transport per `connection`, in the order they were spawned.
 import type { ExitLine, Fixture, InLine, OutLine } from "./fixture.ts"
 import { queue, type Exit, type RpcId, type Transport } from "./transport.ts"
+import { withPlaceholder } from "../../agent/yellowcode-prompt.ts"
 
 export type ReplayTransport = Transport & {
   unused(): OutLine[]
@@ -112,6 +113,7 @@ export function replayTransport(fixture: Fixture, connection = 0): ReplayTranspo
       if (differs.length > 0)
         throw new Error(`replay: the answer to server request ${String(asked.id)} differs at ${differs.join("; ")}`)
     } else {
+      asked.params = withPlaceholder(asked.params)
       const key = canonical(asked.params)
       found = open.find((line) => {
         const shape = shapeOf(line.msg)

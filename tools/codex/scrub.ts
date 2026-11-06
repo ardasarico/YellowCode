@@ -1,6 +1,7 @@
 // Makes a recording machine-independent before it is written: the root becomes <root>, the home folder, user and
 // host names become placeholders, ports become names, `userAgent` keeps only Codex's name and version, and UUIDs
 // (thread, turn and item ids) become counters in order of first appearance.
+import { PROMPT_IN_JSON } from "../../src/agent/yellowcode-prompt.ts"
 
 export type ScrubContext = {
   root: string
@@ -33,6 +34,7 @@ export function createScrubber(context: ScrubContext): (line: unknown) => string
     ...context.ports.map(([port, name]): [string, string] => [`127.0.0.1:${port}`, `127.0.0.1:<${name}>`]),
   ]
   // Short names would hit ordinary words.
+  swaps.push([PROMPT_IN_JSON, "<yellowcode>"])
   if (context.host.length >= 4) swaps.push([context.host, "<host>"])
   if (context.user.length >= 4) swaps.push([context.user, "<user>"])
 

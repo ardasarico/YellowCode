@@ -13,7 +13,7 @@ export const OPENCODE_CAPS: Capabilities = {
   ownQuestions: true,
   clientTools: "live",
   mcpServers: "none",
-  instructions: false,
+  instructions: true,
   planSignal: "file",
   cut: true,
   fork: true,

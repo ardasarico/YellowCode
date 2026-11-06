@@ -28,12 +28,12 @@
           }
         ]
       },
-      "at": 1793236087673
+      "at": 1793924005968
     },
     {
       "type": "mode",
       "mode": "build",
-      "at": 1793236087673
+      "at": 1793924005968
     },
     {
       "type": "user",
@@ -43,39 +43,39 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793236088161
+      "at": 1793924006434
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793236088163
+      "at": 1793924006436
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-1"
       ],
-      "at": 1793236088170
+      "at": 1793924006440
     },
     {
       "type": "title",
       "title": "Naming the session",
-      "at": 1793236088199
+      "at": 1793924006463
     },
     {
       "type": "reply",
-      "at": 1793236090185
+      "at": 1793924008496
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793236090185
+      "at": 1793924008496
     },
     {
       "type": "context.window",
       "tokens": 200000,
-      "at": 1793236090185
+      "at": 1793924008496
     },
     {
       "type": "text.start",
@@ -84,42 +84,42 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793236090186
+      "at": 1793924008497
     },
     {
       "type": "text.delta",
       "part": "msg_1:text:0",
       "text": "Named.",
-      "at": 1793236090190
+      "at": 1793924008500
     },
     {
       "type": "text.end",
       "part": "msg_1:text:0",
       "text": "Named.",
-      "at": 1793236090190
+      "at": 1793924008500
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793236090199
+      "at": 1793924008510
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 2037,
+      "durationMs": 2075,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": 0.00861,
       "prompts": [],
-      "at": 1793236090200
+      "at": 1793924008511
     },
     {
       "type": "title",
       "title": "Renamed by hand",
-      "at": 1793236090203
+      "at": 1793924008514
     },
     {
       "type": "user",
@@ -129,29 +129,29 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793236090205
+      "at": 1793924008516
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793236090205
+      "at": 1793924008517
     },
     {
       "type": "user.taken",
       "prompts": [
         "prompt-2"
       ],
-      "at": 1793236090207
+      "at": 1793924008518
     },
     {
       "type": "reply",
-      "at": 1793236090217
+      "at": 1793924008529
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793236090217
+      "at": 1793924008529
     },
     {
       "type": "text.start",
@@ -160,24 +160,24 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793236090218
+      "at": 1793924008530
     },
     {
       "type": "text.delta",
       "part": "msg_2:text:0",
       "text": "Still named.",
-      "at": 1793236090219
+      "at": 1793924008530
     },
     {
       "type": "text.end",
       "part": "msg_2:text:0",
       "text": "Still named.",
-      "at": 1793236090219
+      "at": 1793924008530
     },
     {
       "type": "context.used",
       "tokens": 1200,
-      "at": 1793236090227
+      "at": 1793924008538
     },
     {
       "type": "turn.end",
@@ -190,12 +190,12 @@
       "tokens": 1380,
       "sessionCostUsd": 0.017009999999999997,
       "prompts": [],
-      "at": 1793236090228
+      "at": 1793924008540
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793236090228
+      "at": 1793924008540
     }
   ],
   "outputs": [
@@ -211,7 +211,7 @@
           "cwd": "<root>/project",
           "branch": null,
           "model": null,
-          "modified": 1793236090227
+          "modified": 1793924008538
         }
       ]
     }
@@ -248,13 +248,13 @@
         "id": "turn-3",
         "by": "user",
         "costUsd": 0.00861,
-        "durationMs": 2037,
+        "durationMs": 2075,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793236090200
+        "endedAt": 1793924008511
       },
       "user-4": {
         "kind": "user",
@@ -282,7 +282,7 @@
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793236090228
+        "endedAt": 1793924008540
       }
     },
     "tasks": {},
