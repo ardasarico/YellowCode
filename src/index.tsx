@@ -72,6 +72,7 @@ import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, termi
 import { loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
 import { runProvidersCommand, settleProviders } from "./setup/providers.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
+import { modInstructions } from "./mods/registry.ts"
 import { apiVersion } from "./mods/version.ts"
 import { runUpdateCommand, UPDATE_USAGE } from "./update/cli.ts"
 import { defaultChannel } from "./update/method.ts"
@@ -677,7 +678,7 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   ephemeral: false,
   plain: false,
   thinking: settings.thinking !== "hidden",
-  instructions: [],
+  instructions: modInstructions(),
   clientTools: clientTools(),
   // Claude takes the mods' servers on its own path (syncModServers).
   mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],

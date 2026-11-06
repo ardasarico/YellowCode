@@ -11,6 +11,7 @@ import { compatible, forAgent, incompatibleText, type Manifest, type McpServer, 
 import {
   addCommand,
   addFence,
+  addInstructions,
   addKey,
   addListener,
   addPane,
@@ -334,7 +335,17 @@ export function createModHost(options: {
           wrap: (point, wrap) => own(addWrap(id, point, wrap)),
           beforeSend: (change) => own(addSender({ mod: id, change })),
         },
-        fences: { add: (fence) => own(addFence({ ...fence, mod: id })) },
+        fences: {
+          add(fence) {
+            const told = fence.instructions === undefined ? null : own(addInstructions(id, fence.instructions))
+            const drawn = own(addFence({ ...fence, mod: id }))
+            return () => {
+              told?.()
+              drawn()
+            }
+          },
+        },
+        instructions: { add: (text) => own(addInstructions(id, text)) },
         toolRows: { add: (renderer) => own(addRowRenderer({ render: (tool) => renderer.render(tool), mod: id })) },
         events: { on: (event, handler) => own(addListener(id, event, handler)) },
         panes: {

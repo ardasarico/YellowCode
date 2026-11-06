@@ -113,6 +113,7 @@ export function counts(mod: string, servers = 0): string[] {
     ...count(sections().filter((section) => section.mod === mod).length, "section"),
     ...count(rowRenderers().filter((renderer) => renderer.mod === mod).length, "row renderer"),
     ...count(fences().filter((fence) => fence.mod === mod).length, "fence"),
+    ...count(instructions().filter((entry) => entry.mod === mod).length, "instruction"),
     ...count(wrapCount(mod) + senders().filter((send) => send.mod === mod).length, "override"),
     ...count(servers, "MCP server"),
   ]
@@ -357,6 +358,20 @@ export function rowPartsFor(tool: ModToolCall): { mod: string; parts: ModRowPart
 
 const [fences, setFences] = createSignal<Owned<ModFence>[]>([])
 export const addFence = adder<Owned<ModFence>>(setFences)
+
+const MAX_INSTRUCTIONS = 800
+const [instructions, setInstructions] = createSignal<Owned<{ text: string }>[]>([])
+const pushInstructions = adder<Owned<{ text: string }>>(setInstructions)
+export function addInstructions(mod: string, text: string): Dispose {
+  const trimmed = text.trim()
+  if (!trimmed) throw new Error("instructions are empty")
+  if (trimmed.length > MAX_INSTRUCTIONS)
+    throw new Error(`instructions are ${trimmed.length} characters; the most is ${MAX_INSTRUCTIONS}`)
+  return pushInstructions({ text: trimmed, mod })
+}
+
+// What the mods add to an agent's instructions, read when a session starts.
+export const modInstructions = (): string[] => instructions().map((entry) => entry.text)
 
 // The first mod, in load order, that draws a finished block in this language.
 export function fenceFor(lang: string, code: string): Owned<ModFence> | null {

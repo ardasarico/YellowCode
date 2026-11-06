@@ -17,8 +17,9 @@ A mod is a folder of TypeScript that YellowCode loads at startup. See [what a mo
 [Dialogs](#dialogs) · [The UI kit](#the-ui-kit) · [Tool rows](#tool-rows) · [Code fences](#code-fences) ·
 [Overrides](#overrides)
 
-**Agent:** [Tools for the agent](#tools-for-the-agent) · [MCP servers in the manifest](#mcp-servers-in-the-manifest) ·
-[Events](#events) · [The app and the session](#the-app-and-the-session)
+**Agent:** [Telling the agent](#telling-the-agent) · [Tools for the agent](#tools-for-the-agent) ·
+[MCP servers in the manifest](#mcp-servers-in-the-manifest) · [Events](#events) ·
+[The app and the session](#the-app-and-the-session)
 
 **Publishing:** [Versions](#versions) · [Getting a mod listed](#getting-a-mod-listed)
 
@@ -130,6 +131,7 @@ Then put this `tsconfig.json` next to it and run `bunx tsc`:
 | [`mod.dialogs`](#dialogs)                              | Choice, input and confirm dialogs, or one with your own view          |
 | [`mod.toolRows`](#tool-rows)                           | Its own way to draw a tool call in the chat                           |
 | [`mod.fences`](#code-fences)                           | Its own way to draw a fenced code block                               |
+| [`mod.instructions`](#telling-the-agent)               | Text added to the agent's instructions                                |
 | [`mod.overrides`](#overrides)                          | A wrap around a part of the screen, or a change to a message          |
 | [`mod.tools`](#tools-for-the-agent)                    | Tools the agent can call                                              |
 | [`mcpServers`](#mcp-servers-in-the-manifest)           | MCP servers for the agent, in the manifest                            |
@@ -656,6 +658,19 @@ the end to the app. `view` gets `code`, `lang` and `width`.
 The block is drawn by the mod once it is finished; while it streams the app draws it as code. Copying a reply and
 `/export` still use the raw block. The CSV mod is a fuller example.
 
+The agent only writes a block it knows about. Give the fence `instructions` to tell it when and how to write one:
+
+````tsx
+mod.fences.add({
+  langs: ["csv"],
+  instructions: "Tabular data goes in a ```csv block with a header row; it is drawn as a table.",
+  view: (props) => <Table code={props.code} width={props.width} />,
+})
+````
+
+The text follows the fence: it is added with it and goes when the fence is disposed. It works as
+[`mod.instructions`](#telling-the-agent) does.
+
 ## Overrides
 
 ### Wrapping a part of the screen
@@ -716,6 +731,20 @@ mod.overrides.beforeSend((text) => {
 
 It runs on typed messages only, not on `/commands` or `!` shell commands. With several mods, each gets the text the one
 before returned, in load order.
+
+## Telling the agent
+
+`mod.instructions.add(text)` adds text to the agent's instructions, on top of the agent's own and YellowCode's. Use it
+for anything the agent should know about the mod, such as what its pane shows. It returns a function that removes the
+text.
+
+```ts
+mod.instructions.add("The Terminal pane at the bottom shows the dev server; read it with terminal_read.")
+```
+
+The agent reads its instructions when a session starts, so text added, changed or removed later reaches it in the next
+session. Each text is up to 800 characters, and an empty or longer one fails the mod. Keep it to a sentence or two:
+every mod's text goes to every session and fills the agent's context. Subagents get none of it.
 
 ## Tools for the agent
 

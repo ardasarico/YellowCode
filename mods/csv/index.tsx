@@ -82,6 +82,8 @@ export default defineMod({
   setup(mod) {
     mod.fences.add({
       langs: ["csv", "tsv"],
+      instructions:
+        "Tables of data can go in a ```csv or ```tsv block with a header row; YellowCode draws it as a table of up to 50 rows.",
       // A block that does not read as a table, or has a single column, stays code.
       accept: (block) => {
         const rows = parseRows(block.code, separatorOf(block.lang))

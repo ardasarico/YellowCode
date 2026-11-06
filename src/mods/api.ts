@@ -268,6 +268,8 @@ export type ModFence = {
   // False leaves a block it cannot draw to the next mod, and in the end to the app.
   accept?(block: ModFenceBlock): boolean
   view: (props: ModFenceBlock & { width: number }) => JSX.Element
+  // Tells the agent when and how to write the block; see `ModApi.instructions`.
+  instructions?: string
 }
 
 // The parts of the screen a mod may wrap, with what a wrap can read of each. The part gets more than this at runtime;
@@ -362,6 +364,8 @@ export type ModApi<S extends ModSettingDefinitions = ModSettingDefinitions> = {
   readonly dialogs: ModDialogs
   readonly overrides: ModOverrides
   readonly fences: { add(fence: ModFence): Dispose }
+  // Text added to the agent's instructions when a session starts, up to 800 characters each.
+  readonly instructions: { add(text: string): Dispose }
   readonly toolRows: { add(renderer: ModRowRenderer): Dispose }
   readonly events: { on<E extends keyof ModEvents>(event: E, handler: (data: ModEvents[E]) => void): Dispose }
   // The project folder YellowCode was started in.

@@ -2,7 +2,7 @@
 import type { KeyEvent, RGBA } from "@opentui/core"
 import type { Component, JSX } from "solid-js"
 
-export declare const apiVersion = "0.2.0"
+export declare const apiVersion = "0.2.1"
 
 export type ModTheme = {
   readonly background: RGBA | null
@@ -268,6 +268,7 @@ export type ModFence = {
       width: number
     },
   ) => JSX.Element
+  instructions?: string
 }
 export type ModOverridePoints = {
   "user-message": {
@@ -370,6 +371,9 @@ export type ModApi<S extends ModSettingDefinitions = ModSettingDefinitions> = {
   readonly overrides: ModOverrides
   readonly fences: {
     add(fence: ModFence): Dispose
+  }
+  readonly instructions: {
+    add(text: string): Dispose
   }
   readonly toolRows: {
     add(renderer: ModRowRenderer): Dispose

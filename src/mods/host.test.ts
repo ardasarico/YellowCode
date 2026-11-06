@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createModHost, type ModAgent, revokedReason } from "./host.ts"
 import { readManifest } from "./manifest.ts"
+import { modInstructions } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
 const calls: string[] = []
@@ -300,4 +301,37 @@ export default defineMod({ setup: () => new Promise(() => {}) })`,
   const entry = host.entries.find((candidate) => candidate.id === "hangs")
   expect(entry?.status).toBe("failed")
   expect(entry?.error?.message).toBe("Error: setup did not finish in 0.05 s")
+})
+
+test("a mod's instructions reach the agent until the mod is off, and an over-long one fails the mod", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(
+    folder,
+    "teach",
+    "^0.2",
+    `import { defineMod } from "yellowcode/mod"
+export default defineMod({
+  setup(mod) {
+    mod.fences.add({ langs: ["note"], instructions: "  Notes go in a note block. ", view: () => null as any })
+    mod.instructions.add("The pane shows the server.")
+  },
+})`,
+  )
+  writeMod(
+    folder,
+    "long",
+    "^0.2",
+    `import { defineMod } from "yellowcode/mod"
+export default defineMod({ setup: (mod) => void mod.instructions.add("x".repeat(801)) })`,
+  )
+  let disabled: string[] = []
+  const host = createModHost({ folder, disabled: () => disabled, saveDisabled: (ids) => (disabled = ids) })
+  host.discover(claude)
+  await host.loadAll()
+  expect(modInstructions()).toEqual(["Notes go in a note block.", "The pane shows the server."])
+  expect(host.entries.find((entry) => entry.id === "long")?.status).toBe("failed")
+  await host.setEnabled("teach", false)
+  expect(modInstructions()).toEqual([])
 })
