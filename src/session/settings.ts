@@ -37,15 +37,16 @@ export function modelRef(id: string): ModelRef {
 // The id the knobs keep for a model of an agent with several providers, which can list one id under two of them.
 export const providerModelId = (provider: string, id: string): string => `${provider}/${id}`
 
-// The family rows (opus, sonnet, …) in the agent's order, each under the id it stands for; every row when there are
-// none. Rows of an agent with several providers are each a choice of their own.
+// The rows up to the last family row (opus, sonnet, …), as claude's own /model shows them before "More models": a new
+// model such as claude-fable-5-2 can come among them before it has a family name. Each row goes under the id it
+// stands for; every row when there are no family rows. Rows of an agent with several providers are each a choice.
 export function modelChoices(models: ModelRow[]): ModelChoice[] {
   if (models.some(({ ref }) => ref.provider !== null))
     return models.flatMap(({ ref }) =>
       ref.provider === null ? [] : [{ id: providerModelId(ref.provider, ref.id), ref }],
     )
-  const aliases = models.filter(({ ref }) => !ref.id.startsWith("claude-") && ref.id !== "default")
-  const rows = aliases.length > 0 ? aliases : models
+  const last = models.findLastIndex(({ ref }) => !ref.id.startsWith("claude-") && ref.id !== "default")
+  const rows = last >= 0 ? models.slice(0, last + 1).filter(({ ref }) => ref.id !== "default") : models
   const seen = new Set<string>()
   return rows.flatMap(({ ref, resolves }) => {
     const id = resolves ?? ref.id
