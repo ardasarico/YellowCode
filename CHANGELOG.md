@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.2.0
+
+### Highlights
+
+- **Mention models and agents.** Type `@` in the prompt to name a model or an agent from any of your providers, and
+  your agent hands that part of the work to it.
+- **The agent knows YellowCode.** Claude Code, Codex, opencode and Pi are told they run inside YellowCode, so they can
+  answer questions about its commands, mods and themes and draw charts, diagrams and images in the chat.
+- **Numbers at a glance.** New `stats` and `row` blocks show test results, sizes and short facts as a strip or tiles.
+
+### Added
+
+- Charts use one bar colour and have titles and legends.
+- Mods can tell the agent about the blocks they draw.
+- A cat word shows while the model thinks.
+
+### Changed
+
+- Long chats scroll smoothly while a reply streams in.
+- Updates are checked every hour, and at once when you switch channels.
+
+### Fixed
+
+- Questions from the agent no longer point at a plan or result you have not seen.
+- New Claude models show in `/model` even before they get a short name.
+- A message sent during a turn stays below the turn until the agent takes it in.
+- opencode, Codex and Pi list `/model`, `/effort`, `/context`, `/rename` and `/plan`.
+- Commands run on a model you just picked go to that model's provider.
+- A background task finishing no longer marks the turn as done.
+- Matrix questions have a blank line between their rows.
+
 ## 0.1.1
 
 ### Fixed
