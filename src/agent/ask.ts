@@ -85,9 +85,10 @@ export type FormField = {
 
 // A question or field the agent marks secret never gets here: its adapter declines it, so no band, store, log or
 // recording sees it.
+// `context` is what our own ask says the user should read first; the chat shows it above the call.
 export type Questions =
-  | { pages: QuestionPage[] }
-  | { matrix: Matrix }
+  | { pages: QuestionPage[]; context?: string }
+  | { matrix: Matrix; context?: string }
   | { form: { title: string; fields: FormField[] } }
 
 // What the band shows under the main line, beyond text.

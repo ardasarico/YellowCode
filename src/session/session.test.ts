@@ -247,6 +247,23 @@ test("an assistant message without stream events produces one finished item", ()
   expect(items(session)).toMatchObject([{ kind: "text", markdown: "Hello", streaming: false }])
 })
 
+test("our ask's context shows as a reply above the call, once", () => {
+  const call = {
+    type: "tool_use",
+    id: "toolu-1",
+    name: "mcp__yellowcode__ask",
+    input: {
+      context: "The code is for GitHub.",
+      questions: [{ question: "Where?", header: "App", options: [{ label: "Here" }, { label: "Phone" }] }],
+    },
+  }
+  const session = feed(assistant("m1", call), assistant("m1", call))
+  const [said, asked] = session.state.items
+  expect(session.state.items).toHaveLength(2)
+  expect(session.state.byId[said ?? ""]).toMatchObject({ kind: "text", markdown: "The code is for GitHub." })
+  expect(asked).toBe("toolu-1")
+})
+
 test("a streamed thinking block then text block yield two items", () => {
   const session = feed(
     event({ type: "message_start", message: { id: "m1" } }),

@@ -78,12 +78,15 @@ export function questionsOf(name: string, input: unknown): Questions | null {
     return stock ? pagesOf(stock.questions) : null
   }
   if (name !== OWN_ASK) return null
+  // A call that gets rejected is asked again, so only one that can be shown brings its context.
+  const said = ownAskProblem({ toolName: name, input }) === null ? textOf(Reflect.get(Object(input), "context")) : null
+  const context = said?.trim() ? { context: said.trim() } : {}
   const pages = ownAskPages.safeParse(input).data
-  if (pages) return pagesOf(pages.questions)
+  if (pages) return { ...pagesOf(pages.questions), ...context }
   const matrix = ownAskMatrix.safeParse(input).data?.matrix
   if (!matrix) return null
   const rows = matrix.rows.map((row) => row.label)
-  return { matrix: { header: matrix.header, question: matrix.question, rows, scale: matrix.scale } }
+  return { matrix: { header: matrix.header, question: matrix.question, rows, scale: matrix.scale }, ...context }
 }
 
 // `"<question>"="<answer>" notes: <note>` pairs, in stock's wording and ours; a matrix keys each pair by its row.

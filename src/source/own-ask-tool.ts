@@ -7,8 +7,10 @@ export const OWN_ASK_DESCRIPTION =
   "Use this tool instead of AskUserQuestion, and wherever instructions say AskUserQuestion. Ask the user questions " +
   "and wait for the answers. Prefer this over guessing whenever a choice is the user's to make. The user never sees " +
   "your thinking or your tool results: anything a question points at, such as a plan, summary, research findings, " +
-  "list or image, must already be written in your reply above this call. `questions`: one or more pages, each a " +
-  "question with a short `header` and 2–4 options (`label`, optional `description` only when the label needs it)." +
+  "list or image, must be in your reply above this call or in `context`. `context`: Markdown shown in the chat " +
+  "right above the question; put there what the user has to read to answer, such as the explanation, plan or " +
+  "findings, and leave it empty only when your reply above already says it or the question needs nothing more. " +
+  "`questions`: one or more pages, each a question with a short `header` and 2–4 options (`label`, optional `description` only when the label needs it)." +
   ' Put the recommended option first and end its label with "(Recommended)". Set ' +
   "`multiSelect` when several answers can be true. An option may carry `image`, a PNG, JPG or SVG file path, shown " +
   "beside the list: use it when a picture explains the option better than words. Set `gallery: true` on a page to " +
@@ -22,7 +24,9 @@ export const OWN_ASK_DESCRIPTION =
 export const OWN_ASK_SCHEMA = {
   type: "object",
   additionalProperties: false,
+  required: ["context"],
   properties: {
+    context: { type: "string", description: "Markdown the user reads in the chat before answering; may be empty." },
     questions: {
       type: "array",
       minItems: 1,

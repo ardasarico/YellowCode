@@ -275,6 +275,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
   const lostParents = new Set<string>()
   // The call each tool call runs under; null for the main agent's.
   const toolParents = new Map<ToolId, ToolId | null>()
+  const explained = new Set<ToolId>()
   // User messages by the prompt id they went out with.
   const prompts = new Map<PromptId, ItemId>()
   const idPrefix = options?.idPrefix ?? ""
@@ -352,6 +353,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     if (gone.size === 0) return
     for (const id of gone) {
       toolParents.delete(id)
+      explained.delete(id)
       commands.delete(id)
       thinkingSince.delete(id)
     }
@@ -407,8 +409,25 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     toolParents.set(item.id, parent)
   }
 
+  // What an ask tells the user to read first goes in as the agent's reply right above its call.
+  function addContext(call: ToolId, markdown: string): void {
+    if (explained.has(call) || !state.byId[call]) return
+    explained.add(call)
+    const item: Item = { kind: "text", id: newId("text"), markdown, streaming: false }
+    const parent = toolParents.get(call)
+    const place = (ids: ItemId[]) => void ids.splice(Math.max(ids.indexOf(call), 0), 0, item.id)
+    setState("byId", item.id, item)
+    if (parent)
+      update(parent, (tool) => {
+        if (tool.kind === "tool") place(tool.children)
+      })
+    else setState("items", produce(place))
+  }
+
   function toolCalled(event: Extract<AgentEvent, { type: "tool.called" }>): void {
     if (hiddenTool(event.id)) return
+    const context = event.questions && "context" in event.questions ? event.questions.context : undefined
+    if (context) addContext(event.id, context)
     const summary = event.message ? messageSummary(event.message.to, event.message.text, state.tasks) : ""
     update(event.id, (item) => {
       if (item.kind !== "tool") return
