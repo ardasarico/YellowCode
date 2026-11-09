@@ -100,6 +100,7 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
+import type { Submission } from "./ui/completion.ts"
 import { watchFocus } from "./ui/attention.ts"
 import { modelName } from "./ui/format.ts"
 import { getParsers } from "./ui/markdown/parsers/parsers.ts"
@@ -1231,6 +1232,9 @@ async function startNew(
   return true
 }
 
+// A command typed on a pending model, for the App of the session it switched to.
+const [handed, setHanded] = createSignal<Submission | null>(null)
+
 // The conversation a new session took over from another provider's; it goes with the session's next message.
 let carrying: { store: SessionStore; text: string } | null = null
 const moveWaiting = new Map<string, (yes: boolean) => void>()
@@ -1271,10 +1275,11 @@ const modelSource: ModelSource = {
     live.store.event({ type: "ask.open", ask, at: Date.now() })
     return new Promise((resolve) => moveWaiting.set(ask.id, resolve))
   },
-  start: (id, model, message, giveBack, handoff) => {
+  start: (id, model, message, giveBack, handoff, command) => {
     const runner = runnerById(id)
+    const lost = message !== null || command !== undefined
     if (!runner) {
-      if (message) giveBack()
+      if (lost) giveBack()
       return
     }
     const from = live.runner.kind.name
@@ -1289,13 +1294,19 @@ const modelSource: ModelSource = {
           carrying = { store: live.store, text: held }
           live.store.event({ type: "notice", level: "info", text: "The moved conversation came along", at: Date.now() })
         }
+        if (command) {
+          if (started) setHanded(command)
+          else giveBack()
+        }
         if (message && (!started || !sendLive(message, giveBack))) giveBack()
       })
       .catch((error: unknown) => {
         log.error(`cannot start ${id}`, error)
-        if (message) giveBack()
+        if (lost) giveBack()
       })
   },
+  handed,
+  takeHanded: () => setHanded(null),
 }
 
 // The last look at the installed agents, for /providers.

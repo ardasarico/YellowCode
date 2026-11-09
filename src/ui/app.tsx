@@ -292,14 +292,18 @@ export type ModelSource = {
   // Asks before a message moves the conversation; true when the user lets it.
   confirm: (provider: AgentKindId, model: ModelRef, handoff: Handoff) => Promise<boolean>
   // A new session of the provider on the model takes the screen, with `handoff` ahead of its next message; `message`
-  // goes to it once it runs.
+  // goes to it once it runs, and `command` is handed to its App.
   start: (
     provider: AgentKindId,
     model: ModelRef,
     message: Message | null,
     giveBack: () => void,
     handoff: Handoff | null,
+    command?: Submission,
   ) => void
+  // The command a new session's App runs once it has the agent's info; taking it clears it.
+  handed: () => Submission | null
+  takeHanded: () => void
 }
 
 // What the user sends; `to` is a running subagent the message is for.
@@ -1024,7 +1028,12 @@ export function App(props: AppProps) {
   }
   // A model of the running provider switches in place; another provider's starts a new session on it, which the
   // conversation moves to as text. A message sent on a pending choice asks first.
-  const chooseModel = (model: PickerModel, message: Message | null = null, giveBack = () => {}): boolean => {
+  const chooseModel = (
+    model: PickerModel,
+    message: Message | null = null,
+    giveBack = () => {},
+    command?: Submission,
+  ): boolean => {
     if (model.provider === props.agent.id) {
       setPending(null)
       toModel(pickModel(model.id))
@@ -1034,7 +1043,7 @@ export function App(props: AppProps) {
     if (!models) return false
     const start = (handoff: Handoff | null) => {
       setPending(null)
-      models.start(model.provider, model.ref, message, giveBack, handoff)
+      models.start(model.provider, model.ref, message, giveBack, handoff, command)
     }
     if (userItems().length === 0) {
       start(null)
@@ -1045,7 +1054,7 @@ export function App(props: AppProps) {
       setControlProblem({ text: carried.problem })
       return false
     }
-    if (!message) {
+    if (!message && !command) {
       start(carried.handoff)
       return true
     }
@@ -1107,6 +1116,12 @@ export function App(props: AppProps) {
   )
   // A knob command with a value YellowCode knows picks it here. Any other value goes on to the agent's own command, and
   // where the agent has none, YellowCode's own /model and /effort say why instead.
+  // YellowCode's own commands, knobs and mod commands run in the session they are typed in.
+  const ownCommand = (name: string) =>
+    OWN_COMMANDS.some((own) => own.name === name) ||
+    OWN_KNOBS[name] !== undefined ||
+    props.provider.knob(name) !== null ||
+    findModCommand(props.provider.commands(), name) !== undefined
   const typedKnob = (name: string, value: string): boolean => {
     const agentKnob = props.provider.knob(name)
     const knob = agentKnob ?? OWN_KNOBS[name]
@@ -1858,6 +1873,12 @@ export function App(props: AppProps) {
       waitNotice("Not available in YellowCode")
       return false
     }
+    // An agent's command on a pending model of another provider runs in that provider's new session.
+    const elsewhere = to ? null : pendingModel()
+    if (elsewhere && commandName && !ownCommand(commandName)) {
+      const back = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
+      return chooseModel(elsewhere, null, back, { text, images, draft })
+    }
     if (typedKnob(commandName, commandArgs.trim())) return true
     if (commandName === "rename" && props.onTitle && props.caps.rename) {
       const name = commandArgs.trim()
@@ -1982,7 +2003,6 @@ export function App(props: AppProps) {
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
         : giveBack
-      const elsewhere = to ? null : pendingModel()
       if (elsewhere && message) return chooseModel(elsewhere, out, back)
       const accepted = ended() ? (props.onRestart?.(out, back) ?? false) : props.onSubmit(out, back)
       if (!accepted) {
@@ -1998,6 +2018,17 @@ export function App(props: AppProps) {
     }
     return true
   }
+  // A command typed before a switch to this session's provider runs once the agent has said what it is and listed
+  // its commands.
+  createEffect(() => {
+    const handed = props.models?.handed()
+    if (!handed || !props.info || props.provider.listedOnly?.() === false) return
+    props.models?.takeHanded()
+    untrack(() => {
+      if (!submit(handed))
+        setFill((previous) => ({ draft: handed.draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
+    })
+  })
 
   const input = () => ({
     focused:
