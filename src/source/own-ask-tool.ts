@@ -6,9 +6,9 @@ export const OWN_ASK_TIMEOUT_MS = 1e12
 export const OWN_ASK_DESCRIPTION =
   "Use this tool instead of AskUserQuestion, and wherever instructions say AskUserQuestion. Ask the user questions " +
   "and wait for the answers. Prefer this over guessing whenever a choice is the user's to make. The user never sees " +
-  "your thinking: anything a question points at, such as a plan, summary, list or image, must already be written in " +
-  "your reply above this call. `questions`: one or more pages, each a question with a short `header` and 2–4 " +
-  "options (`label`, optional `description` only when the label needs it)." +
+  "your thinking or your tool results: anything a question points at, such as a plan, summary, research findings, " +
+  "list or image, must already be written in your reply above this call. `questions`: one or more pages, each a " +
+  "question with a short `header` and 2–4 options (`label`, optional `description` only when the label needs it)." +
   ' Put the recommended option first and end its label with "(Recommended)". Set ' +
   "`multiSelect` when several answers can be true. An option may carry `image`, a PNG, JPG or SVG file path, shown " +
   "beside the list: use it when a picture explains the option better than words. Set `gallery: true` on a page to " +
