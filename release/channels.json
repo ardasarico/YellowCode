@@ -1,24 +1,24 @@
 {
   "stable": {
-    "version": "0.1.1",
-    "commit": "f5f857cdc6d37cc82dea2c3f78507f513076fe83",
-    "bundle": "0b469466d9652f610a8c85c2aeb101554e54f0c27efb9718a229d37e0452f86b",
+    "version": "0.2.0",
+    "commit": "4c228e6999f1d80bab5595a674cfdb9b3d4806d1",
+    "bundle": "f01e042aef51858e2ad7deba22dcec947b533f19ab9e0da9223a7ad8e653f29c",
     "assets": {
       "darwin-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1/yellowcode-darwin-arm64.tar.gz",
-        "sha256": "cef7e8a45dc39bf999eb0e2fa114688162aa5dd25c8bd92f3cd1ac4c0b16721c"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.2.0/yellowcode-darwin-arm64.tar.gz",
+        "sha256": "6ac07fe7060ed724e188d3978d72be55bb764b05ecbb0a6e038517630eca02ae"
       },
       "darwin-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1/yellowcode-darwin-x64.tar.gz",
-        "sha256": "c9a44f7d0e6a4dfe80e94c3da47a08a8204f39504cfc13ba936f99689d1269db"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.2.0/yellowcode-darwin-x64.tar.gz",
+        "sha256": "bc38faad7344d1977f0769b4fd5ae85985cfc83bd354ae14e42ef4c306e64b74"
       },
       "linux-x64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1/yellowcode-linux-x64.tar.gz",
-        "sha256": "22f27f70929a81c810809f47cd21119808c4ac5e6c91ee2193eb98d7868a3d14"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.2.0/yellowcode-linux-x64.tar.gz",
+        "sha256": "dc05ca08c16cd45782614b47c237c1ad985f93cc4cd10206bcd0faedd97370c8"
       },
       "linux-arm64": {
-        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.1.1/yellowcode-linux-arm64.tar.gz",
-        "sha256": "1aa980351a14a75ed0d8e1bf242f5b9b2901ad5453d7e4b9d4730abac0f8ed0f"
+        "url": "https://github.com/ardasarico/YellowCode/releases/download/v0.2.0/yellowcode-linux-arm64.tar.gz",
+        "sha256": "df3d56bd365f27e7522165e2621407bfd8c7e929df686a017f4b92ec65c72902"
       }
     }
   },
