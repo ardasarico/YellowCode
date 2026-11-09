@@ -13,11 +13,16 @@ const ENDPOINT = {
 const QUICK = { totalMs: 30, pollMs: 5 }
 
 let state = ""
-const saved = { XDG_STATE_HOME: process.env["XDG_STATE_HOME"], NO_PROXY: process.env["NO_PROXY"] }
+const saved = {
+  XDG_STATE_HOME: process.env["XDG_STATE_HOME"],
+  NO_PROXY: process.env["NO_PROXY"],
+  no_proxy: process.env["no_proxy"],
+}
 beforeEach(() => {
   state = mkdtempSync(join(tmpdir(), "yc-oc-service-"))
   process.env["XDG_STATE_HOME"] = state
   process.env["NO_PROXY"] = "example.com"
+  delete process.env["no_proxy"]
 })
 afterEach(() => {
   rmSync(state, { recursive: true, force: true })
