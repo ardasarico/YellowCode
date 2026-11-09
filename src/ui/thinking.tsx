@@ -10,12 +10,39 @@ import { formatDuration } from "./format.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 
+const PURRS = [
+  "purring",
+  "kneading the code",
+  "stalking the bug",
+  "chasing the cursor",
+  "batting at ideas",
+  "sharpening claws",
+  "chasing its tail",
+  "napping on the keyboard",
+  "knocking things off the desk",
+  "sniffing around",
+  "pouncing",
+  "hunting for mice",
+  "staring at the wall",
+  "sitting in a box",
+  "unravelling the yarn",
+  "eyeing the red dot",
+  "loafing",
+  "plotting",
+  "stretching",
+  "making biscuits",
+  "chirping at birds",
+  "tail twitching",
+  "pawing at the bug",
+]
+
 function ThinkingLine() {
   const seconds = useElapsedSeconds(() => true)
+  const purr = PURRS[Math.floor(Math.random() * PURRS.length)]
   return (
     <box flexDirection="row">
       <ClaudeMark running />
-      <text fg={theme.muted}>{` thinking… ${seconds()}s`}</text>
+      <text fg={theme.muted}>{` ${purr}… ${seconds()}s`}</text>
     </box>
   )
 }
