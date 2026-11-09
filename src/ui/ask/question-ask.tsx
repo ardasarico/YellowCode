@@ -1,4 +1,4 @@
-import { type KeyEvent, TextAttributes } from "@opentui/core"
+import { type InputRenderable, type KeyEvent, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -11,6 +11,7 @@ import { GalleryPage } from "./gallery-page.tsx"
 import { LETTERS } from "./question.ts"
 import { fitKeyHints, pageWindow } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
+import { answerPaste } from "./pasted-image.ts"
 import type { AskViewProps } from "./ask-surface.tsx"
 
 const HINTS: [string, string][] = [
@@ -21,11 +22,11 @@ const HINTS: [string, string][] = [
   ["n", "note"],
   ["esc", "back to chat"],
 ]
-const NOTE_HINTS = "enter save · esc drop"
-const OWN_HINTS = "↑ back · enter select · esc back to chat"
+const NOTE_HINTS = "enter save · ctrl+v image · esc drop"
+const OWN_HINTS = "↑ back · enter select · ctrl+v image · esc back to chat"
 const SUBMIT_HINTS = "←→ question · ↓ note · enter submit · esc back to chat"
 const SHORT_SUBMIT_HINTS = "←→ · ↓ · enter · esc"
-const EXTRA_HINTS = "↑ back · enter submit · esc back to chat"
+const EXTRA_HINTS = "↑ back · enter submit · ctrl+v image · esc back to chat"
 const SHORT_TEXT_HINTS = "↑ · enter · esc"
 
 // Only the keys that act here: ←→ needs pages, or moves between designs in a gallery that is the only page;
@@ -251,12 +252,20 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
     setNoting(false)
   }
 
+  const fields: Record<"own" | "extra" | "note", InputRenderable | undefined> = {
+    own: undefined,
+    extra: undefined,
+    note: undefined,
+  }
+  const paste = answerPaste()
+
   // On a text row the focused input takes the keys this handler leaves alone, ←→ included, so they edit the text
   // there. Typing on the Submit review moves to its note row and the key lands in that input.
   const typing = typingGuard()
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
+    if (paste(key, noting() ? fields.note : onOwnRow() ? fields.own : onExtraRow() ? fields.extra : undefined)) return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {
       const moving = key.name === "up" || key.name === "down"
@@ -334,6 +343,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                   {onExtraRow() ? "❯ " : "  "}
                 </text>
                 <input
+                  ref={(field: InputRenderable) => (fields.extra = field)}
                   focused={onExtraRow()}
                   flexGrow={1}
                   value={state.extra}
@@ -425,6 +435,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                             >
                               <box id="note" flexDirection="row" paddingLeft={5}>
                                 <input
+                                  ref={(field: InputRenderable) => (fields.note = field)}
                                   focused
                                   flexGrow={1}
                                   value={draft()}
@@ -456,6 +467,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
                   {onOwnRow() ? "❯ " : "  "}
                 </text>
                 <input
+                  ref={(field: InputRenderable) => (fields.own = field)}
                   focused={onOwnRow()}
                   flexGrow={1}
                   value={state.own[state.page] ?? ""}

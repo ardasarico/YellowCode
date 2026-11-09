@@ -1,4 +1,4 @@
-import { TextAttributes } from "@opentui/core"
+import { type InputRenderable, TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import { createMemo, createSignal, Index, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -10,6 +10,7 @@ import { AskScroll } from "./ask-scroll.tsx"
 import type { AskViewProps } from "./ask-surface.tsx"
 import { cutStep, fitKeyHints, LABEL_EXTRA, matrixColumns, stackSteps, STEP_EXTRA, wrapRows } from "./fit.ts"
 import { typingGuard } from "./typing.ts"
+import { answerPaste } from "./pasted-image.ts"
 
 const MATRIX_PAGE = 8
 // When a step would be cut beside the labels, each row's steps go in full on the rows under its label, six rows
@@ -18,7 +19,7 @@ const STACKED_PAGE = 6
 const STEPS_INDENT = 4
 const HINTS = "↑↓ row · ←→ move · space pick · enter pick and next · n note · esc back to chat"
 const SHORT_HINTS = "↑↓ · ←→ · space · enter · n · esc"
-const NOTE_HINTS = "enter save · esc drop"
+const NOTE_HINTS = "enter save · ctrl+v image · esc drop"
 const NOTE_GAP = 2
 const ROW_GAP = 1
 
@@ -131,8 +132,11 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
     setNoting(true)
   }
 
+  let noteField: InputRenderable | undefined
+  const paste = answerPaste()
   const noteInput = () => (
     <input
+      ref={(field: InputRenderable) => (noteField = field)}
       focused
       flexGrow={1}
       value={draft()}
@@ -148,6 +152,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
+    if (paste(key, noting() ? noteField : undefined)) return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {
       const moving = key.name === "up" || key.name === "down"

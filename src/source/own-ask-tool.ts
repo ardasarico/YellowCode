@@ -15,7 +15,8 @@ export const OWN_ASK_DESCRIPTION =
   "show 2–4 designs side by side when the choice is between visual directions; every option then needs an image. " +
   "`matrix` instead of `questions`: several short propositions answered on one shared scale (2–4 steps, ending in " +
   'an uncertainty step such as "Unsure"); ask the rows answered with it again later, one by one. The user can ' +
-  "always type their own answer and add a note."
+  "always type their own answer and add a note; `[Image N: path]` in an answer or note is a picture they pasted, " +
+  "so read that file."
 
 // The API takes no oneOf at the top level, so both keys are optional and ownAskProblem wants exactly one.
 export const OWN_ASK_SCHEMA = {
