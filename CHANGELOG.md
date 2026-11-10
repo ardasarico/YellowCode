@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- Paste an image into your answer when the agent asks you a question.
+- A question from the agent comes with a short context, shown in the chat above it.
+
 ## 0.2.0
 
 ### Highlights
