@@ -27,8 +27,9 @@ export const NOTIFICATIONS = ["all", "waiting", "off"] as const
 export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
 // What YellowCode keeps for one agent, under the agent's id. `warned`: the agent's one-time warning was shown;
-// `replacedTold`: the names whose notice about a shared server over the agent's own was shown.
-export type AgentPrefs = { defaultMode?: ModeId; warned?: boolean; replacedTold?: string[] }
+// `replacedTold`: the names whose notice about a shared server over the agent's own was shown; `untrustedTold`: the
+// project folders whose notice that the agent leaves their files off was shown.
+export type AgentPrefs = { defaultMode?: ModeId; warned?: boolean; replacedTold?: string[]; untrustedTold?: string[] }
 
 // Models by modelKey: `favorites` are the ones Shift+←→ walks, `hidden` the ones /model leaves out.
 export type ModelMarks = { favorites: string[]; hidden: string[] }
@@ -162,6 +163,7 @@ const AgentEntry = z.object({
   favoriteModels: FavoriteModels,
   warned: z.boolean().optional(),
   replacedTold: z.array(z.string()).optional(),
+  untrustedTold: z.array(z.string()).optional(),
 })
 const ClaudeEntry = z.object({
   defaultMode: Permission.optional(),

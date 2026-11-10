@@ -142,6 +142,17 @@ export function firstReplaced(agent: AgentKindId, name: string): boolean {
   return true
 }
 
+// Whether the notice that the agent leaves `folder`'s own files off is still to show; asking marks it shown.
+export function firstUntrusted(agent: AgentKindId, folder: string): boolean {
+  const told = settings.agents[agent]?.untrustedTold ?? []
+  if (told.includes(folder)) return false
+  setSettings({
+    agents: { ...settings.agents, [agent]: { ...settings.agents[agent], untrustedTold: [...told, folder] } },
+  })
+  saveSettings(settings)
+  return true
+}
+
 // Back to what nothing saved gives.
 export const resetDefaultMode = (agent: AgentKindId): void =>
   setDefaultMode(agent, startModeIn(DEFAULT_SETTINGS, agent))

@@ -43,6 +43,9 @@ against pi 1.4.x.
 > Pi does not lock its session files. Do not open the same session in Pi's own screen and in YellowCode at the same
 > time, or both write to it and the file can break.
 
+Pi loads a project's own skills and `.pi` files only in a folder you trust, and over RPC it leaves them off without
+saying so. When that happens, YellowCode tells you once for that project; trust it in Pi's own screen.
+
 Pi has no plan mode or subagents of its own, so those screens do not show, and a Pi session gets no tools to run
 subagents or to message other sessions. It does take MCP servers: the mods' and the
 [shared ones](usage.md#shared-mcp-servers), which `/mcp` lists. Pi can run as another session's subagent and receive

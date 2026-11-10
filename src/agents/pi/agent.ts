@@ -8,6 +8,7 @@ import type { EffortId, ModelRef, ModeId, Outcome, PromptId } from "../../agent/
 import type { CommandRow, ListName, ModeRow } from "../../agent/lists.ts"
 import { suggestFiles } from "../../input/files.ts"
 import { log } from "../../log/log.ts"
+import { firstUntrusted } from "../../session/settings.ts"
 import { yellowcodeHome } from "../../update/method.ts"
 import { queue, stdioTransport, type Transport } from "../codex/transport.ts"
 import { createAsks } from "./asks.ts"
@@ -19,6 +20,7 @@ import { modelGroups, readModels, type PiModel } from "./models.ts"
 import { promptMap, type PromptMap } from "./prompts.ts"
 import { findSession, listSessions, readSession } from "./sessions.ts"
 import { answerOnce } from "./titles.ts"
+import { untrustedFolder } from "./trust.ts"
 import { createTranslator, type Via } from "./translate.ts"
 import {
   clearedQueue,
@@ -38,6 +40,8 @@ const REQUEST_MS = 60_000
 const GONE = { text: "Pi stopped responding", detail: [] }
 const DOWN = "Pi is not running"
 const IDLE = "Pi is not running a turn"
+const UNTRUSTED =
+  "Pi does not trust this project, so its skills and .pi files are off. Trust it in Pi's own screen to use them."
 
 // Pi asks no approval for any tool; the prompt shows this mode in the warning colors.
 export const NO_APPROVALS: ModeRow = {
@@ -59,6 +63,8 @@ export type Deps = {
   extensions: string
   // Where pi's folders are found (PI_CODING_AGENT_DIR and the like).
   env: Record<string, string | undefined>
+  // Whether the notice that pi leaves the files of the project in `folder` off is still to show; asking marks it shown.
+  firstUntrusted(folder: string): boolean
 }
 
 const realDeps: Deps = {
@@ -66,6 +72,7 @@ const realDeps: Deps = {
   prompts: promptMap(join(yellowcodeHome(), "pi-prompts")),
   extensions: join(yellowcodeHome(), "pi-extensions"),
   env: process.env,
+  firstUntrusted: (folder) => firstUntrusted(PI, folder),
   spawn: (cwd, args, env = {}) =>
     stdioTransport({
       command: ["pi", "--mode", "rpc", ...args],
@@ -445,6 +452,9 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     { type: "mode", mode: NO_APPROVALS.id, at: now() },
     { type: "lists", lists: { modes: [NO_APPROVALS] }, at: now() },
   )
+  const untrusted = options.plain ? null : untrustedFolder(options.cwd, deps.env)
+  if (untrusted !== null && deps.firstUntrusted(untrusted))
+    tell({ type: "notice", level: "info", text: UNTRUSTED, at: now() })
   follow(pi)
 
   async function go(prompt: Prompt, via: Via, late = false): Promise<Outcome> {

@@ -223,7 +223,8 @@ ln -s ../../.agents/skills/my-skill .claude/skills/my-skill
 For skills you use in every project, link from `~/.agents/skills` to `~/.claude/skills` the same way.
 
 Pi reads a project's `.agents/skills` only in a project you trust. Trust it once in Pi's own screen, or set
-`defaultProjectTrust` to `"always"` in `~/.pi/agent/settings.json`; YellowCode does not ask for it.
+`defaultProjectTrust` to `"always"` in `~/.pi/agent/settings.json`; YellowCode does not ask for it. When Pi leaves a
+project's skills and `.pi` files off, YellowCode tells you once for that project.
 
 ## Files it writes
 
