@@ -1730,7 +1730,7 @@ export function App(props: AppProps) {
       return
     }
     if (key.name === "f4") {
-      if (!props.caps.extraEffort) return
+      if (!props.caps.extraEffort) return waitNotice(`Not available with ${props.agent.name}`)
       const ultracode = toggleUltracode()
       void props.knobs?.setExtraEffort(ultracode)
       return

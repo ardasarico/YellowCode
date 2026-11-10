@@ -5,16 +5,17 @@ import { constants } from "node:os"
 import { basename } from "node:path"
 import { parseArgs } from "node:util"
 import { type Accessor, createEffect, createRoot, createSignal, on, type Setter, Show } from "solid-js"
-import type {
-  Agent,
-  AgentKind,
-  ClientTool,
-  Detection,
-  Prompt,
-  RelayedCall,
-  RelayedReply,
-  RestartOptions,
-  StartOptions,
+import {
+  SignInNeeded,
+  type Agent,
+  type AgentKind,
+  type ClientTool,
+  type Detection,
+  type Prompt,
+  type RelayedCall,
+  type RelayedReply,
+  type RestartOptions,
+  type StartOptions,
 } from "./agent/agent.ts"
 import type { AskReply } from "./agent/ask.ts"
 import type { Capabilities } from "./agent/capabilities.ts"
@@ -69,8 +70,8 @@ import {
   settings,
 } from "./session/settings.ts"
 import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
-import { loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
-import { runProvidersCommand, settleProviders } from "./setup/providers.ts"
+import { fallbackAgents, loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
+import { NO_PROVIDER, runProvidersCommand, settleProviders } from "./setup/providers.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
 import { modInstructions } from "./mods/registry.ts"
 import { apiVersion } from "./mods/version.ts"
@@ -273,7 +274,8 @@ const workspace = {
   version: appVersion,
 }
 // The replay's session, or the one live starts with; opening another session brings a new store.
-const firstSession = createSession({ starting: values.replay === undefined })
+// A start that fails on the first provider opens the next with a session of its own.
+let firstSession = createSession({ starting: values.replay === undefined })
 initSettings(stored)
 
 type Back = { ok: true } | { ok: false; problem: string | null }
@@ -567,7 +569,9 @@ async function pickFirst(): Promise<{ runner: Runner; model: ModelRef | null; no
 // A replay is a Claude recording.
 const picked =
   values.replay === undefined ? await pickFirst() : { runner: claudeRunner, model: null, notice: null, none: false }
-const firstRunner = picked.runner
+let pickedNotice = picked.notice
+// The provider that opens, once a failed start fell back to another.
+let firstRunner = picked.runner
 await startMods(values["no-mods"], {
   id: firstRunner.kind.id,
   name: firstRunner.kind.name,
@@ -768,18 +772,45 @@ function closeSource(): void {
   } else void mode.replay.close()
 }
 
+const problemOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+// A provider that fails to start gives way to the next added one that runs here, with a notice saying why.
 async function liveMode() {
+  // Live shows the model and effort the agent reports, and nothing until it does.
+  setKnobs({ model: null, effort: null, ultracode: false })
+  const meant = firstRunner
+  let error: unknown
   try {
-    // Live shows the model and effort the agent reports, and nothing until it does.
-    setKnobs({ model: null, effort: null, ultracode: false })
-    live = await startLive(firstRunner, { ...startOptions(firstRunner, null), model: picked.model }, firstSession)
+    live = await startLive(meant, { ...startOptions(meant, null), model: picked.model }, firstSession)
     return { kind: "live" as const, first: live }
-  } catch (error) {
-    if (picked.none && !(await detect(firstRunner.kind)).installed)
-      return fail("No provider is installed. Install Claude Code, Codex, opencode or Pi, then start again.")
-    const { name } = firstRunner.kind
-    return fail(`Cannot start ${name}: ${error instanceof Error ? error.message : String(error)}`)
+  } catch (caught) {
+    error = caught
   }
+  if (picked.none && !(await detect(meant.kind)).installed) return fail(NO_PROVIDER)
+  const { name } = meant.kind
+  log.warn(`${name} did not start`, problemOf(error))
+  for (const id of fallbackAgents(lastProvider(stored), addedIds(stored), meant.kind.id)) {
+    const runner = runnerById(id)
+    // oxlint-disable-next-line no-await-in-loop
+    const detection = runner ? await detect(runner.kind) : null
+    if (!runner || !detection?.installed || detection.blocked !== null) continue
+    firstRunner = runner
+    firstSession = createSession({ starting: true })
+    try {
+      // oxlint-disable-next-line no-await-in-loop
+      await modsFor(runner.kind)
+      // oxlint-disable-next-line no-await-in-loop
+      live = await startLive(runner, startOptions(runner, null), firstSession)
+      const why = error instanceof SignInNeeded ? "is not signed in" : "could not start"
+      pickedNotice = `${name} ${why} · opened ${runner.kind.name}`
+      return { kind: "live" as const, first: live }
+    } catch (next) {
+      log.warn(`${runner.kind.name} did not start either`, problemOf(next))
+    }
+  }
+  if (error instanceof SignInNeeded)
+    return fail(`${name} is not signed in. Run \`${error.command}\`, then start YellowCode again.`)
+  return fail(`Cannot start ${name}: ${problemOf(error)}`)
 }
 
 async function replayMode(file: string) {
@@ -1914,7 +1945,7 @@ function Main() {
 
 // Why the saved default agent did not open, once the App shows.
 function tellPicked(): void {
-  if (picked.notice !== null) setControlProblem({ text: picked.notice })
+  if (pickedNotice !== null) setControlProblem({ text: pickedNotice })
 }
 
 themeTextSelection()

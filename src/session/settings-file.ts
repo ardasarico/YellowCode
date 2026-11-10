@@ -85,6 +85,16 @@ export const usedProviders = (settings: StoredSettings, known: AgentKindId[]): A
 // Claude's mode when none is saved for it.
 export const DEFAULT_MODE: ModeId = "auto"
 
+// The order a start tries the agents in: the saved one first.
+const agentOrder = (saved: AgentKindId | undefined, agents: AgentKindId[]): AgentKindId[] =>
+  saved !== undefined && agents.includes(saved) ? [saved, ...agents.filter((agent) => agent !== saved)] : agents
+
+// The agents a start tries when `failed` did not start: those after it in the order `pickAgent` uses.
+export function fallbackAgents(saved: AgentKindId | undefined, agents: AgentKindId[], failed: AgentKindId) {
+  const order = agentOrder(saved, agents)
+  return order.slice(order.indexOf(failed) + 1)
+}
+
 // The agent a start opens: the saved one when it runs here, else the first of `agents` that does. The last one left is
 // not asked, since nothing else could open; with nothing saved and one agent, nothing is asked.
 export async function pickAgent(
@@ -92,8 +102,7 @@ export async function pickAgent(
   agents: AgentKindId[],
   runs: (agent: AgentKindId) => Promise<boolean>,
 ): Promise<AgentKindId | undefined> {
-  const order =
-    saved !== undefined && agents.includes(saved) ? [saved, ...agents.filter((agent) => agent !== saved)] : agents
+  const order = agentOrder(saved, agents)
   // One at a time: the first that runs wins, and the ones after it are never asked.
   // oxlint-disable-next-line no-await-in-loop
   for (const agent of order.slice(0, -1)) if (await runs(agent)) return agent

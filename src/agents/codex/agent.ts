@@ -2,7 +2,14 @@
 // short-lived app-server each.
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { appVersion } from "../../build-info.ts"
-import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
+import {
+  SignInNeeded,
+  type Agent,
+  type AgentKind,
+  type Detection,
+  type Prompt,
+  type StartOptions,
+} from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "../../agent/ids.ts"
 import type { ListName, McpServerRow, ModeRow, SkillRow } from "../../agent/lists.ts"
@@ -154,7 +161,7 @@ async function connect(
     let limited = false
     if (signIn) {
       const account = resultOf(await within(rpc.request("account/read", {}), "Codex"), accountResult, "account/read")
-      if (account.kind === "ok" && !account.value.signedIn) throw new Error(SIGN_IN)
+      if (account.kind === "ok" && !account.value.signedIn) throw new SignInNeeded(SIGN_IN, "codex login")
       limited = account.kind === "ok" && account.value.limited
     }
     return { rpc, version: versionOf(init.value.userAgent), limited }

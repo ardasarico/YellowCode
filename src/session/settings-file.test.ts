@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { parseJson } from "../json.ts"
 import {
   DEFAULT_SETTINGS,
+  fallbackAgents,
   loadSettings,
   modelKey,
   pickAgent,
@@ -161,4 +162,12 @@ test("a start opens the saved agent when it runs here, else the first installed 
   asked.length = 0
   expect(await pickAgent(undefined, ["claude"], runs([]))).toBe("claude")
   expect(asked).toEqual([])
+})
+
+test("a start that fails goes on with the agents after it, in the order the start tried them", () => {
+  const agents = ["claude", "opencode", "codex"]
+  expect(fallbackAgents("codex", agents, "codex")).toEqual(["claude", "opencode"])
+  expect(fallbackAgents("codex", agents, "claude")).toEqual(["opencode"])
+  expect(fallbackAgents(undefined, agents, "opencode")).toEqual(["codex"])
+  expect(fallbackAgents(undefined, agents, "codex")).toEqual([])
 })

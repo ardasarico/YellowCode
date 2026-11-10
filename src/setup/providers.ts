@@ -5,6 +5,16 @@ import { askProviders, type ProviderRow } from "./providers-prompt.ts"
 
 export type KnownProvider = { id: AgentKindId; name: string; detect: () => Promise<Detection> }
 
+// Each provider's own install command, from its docs.
+export const NO_PROVIDER = [
+  "No provider is installed. Install one:",
+  "  Claude Code  curl -fsSL https://claude.ai/install.sh | bash",
+  "  Codex        npm install -g @openai/codex",
+  "  opencode     curl -fsSL https://opencode.ai/v2/install | bash",
+  "  Pi           curl -fsSL https://pi.dev/install.sh | sh",
+  "Sign in, then run yellowcode again.",
+].join("\n")
+
 const isTerminal = () => process.stdin.isTTY && process.stdout.isTTY
 
 function exit(message: string, code = 1): never {
@@ -62,7 +72,7 @@ export async function runProvidersCommand(known: KnownProvider[]): Promise<numbe
       known.map(({ id }) => id),
     )
   const rows = await providerRows(known, added)
-  if (!rows.some((row) => row.blocked === null)) exit("No provider is installed.")
+  if (!rows.some((row) => row.blocked === null)) exit(NO_PROVIDER)
   const picked = await askProviders(rows, added)
   if (picked === null) return 130
   if (!saveSettings({ ...settings, providers: picked }))

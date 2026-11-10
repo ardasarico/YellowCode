@@ -85,6 +85,16 @@ export type Detection =
   // `blocked` names a protocol YellowCode cannot speak, such as "needs opencode 2".
   | { installed: true; version: string; blocked: string | null; signedIn: boolean | null }
 
+// A start refused because nobody is signed in to the agent; `command` signs in.
+export class SignInNeeded extends Error {
+  constructor(
+    message: string,
+    readonly command: string,
+  ) {
+    super(message)
+  }
+}
+
 export type ContextReport = {
   model: string
   used: number

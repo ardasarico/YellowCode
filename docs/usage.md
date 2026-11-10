@@ -108,6 +108,10 @@ Inside the app, `/providers` lists the installed providers, and space adds or re
 last one left cannot be removed. A newly installed provider is not added until you add it. Sessions of a removed
 provider stay in `/resume` and still open.
 
+When the provider meant to open cannot start, for example because you are not signed in to it, the next added one
+that is installed opens instead and says why. With none left, YellowCode exits. When you are not signed in, it says
+what to run; otherwise it prints `Cannot start` with the provider's name and its error.
+
 ## Models
 
 `/model` lists your favorite models first, then one group for each provider you added, the one in use first. A group
