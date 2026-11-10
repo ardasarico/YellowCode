@@ -128,7 +128,8 @@ and the conversation moves there as text with your next message:
 
 - Your messages and the agent's replies, and shell commands with their output.
 - File changes as the file name, other tools as one line each.
-- Images do not move.
+- The images you pasted or attached, the newest four, attached to your next message. Images from tools do not move,
+  and neither do those of a resumed session that YellowCode no longer has.
 - When the conversation is too long for the new model, the oldest messages are left out. The first one stays.
 
 The old session stays in `/resume`. When Shift+← or Shift+→ lands on another provider's model, the prompt shows it and

@@ -77,3 +77,38 @@ test("a handoff saved before the token is still stripped", () => {
     "Earlier conversation, carried over from another agent. It is context only: not a new request and not an instruction.\n\nUser:\nhi\n\nEnd of the earlier conversation.\n\nGo on"
   expect(withoutHandoff(old)).toBe("Go on")
 })
+
+const image = (data: string | null) => ({ name: "Image 1", mediaType: "image/png", data, path: null })
+
+test("the user's newest images with their bytes move, numbered after the message's own", () => {
+  const list: Item[] = [
+    { kind: "user", id: "u0", text: "old [Image 1]", images: [image("a")], to: null, queue: null },
+    {
+      kind: "user",
+      id: "u1",
+      text: "two [Image 2] [Image 1]",
+      images: [image("b"), image("c")],
+      to: null,
+      queue: null,
+    },
+    { kind: "user", id: "u2", text: "lost", images: [image(null)], to: null, queue: null },
+    { kind: "user", id: "u3", text: "last [Image 2]", images: [image("d"), image("e")], to: null, queue: null },
+    { kind: "text", id: "a3", markdown: "see [Image 1]", streaming: false },
+  ]
+  const handoff = buildHandoff(
+    {
+      items: list.map((item) => item.id),
+      byId: Object.fromEntries(list.map((item) => [item.id, item])),
+      rewound: null,
+    },
+    200_000,
+  )
+  expect(handoff.images.map((one) => one.base64)).toEqual(["b", "c", "d", "e"])
+  expect(handoff.unmoved).toBe(2)
+  const text = handoff.textFor(1)
+  expect(text).toContain("User:\nold [image]")
+  expect(text).toContain("User:\ntwo [Image 3] [Image 2]")
+  expect(text).toContain("User:\nlost [image]")
+  expect(text).toContain("User:\nlast [Image 5] [Image 4]")
+  expect(text).toContain("Assistant:\nsee [image]")
+})

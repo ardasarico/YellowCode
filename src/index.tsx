@@ -49,7 +49,7 @@ import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
 import { moveAsk, moveOf, movedNote } from "./models/move.ts"
-import { buildHandoff, handoffBudget } from "./session/handoff.ts"
+import { buildHandoff, handoffBudget, type Handoff } from "./session/handoff.ts"
 import { ensureCatalog } from "./models/refresh.ts"
 import { type Launcher, modelText, nameOf } from "./subagents/children.ts"
 import { loadDefinitions } from "./subagents/definitions.ts"
@@ -1267,8 +1267,9 @@ async function startNew(
 // A command typed on a pending model, for the App of the session it switched to.
 const [handed, setHanded] = createSignal<Submission | null>(null)
 
-// The conversation a new session took over from another provider's; it goes with the session's next message.
-let carrying: { store: SessionStore; text: string } | null = null
+// The conversation a new session took over from another provider's; it goes with the session's next message, the
+// user's images that moved attached after the message's own.
+let carrying: { store: SessionStore; handoff: Pick<Handoff, "textFor" | "images"> } | null = null
 const moveWaiting = new Map<string, (yes: boolean) => void>()
 
 function answerMove(ask: { requestId: string }, reply: AskReply): void {
@@ -1316,14 +1317,14 @@ const modelSource: ModelSource = {
     }
     const from = live.runner.kind.name
     // A session left before its first message hands on the conversation it was given.
-    const held = handoff ? null : carrying?.store === live.store ? carrying.text : null
+    const held = handoff ? null : carrying?.store === live.store ? carrying.handoff : null
     startNew(runner, `switch to ${runner.kind.name}`, model)
       .then((started) => {
         if (started && handoff) {
-          carrying = { store: live.store, text: handoff.text }
+          carrying = { store: live.store, handoff }
           live.store.event({ type: "notice", level: "info", text: movedNote(handoff, from), at: Date.now() })
         } else if (started && held) {
-          carrying = { store: live.store, text: held }
+          carrying = { store: live.store, handoff: held }
           live.store.event({ type: "notice", level: "info", text: "The moved conversation came along", at: Date.now() })
         }
         if (command) {
@@ -1430,9 +1431,10 @@ function sendPrompt(
   const carried = carrying?.store === session && message.to === null && !message.text.startsWith("/") ? carrying : null
   if (carried) carrying = null
   const { takesShells } = target.runner
-  const told = carried ? [carried.text] : []
+  const told = carried ? [carried.handoff.textFor(message.images.length)] : []
   const ahead = [...told, ...(takesShells || shells.length === 0 ? [] : [shellsText(shells)])]
   const context = ahead.length > 0 ? ahead.join("\n\n") : null
+  const images = carried ? [...message.images, ...carried.handoff.images] : message.images
   const prompt: Prompt = {
     ...message,
     id: uuid,
@@ -1440,6 +1442,7 @@ function sendPrompt(
     delivery,
     kept,
     context,
+    images,
     shells: takesShells ? shells : [],
   }
   const run = runOf(target)

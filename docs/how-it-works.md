@@ -57,10 +57,10 @@ a session, and asks for its models. That sends no request to a
 model. It happens the first time `/model`, `/agents` or a subagent needs the list, never at start.
 
 A conversation moves to another provider as plain text: a new session starts there, and the text goes ahead of your
-next message, marked as earlier context and not a request. It is cut to fit the new model's context window, which comes
-from the provider's model list (opencode and Pi), from Claude Code for each model as the list is made, from Codex's own
-`~/.codex/models_cache.json`, or from a turn on that model that YellowCode has seen. A model with none of these cannot
-take a conversation.
+next message, marked as earlier context and not a request. Your own newest four images whose bytes YellowCode still
+has go with that message. It is cut to fit the new model's context window, which comes from the provider's model list
+(opencode and Pi), from Claude Code for each model as the list is made, from Codex's own `~/.codex/models_cache.json`,
+or from a turn on that model that YellowCode has seen. A model with none of these cannot take a conversation.
 
 ## Subagents
 
