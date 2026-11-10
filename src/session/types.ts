@@ -1,4 +1,4 @@
-import type { Ask as AgentAsk, AskOption, AskOutcome, Denial, Questions } from "../agent/ask.ts"
+import type { Ask as AgentAsk, AskLine, AskOption, AskOutcome, Denial, Questions } from "../agent/ask.ts"
 import type { AgentEvent, TaskKind } from "../agent/events.ts"
 import type { EffortId, ModeId, ModelRef } from "../agent/ids.ts"
 import type { ModelGroup, ModeRow } from "../agent/lists.ts"
@@ -167,6 +167,8 @@ export type Ask = {
   writes: string[]
   // The change the call will make, when the agent sent it with the ask.
   diff?: { path: string; hunks: Hunk[] }[]
+  // Rows that stand in for the target, `warn` ones in the warning colour.
+  lines?: AskLine[]
   description: string
   reason: string
   // In the agent's order; a question with pages or a matrix has none.
@@ -188,6 +190,7 @@ export type Ask = {
   mcp?: { rpcId: string | number }
   // A finished plan the agent reported without asking: YellowCode answers it, and "Yes, start" goes on in `next`.
   ownPlan?: { next: ModeId | null }
+  escCloses?: boolean
 }
 export type TurnEnd = {
   kind: "turn-end"

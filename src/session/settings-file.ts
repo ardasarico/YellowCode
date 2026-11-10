@@ -26,8 +26,9 @@ export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
 export type NotificationSetting = (typeof NOTIFICATIONS)[number]
 
-// What YellowCode keeps for one agent, under the agent's id. `warned`: the agent's one-time warning was shown.
-export type AgentPrefs = { defaultMode?: ModeId; warned?: boolean }
+// What YellowCode keeps for one agent, under the agent's id. `warned`: the agent's one-time warning was shown;
+// `replacedTold`: the names whose notice about a shared server over the agent's own was shown.
+export type AgentPrefs = { defaultMode?: ModeId; warned?: boolean; replacedTold?: string[] }
 
 // Models by modelKey: `favorites` are the ones Shift+←→ walks, `hidden` the ones /model leaves out.
 export type ModelMarks = { favorites: string[]; hidden: string[] }
@@ -59,6 +60,8 @@ export type StoredSettings = {
   agents: Record<AgentKindId, AgentPrefs>
   // How many subagents run at once; the others wait.
   maxSubagents: number
+  // "off": the providers' own configured MCP servers stay out of YellowCode's sessions.
+  ownMcpServers: "on" | "off"
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -76,6 +79,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   lastModel: undefined,
   agents: {},
   maxSubagents: 6,
+  ownMcpServers: "on",
 }
 
 // The providers an older file shows were used: those with an entry and the default agent it saved, in `known` order.
@@ -143,6 +147,7 @@ const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
 export const MAX_SUBAGENTS = 10
 const MaxSubagents = z.number().int().min(1).max(MAX_SUBAGENTS)
+const OwnMcpServers = z.enum(["on", "off"])
 const Providers = z.array(z.string()).min(1)
 const Keys = z.array(z.string()).default([])
 const Models = z.object({ favorites: Keys, hidden: Keys })
@@ -156,8 +161,13 @@ const AgentEntry = z.object({
   defaultMode: z.string().optional(),
   favoriteModels: FavoriteModels,
   warned: z.boolean().optional(),
+  replacedTold: z.array(z.string()).optional(),
 })
-const ClaudeEntry = z.object({ defaultMode: Permission.optional(), favoriteModels: FavoriteModels })
+const ClaudeEntry = z.object({
+  defaultMode: Permission.optional(),
+  favoriteModels: FavoriteModels,
+  replacedTold: z.array(z.string()).optional(),
+})
 
 export type LoadedSettings = {
   settings: StoredSettings
@@ -278,6 +288,7 @@ function readStored(stored: Record<string, unknown>) {
   read("updates", Updates)
   read("defaultAgent", DefaultAgent)
   read("maxSubagents", MaxSubagents)
+  read("ownMcpServers", OwnMcpServers)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 

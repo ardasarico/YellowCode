@@ -10,7 +10,17 @@ import { shownText } from "../session/agent-message.ts"
 import { type Todo, todoList } from "../session/todos.ts"
 import { todoMark } from "./todos/todo-row.tsx"
 import { theme } from "../theme/theme.ts"
-import { cut, cutPath, formatAgo, formatClock, formatSpan, formatUntil, plain, wrapLines } from "./format.ts"
+import {
+  cut,
+  cutPath,
+  formatAgo,
+  formatClock,
+  formatSpan,
+  formatUntil,
+  plain,
+  shownText as oneRow,
+  wrapLines,
+} from "./format.ts"
 import { EDGE_GAP, SIDEBAR_GAP } from "./layout.ts"
 import { levelColor, ThirdBar } from "./meters.tsx"
 import { useTicker } from "./ticker.ts"
@@ -172,7 +182,7 @@ function Heading(props: { left: string; right: string; onMouseDown?: (event: Mou
 }
 
 function ServerRow(props: { server: McpServerRow; status: ServerStatus; width: number }) {
-  const name = () => cut(props.server.label, props.width - 2)
+  const name = () => cut(oneRow(props.server.label), props.width - 2)
   const room = () => props.width - 4 - Bun.stringWidth(name())
   const error = () => (props.server.state === "failed" ? props.server.error?.replace(/\s+/g, " ").trim() : "")
   return (

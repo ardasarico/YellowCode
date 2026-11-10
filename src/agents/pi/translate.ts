@@ -7,7 +7,7 @@ import type { AgentEvent } from "../../agent/events.ts"
 import type { PromptId, ToolId } from "../../agent/ids.ts"
 import { existsSync } from "node:fs"
 import { parseJson } from "../../json.ts"
-import { absolute, calledOf, endOf, kindOf, textOf } from "./tools.ts"
+import { absolute, calledOf, endOf, kindOf, labelOf, textOf } from "./tools.ts"
 import type { Message, PiEvent, Usage } from "./wire.ts"
 
 export type Via = "start" | "steer" | "queue"
@@ -128,7 +128,7 @@ export function createTranslator(cwd: string, exists: (path: string) => boolean 
 
   function call(id: ToolId, name: string): Bare {
     tools.set(id, { name, input: null, ended: false, args: "", created: null })
-    return { type: "tool.start", id, parent: null, name, kind: kindOf(name), title: name, mcp: null, quiet: false }
+    return { type: "tool.start", id, parent: null, name, kind: kindOf(name), ...labelOf(name), quiet: false }
   }
 
   function add(usage: Usage | undefined): void {

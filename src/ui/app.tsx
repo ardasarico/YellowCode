@@ -3,6 +3,8 @@ import type { AskReply } from "../agent/ask.ts"
 import type { Capabilities } from "../agent/capabilities.ts"
 import type { AgentKindId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../agent/ids.ts"
 import type { Knob, McpServerRow, ModelRow, RuleRow } from "../agent/lists.ts"
+import type { SharedSession } from "../mcp/handover.ts"
+import { hasShared, withHeld } from "./mcp/servers.ts"
 import {
   favoriteWalk,
   isModelOf,
@@ -72,7 +74,15 @@ import {
 } from "../session/settings.ts"
 import { ChoiceDialog } from "./dialog/choice-dialog.tsx"
 import { failedSaves, SAVE_PROBLEM } from "../session/settings-file.ts"
-import { fileRewindFact, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "../report.ts"
+import {
+  fileRewindFact,
+  hostFacts,
+  logTail,
+  reportMarkdown,
+  settingsFacts,
+  sharedSessionFact,
+  terminalFacts,
+} from "../report.ts"
 import { existsSync, statSync } from "node:fs"
 import { resolve } from "node:path"
 import { writeClipboard } from "../input/clipboard.ts"
@@ -195,6 +205,8 @@ export type AppProps = {
   // Stands in for session.info until the real init arrives, and its servers for the session's.
   firstInfo?: SessionInfo | null
   firstServers?: McpServerRow[] | null
+  // Live only: the shared MCP servers of the session.
+  shared?: Accessor<SharedSession>
   // What the session's agent pushed, kept beside `session`.
   lists: Accessor<PushedLists>
   workspace: Workspace
@@ -662,8 +674,8 @@ export function App(props: AppProps) {
   createEffect(
     on(pending, (now, before) => {
       // Typing meant for the prompt goes on into an ask that just appeared, where a digit or Enter would answer it.
-      // An ask that the user's own interrupt cancelled leaves nothing to hold.
-      const withdrawn = before?.status === "cancelled" && !props.session.interrupting
+      // An ask that the user's own interrupt or Esc cancelled leaves nothing to hold.
+      const withdrawn = before?.status === "cancelled" && !props.session.interrupting && !before.escCloses
       if (!now && !withdrawn) return
       holdKeys(() => pending() !== null)
       setHeldWithdrawn(withdrawn)
@@ -1396,6 +1408,7 @@ export function App(props: AppProps) {
       ],
       extensions: [
         ["MCP", namesWithCount(servers.map((server) => server.name))],
+        sharedSessionFact(props.shared?.()),
         ["Plugins", namesWithCount(plugins.map((plugin) => plugin.name))],
       ],
       log: logTail(50),
@@ -1944,13 +1957,15 @@ export function App(props: AppProps) {
       void modCommand.run(args.trim())
       return true
     }
-    // A dialog of a list the agent does not fill gives way to the agent's own command of that name.
+    // A dialog of a list the agent does not fill gives way to the agent's own command of that name. /mcp has the
+    // shared servers to show.
+    const fills = (list: "mcp" | "skills" | "plugins") =>
+      props.caps.lists.includes(list) || (list === "mcp" && hasShared(props.shared?.()))
     const yields = (list: "mcp" | "skills" | "plugins") =>
-      !props.caps.lists.includes(list) &&
-      props.provider.commands().some((row) => row.name === list && !OWN_COMMANDS.includes(row))
+      !fills(list) && props.provider.commands().some((row) => row.name === list && !OWN_COMMANDS.includes(row))
     // A list the agent does not fill and has no command for would open empty.
     const empty = (["mcp", "skills", "plugins"] as const).find(
-      (list) => command === `/${list}` && !props.caps.lists.includes(list) && !yields(list),
+      (list) => command === `/${list}` && !fills(list) && !yields(list),
     )
     if (empty) {
       waitNotice(`Not available with ${props.agent.name}`)
@@ -2092,9 +2107,7 @@ export function App(props: AppProps) {
             }}
             onPlanApproved={ask.ownPlan ? undefined : () => planBack.approve()}
             onOpenImages={(images, index) => setDialog({ name: "image", images, index })}
-            onOpenScript={(name, script) =>
-              setDialog({ name: "code", refs: [{ path: `${name}.js`, text: script }], ids: [], index: 0 })
-            }
+            onOpenText={(path, text) => setDialog({ name: "code", refs: [{ path, text }], ids: [], index: 0 })}
           />
         )
       },
@@ -2375,7 +2388,7 @@ export function App(props: AppProps) {
               workspace={props.workspace}
               modified={props.readOnly?.modified}
               model={settings.model ?? props.model()}
-              servers={props.lists().mcp ?? null}
+              servers={withHeld(props.lists().mcp ?? null, props.shared?.())}
               caps={props.caps}
               width={shownWidth()}
               overlay={sidebar() === "overlay"}
@@ -2391,6 +2404,7 @@ export function App(props: AppProps) {
             tab={tab()}
             info={currentInfo(props.session, props.firstInfo ?? null)}
             servers={shownServers()}
+            shared={props.shared?.()}
             extensions={props.extensions}
             caps={props.caps}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
@@ -2399,7 +2413,7 @@ export function App(props: AppProps) {
             version={props.workspace.version}
             provider={props.provider}
             row={settingsRow()}
-            agent={{ id: props.agent.id, name: props.agent.name }}
+            agent={{ id: props.agent.id, name: props.agent.name, ownMcpOff: props.caps.ownMcpOff }}
             agents={agentOptions()}
             agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}

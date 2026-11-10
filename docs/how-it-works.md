@@ -44,8 +44,10 @@ against pi 1.4.x.
 > time, or both write to it and the file can break.
 
 Pi has no plan mode or subagents of its own, so those screens do not show, and a Pi session gets no tools to run
-subagents or to message other sessions. Pi can run as another session's subagent and receive messages. Questions from
-your Pi extensions open in YellowCode's own dialog, and their notices show as lines in the chat.
+subagents or to message other sessions. It does take MCP servers: the mods' and the
+[shared ones](usage.md#shared-mcp-servers), which `/mcp` lists. Pi can run as another session's subagent and receive
+messages. Questions from your Pi extensions open in YellowCode's own dialog, and their notices show as lines in the
+chat.
 
 ## Models of other providers
 
@@ -94,13 +96,31 @@ get and Pi does not. How they start, which providers keep your plugins and how p
 - Three tools for your other open sessions, `list`, `send` and `broadcast`, given to the agent the same way as the mods'
   tools. See [Sessions working together](agents.md#sessions-working-together). Pi does not get them.
 - Five tools to run [subagents](agents.md#subagents) on the providers you added. Pi does not get them.
-- The tools of the [mods](mods.md) you have turned on, and with Claude Code and Codex their MCP servers. Codex takes
-  them when a session starts, so a change reaches it in the next session. Pi gets neither.
+- The tools of the [mods](mods.md) you have turned on, and their MCP servers. Codex takes the tools when a session
+  starts, so a change reaches it in the next session. Pi takes no tools from YellowCode. Codex, opencode and Pi take
+  the mods' MCP servers when a session starts.
+- The [shared MCP servers](usage.md#shared-mcp-servers), with each provider's own:
+  - Claude Code gets them as servers set for the session over its stream, the same way as the mods'. Claude Code
+    reads every `.mcp.json` from the folder up to `/` by itself, so whenever there is one, trusted or not, it is told
+    to leave off every server those files name, by name and with no file written. With Providers' own MCP servers
+    Off, it starts with `--strict-mcp-config`.
+  - Codex gets them as config overrides of the thread it starts. A shared server of the same name as one of Codex's
+    own overrides each of the own one's fields. Of the own one, YellowCode keeps only the names of its fields and what
+    program or URL it runs. Off switches Codex's own off the same way.
+  - opencode gets them added to its running service for the folder, and Off disconnects its own there. Nothing is
+    written to disk. When the session closes, YellowCode takes back what no other session of it in the folder still
+    needs.
+  - Pi gets them through a small extension of YellowCode's, loaded with `-e`, which reads them from an environment
+    variable of Pi's process. With Off, on Pi 1.4 and later, Pi starts with `--no-mcp`, and the extension stands in
+    for Pi's own MCP extension, with none of Pi's own servers.
 - The output of your `!` shell commands, with your next message. Claude Code also reads it at once when it is idle.
 
 ## What it never does
 
-- Read your credentials or API keys.
+- Read your credentials or API keys. The values in a shared MCP server's `${VAR}` come from YellowCode's own
+  environment and go only to the provider that runs the server.
+- Write your providers' files. With opencode, it does switch servers on and off inside opencode's running service for
+  the folder, which your other opencode screens there see, until the service restarts or reloads the folder.
 - Talk to a model provider itself.
 - Send your prompts, files or sessions anywhere but to your agent. When your agent messages another open session, the
   message goes to that session on your machine and nowhere else. A moved conversation or a subagent's task goes only
@@ -115,7 +135,8 @@ it has any, from npm. Mods are code you chose to run, so they can do more. See [
 
 ## What it keeps on your machine
 
-Settings, the model lists, logs and rewind snapshots, which are copies of files from your projects.
+Settings, your shared MCP servers and your answers about each project's, the model lists, logs and rewind snapshots,
+which are copies of files from your projects.
 [Usage](usage.md#files-it-writes) lists where each one lives. For `/resume`, YellowCode reads the session lists your
 providers keep: Claude Code's `~/.claude/projects`, what Codex's app-server and opencode's service list for the project,
 and Pi's session files in `~/.pi/agent/sessions`.

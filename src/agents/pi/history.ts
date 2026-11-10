@@ -3,7 +3,7 @@
 import type { AgentEvent } from "../../agent/events.ts"
 import type { PromptId } from "../../agent/ids.ts"
 import type { HistoryPage } from "../../agent/sessions.ts"
-import { calledOf, endOf } from "./tools.ts"
+import { calledOf, endOf, labelOf } from "./tools.ts"
 import type { Entry } from "./sessions.ts"
 import { branchOf } from "./sessions.ts"
 import { message as messageSchema, type Message } from "./wire.ts"
@@ -113,8 +113,7 @@ export function historyEvents(entries: Entry[], prompts: Map<string, PromptId>, 
               parent: null,
               name: part.name,
               kind: called.kind ?? "other",
-              title: part.name,
-              mcp: null,
+              ...labelOf(part.name),
               quiet: false,
             },
             called,

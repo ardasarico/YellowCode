@@ -4,6 +4,7 @@ import type { Capabilities } from "../../agent/capabilities.ts"
 import type { InputProvider } from "../../input/provider.ts"
 import { modeLabel, settings } from "../../session/settings.ts"
 import type { McpServerRow } from "../../agent/lists.ts"
+import type { SharedSession } from "../../mcp/handover.ts"
 import type { SessionInfo } from "../../session/types.ts"
 import { type Tab, TabbedDialog } from "../dialog/tabbed-dialog.tsx"
 import { McpTab } from "../mcp/mcp-tab.tsx"
@@ -30,6 +31,8 @@ export function SettingsDialog(props: {
   // The session's MCP servers; null while the agent has named none. Live, the agent lists them before the first
   // message, when there is no info yet.
   servers: McpServerRow[] | null
+  // Live only.
+  shared?: SharedSession | null
   // Live only.
   extensions?: Pick<Agent, "mcp" | "plugins">
   caps: Pick<Capabilities, "mcp" | "plugins" | "lists">
@@ -82,7 +85,13 @@ export function SettingsDialog(props: {
       id: "mcp",
       label: "MCP",
       render: (api) => (
-        <McpTab api={api} servers={props.servers} actions={props.extensions?.mcp} can={props.caps.mcp} />
+        <McpTab
+          api={api}
+          servers={props.servers}
+          shared={props.shared}
+          actions={props.extensions?.mcp}
+          can={props.caps.mcp}
+        />
       ),
     },
     {

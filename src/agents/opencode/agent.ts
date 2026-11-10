@@ -1,14 +1,16 @@
 import { lstat } from "node:fs/promises"
+import { join } from "node:path"
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { z } from "zod"
 import { appVersion } from "../../build-info.ts"
-import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
+import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "../../agent/agent.ts"
 import type { AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../../agent/ids.ts"
 import type { SettingValue } from "../../agent/settings.ts"
 import type { ListName, Lists, ModelGroup, ModeRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
+import { defaultPeersDir, listPeers } from "../../peers/registry.ts"
 import { formReply, permissionReply } from "./asks.ts"
 import { OPENCODE, OPENCODE_CAPS, OPENCODE_NAME } from "./caps.ts"
 import { createCuts, type Revert } from "./cut.ts"
@@ -26,6 +28,7 @@ import {
 } from "./lists.ts"
 import { readModes } from "./modes.ts"
 import { startOwnMcp } from "./own-mcp.ts"
+import { startSharedMcp, type SharedMcp } from "./shared-mcp.ts"
 import { commandBody, messageOf, promptBody } from "./prompts.ts"
 import { resync, shellOutput } from "./resync.ts"
 import { projectFolder, settingRows, writeSetting } from "./settings.ts"
@@ -69,6 +72,10 @@ export type Deps = {
   appVersion: string
   // A plan file's text; null when it cannot be read.
   readFile(path: string): Promise<string | null>
+  // Where each YellowCode keeps the record of the MCP servers it handed opencode, and the pids of the YellowCode
+  // sessions open now.
+  mcpRecords: string
+  livePids(): ReadonlySet<number>
 }
 
 const realDeps: Deps = {
@@ -83,6 +90,8 @@ const realDeps: Deps = {
     lstat(path)
       .then((found) => (found.isFile() ? Bun.file(path).text() : null))
       .catch(() => null),
+  mcpRecords: join(defaultPeersDir(), "opencode-mcp"),
+  livePids: () => new Set(listPeers().map((peer) => peer.pid)),
 }
 
 // `connected`, for tests and the recorder: resolves once the stream has connected `count` times and no resync runs.
@@ -112,6 +121,8 @@ const interruptReply = z.looseObject({ interrupted: z.boolean() })
 const QUESTION_DENY: Rule = { action: "question", resource: "*", effect: "deny" }
 // How long leaving a session waits for the question rule to come off.
 const LEAVE_MS = 3000
+// How long the first prompt waits for the shared MCP servers; one that starts slowly joins the session later.
+const HAND_MS = 3000
 // Session rules come after the config's and the agent's, so these win over an allow there.
 const ASK_ALL: Rule[] = ["edit", "shell"].map((action) => ({ action, resource: "*", effect: "ask" }))
 
@@ -200,6 +211,10 @@ async function allowQuestions(transport: Transport, id: string): Promise<void> {
   if (done?.status !== 204 && done?.status !== 200) log.warn("opencode: the question rule did not come off the session")
 }
 
+// opencode reloads a folder, and drops the MCP servers added there. `created` is when, on this machine's clock.
+const shutdown = z.object({ created: z.number().optional(), location: z.object({ directory: z.string() }) })
+const originOf = (url: string) => URL.parse(url)?.origin ?? url
+
 // One session on opencode's shared service. Events of other sessions are seen and dropped.
 async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent> {
   const found = await usable(deps)
@@ -207,7 +222,8 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
 
   const out = channel<AgentEvent>()
   const translator: Translator = createTranslator({ lasting: !options.ephemeral })
-  let transport = deps.transport(await deps.service(binary), options.cwd)
+  let endpoint = await deps.service(binary)
+  let transport = deps.transport(endpoint, options.cwd)
   let stream = new AbortController()
   let session: string | null = null
   // The saved rules are read once something asks for them, and kept fresh from then on.
@@ -244,6 +260,8 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   // Cuts, their undos and commits go out one at a time.
   let reverting: Promise<unknown> = Promise.resolve()
   let queuedReverts = 0
+  // The shared MCP servers, once handed.
+  let sharing: SharedMcp | null = null
 
   const settle = () => {
     const ready = waiters.filter((waiter) => connects >= waiter.count && !resyncing)
@@ -307,7 +325,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
         return rows && { skills: rows }
       }
       case "mcp": {
-        const rows = await readMcp(transport)
+        const rows = await readMcp(transport, sharing?.marks())
         return rows && { mcp: rows }
       }
       case "plugins": {
@@ -374,6 +392,11 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
         if (seq !== null && durable > seq + 1 && (await catchUp(frame.at))) return
         seq = Math.max(seq ?? durable, durable)
       }
+      if (frame.kind === "unknown" && frame.type === "location.shutdown") {
+        const reloaded = shutdown.safeParse(item.frame).data
+        const folder = reloaded?.location.directory
+        if (folder === options.cwd || folder === here) sharing?.check("reloaded", reloaded?.created)
+      }
       if (frame.kind !== "event") {
         out.push(
           frame.kind === "unknown"
@@ -389,6 +412,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
         readyTold = true
         // The stream of a new connection starts now; what it missed comes from the resync.
         if (opened || restarted) own.wake()
+        if (opened || restarted) sharing?.check("connected")
         const over = (opened || restarted) && (await catchUp(frame.at))
         // A list's word that it changed is no session event, so a gap in them does not show; a new stream reads them.
         if (!over && (opened || restarted)) for (const list of watched.keys()) tellList(list)
@@ -408,6 +432,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       }
       const changed = CHANGED[event.type]
       if (changed && ours && watched.has(changed)) tellList(changed)
+      if (changed === "mcp" && ours) sharing?.check("changed")
       if (event.type === "session.forked") {
         forked.add(event.data.sessionID)
         if (forking?.id === event.data.sessionID) forking.resolve()
@@ -469,32 +494,52 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     own.close()
     throw error
   })
-  // Read first, so a new session can start in the mode asked for. opencode takes any agent name, so only a listed one
-  // goes out.
-  const modes = await readModes(transport)
-  translator.windows(await readWindows(transport))
-  tellLimits()
-  const chosen = options.mode ?? (options.resume ? null : options.defaultMode)
-  const wanted = chosen !== null && modes?.rows.some((row) => row.id === chosen) ? chosen : null
-  const made = await sessionFor(transport, options, options.resume ? null : wanted).catch((error: unknown) => {
+  // A prompt waits for the shared MCP servers a while, not the start.
+  sharing = startSharedMcp(
+    {
+      transport: () => transport,
+      folder: options.cwd,
+      service: () => originOf(endpoint.url),
+      held: (name, problem) => options.mcpHeld?.(name, problem),
+      replaced: (name) => options.mcpReplaced?.(name, null),
+      records: deps.mcpRecords,
+      live: () => deps.livePids(),
+    },
+    options.mcpServers,
+    options.ownMcp,
+  )
+  let handing = true
+  void sharing.ready.then(() => (handing = false))
+  let ref: { agent: typeof OPENCODE; id: string }
+  try {
+    // Read first, so a new session can start in the mode asked for. opencode takes any agent name, so only a listed
+    // one goes out.
+    const modes = await readModes(transport)
+    translator.windows(await readWindows(transport))
+    tellLimits()
+    const chosen = options.mode ?? (options.resume ? null : options.defaultMode)
+    const wanted = chosen !== null && modes?.rows.some((row) => row.id === chosen) ? chosen : null
+    const made = await sessionFor(transport, options, options.resume ? null : wanted)
+    if (options.resume?.fork) await copied(made.id)
+    session = made.id
+    // A cut staged earlier is not in the history; it goes for good with the next send.
+    if (made.revert) cuts.open(made.revert.messageID)
+    translator.within(made.location.directory)
+    here = made.location.directory
+    ref = { agent: OPENCODE, id: made.id }
+    // A new session without an agent of its own runs opencode's default, which it lists first.
+    if (modes) out.push(...translator.modes(modes, made.agent ?? wanted ?? modes.rows[0]?.id ?? null, lastAt))
+    await addInstructions(transport, made.id, options)
+    if (options.resume) await denyQuestions(transport, made)
+    if (options.resume) await attach(made)
+    if (options.resume && wanted !== null && wanted !== made.agent) await setMode(wanted)
+  } catch (error) {
     stream.abort()
     own.close()
+    void sharing.close()
     out.end()
     throw error
-  })
-  if (options.resume?.fork) await copied(made.id)
-  session = made.id
-  // A cut staged earlier is not in the history; it goes for good with the next send.
-  if (made.revert) cuts.open(made.revert.messageID)
-  translator.within(made.location.directory)
-  here = made.location.directory
-  const ref = { agent: OPENCODE, id: session }
-  // A new session without an agent of its own runs opencode's default, which it lists first.
-  if (modes) out.push(...translator.modes(modes, made.agent ?? wanted ?? modes.rows[0]?.id ?? null, lastAt))
-  await addInstructions(transport, made.id, options)
-  if (options.resume) await denyQuestions(transport, made)
-  if (options.resume) await attach(made)
-  if (options.resume && wanted !== null && wanted !== made.agent) await setMode(wanted)
+  }
 
   // A subagent of our session, or of one of its subagents.
   async function subagent(id: string): Promise<boolean> {
@@ -555,6 +600,11 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     await switching
     await picking
     await own.attached()
+    if (handing) {
+      const late = new AbortController()
+      await Promise.race([sharing?.ready, deps.clock.sleep(HAND_MS, late.signal)])
+      late.abort()
+    }
     if (prompt.command?.name === COMPACT.name) return compact(prompt)
     if (prompt.command) return sendCommand(prompt, prompt.command)
     translator.sending(prompt.id)
@@ -959,15 +1009,17 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     return contextReport(fallback.model, 0, fallback.window)
   }
 
-  async function restart(): Promise<Outcome> {
+  async function restart(saved: RestartOptions): Promise<Outcome> {
     if (!ended || closed) return { ok: false, problem: "opencode is still connected" }
     if (deleted !== null) return { ok: false, problem: deleted }
     out.push({ type: "starting", at: lastAt })
     try {
-      transport = deps.transport(await deps.service(binary), options.cwd)
+      endpoint = await deps.service(binary)
+      transport = deps.transport(endpoint, options.cwd)
       stream = new AbortController()
       ended = false
       await open(true)
+      if (saved.mcpServers) void sharing?.set(saved.mcpServers, saved.ownMcp)
       return { ok: true, note: null }
     } catch (error) {
       stream.abort()
@@ -997,15 +1049,17 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       own.close()
       out.push({ type: "ended", problem: null, at: lastAt })
       out.end()
-      if (session === null || deleted !== null) return
-      if (!options.ephemeral && ended) return
+      const undo = sharing?.close()
       // A session not kept goes, mid-turn too; opencode stops the turn itself.
-      const leave = options.ephemeral
-        ? deleteSession(transport, session)
-        : Promise.all([allowQuestions(transport, session), dropInstructions(transport, session)])
+      const leave =
+        session === null || deleted !== null || (!options.ephemeral && ended)
+          ? Promise.resolve()
+          : options.ephemeral
+            ? deleteSession(transport, session)
+            : Promise.all([allowQuestions(transport, session), dropInstructions(transport, session)])
       let timer: ReturnType<typeof setTimeout> | undefined
       const late = new Promise<void>((resolve) => (timer = setTimeout(resolve, LEAVE_MS)))
-      await Promise.race([leave, late]).finally(() => clearTimeout(timer))
+      await Promise.race([Promise.all([leave, undo]), late]).finally(() => clearTimeout(timer))
     },
     setMode,
     setModel,
@@ -1018,12 +1072,14 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     refresh,
     tasks: { stop, background },
     mcp: {
-      toggle: (name, on) =>
-        mcpRequest(
+      toggle(name, on) {
+        sharing?.toggled(name, on)
+        return mcpRequest(
           name,
           on ? "connect" : "disconnect",
           on ? "opencode did not turn the server on" : "opencode did not turn the server off",
-        ),
+        )
+      },
       reconnect: (name) => mcpRequest(name, "connect", "opencode did not reconnect the server"),
       login: later("MCP login"),
     },
@@ -1039,7 +1095,8 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       own.setTools(tools)
       return Promise.resolve({ ok: true, note: null })
     },
-    setMcpServers: later("MCP servers"),
+    setMcpServers: (servers) =>
+      sharing?.set(servers) ?? Promise.resolve({ ok: false, problem: "opencode is not connected" }),
     take: (call, signal, claim) => own.take(call, signal, claim),
     goBack,
     connected(count) {

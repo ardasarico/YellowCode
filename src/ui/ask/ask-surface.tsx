@@ -18,7 +18,7 @@ export type AskViewProps = {
   answered: boolean
   onAnswer: (reply: AskReply) => void
   onOpenImages?: (images: ChatImage[], index: number) => void
-  onOpenScript?: (name: string, script: string) => void
+  onOpenText?: (path: string, text: string) => void
   onPlanApproved?: () => void
 }
 
@@ -60,7 +60,7 @@ export function AskSurface(props: AskSurfaceProps) {
           agent={props.agent}
           answered={answered()}
           onAnswer={answer}
-          onOpenScript={props.onOpenScript}
+          onOpenText={props.onOpenText}
           note={props.caps.askNote}
         />
       }

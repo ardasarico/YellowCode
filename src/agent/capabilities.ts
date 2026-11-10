@@ -27,6 +27,8 @@ export type Capabilities = {
   // Tools and MCP servers YellowCode hands over: only when the session starts, or at any time.
   clientTools: "none" | "start" | "live"
   mcpServers: "none" | "start" | "live"
+  // The agent's own configured MCP servers can be left off for a session (StartOptions.ownMcp).
+  ownMcpOff: boolean
   // StartOptions.instructions reach the model.
   instructions: boolean
   // How the agent says a plan is finished: an ask, a plan item, a plan file it wrote, or not at all.

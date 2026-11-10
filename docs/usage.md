@@ -22,6 +22,7 @@ yellowcode --version
 yellowcode --help
 yellowcode update [<version>]
 yellowcode mod <command>
+yellowcode mcp <command>
 ```
 
 - `--no-mods` starts without loading any mods.
@@ -34,6 +35,8 @@ yellowcode mod <command>
 - `yellowcode update` installs the newest version now, or the one you name. See
   [Updating and uninstalling](#updating-and-uninstalling).
 - `yellowcode mod` installs and manages mods. See [Mods](mods.md).
+- `yellowcode mcp` adds, lists and removes the MCP servers every provider gets. See
+  [Shared MCP servers](#shared-mcp-servers).
 
 ## Keys
 
@@ -140,18 +143,86 @@ A model whose context window YellowCode does not know cannot take a conversation
 stays where it is. A new conversation can start on it. [How it works](how-it-works.md#models-of-other-providers) says
 where the windows come from.
 
+## Shared MCP servers
+
+YellowCode keeps one list of MCP servers and gives it to whichever provider runs the session, on top of the provider's
+own. The list comes from two files, both in the `mcpServers` shape of Claude Code's `.mcp.json`:
+
+- `~/.config/yellowcode/mcp.json`, for every project.
+- The project's `.mcp.json`, the nearest one from the folder you start in up to the project's root. A server here
+  replaces the global one of the same name.
+
+Claude Code reads every `.mcp.json` from the folder up to `/` by itself. YellowCode switches the servers of all of
+them off for Claude Code and asks only about the project's own.
+
+`yellowcode mcp` writes them for you:
+
+```text
+yellowcode mcp add github -e GITHUB_TOKEN -- npx -y @modelcontextprotocol/server-github
+yellowcode mcp add docs --project --url https://example.com/mcp -H 'Authorization: Bearer ${DOCS_TOKEN}'
+yellowcode mcp list
+yellowcode mcp remove github [--project]
+```
+
+`add` writes to the global file, or with `--project` to the project's `.mcp.json`. A command server takes `-e` for
+each variable, a URL server `-H` for each header and `--transport http` (the default) or `sse`. `list` shows each
+server with its program or URL and the names of its variables, never their values.
+
+Secrets stay out of the files: write them as `${VAR}` or `${VAR:-default}`, and YellowCode fills them in from its own
+environment when a session starts. `-e GITHUB_TOKEN` writes `${GITHUB_TOKEN}`. `add` refuses a literal value, such as
+`-e GITHUB_TOKEN=ghp_…`, and says how to write it. A server whose variable is not set is left out, and `/mcp` shows
+`needs $GITHUB_TOKEN`.
+
+A project's `.mcp.json` comes with the code, so YellowCode asks before it uses its servers. The question opens in the
+chat when a session starts. For each server it shows the command line or URL as the file has it, the folder it runs
+in, the names of the variables it sets and of yours it reads, and which of yours a URL server sends to which host. A
+server that sets a variable that changes what a program loads, such as `PATH`, `NODE_OPTIONS` or `LD_PRELOAD`, gets a
+warning line. `v` shows the whole list. Yes uses them, and No leaves them out. Esc leaves the question for the next
+start. A changed file asks again. Until you answer, `/mcp` shows them as `waiting for your yes`. A yes reaches Claude
+Code at once. Another provider gets them in a new session, which starts at once if you have not sent a message yet;
+otherwise `/mcp` shows them as `starts with the next session`.
+
+A name has 1 to 32 letters, digits, `-` or `_`. `yellowcode`, `yellowcode-sessions`, `yellowcode-agents` and names
+that start with `mod-` are YellowCode's own. A project server with another name, or an entry YellowCode cannot read,
+is left out, for Claude Code too, and `/mcp` shows why. Servers with different names are never merged or dropped. When a shared
+server has the name of one of your provider's own, the shared one wins and the provider's own is off for the session.
+Where the provider shows it had one, `/mcp` lists it as `off · replaced by the shared <name>`. When Claude Code's or
+Codex's own runs another program or URL, a notice says so, once for each name.
+
+Providers' own MCP servers in `/settings` decides what else runs. On, the default, each provider also runs the servers
+of its own config. Off, it runs only the shared servers, the mods' and YellowCode's own tools. It applies from the next
+session.
+
+`/mcp` lists the shared servers first, under Shared, with the state the provider reports. A server that could not be
+given shows why in place of its state.
+
+What each provider does with them:
+
+| Provider    | Shared servers                                                                                                                                                                                                                                                                                                                            |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | Takes them at any time. A command server that sets its own folder (`cwd`) runs through `/bin/sh`, which goes into that folder first.                                                                                                                                                                                                      |
+| Codex       | Takes them when a session starts. It cannot connect to an SSE server, and cannot replace one of its own of another kind, or with settings the shared one cannot override; that server is off. When Codex does not say which servers it has, the shared ones are off for that session. With the setting Off, its plugins' servers stay on. |
+| opencode    | Takes them when a session starts, and cannot connect to an SSE server. The servers it gets, and its own switched off, apply to the whole folder in opencode's running service, your other opencode screens there included, until it restarts or reloads the folder.                                                                       |
+| Pi          | Takes them when a session starts, through a small extension YellowCode keeps in `~/.yellowcode/pi-extensions/`. It cannot connect to an SSE server. With the setting On, Pi's own server of the same name wins, and `/mcp` says so.                                                                                                       |
+
+[Subagents](agents.md#subagents) get the shared servers when they keep the provider's own: on Codex and Pi, only with
+`plugins: true`.
+
 ## Files it writes
 
 | Path                                                            | Holds                                                                                                                                                      |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `~/.config/yellowcode/settings.json`                            | Your providers, favorite and hidden models and the model you used last. `settings.json.bak` is the backup of a settings file YellowCode could not read.    |
 | `~/.config/yellowcode/state.json`                               | Screen state, such as the sidebar width.                                                                                                                   |
+| `~/.config/yellowcode/mcp.json`                                 | Your [shared MCP servers](#shared-mcp-servers). A project's own are in its `.mcp.json`.                                                                    |
+| `~/.config/yellowcode/mcp-trust.json`                           | Your yes or no to each project's `.mcp.json`, with a fingerprint of the servers it held then.                                                              |
 | `~/.config/yellowcode/themes/`, `mods/`, `mod-data/`, `agents/` | Your themes, mods, mod data and agent files.                                                                                                               |
 | `~/.yellowcode/models.json`                                     | The models each provider listed last, with their names, effort levels and context windows.                                                                 |
 | `~/.yellowcode/logs/yellowcode.log`                             | The log, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug lines, which can contain session text.                                     |
 | `~/.yellowcode/sessions/`                                       | One record and one socket for each open session, in a folder only you can read. A session removes its own when it closes.                                  |
 | `~/.local/share/yellowcode/snapshots/`                          | Rewind snapshots: copies of files from your projects. Snapshots older than 30 days are deleted; with Claude Code, its `cleanupPeriodDays` is used instead. |
 | `~/.yellowcode/pi-prompts/`                                     | One small file per Pi session. Rewind snapshots are filed under a prompt id that Pi does not keep, so YellowCode saves it here.                            |
+| `~/.yellowcode/pi-extensions/`                                  | The extension that gives Pi the shared MCP servers. It holds no servers; they reach Pi in an environment variable.                                         |
 | `~/.cache/yellowcode/mods.json`, `update.json`                  | The mod list and the release list.                                                                                                                         |
 | `~/.yellowcode/update-state.json`, `update-hold.json`           | The state of the last update.                                                                                                                              |
 | `~/.yellowcode/versions/`, `install.json`                       | The versions the install script put there, and its channel.                                                                                                |

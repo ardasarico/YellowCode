@@ -2,6 +2,7 @@ import { createMemo, createSignal } from "solid-js"
 import type { Agent } from "../../agent/agent.ts"
 import type { Capabilities } from "../../agent/capabilities.ts"
 import type { McpConfig, McpServerRow, McpState } from "../../agent/lists.ts"
+import type { SharedSession } from "../../mcp/handover.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, names, title } from "../dialog/detail.ts"
 import type { DialogItem, DialogRow, DialogSection } from "../dialog/list.ts"
@@ -27,11 +28,26 @@ const look = (state: McpState) =>
 const toolCount = (count: number) => (count === 1 ? "1 tool" : `${count} tools`)
 const reconnects = (state: McpState) => state !== "needs-login" && state !== "off"
 
+function problemRow(entry: McpEntry, problem: string): DialogRow {
+  const color = entry.attention ? theme.warning : theme.panelFaint
+  return {
+    id: entry.id,
+    label: entry.row.label,
+    tag: entry.tag,
+    search: `${entry.row.label} ${entry.tag}`,
+    marker: entry.attention ? { text: "!", fg: color } : undefined,
+    labelColor: entry.attention ? undefined : theme.panelFaint,
+    value: problem,
+    valueColor: color,
+  }
+}
+
 function listRow(entry: McpEntry): DialogRow {
-  const { state, name, label } = entry.row
+  if (entry.problem !== null) return problemRow(entry, entry.problem)
+  const { state, label } = entry.row
   const { mark, word, color } = look(state)
   const row: DialogRow = {
-    id: name,
+    id: entry.id,
     label,
     tag: entry.tag,
     search: `${label} ${entry.tag}`,
@@ -39,6 +55,8 @@ function listRow(entry: McpEntry): DialogRow {
     labelColor: state === "off" ? theme.panelFaint : undefined,
     valueColor: color,
   }
+  // The agent says nothing of a server it was handed and does not list.
+  if (entry.kind === "handed") return { ...row, marker: undefined }
   // A server whose tools the agent does not list shows no count.
   if (state === "connected")
     return entry.row.tools === null
@@ -53,6 +71,13 @@ const listSections = (entries: McpEntry[]): DialogSection[] =>
     title: heading,
     rows: entries.filter((entry) => entry.group === group).map(listRow),
   })).filter((section) => section.rows.length > 0)
+
+function entrySpan(entry: McpEntry): Span {
+  if (entry.problem !== null)
+    return entry.attention ? { text: "! off", fg: theme.warning } : { text: `◯ ${entry.problem}`, fg: theme.panelFaint }
+  if (entry.kind === "handed") return { text: "◯ handed over", fg: theme.panelMuted }
+  return stateSpan(entry.row.state)
+}
 
 function stateSpan(state: McpState): Span {
   const { mark, word, color } = look(state)
@@ -77,9 +102,12 @@ function detailItems(entry: McpEntry, width: number, open: boolean): DialogItem[
         ]
       : []
   return [
-    header(entry.row.label, stateSpan(entry.row.state)),
+    header(entry.row.label, entrySpan(entry)),
     blank("gap-head"),
     ...(entry.where ? fact("scope", "Scope", entry.where, width) : []),
+    ...(entry.problem !== null && entry.attention
+      ? fact("problem", "Problem", entry.problem, width, theme.warning)
+      : []),
     ...(entry.row.error ? fact("error", "Error", entry.row.error, width, theme.error) : []),
     ...(config ? fact("config", config[0], config[1], width) : []),
     ...tools,
@@ -105,17 +133,28 @@ const ACTION_CAP: Partial<Record<string, keyof McpCaps>> = {
   reconnect: "reconnect",
 }
 
-const offeredActions = (state: McpState, can: McpCaps) =>
-  stateActions(state).filter((action) => {
-    const cap = ACTION_CAP[action.id]
-    return cap !== undefined && can[cap]
-  })
+// A shared server is the agent's to reconnect or sign in to, not to switch off: whether it would stay off differs from
+// agent to agent.
+const toggles = (entry: McpEntry | undefined, can: McpCaps) => entry?.kind === "own" && can.toggle
+const acts = (entry: McpEntry | undefined) => entry?.kind === "own" || entry?.kind === "shared"
+
+const offeredActions = (entry: McpEntry | undefined, can: McpCaps) =>
+  !entry || !acts(entry)
+    ? []
+    : stateActions(entry.row.state).filter((action) => {
+        const cap = ACTION_CAP[action.id]
+        if (cap === "toggle") return toggles(entry, can)
+        return cap !== undefined && can[cap]
+      })
+
+const reconnectsHere = (entry: McpEntry | undefined, can: McpCaps) =>
+  entry !== undefined && acts(entry) && can.reconnect && reconnects(entry.row.state)
 
 function listFooter(entry: McpEntry | undefined, can: McpCaps): FooterAction[] {
   const footer: FooterAction[] = [{ key: "↑↓", action: "select" }]
-  if (offeredActions(entry?.row.state ?? "off", can).length > 0) footer.push({ key: "→", action: "actions" })
-  if (entry && can.toggle) footer.push({ key: "space", action: "on/off" })
-  if (entry && can.reconnect && reconnects(entry.row.state)) footer.push({ key: "ctrl+r", action: "reconnect" })
+  if (offeredActions(entry, can).length > 0) footer.push({ key: "→", action: "actions" })
+  if (toggles(entry, can)) footer.push({ key: "space", action: "on/off" })
+  if (reconnectsHere(entry, can)) footer.push({ key: "ctrl+r", action: "reconnect" })
   return [...footer, { key: "esc", action: "close" }]
 }
 
@@ -123,14 +162,16 @@ export function McpTab(props: {
   api: TabApi
   // Null before the agent has listed them.
   servers: McpServerRow[] | null
+  // The shared servers of a live session.
+  shared?: SharedSession | null
   // Live only; without them each action shows a notice.
   actions?: Agent["mcp"]
   // The actions the agent has; the others are not offered.
   can: McpCaps
 }) {
-  const entries = createMemo(() => mcpEntries(props.servers))
+  const entries = createMemo(() => mcpEntries(props.servers, props.shared))
   const [opened, setOpened] = createSignal<string | null>(null)
-  const entryFor = (row: DialogRow | undefined) => entries().find((entry) => entry.row.name === row?.id)
+  const entryFor = (row: DialogRow | undefined) => entries().find((entry) => entry.id === row?.id)
 
   const run = (entry: McpEntry, id: string) => {
     const actions = props.actions
@@ -160,22 +201,22 @@ export function McpTab(props: {
       }}
       detail={(row, width) => {
         const entry = entryFor(row)
-        return entry ? detailItems(entry, width, opened() === entry.row.name) : []
+        return entry ? detailItems(entry, width, opened() === entry.id) : []
       }}
-      actions={(row) => offeredActions(entryFor(row)?.row.state ?? "off", props.can)}
+      actions={(row) => offeredActions(entryFor(row), props.can)}
       actionsNote={props.can.reach ?? undefined}
       onAction={(row, action) => {
         const entry = entryFor(row)
         if (!entry) return
-        if (action.id === MORE_TOOLS) setOpened((name) => (name === entry.row.name ? null : entry.row.name))
+        if (action.id === MORE_TOOLS) setOpened((id) => (id === entry.id ? null : entry.id))
         else run(entry, action.id)
       }}
       onKey={(key, row) => {
         const entry = entryFor(row)
         if (!entry) return false
         const { state } = entry.row
-        if (key.name === "space" && props.can.toggle) run(entry, state === "off" ? "on" : "off")
-        else if (key.ctrl && key.name === "r" && props.can.reconnect && reconnects(state)) run(entry, "reconnect")
+        if (key.name === "space" && toggles(entry, props.can)) run(entry, state === "off" ? "on" : "off")
+        else if (key.ctrl && key.name === "r" && reconnectsHere(entry, props.can)) run(entry, "reconnect")
         else return false
         return true
       }}

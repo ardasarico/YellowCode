@@ -6,7 +6,7 @@ import { allowTool, initializeRequest } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import type { SessionStore } from "../session/session.ts"
 import type { Accessor } from "solid-js"
-import type { ClientTool } from "../agent/agent.ts"
+import type { ClientTool, McpLaunch, OwnMcp } from "../agent/agent.ts"
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
@@ -145,14 +145,23 @@ export function connect(options: {
   mode?: ModeId
   // Served as claude's dynamic MCP servers, kept in step from initialize on.
   clientTools: Accessor<readonly ClientTool[]>
+  // The shared list's servers, given the same way.
+  shared: Accessor<readonly McpLaunch[]>
+  ownMcp?: OwnMcp
+  // A shared server took the place of one of claude's own.
+  replaced?: (name: string, different: boolean | null) => void
   lean?: Lean
 }): Connection {
-  const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools, lean } = options
+  const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools, shared, ownMcp, replaced, lean } = options
   const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-  const source = createClaudeSource(cwd, busy, ["claude", ...claudeArgs(stored, launch, spawn, lean), ...chromeArgs()])
+  const source = createClaudeSource(cwd, busy, [
+    "claude",
+    ...claudeArgs(stored, launch, spawn, lean, ownMcp),
+    ...chromeArgs(),
+  ])
   const requests = createRequests((line) => source.send(line))
   const controls = createControls({ requests, provider, session, launch, onKnobs })
   const mcp = createMcpControls({ requests, session })
@@ -171,6 +180,7 @@ export function connect(options: {
     bypass: launch.bypass,
     ...spawn,
     ephemeral: lean?.ephemeral,
+    ownMcp: ownMcp?.on,
   })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,
@@ -218,7 +228,15 @@ export function connect(options: {
     initialize()
     void initialized.promise.then((reply) => {
       if (reply) controls.initialized(reply)
-      if (reply) stopModServers = syncModServers(requests, mods, clientTools)
+      if (reply)
+        stopModServers = syncModServers(
+          requests,
+          mods,
+          clientTools,
+          shared,
+          ownMcp?.on === false || ownMcp?.unsure ? undefined : replaced,
+          cwd,
+        )
     })
     if (carry) controls.carry(carry)
     tasks.start()

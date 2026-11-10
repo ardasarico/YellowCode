@@ -734,6 +734,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         target: ask.target,
         writes: [...ask.writes],
         ...(ask.preview?.type === "diff" ? { diff: structuredClone(ask.preview.files) } : {}),
+        ...(ask.preview?.type === "lines" ? { lines: structuredClone(ask.preview.lines) } : {}),
         description: ask.detail,
         reason: ask.reason,
         options: structuredClone(ask.options),
@@ -749,6 +750,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         note: "",
         ...(agent ? { agent } : {}),
         ...(ask.own ? { mcp: { rpcId: ask.own.handle } } : {}),
+        ...(ask.escCloses ? { escCloses: true } : {}),
       },
       null,
     )

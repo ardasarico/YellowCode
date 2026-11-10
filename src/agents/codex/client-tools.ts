@@ -1,6 +1,6 @@
 // The tools YellowCode hands Codex as dynamic tools: our own ask, and each mod's tools under the mod's namespace. Codex
 // keeps a thread's tools from its start on: a resumed thread still has them, and takes no others.
-import type { ClientTool, McpLaunch } from "../../agent/agent.ts"
+import type { ClientTool } from "../../agent/agent.ts"
 import { OWN_ASK_DESCRIPTION, OWN_ASK_SCHEMA } from "../../source/own-ask-tool.ts"
 import { ASK } from "./tools.ts"
 
@@ -41,21 +41,4 @@ export async function runClientTool(
   } catch (error) {
     return { text: error instanceof Error ? error.message : "The tool failed", error: true }
   }
-}
-
-// The mods' manifest servers as config overrides of the thread, which Codex starts with it.
-export function serverConfig(servers: readonly McpLaunch[]): { config?: Record<string, unknown> } {
-  if (servers.length === 0) return {}
-  const entries = servers.map((server): [string, unknown] => {
-    const fields =
-      "url" in server
-        ? { url: server.url, ...(Object.keys(server.headers).length > 0 ? { http_headers: server.headers } : {}) }
-        : {
-            command: server.command,
-            args: server.args,
-            ...(Object.keys(server.env).length > 0 ? { env: server.env } : {}),
-          }
-    return [`mcp_servers.${server.name}`, fields]
-  })
-  return { config: Object.fromEntries(entries) }
 }

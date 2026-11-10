@@ -36,10 +36,19 @@ export function cut(raw: string, max: number): string {
   return `${result}…`
 }
 
-// Pasted terminal output carries escape sequences and control characters that would show as stray text.
+// Pasted terminal output carries escape sequences and control characters that would show as stray text. Format
+// characters such as U+202E turn text around on screen; the joiners and tag characters stay, as emoji need them
+// (subdivision flags are made of tags). shownText strips them all.
 export function printable(text: string): string {
-  return Bun.stripANSI(text).replace(/(?![\n\t])\p{Cc}/gu, "")
+  return Bun.stripANSI(text).replace(/(?![\n\t])\p{Cc}|(?!\u200c|\u200d|[\u{e0020}-\u{e007f}])\p{Cf}/gu, "")
 }
+
+// One row of text from a file, which cannot start another row nor turn on screen: no escape sequence, no control or
+// format character, no line break.
+export const shownText = (text: string) =>
+  Bun.stripANSI(text)
+    .replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, " ")
+    .replace(/\p{Cf}/gu, "")
 
 const TITLE_MAX = 200
 

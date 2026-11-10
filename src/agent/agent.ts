@@ -39,9 +39,22 @@ export type ClientTool = {
   run(input: Record<string, unknown>): Promise<{ text: string; error: boolean }>
 }
 
+// A server YellowCode hands the agent: a mod's, or one of the shared list (src/mcp/). `cwd` and `type` come only with
+// shared ones; no `cwd` runs it in the session's folder, no `type` is http.
 export type McpLaunch =
-  | { name: string; command: string; args: string[]; env: Record<string, string> }
-  | { name: string; url: string; headers: Record<string, string> }
+  | { name: string; command: string; args: string[]; env: Record<string, string>; cwd?: string }
+  | { name: string; url: string; headers: Record<string, string>; type?: "http" | "sse" }
+
+// What a session does with the MCP servers the agent has configured itself.
+export type OwnMcp = {
+  // False: they stay off, where caps.ownMcpOff says the agent can do that.
+  on: boolean
+  // Every name in every .mcp.json from the folder up to /. An agent that reads those files by itself leaves these off:
+  // YellowCode hands over the project's ones the user trusts, in mcpServers.
+  project: string[]
+  // Set when those names cannot all be given: such an agent leaves all its own servers off, and the user is told this.
+  unsure?: string
+}
 
 // A tool call an agent's service gave this YellowCode for a session another one runs: opencode serves every
 // YellowCode of a folder from one service and gives each call to the one that connected last.
@@ -63,7 +76,16 @@ export type StartOptions = {
   // Added to the agent's own instructions (caps.instructions).
   instructions: string[]
   clientTools: ClientTool[]
+  // The mods' servers (caps.mcpServers "start") and the shared ones (any cap but "none").
   mcpServers: McpLaunch[]
+  // Absent: the agent's own servers run as it has them configured.
+  ownMcp?: OwnMcp
+  // A server of mcpServers the agent cannot run, and why; it is left out, and a same-named one of the agent's own is
+  // switched off with it.
+  mcpHeld?(name: string, problem: string): void
+  // A server of mcpServers took the place of the agent's own of its name. `different`: the own one runs another program
+  // or url; null when the agent does not say what it ran.
+  mcpReplaced?(name: string, different: boolean | null): void
   // The agent keeps nothing of the session once it is closed, and its own lists never show it.
   ephemeral: boolean
   // Without the user's plugins, hooks and MCP servers, as far as the agent has a switch for it.
@@ -77,8 +99,9 @@ export type StartOptions = {
 }
 
 // The app's saved settings of the moment, for a session that goes on in a new agent process. `mode` null: it goes on
-// in the mode it was in.
-export type RestartOptions = Pick<StartOptions, "mode" | "defaultMode" | "thinking">
+// in the mode it was in. Without `mcpServers` it keeps the servers and `ownMcp` it had.
+export type RestartOptions = Pick<StartOptions, "mode" | "defaultMode" | "thinking"> &
+  Partial<Pick<StartOptions, "mcpServers" | "ownMcp">>
 
 export type Detection =
   | { installed: false }

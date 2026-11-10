@@ -8,16 +8,19 @@ import {
   type AgentKind,
   type Detection,
   type Prompt,
+  type RestartOptions,
   type StartOptions,
 } from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModeId, ModelRef, Outcome, PromptId, TaskId } from "../../agent/ids.ts"
 import type { ListName, McpServerRow, ModeRow, SkillRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
+import { MOD_SERVER_PREFIX } from "../../mods/host.ts"
 import { defaultProvider } from "./allow.ts"
 import { createAsks } from "./asks.ts"
 import { CODEX, CODEX_CAPS, CODEX_NAME } from "./caps.ts"
-import { dynamicTools, serverConfig } from "./client-tools.ts"
+import { dynamicTools } from "./client-tools.ts"
+import { needsOwn, ownServers, threadMcp } from "./mcp-config.ts"
 import { createCuts } from "./cut.ts"
 import { detect, findBinary } from "./detect.ts"
 import { historyPage, turnOf } from "./history.ts"
@@ -171,12 +174,45 @@ async function connect(
   }
 }
 
-// The user's plugins, hooks and apps stay off. Codex has no switch for the MCP servers of the user's config.
+// The user's plugins, hooks and apps stay off. The MCP servers of the user's config go off only with ownMcp.
 const PLAIN = { "features.plugins": false, "features.hooks": false, "features.apps": false }
 
-function withConfig(servers: { config?: Record<string, unknown> }, more: Record<string, unknown>) {
-  const config = { ...servers.config, ...more }
+function withConfig(...parts: Record<string, unknown>[]) {
+  const config: Record<string, unknown> = {}
+  for (const part of parts) Object.assign(config, part)
   return Object.keys(config).length === 0 ? {} : { config }
+}
+
+const UNREAD = (name: string) => `Codex did not say which MCP servers it has, so ${name} is off here.`
+
+// The thread's MCP overrides: ours over Codex's own servers, which are read for it first.
+async function mcpConfig(rpc: Rpc, options: StartOptions): Promise<Record<string, unknown>> {
+  const { mcpServers, ownMcp, cwd } = options
+  if (!needsOwn(mcpServers, ownMcp)) return {}
+  const reply = await rpc.request("config/read", { cwd, includeLayers: true }).then(
+    (read) => ({ read }),
+    (error: unknown) => {
+      // The error can quote the config, so only its code goes to the log.
+      log.warn("codex: config/read failed", { code: error instanceof RpcError ? error.code : null })
+      return null
+    },
+  )
+  // Without Codex's own servers a shared one cannot be made safe against a namesake. A mod's has a name of its own.
+  const mods = mcpServers.filter((server) => server.name.startsWith(MOD_SERVER_PREFIX))
+  const { config, held, replaced } = reply
+    ? threadMcp(mcpServers, ownServers(reply.read), ownMcp, cwd)
+    : {
+        ...threadMcp(mods, new Map(), undefined, cwd),
+        held: mcpServers
+          .filter((server) => !mods.includes(server))
+          .map(({ name }) => ({ name, problem: UNREAD(name) })),
+      }
+  for (const { name, problem } of held) {
+    log.warn("shared MCP server held", { name, problem })
+    options.mcpHeld?.(name, problem)
+  }
+  for (const { name, different } of replaced) options.mcpReplaced?.(name, different)
+  return config
 }
 
 // The thread `start` makes, resumes or copies, with Codex's reply. A new one starts in `mode` and on the model asked
@@ -184,7 +220,7 @@ function withConfig(servers: { config?: Record<string, unknown> }, more: Record<
 async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null = null) {
   const { resume, model } = options
   if (options.ephemeral && resume !== null) throw new Error("A session Codex does not keep cannot resume")
-  const servers = serverConfig(options.mcpServers)
+  const mcp = await mcpConfig(rpc, options)
   const developerInstructions = instructionsFor(options.instructions)
   const sent =
     resume === null
@@ -194,7 +230,7 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
           developerInstructions,
           dynamicTools: dynamicTools(options.clientTools),
           ...(options.ephemeral ? { ephemeral: true } : {}),
-          ...withConfig(servers, options.plain ? PLAIN : {}),
+          ...withConfig(mcp, options.plain ? PLAIN : {}),
           ...(mode === null ? {} : startFields(mode)),
           ...(model === null ? {} : { model: model.id }),
           ...(model?.provider ? { modelProvider: model.provider } : {}),
@@ -204,14 +240,14 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...servers,
+            ...withConfig(mcp),
             ...(resume.at === null ? {} : { beforeTurnId: await turnOf(rpc, resume.ref.id, resume.at) }),
           })
         : rpc.request("thread/resume", {
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...servers,
+            ...withConfig(mcp),
           })
   const reply = await sent.catch((error: unknown) => {
     throw error instanceof RpcError && WRITER.test(error.message) ? new Error(HELD) : error
@@ -774,12 +810,13 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
   }
 
   // The same thread goes on in a new app-server.
-  async function restart(): Promise<Outcome> {
+  async function restart(saved: RestartOptions): Promise<Outcome> {
     if (!ended || closed) return { ok: false, problem: "Codex is still running" }
     tell({ type: "starting", at: lastAt })
     try {
       const next = await connect(deps, options.cwd, true)
       try {
+        if (saved.mcpServers) options = { ...options, mcpServers: saved.mcpServers, ownMcp: saved.ownMcp }
         await openThread(next.rpc, {
           ...options,
           resume: { ref: { agent: CODEX, id: session }, fork: false, at: null },

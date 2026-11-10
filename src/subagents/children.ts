@@ -18,6 +18,8 @@ export type Launcher = Pick<AgentKind, "id" | "name" | "caps"> & {
   keepsAsks?: boolean
   // A mode it can run with every edit and shell command asked, for a parent that asks.
   asking?: ModeId
+  // StartOptions.plain leaves out the user's plugins and MCP servers; without it the child always has them.
+  plain?: boolean
 }
 
 export type Child = {
@@ -67,6 +69,8 @@ export type ChildrenOptions = {
   close?(agent: Agent): Promise<void>
   now?(): number
   relay?: StartOptions["relay"]
+  // The shared MCP servers, which a child gets when it keeps the user's own.
+  mcp?(): Pick<StartOptions, "mcpServers" | "ownMcp">
 }
 
 type Run = {
@@ -236,6 +240,12 @@ export function createChildren(options: ChildrenOptions) {
     if (closed) return { ok: false, problem: "the session closed" }
     const instructions = definition?.instructions ?? ""
     const own = launcher.caps.instructions
+    const plain = !(definition?.plugins ?? false)
+    // Shared servers go only where the agent's own are kept, so a plain child has neither where its own can go off.
+    const mcp =
+      launcher.plain && plain
+        ? { mcpServers: [], ...(launcher.caps.ownMcpOff && { ownMcp: { on: false, project: [] } }) }
+        : (options.mcp?.() ?? { mcpServers: [] })
     const id = `c${++count}`
     const store = createSession({ idPrefix: `${id}-`, starting: true })
     const child: Child = {
@@ -270,9 +280,9 @@ export function createChildren(options: ChildrenOptions) {
         thinking: true,
         instructions: own && instructions ? [instructions] : [],
         clientTools: [],
-        mcpServers: [],
+        ...mcp,
         ephemeral: true,
-        plain: !(definition?.plugins ?? false),
+        plain,
         asks: fit.asks,
         relay: options.relay,
       },

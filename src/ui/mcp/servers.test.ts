@@ -48,3 +48,45 @@ test("servers group by where they come from, problems first, with short names an
   }
   expect(mcpEntries(mcpRows([odd], []))[0]?.row.state).toBe("unknown")
 })
+
+test("shared servers group first: the agent's row when it lists one, else what was held and why", () => {
+  const listed = mcpRows(
+    [
+      {
+        name: "github",
+        status: "connected",
+        source: null,
+        scope: "dynamic",
+        error: null,
+        config: null,
+        serverInfo: null,
+        tools: [],
+      },
+      {
+        name: "proj",
+        status: "disabled",
+        source: null,
+        scope: "project",
+        error: null,
+        config: null,
+        serverInfo: null,
+        tools: [],
+      },
+    ],
+    [],
+  )
+  const entries = mcpEntries(listed, {
+    servers: [{ name: "github", scope: "global" }],
+    held: [
+      { name: "proj", scope: "project", problem: "waiting for your yes", waiting: true },
+      { name: "web", scope: "global", problem: "needs $TOKEN" },
+    ],
+    replaced: ["github"],
+  })
+  expect(entries.map((entry) => [entry.id, entry.group, entry.row.state, entry.problem])).toEqual([
+    ["shared:web", "shared", "off", "needs $TOKEN"],
+    ["shared:github", "shared", "connected", null],
+    ["shared:proj", "shared", "off", "waiting for your yes"],
+    ["replaced:github", "other", "off", "off · replaced by the shared github"],
+  ])
+})

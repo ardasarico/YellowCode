@@ -111,7 +111,14 @@ const STATES = new Map<string, McpState>(
 
 // opencode says neither where a server is set up nor which tools it has. Its MCP tools show only inside `execute`
 // (Code Mode), so no call names a server.
-export async function readMcp(transport: Transport): Promise<McpServerRow[] | null> {
+// The names of the folder's own servers before YellowCode handed any, and of those it handed.
+export type SharedMarks = { own: ReadonlySet<string>; handed: ReadonlySet<string> }
+
+// A server YellowCode handed has the scope "shared"; its origin says when it stands in for one of opencode's own.
+const originOf = (name: string, marks: SharedMarks | undefined) =>
+  !marks?.handed.has(name) ? null : marks.own.has(name) ? "shared, over opencode's own" : "shared"
+
+export async function readMcp(transport: Transport, marks?: SharedMarks): Promise<McpServerRow[] | null> {
   const rows = await readAllowed(transport, "/api/mcp", "the MCP servers")
   if (!Array.isArray(rows)) return null
   return rowsOf(rows, mcpServer, "MCP server").map((row) => ({
@@ -120,8 +127,8 @@ export async function readMcp(transport: Transport): Promise<McpServerRow[] | nu
     place: "other",
     state: STATES.get(row.status.status) ?? "unknown",
     status: row.status.status,
-    origin: null,
-    scope: null,
+    origin: originOf(row.name, marks),
+    scope: marks?.handed.has(row.name) ? "shared" : null,
     error: null,
     config: null,
     server: null,

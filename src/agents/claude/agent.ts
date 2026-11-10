@@ -6,6 +6,7 @@ import type {
   AgentKind,
   ClientTool,
   ContextReport,
+  McpLaunch,
   Prompt,
   RestartOptions,
   StartOptions,
@@ -85,7 +86,8 @@ export type ClaudeHooks = {
   sessionDays(): Promise<number | null>
   // Takes the cut now, so the chat shows the next prompt only once the conversation went back. Not ok: nothing went
   // out; `problem` is null when there is nothing to tell (claude did not start again, or the agent is no longer used).
-  goBack(options: RestartOptions): Promise<Back>
+  // `options` is read only when claude has to start again.
+  goBack(options: () => RestartOptions): Promise<Back>
 }
 
 export type ClaudeAgent = Agent & ClaudeHooks
@@ -164,9 +166,6 @@ const problemOf = (error: unknown) => (error instanceof Error ? error.message : 
 const failed = (error: unknown): Outcome => ({ ok: false, problem: problemOf(error) })
 const outcome = (work: Promise<unknown>): Promise<Outcome> =>
   work.then((note) => ({ ok: true, note: typeof note === "string" ? note : null }), failed)
-// Intents whose Claude side still lives in the UI or index.tsx; their S3 areas move it here.
-const notMoved = (intent: string) => `${intent} does not go through the agent yet`
-const notYet = (intent: string): Outcome => ({ ok: false, problem: notMoved(intent) })
 
 export const transcriptPath = (cwd: string, id: string) => join(projectFolder(CLAUDE_PROJECTS, cwd), `${id}.jsonl`)
 
@@ -299,7 +298,7 @@ function carryOf(options: StartOptions, models: ModelRow[]): Knobs | undefined {
 }
 
 // Spawns claude for the store; nothing is read until `begin`. claude takes the mods' manifest servers by itself, so
-// `mcpServers` is not read.
+// `mcpServers` holds only the shared ones.
 function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge): ClaudeAgent {
   const { cwd } = options
   const { provider } = bridge
@@ -307,6 +306,8 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
   const lean = { ephemeral: options.ephemeral, instructions: options.instructions }
   // Every claude this agent starts serves them, as SDK MCP servers.
   const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
+  const [shared, setShared] = createSignal<readonly McpLaunch[]>(options.mcpServers)
+  let { ownMcp } = options
   const carried = carryOf(options, provider.models())
   // What the knobs show: what was picked last, or what claude said it uses. A claude started again gets them.
   const knobs: Knobs = { model: null, effort: null, ultracode: false, ...carried }
@@ -321,6 +322,9 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     onKnobs,
     mode: options.mode === null ? undefined : permissionOf(options.mode),
     clientTools,
+    shared,
+    ownMcp,
+    replaced: (name, different) => options.mcpReplaced?.(name, different),
     lean,
   })
   const initialized = Promise.withResolvers<void>()
@@ -367,6 +371,10 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
       const { permissionMode } = store.state
       const kept = permissionMode !== null && isClaudeMode(permissionMode) ? permissionMode : undefined
       const mode = saved.mode === null ? kept : permissionOf(saved.mode)
+      if (saved.mcpServers) {
+        setShared(saved.mcpServers)
+        ownMcp = saved.ownMcp
+      }
       current = connect({
         cwd,
         session: store,
@@ -377,6 +385,9 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
         onKnobs,
         mode,
         clientTools,
+        shared,
+        ownMcp,
+        replaced: (name, different) => options.mcpReplaced?.(name, different),
         lean,
       })
     } catch (error) {
@@ -409,7 +420,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
 
   // The store's hidden span is the cut until the store learns of cuts from `cut` events. It goes back in the running
   // claude, else in one started again at what the first hidden prompt hangs from.
-  async function goBack(saved: RestartOptions): Promise<Back> {
+  async function goBack(saved: () => RestartOptions): Promise<Back> {
     const prompts = hiddenPrompts(store.state)
     if (prompts.length === 0) return ok
     const live = current
@@ -426,7 +437,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     log.info("conversation rewound by a restart", { at })
     if (!(await leave(live))) return { ok: false, problem: null }
     const spawn = at === null ? { sessionId: crypto.randomUUID() } : { resume: id, at }
-    return respawn(saved, spawn).ok ? ok : { ok: false, problem: null }
+    return respawn(saved(), spawn).ok ? ok : { ok: false, problem: null }
   }
 
   return {
@@ -669,6 +680,9 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
       return Promise.resolve(ok)
     },
     // The mods' manifest servers reach claude through the mod host for now.
-    setMcpServers: () => Promise.resolve(notYet("MCP servers")),
+    setMcpServers: (servers) => {
+      setShared(servers)
+      return Promise.resolve(ok)
+    },
   }
 }

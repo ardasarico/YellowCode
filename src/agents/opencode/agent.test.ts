@@ -113,6 +113,8 @@ const deps = (
       clock: fakeClock(),
       appVersion: "0.0.0",
       readFile: () => Promise.resolve(null),
+      mcpRecords: "/nonexistent/yc-records",
+      livePids: () => new Set(),
     } satisfies Deps,
   }
 }

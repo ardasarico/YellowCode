@@ -21,10 +21,13 @@ const hints = (agent: string) => `↑↓ choose · enter confirm · n tell ${age
 const SHORT_HINTS = "↑↓ · enter · n · esc"
 const NO_NOTE_HINTS = "↑↓ choose · enter confirm · esc no"
 const SHORT_NO_NOTE_HINTS = "↑↓ · enter · esc"
+const CLOSE_HINTS = "↑↓ choose · enter confirm · esc later"
 const SCRIPT_HINTS = "↑↓ choose · enter confirm · v script · esc no"
 const SHORT_SCRIPT_HINTS = "↑↓ · enter · v · esc"
+const LINES_HINTS = "↑↓ choose · enter confirm · v see all · esc later"
 const NOTE_HINTS = "enter send · esc back"
 const TARGET_ROWS = 6
+const LINE_ROWS = 14
 const TEXT_ROWS = 3
 const PLAN_ROWS = 8
 const DIFF_ROWS = 10
@@ -85,6 +88,46 @@ function targetRows(text: string, width: number): string[] {
   return rows
 }
 
+type ListRow = { text: string; warn: boolean; group?: number; name: boolean }
+
+// Wrapped rows keep their line's indent, colour and group.
+function lineRows(lines: NonNullable<Ask["lines"]>, width: number): ListRow[] {
+  return lines.flatMap(({ text, warn, group }) => {
+    const indent = /^ */.exec(text)?.[0] ?? ""
+    return targetRows(text.slice(indent.length), Math.max(1, width - indent.length)).map((row, index) => ({
+      text: `${indent}${row}`,
+      warn,
+      group,
+      name: index === 0 && group !== undefined && text !== "" && indent === "",
+    }))
+  })
+}
+
+const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`
+
+// The rows that fit, and what the cut hides: whole groups as servers, and the rest of a server cut in the middle.
+export function listView(lines: NonNullable<Ask["lines"]>, width: number): { shown: ListRow[]; fold: string | null } {
+  const whole = lineRows(
+    lines.filter((line) => !line.whenCut),
+    width,
+  )
+  if (whole.length <= LINE_ROWS) return { shown: whole, fold: null }
+  const rows = lineRows(lines, width)
+  const shown = rows.slice(0, LINE_ROWS)
+  const hidden = rows.slice(LINE_ROWS)
+  if (hidden.every((row) => row.group === undefined))
+    return { shown, fold: `… ${plural(hidden.length, "more line")} · v see all` }
+  const named = new Map(shown.filter((row) => row.name).map((row) => [row.group, row.text]))
+  const last = shown.findLast((row) => row.group !== undefined)?.group
+  const rest = last !== undefined && named.has(last) ? hidden.filter((row) => row.group === last).length : 0
+  const servers = new Set(hidden.flatMap((row) => (row.name ? [row.group] : []))).size
+  const parts = [
+    ...(rest > 0 ? [`${plural(rest, "more row")} of ${named.get(last)}`] : []),
+    ...(servers > 0 ? [plural(servers, "more server")] : []),
+  ]
+  return { shown, fold: `… ${parts.join(", ")} · v see all` }
+}
+
 function oneLine(text: string): string {
   const [first = "", ...rest] = text.trim().split("\n")
   return rest.length > 0 ? `${first}…` : first
@@ -127,6 +170,9 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
     return text ? targetRows(text.replaceAll("\t", "    "), Math.max(1, props.width - 8)) : []
   })
   const hiddenRows = () => rows().length - TARGET_ROWS
+  const list = createMemo(() =>
+    props.ask.lines ? listView(props.ask.lines, Math.max(1, props.width - 8)) : { shown: [], fold: null },
+  )
   const plan = createMemo(() => (props.ask.toolKind === "workflow" ? workflowPlan(props.ask.input) : null))
   const plans = createMemo(() => {
     const shown = plan()
@@ -198,11 +244,15 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
     } else if (key.name === "escape") {
       const option = refusal()
       if (option) props.onAnswer({ type: "option", option: option.id, note: null })
+      else if (props.ask.escCloses) props.onAnswer({ type: "declined", chat: false })
     } else if (key.ctrl || key.meta) return
     else if (key.name === "v" && plan()) {
       key.preventDefault()
       const shown = plan()
-      if (shown) props.onOpenScript?.(shown.name || "workflow", shown.script)
+      if (shown) props.onOpenText?.(`${shown.name || "workflow"}.js`, shown.script)
+    } else if (key.name === "v" && props.ask.lines) {
+      key.preventDefault()
+      props.onOpenText?.("ask.txt", props.ask.lines.map((line) => line.text).join("\n"))
     } else if (key.name === "n" && noted() && !plan()) {
       key.preventDefault()
       setNoting(true)
@@ -240,7 +290,19 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
               {reason()}
             </text>
           </Show>
-          <Show when={rows().length > 0}>
+          <Show when={list().shown.length > 0}>
+            <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
+              <Index each={list().shown}>
+                {(row) => (
+                  <text fg={row().warn ? colors().tone : theme.text} wrapMode="none">
+                    {row().text}
+                  </text>
+                )}
+              </Index>
+              <Show when={list().fold}>{(fold) => <text fg={theme.muted}>{fold()}</text>}</Show>
+            </box>
+          </Show>
+          <Show when={rows().length > 0 && !props.ask.lines}>
             <box flexDirection="column" marginTop={1} paddingLeft={2} paddingRight={2} backgroundColor={colors().line}>
               <text fg={theme.text} wrapMode="none">
                 {rows().slice(0, TARGET_ROWS).join("\n")}
@@ -338,9 +400,11 @@ export function PermissionBand(props: AskViewProps & { note: boolean }) {
             ? NOTE_HINTS
             : plan()
               ? fitHints(SCRIPT_HINTS, SHORT_SCRIPT_HINTS, props.width - 4)
-              : noted()
-                ? fitHints(hints(props.agent), SHORT_HINTS, props.width - 4)
-                : fitHints(NO_NOTE_HINTS, SHORT_NO_NOTE_HINTS, props.width - 4)}
+              : props.ask.lines
+                ? fitHints(LINES_HINTS, SHORT_SCRIPT_HINTS, props.width - 4)
+                : noted()
+                  ? fitHints(hints(props.agent), SHORT_HINTS, props.width - 4)
+                  : fitHints(props.ask.escCloses ? CLOSE_HINTS : NO_NOTE_HINTS, SHORT_NO_NOTE_HINTS, props.width - 4)}
         </text>
       </box>
     </box>

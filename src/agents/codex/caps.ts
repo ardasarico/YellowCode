@@ -13,6 +13,7 @@ export const CODEX_CAPS: Capabilities = {
   ownQuestions: true,
   clientTools: "start",
   mcpServers: "start",
+  ownMcpOff: true,
   instructions: true,
   planSignal: "item",
   cut: true,

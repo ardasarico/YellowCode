@@ -85,8 +85,8 @@ const defaultMode = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition =>
   reset: () => resetDefaultMode(agent),
 })
 
-// An agent YellowCode can open, by its name.
-export type AgentOption = { id: AgentKindId; name: string }
+// An agent YellowCode can open, by its name. `ownMcpOff`: it can leave its own MCP servers off.
+export type AgentOption = { id: AgentKindId; name: string; ownMcpOff?: boolean }
 
 const SIDEBAR = stored<"sidebar">({
   key: "sidebar",
@@ -178,6 +178,26 @@ const SUBAGENTS: SettingDefinition = {
   reset: () => resetSetting("maxSubagents"),
 }
 
+const NEXT_SESSION = "Applies from the next session."
+
+const ownMcp = (agent: AgentOption) =>
+  stored<"ownMcpServers">({
+    key: "ownMcpServers",
+    section: "Session",
+    label: "Providers' own MCP servers",
+    options: [
+      { value: "on", label: "On", note: `Each provider also runs the servers in its own config. ${NEXT_SESSION}` },
+      {
+        value: "off",
+        label: "Off",
+        note:
+          agent.ownMcpOff === false
+            ? `${agent.name} cannot switch its own MCP servers off.`
+            : `Only the shared servers, the mods' and YellowCode's own tools. ${NEXT_SESSION}`,
+      },
+    ],
+  })
+
 const UPDATES: SettingDefinition = {
   key: "updates",
   section: "Updates",
@@ -214,6 +234,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefini
   EDITOR,
   NOTIFICATIONS,
   SUBAGENTS,
+  ownMcp(agent),
   PEER_MESSAGES,
   PEER_VISIBLE,
   UPDATES,

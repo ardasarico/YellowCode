@@ -2,7 +2,7 @@
 // and are paired with their responses by id; everything else pi writes is a session event or an extension's request.
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { join } from "node:path"
-import type { Agent, AgentKind, Detection, Prompt, StartOptions } from "../../agent/agent.ts"
+import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "../../agent/agent.ts"
 import type { AgentEvent, SessionInfo } from "../../agent/events.ts"
 import type { EffortId, ModelRef, ModeId, Outcome, PromptId } from "../../agent/ids.ts"
 import type { CommandRow, ListName, ModeRow } from "../../agent/lists.ts"
@@ -12,6 +12,7 @@ import { yellowcodeHome } from "../../update/method.ts"
 import { queue, stdioTransport, type Transport } from "../codex/transport.ts"
 import { createAsks } from "./asks.ts"
 import { PI, PI_CAPS, PI_NAME } from "./caps.ts"
+import { extensionFile, heldIn, MCP_VAR, piMcp, replaces } from "./mcp.ts"
 import { detect } from "./detect.ts"
 import { historyPage } from "./history.ts"
 import { modelGroups, readModels, type PiModel } from "./models.ts"
@@ -51,9 +52,11 @@ export const NO_APPROVALS: ModeRow = {
 
 export type Deps = {
   detect(): Promise<Detection>
-  // A new `pi --mode rpc` in `cwd`, with `args` after it.
-  spawn(cwd: string, args: string[]): Transport
+  // A new `pi --mode rpc` in `cwd`, with `args` after it and `env` over YellowCode's own.
+  spawn(cwd: string, args: string[], env?: Record<string, string>): Transport
   prompts: PromptMap
+  // Where the MCP extension's copy is written.
+  extensions: string
   // Where pi's folders are found (PI_CODING_AGENT_DIR and the like).
   env: Record<string, string | undefined>
 }
@@ -61,14 +64,18 @@ export type Deps = {
 const realDeps: Deps = {
   detect: () => detect(),
   prompts: promptMap(join(yellowcodeHome(), "pi-prompts")),
+  extensions: join(yellowcodeHome(), "pi-extensions"),
   env: process.env,
-  spawn: (cwd, args) =>
+  spawn: (cwd, args, env = {}) =>
     stdioTransport({
       command: ["pi", "--mode", "rpc", ...args],
       cwd,
-      env: Object.fromEntries(
-        Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
-      ),
+      env: {
+        ...Object.fromEntries(
+          Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+        ),
+        ...env,
+      },
       name: "pi",
     }),
 }
@@ -171,8 +178,13 @@ async function usable(deps: Deps): Promise<string> {
   return detected.version
 }
 
-async function open(deps: Deps, cwd: string, args: string[]): Promise<{ pi: Client; state: State }> {
-  const pi = client(deps.spawn(cwd, args))
+async function open(
+  deps: Deps,
+  cwd: string,
+  args: string[],
+  env: Record<string, string> = {},
+): Promise<{ pi: Client; state: State }> {
+  const pi = client(deps.spawn(cwd, args, env))
   try {
     const state = stateOf(await pi.command("get_state"))
     if (!state) throw new Error("Pi gave a state YellowCode cannot read")
@@ -206,6 +218,25 @@ const leanArgs = (options: StartOptions) => [
 
 export const openArgs = (options: StartOptions) => [...sessionArgs(options), ...leanArgs(options)]
 
+// The MCP part of a start: the flags, our extension with the servers in its env variable, and the servers pi cannot
+// take, which are reported.
+function mcpLaunch(
+  options: StartOptions,
+  version: string,
+  deps: Deps,
+): { args: string[]; env: Record<string, string> } {
+  const { flags, extension, held } = piMcp(options, version)
+  for (const { name, problem } of held) {
+    log.warn("shared MCP server held", { name, problem })
+    options.mcpHeld?.(name, problem)
+  }
+  if (!extension) return { args: flags, env: {} }
+  return {
+    args: [...flags, "-e", extensionFile(deps.extensions)],
+    env: { [MCP_VAR]: JSON.stringify(extension) },
+  }
+}
+
 const entryOf = (map: Map<string, PromptId>, prompt: PromptId) =>
   [...map].find(([, known]) => known === prompt)?.[0] ?? null
 
@@ -213,7 +244,8 @@ const waitingVia = (prompt: Prompt): Via => (prompt.delivery === "queue" ? "queu
 
 async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   const version = await usable(deps)
-  let { pi, state } = await open(deps, options.cwd, openArgs(options))
+  const mcp = mcpLaunch(options, version, deps)
+  let { pi, state } = await open(deps, options.cwd, [...openArgs(options), ...mcp.args], mcp.env)
   let session = state.sessionId
   const out = queue<AgentEvent>()
   const translator = createTranslator(options.cwd)
@@ -250,6 +282,14 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     if (raw["method"] === "notify") {
       const level = raw["notifyType"] === "error" ? "error" : raw["notifyType"] === "warning" ? "warning" : "info"
       const text = typeof raw["message"] === "string" ? raw["message"] : ""
+      const held = heldIn(text)
+      if (held) {
+        for (const { name, problem } of held) {
+          log.warn("shared MCP server held", { name, problem })
+          options.mcpHeld?.(name, problem)
+        }
+        return [{ type: "seen", at: now() }]
+      }
       return [{ type: "notice", level, text, at: now() }]
     }
     const opened = asks.open(raw, now())
@@ -531,12 +571,19 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
   }
 
   // The same session goes on in a new pi.
-  async function restart(): Promise<Outcome> {
+  async function restart(saved: RestartOptions): Promise<Outcome> {
     if (!ended || closed) return { ok: false, problem: "Pi is still running" }
     if (options.ephemeral) return { ok: false, problem: "Pi kept no copy of this session to go on with" }
     tell({ type: "starting", at: now() })
     try {
-      const next = await open(deps, options.cwd, ["--session-id", session, ...leanArgs(options)])
+      if (saved.mcpServers) options = { ...options, mcpServers: saved.mcpServers, ownMcp: saved.ownMcp }
+      const again = mcpLaunch(options, version, deps)
+      const next = await open(
+        deps,
+        options.cwd,
+        ["--session-id", session, ...leanArgs(options), ...again.args],
+        again.env,
+      )
       pi = next.pi
       state = next.state
       told = []
@@ -620,7 +667,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
       return { agent: PI, id: session }
     },
     version,
-    caps: PI_CAPS,
+    caps: replaces(version) ? PI_CAPS : { ...PI_CAPS, ownMcpOff: false },
     events: out.items,
     send,
     interrupt,

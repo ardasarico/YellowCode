@@ -91,9 +91,14 @@ export type Questions =
   | { matrix: Matrix; context?: string }
   | { form: { title: string; fields: FormField[] } }
 
+// A row shown as it is, a `warn` one in the band's warning colour. Rows of one `group` are one item when the band cuts
+// the list; a `whenCut` row shows only when the list is cut.
+export type AskLine = { text: string; warn: boolean; group?: number; whenCut?: boolean }
+
 // What the band shows under the main line, beyond text.
 export type AskPreview =
   | { type: "diff"; files: { path: string; hunks: Hunk[] }[] }
+  | { type: "lines"; lines: AskLine[] }
   // A multi-agent run's plan (feature workflows); `source` is what "view the script" shows.
   | {
       type: "phases"
@@ -130,6 +135,8 @@ export type Ask = {
   by: TaskId | null
   // A call to YellowCode's own ask tool; `handle` is the adapter's id for the call it answers.
   own: { handle: string | number } | null
+  // An ask of YellowCode's own whose no lasts: Esc closes it with no answer (a declined reply).
+  escCloses?: boolean
 }
 
 // Keys are the pages' keys, a matrix's row labels, or a form's field keys. `note` goes with the whole ask.

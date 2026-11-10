@@ -17,6 +17,7 @@ export const CLAUDE_CAPS: Capabilities = {
   ownQuestions: true,
   clientTools: "live",
   mcpServers: "live",
+  ownMcpOff: true,
   instructions: true,
   planSignal: "ask",
   cut: true,

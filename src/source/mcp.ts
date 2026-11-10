@@ -4,11 +4,11 @@ import { rowsOf } from "../json.ts"
 import { isOwnAskServer, mcpServerRows, mcpServerStatus, type ProtocolMessage } from "../protocol/messages.ts"
 import { mcpReconnectRequest, mcpStatusRequest, mcpToggleRequest } from "../protocol/outgoing.ts"
 import type { SessionStore } from "../session/session.ts"
-import type { McpConfig, McpServer } from "../session/types.ts"
+import type { McpServer } from "../session/types.ts"
 import { printable } from "../ui/format.ts"
 import { shortName, showServers } from "../agents/claude/mcp-rows.ts"
 import { type Requests, RequestTimeout } from "./requests.ts"
-import { commandOf, programOf, safeText, safeUrl } from "./safe-text.ts"
+import { commandOf, configOf, safeText } from "./safe-text.ts"
 
 // Live only: the server list from mcp_status, which init does not have before the first message, nor errors, tools
 // or configs at all, and the actions of the MCP tab.
@@ -32,38 +32,6 @@ const PENDING_POLLS = 15
 const CHANGE_TIMEOUT_MS = 60_000
 
 const stdioConfig = z.looseObject({ command: z.string(), args: z.array(z.unknown()).optional() })
-const remoteConfig = z.looseObject({ url: z.string() })
-
-// Flags that take no value, so the package still comes right after them.
-const BARE_FLAGS = new Set(["-y", "--yes", "-q", "--quiet"])
-const PACKAGE_NAME = /^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.^~<>=*-]+)?$/i
-
-// The package a runner such as npx starts, when it comes first. Anything later (or after a flag that takes a value)
-// can be a key, so it is never kept.
-function packageOf(command: string, args: unknown[]): string | null {
-  const runner = command.split("/").at(-1)
-  const rest =
-    runner === "npx" || runner === "bunx" || runner === "uvx"
-      ? args
-      : runner === "pnpm" && args[0] === "dlx"
-        ? args.slice(1)
-        : null
-  const first = rest?.find((arg) => typeof arg !== "string" || !BARE_FLAGS.has(arg))
-  return typeof first === "string" && PACKAGE_NAME.test(first) ? first : null
-}
-
-// Only what is safe to show: env, headers and other arguments can hold credentials too.
-function configOf(config: unknown): McpConfig | null {
-  const stdio = stdioConfig.safeParse(config)
-  if (stdio.success) {
-    const command = programOf(stdio.data.command)
-    return { command: printable(command), package: packageOf(command, stdio.data.args ?? []) }
-  }
-  const remote = remoteConfig.safeParse(config)
-  const url = remote.success ? URL.parse(remote.data.url) : null
-  // Without a scheme, user:pass@host parses as scheme "user" with no host.
-  return url?.host ? { url: safeUrl(url) } : null
-}
 
 // Row by row, so one odd server does not empty the list.
 export function mcpServers(rows: unknown[]): McpServer[] {

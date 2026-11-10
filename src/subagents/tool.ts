@@ -7,7 +7,15 @@ import type { AgentKindId, AskId } from "../agent/ids.ts"
 import type { ModeKind, ModelRow, ModeRow } from "../agent/lists.ts"
 import { subagentMessage } from "../peers/envelope.ts"
 import { childAsks, confirmAsk, modelAsk, type ModelChoice, ownAskId, ownAskOf, pickedOf, ranOf } from "./asks.ts"
-import { type Child, type ChildResult, createChildren, type Launcher, modelText, nameOf } from "./children.ts"
+import {
+  type Child,
+  type ChildrenOptions,
+  type ChildResult,
+  createChildren,
+  type Launcher,
+  modelText,
+  nameOf,
+} from "./children.ts"
 import type { Definition } from "./definitions.ts"
 import { resolveName } from "./mentions.ts"
 
@@ -20,6 +28,8 @@ export type SubagentDeps = {
   cwd: string
   // For a child whose service gives it its parent's tool calls (StartOptions.relay).
   relay?: StartOptions["relay"]
+  // The parent session's shared MCP servers, for a child that keeps the user's own servers.
+  mcp?: ChildrenOptions["mcp"]
   // The parent's chat, where the asks open.
   parent: { event(event: AgentEvent): void }
   // The added providers.
@@ -202,6 +212,7 @@ export function createSubagents(deps: SubagentDeps) {
       ) && !launcher.keepsAsks,
     close: (agent) => deps.close(agent),
     relay: deps.relay,
+    mcp: deps.mcp,
   })
 
   async function begin({ definition, provider, row, task }: Target): Promise<Begun> {

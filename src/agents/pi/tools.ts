@@ -21,7 +21,21 @@ const KINDS: Record<string, ToolKind> = {
   ls: "search",
 }
 
-export const kindOf = (name: string): ToolKind => KINDS[name] ?? "other"
+// Pi names an MCP tool `mcp__<server>__<tool>`, with the server's `-` as `_`.
+export function mcpOf(name: string): { server: string; tool: string } | null {
+  if (!name.startsWith("mcp__")) return null
+  const rest = name.slice("mcp__".length)
+  const split = rest.indexOf("__")
+  return split > 0 && split < rest.length - 2 ? { server: rest.slice(0, split), tool: rest.slice(split + 2) } : null
+}
+
+export const kindOf = (name: string): ToolKind => KINDS[name] ?? (mcpOf(name) ? "mcp" : "other")
+
+// What a call's row shows: an MCP tool's own name with its server, or the tool's name.
+export function labelOf(name: string): { title: string; mcp: { server: string; tool: string } | null } {
+  const mcp = mcpOf(name)
+  return { title: mcp?.tool ?? name, mcp }
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -57,8 +71,7 @@ export function calledOf(id: ToolId, name: string, input: unknown, at: number): 
     id,
     kind: kindOf(name),
     name,
-    title: name,
-    mcp: null,
+    ...labelOf(name),
     input,
     summary: summaryOf(name, input),
     detail: null,

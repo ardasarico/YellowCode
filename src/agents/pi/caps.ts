@@ -13,7 +13,10 @@ export const PI_CAPS: Capabilities = {
   askNote: false,
   ownQuestions: false,
   clientTools: "none",
-  mcpServers: "none",
+  // Pi takes the shared servers at start. Its own mcp.json servers have no list here.
+  mcpServers: "start",
+  // A running Pi that cannot leave them off says so in its own caps.
+  ownMcpOff: true,
   instructions: true,
   planSignal: "none",
   cut: true,

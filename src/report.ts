@@ -10,6 +10,8 @@ import type { AgentKindId } from "./agent/ids.ts"
 import type { ModeRow } from "./agent/lists.ts"
 import { modeLabel } from "./session/settings.ts"
 import { startModeIn, type StoredSettings } from "./session/settings-file.ts"
+import type { SharedSession } from "./mcp/handover.ts"
+import type { SharedList } from "./mcp/trust.ts"
 
 // A label and its value; a row without a value is left out of the report.
 export type Row = [string, string | null | undefined]
@@ -121,8 +123,21 @@ export function settingsFacts(
     ...others.map((id): Row => [`${named(id)} mode`, settings.agents[id]?.defaultMode]),
     ["Editor", settings.editor],
     ["Notifications", settings.notifications],
+    ["Providers' own MCP servers", settings.ownMcpServers],
     ["Problem", problem],
   ]
+}
+
+// How many servers the shared files hold; never a name or a value.
+export function sharedListFact(shared: SharedList): Row {
+  const global = Object.keys(shared.global.servers).length
+  const project = shared.project ? Object.keys(shared.project.servers).length : 0
+  const trust = shared.project && project > 0 ? ` (${shared.trust})` : ""
+  return ["Shared MCP servers", `${global} global, ${project} project${trust}`]
+}
+
+export function sharedSessionFact(shared: SharedSession | undefined): Row {
+  return ["Shared MCP servers", shared && `${shared.servers.length} given, ${shared.held.length} held`]
 }
 
 // The last `count` entries; an entry starts at its timestamp and may go on over several lines.

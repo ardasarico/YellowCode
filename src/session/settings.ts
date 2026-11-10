@@ -133,6 +133,15 @@ export function firstWarning(agent: AgentKindId): boolean {
   return true
 }
 
+// Whether the notice about the shared `name` over the agent's own is still to show; asking marks it shown.
+export function firstReplaced(agent: AgentKindId, name: string): boolean {
+  const told = settings.agents[agent]?.replacedTold ?? []
+  if (told.includes(name)) return false
+  setSettings({ agents: { ...settings.agents, [agent]: { ...settings.agents[agent], replacedTold: [...told, name] } } })
+  saveSettings(settings)
+  return true
+}
+
 // Back to what nothing saved gives.
 export const resetDefaultMode = (agent: AgentKindId): void =>
   setDefaultMode(agent, startModeIn(DEFAULT_SETTINGS, agent))

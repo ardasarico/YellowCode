@@ -49,6 +49,19 @@ import type { InputProvider } from "./input/provider.ts"
 import { log } from "./log/log.ts"
 import { readCatalog, saveListed, saveWindow } from "./models/catalog.ts"
 import { moveAsk, moveOf, movedNote } from "./models/move.ts"
+import {
+  askKey,
+  createSharedMcp,
+  type Handover,
+  handover,
+  type SharedMcp,
+  toAsk,
+  trustAsk,
+  trustOf,
+  withoutServers,
+} from "./mcp/handover.ts"
+import type { McpFile } from "./mcp/servers.ts"
+import { loadShared, recordTrust, type SharedList } from "./mcp/trust.ts"
 import { buildHandoff, handoffBudget, type Handoff } from "./session/handoff.ts"
 import { ensureCatalog } from "./models/refresh.ts"
 import { type Launcher, modelText, nameOf } from "./subagents/children.ts"
@@ -61,6 +74,7 @@ import { createSession, loadHistory, type SessionStore } from "./session/session
 import {
   controlProblem,
   defaultModeOf,
+  firstReplaced,
   firstWarning,
   initSettings,
   keepLastModel,
@@ -69,7 +83,15 @@ import {
   setSessionSettings,
   settings,
 } from "./session/settings.ts"
-import { agentVersions, hostFacts, logTail, reportMarkdown, settingsFacts, terminalFacts } from "./report.ts"
+import {
+  agentVersions,
+  hostFacts,
+  logTail,
+  reportMarkdown,
+  settingsFacts,
+  sharedListFact,
+  terminalFacts,
+} from "./report.ts"
 import { fallbackAgents, loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
 import { NO_PROVIDER, runProvidersCommand, settleProviders } from "./setup/providers.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
@@ -79,6 +101,7 @@ import { runUpdateCommand, UPDATE_USAGE } from "./update/cli.ts"
 import { defaultChannel } from "./update/method.ts"
 import { startUpdater } from "./update/updater.ts"
 import { MOD_USAGE, runModCommand } from "./mods/install/cli.ts"
+import { MCP_USAGE, runMcpCommand } from "./mcp/cli.ts"
 import {
   hiddenPrompts,
   keptReplies,
@@ -104,6 +127,7 @@ import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.
 import type { Submission } from "./ui/completion.ts"
 import { watchFocus } from "./ui/attention.ts"
 import { modelName } from "./ui/format.ts"
+import { shownText, withoutServerValues } from "./source/safe-text.ts"
 import { getParsers } from "./ui/markdown/parsers/parsers.ts"
 import { everywhereAsk, everywhereOf, heldOf, peerAsk } from "./peers/ask.ts"
 import { mentionNames } from "./input/token.ts"
@@ -123,6 +147,7 @@ const USAGE = [
   "       yellowcode --version",
   "       yellowcode --help",
   MOD_USAGE,
+  MCP_USAGE,
   UPDATE_USAGE,
   "       yellowcode --replay <file.jsonl> [--speed <number|instant>] [--titles] [--sessions <folder>] [--skip-terminal-check] [--no-mods]",
   "yellowcode is bin/yellowcode in the repo; there, bun run dev takes the same options.",
@@ -155,6 +180,7 @@ function readArgs() {
 }
 
 if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
+if (process.argv[2] === "mcp") process.exit(runMcpCommand(process.argv.slice(3)))
 if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
 const KNOWN_AGENTS = [
   { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
@@ -197,21 +223,24 @@ if (values.report) {
   process.stdout.write(
     reportMarkdown({
       environment: [...hostFacts(await agentVersions(KNOWN_AGENTS)), ...terminalFacts(null)],
-      settings: settingsFacts(
-        loaded.settings,
-        {
-          id: running ?? CLAUDE,
-          name: KNOWN_AGENTS.find((agent) => agent.id === running)?.name ?? CLAUDE_NAME,
-          modes: running === undefined || running === CLAUDE ? CLAUDE_MODES : [],
-        },
-        [
-          { id: CLAUDE, name: CLAUDE_NAME },
-          { id: OPENCODE, name: OPENCODE_NAME },
-          { id: CODEX, name: CODEX_NAME },
-          { id: PI, name: PI_NAME },
-        ],
-        loaded.problem,
-      ),
+      settings: [
+        ...settingsFacts(
+          loaded.settings,
+          {
+            id: running ?? CLAUDE,
+            name: KNOWN_AGENTS.find((agent) => agent.id === running)?.name ?? CLAUDE_NAME,
+            modes: running === undefined || running === CLAUDE ? CLAUDE_MODES : [],
+          },
+          [
+            { id: CLAUDE, name: CLAUDE_NAME },
+            { id: OPENCODE, name: OPENCODE_NAME },
+            { id: CODEX, name: CODEX_NAME },
+            { id: PI, name: PI_NAME },
+          ],
+          loaded.problem,
+        ),
+        sharedListFact(loadShared(process.cwd())),
+      ],
       log: logTail(50),
     }),
   )
@@ -310,6 +339,8 @@ type Live = {
   goBack?: () => Promise<Back>
   // The subagents its model started; a claude that clears itself gets new ones.
   subagents: Subagents
+  // The shared MCP servers it was given.
+  mcp: SharedMcp
 }
 
 // The agent of the session YellowCode runs now; another session replaces it. Never set in a replay.
@@ -373,9 +404,7 @@ const claudeRunner: Runner = {
   kind: claude,
   provider: claudeLists,
   start: (options, store) =>
-    claude
-      .start(options, store)
-      .then((agent) => ({ agent, hooks: agent, goBack: () => agent.goBack(restartOptions()) })),
+    claude.start(options, store).then((agent) => ({ agent, hooks: agent, goBack: () => agent.goBack(restartOptions) })),
   show: showPrompt,
   takesShells: true,
   clears: true,
@@ -485,8 +514,14 @@ const launchers: Launcher[] = [
     asking: BUILD,
     start: (options) => withModel(opencode.start(options), options.model),
   },
-  { id: CODEX, name: CODEX_NAME, caps: codex.caps, start: (options) => codex.start(options) },
-  { id: PI, name: PI_NAME, caps: pi.caps, start: (options) => withModel(pi.start(options), options.model) },
+  { id: CODEX, name: CODEX_NAME, caps: codex.caps, plain: true, start: (options) => codex.start(options) },
+  {
+    id: PI,
+    name: PI_NAME,
+    caps: pi.caps,
+    plain: true,
+    start: (options) => withModel(pi.start(options), options.model),
+  },
 ]
 
 // The modes a subagent's mode is picked from; empty when not known.
@@ -579,11 +614,113 @@ await startMods(values["no-mods"], {
   caps: firstRunner.kind.caps,
 })
 
+// The shared MCP list of the folder, as a session of `runner` gets it now.
+function sharedFor(runner: Runner, shared = loadShared(cwd)): Handover {
+  const given = handover(shared, settings.ownMcpServers !== "off")
+  for (const found of [...shared.global.problems, ...(shared.project?.problems ?? [])]) log.warn(found)
+  return runner.kind.caps.mcpServers === "none" ? withoutServers(given) : given
+}
+
+// The mods' servers go to an agent that takes them only at its start; Claude takes them on its own path
+// (syncModServers).
+const modLaunches = (runner: Runner) => (runner.kind.caps.mcpServers === "start" ? mods.launches() : [])
+
 async function startLive(runner: Runner, options: StartOptions, store: SessionStore): Promise<Live> {
-  const { agent, hooks, goBack } = await runner.start(options, store)
+  const shared = loadShared(cwd)
+  const mcp = createSharedMcp(sharedFor(runner, shared))
+  const { agent, hooks, goBack } = await runner.start(
+    {
+      ...options,
+      mcpServers: [...options.mcpServers, ...mcp.handover.launches],
+      ownMcp: mcp.handover.own,
+      mcpHeld: mcp.hold,
+      mcpReplaced: (name, different) => {
+        mcp.replace(name)
+        if (different === true && firstReplaced(runner.kind.id, name)) {
+          const shown = shownText(name)
+          const text = `${shown} here is the shared one · ${runner.kind.name}'s own ${shown} is a different server and is off`
+          store.event({ type: "notice", level: "info", text, at: Date.now() })
+        }
+      },
+    },
+    store,
+  )
   void follow(agent.events, store, runner.kind.name)
-  const started: Live = { runner, agent, store, hooks, goBack, subagents: subagentsOf(runner, store, () => started) }
+  const { own } = mcp.handover
+  if (runner === claudeRunner && own.on && own.unsure)
+    store.event({ type: "notice", level: "warning", text: own.unsure, at: Date.now() })
+  const started: Live = {
+    runner,
+    agent,
+    store,
+    hooks,
+    goBack,
+    subagents: subagentsOf(runner, store, () => started),
+    mcp,
+  }
+  offerTrust(store, shared)
   return started
+}
+
+// The project files asked about in this run, by fingerprint, and the asks still open.
+const trustAsked = new Set<string>()
+const trustWaiting = new Map<string, { file: McpFile; store: SessionStore }>()
+
+function offerTrust(store: SessionStore, shared: SharedList): void {
+  const file = toAsk(shared, trustAsked)
+  if (!file) return
+  trustAsked.add(askKey(file))
+  const ask = trustAsk(crypto.randomUUID(), file)
+  trustWaiting.set(ask.id, { file, store })
+  store.event({ type: "ask.open", ask, at: Date.now() })
+}
+
+// Esc leaves the file unanswered. A yes reaches the session that runs now: at once where its agent takes servers
+// mid-session, else with a new session while this one has no message yet.
+function answerTrust(ask: { requestId: string }, reply: AskReply): void {
+  const waiting = trustWaiting.get(ask.requestId)
+  trustWaiting.delete(ask.requestId)
+  const yes = reply.type === "option" && reply.option === "yes"
+  const no = reply.type === "option" && reply.option === "no"
+  waiting?.store.event({
+    type: "ask.close",
+    id: ask.requestId,
+    outcome: yes
+      ? { status: "allowed" }
+      : no
+        ? { status: "denied", said: "", why: "declined", note: "" }
+        : { status: "cancelled" },
+    at: Date.now(),
+  })
+  if (!waiting || (!yes && !no)) return
+  recordTrust(waiting.file, yes)
+  if (mode.kind !== "live") return
+  const target = live
+  const next = sharedFor(target.runner)
+  const cap = target.runner.kind.caps.mcpServers
+  if (!yes || cap === "none") return target.mcp.set(next)
+  if (cap === "live") {
+    target.mcp.set(next)
+    void target.agent.setMcpServers(next.launches).then((done) => {
+      if (!done.ok) log.warn(`${target.runner.kind.id} did not take the shared MCP servers`, done.problem)
+    })
+    return
+  }
+  const { state } = target.store
+  if (state.items.some((id) => state.byId[id]?.kind === "user")) {
+    target.mcp.later()
+    target.store.event({
+      type: "notice",
+      level: "info",
+      text: "The project's MCP servers start with the next session",
+      at: Date.now(),
+    })
+    return
+  }
+  const carried = carrying?.store === target.store ? carrying : null
+  void startNew(target.runner, "use the project's MCP servers", state.model).then((started) => {
+    if (started && carried) carrying = { ...carried, store: live.store }
+  })
 }
 
 // The children of the session that runs now, for the agent panel.
@@ -640,6 +777,7 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
     models: catalogRows,
     listed: (id) => listedRows(id) !== null,
     definitions,
+    mcp: () => ({ mcpServers: owner().mcp.handover.launches, ownMcp: owner().mcp.handover.own }),
     mentioned: () =>
       store.state.items.flatMap((id) => {
         const item = store.state.byId[id]
@@ -686,8 +824,7 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   thinking: settings.thinking !== "hidden",
   instructions: modInstructions(),
   clientTools: clientTools(),
-  // Claude takes the mods' servers on its own path (syncModServers).
-  mcpServers: runner.kind.caps.mcpServers === "start" ? mods.launches() : [],
+  mcpServers: modLaunches(runner),
   relay: relayCall,
   followUp: (text) => {
     const lost = () =>
@@ -725,12 +862,19 @@ function giveTools(target: Live, tools = clientTools()): void {
   })
 }
 
-// A restarted session goes on in the mode it was in, unless the user picked a saved mode since (see modePicked).
-const restartOptions = (): RestartOptions => ({
-  mode: modePicked ? defaultModeOf(live.runner.kind.id) : null,
-  defaultMode: defaultModeOf(live.runner.kind.id),
-  thinking: settings.thinking !== "hidden",
-})
+// A restarted session goes on in the mode it was in, unless the user picked a saved mode since (see modePicked). It
+// gets the shared MCP list as it is now.
+function restartOptions(): RestartOptions {
+  const next = sharedFor(live.runner)
+  live.mcp.set(next)
+  return {
+    mode: modePicked ? defaultModeOf(live.runner.kind.id) : null,
+    defaultMode: defaultModeOf(live.runner.kind.id),
+    thinking: settings.thinking !== "hidden",
+    mcpServers: [...modLaunches(live.runner), ...next.launches],
+    ownMcp: next.own,
+  }
+}
 
 // The running provider's models go to the catalog, which /model reads for the other providers. claude names its
 // version only with its first turn, so its detection's stands in until then.
@@ -775,6 +919,11 @@ function closeSource(): void {
 
 const problemOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
 
+// A provider's start error can quote what it was given, such as a shared server's expanded env value. Claude takes
+// the mods' servers on its own path, so they are in the list for every provider.
+const startProblem = (_runner: Runner, error: unknown) =>
+  withoutServerValues(problemOf(error), [...mods.launches(), ...handover(loadShared(cwd), true).launches])
+
 // A provider that fails to start gives way to the next added one that runs here, with a notice saying why.
 async function liveMode() {
   // Live shows the model and effort the agent reports, and nothing until it does.
@@ -789,7 +938,7 @@ async function liveMode() {
   }
   if (picked.none && !(await detect(meant.kind)).installed) return fail(NO_PROVIDER)
   const { name } = meant.kind
-  log.warn(`${name} did not start`, problemOf(error))
+  log.warn(`${name} did not start`, startProblem(meant, error))
   for (const id of fallbackAgents(lastProvider(stored), addedIds(stored), meant.kind.id)) {
     const runner = runnerById(id)
     // oxlint-disable-next-line no-await-in-loop
@@ -806,12 +955,12 @@ async function liveMode() {
       pickedNotice = `${name} ${why} · opened ${runner.kind.name}`
       return { kind: "live" as const, first: live }
     } catch (next) {
-      log.warn(`${runner.kind.name} did not start either`, problemOf(next))
+      log.warn(`${runner.kind.name} did not start either`, startProblem(runner, next))
     }
   }
   if (error instanceof SignInNeeded)
     return fail(`${name} is not signed in. Run \`${error.command}\`, then start YellowCode again.`)
-  return fail(`Cannot start ${name}: ${problemOf(error)}`)
+  return fail(`Cannot start ${name}: ${startProblem(meant, error)}`)
 }
 
 async function replayMode(file: string) {
@@ -1176,10 +1325,11 @@ async function openLive(entry: SessionEntry): Promise<void> {
   try {
     next = await startLive(runner, startOptions(runner, { ref, fork: copy, at: null }), session)
   } catch (error) {
-    log.error(`cannot start ${kind.id}`, error)
+    const said = startProblem(runner, error)
+    log.error(`cannot start ${kind.id}`, said)
     following?.()
     void modsFor(live.runner.kind)
-    setControlProblem({ text: `Cannot start ${kind.name}: ${error instanceof Error ? error.message : String(error)}` })
+    setControlProblem({ text: `Cannot start ${kind.name}: ${said}` })
     return
   }
   if (quitting || token !== opening || runOf(live) !== run) {
@@ -1246,12 +1396,11 @@ async function startNew(
   try {
     next = await startLive(runner, { ...startOptions(runner, null), model }, session)
   } catch (error) {
-    log.error(`cannot start ${runner.kind.id}`, error)
+    const said = startProblem(runner, error)
+    log.error(`cannot start ${runner.kind.id}`, said)
     following?.()
     void modsFor(live.runner.kind)
-    setControlProblem({
-      text: `Cannot start ${runner.kind.name}: ${error instanceof Error ? error.message : String(error)}`,
-    })
+    setControlProblem({ text: `Cannot start ${runner.kind.name}: ${said}` })
     return false
   }
   if (quitting || token !== opening || runOf(live) !== run) {
@@ -1806,6 +1955,7 @@ function Main() {
               model={() => current.session.state.info?.model ?? firstModel}
               firstInfo={firstInfo}
               firstServers={firstServers}
+              shared={mode.kind === "live" ? () => live.mcp.session() : undefined}
               lists={current.session.lists}
               workspace={workspace}
               replay={mode.kind === "replay" ? mode.info : null}
@@ -1860,6 +2010,7 @@ function Main() {
                 const held = heldOf(ask.requestId)
                 if (held !== null) return answerHeld(held, ask, reply)
                 if (moveOf(ask.requestId) !== null) return answerMove(ask, reply)
+                if (trustOf(ask.requestId) !== null) return answerTrust(ask, reply)
                 if (mode.kind === "live" && live.subagents.answer(ask.requestId, reply)) return
                 const everywhere = everywhereOf(ask.requestId)
                 if (everywhere !== null) return answerEverywhere(everywhere, ask, reply)

@@ -1,3 +1,4 @@
+import type { OwnMcp } from "../agent/agent.ts"
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { OWN_AGENTS, OWN_ASK, OWN_SESSIONS } from "../protocol/messages.ts"
@@ -40,12 +41,23 @@ export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Lau
 // --safe-mode would also drop CLAUDE.md.
 export type Lean = { ephemeral: boolean; instructions?: string[] }
 
+// claude reads every .mcp.json from its folder up to / by itself and, under -p, runs them unasked. YellowCode hands
+// over the project file's servers the user trusts, so claude's own reading is turned off for this run, by name, with
+// no file written.
+function ownMcpArgs(own: OwnMcp | undefined): string[] {
+  if (!own) return []
+  // With no --mcp-config it keeps only the servers YellowCode sets (set-servers and its own sdk servers).
+  if (!own.on || own.unsure) return ["--strict-mcp-config"]
+  return own.project.length > 0 ? ["--settings", JSON.stringify({ disabledMcpjsonServers: own.project })] : []
+}
+
 // How YellowCode starts claude: the saved thinking display, in the launch's mode.
 export function claudeArgs(
   stored: Pick<StoredSettings, "thinking">,
   launch: Launch,
   spawn: Spawn = {},
   lean: Lean = { ephemeral: false },
+  own?: OwnMcp,
 ): string[] {
   const bypass = launch.bypass ? ["--allow-dangerously-skip-permissions"] : []
   return [
@@ -54,6 +66,7 @@ export function claudeArgs(
     // one argument that cannot swallow the next.
     `--allowedTools=${OWN_ASK},${OWN_SESSIONS},${OWN_AGENTS}`,
     "--disallowedTools=AskUserQuestion",
+    ...ownMcpArgs(own),
     thinkingArg(stored.thinking),
     // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.
     ...(spawn.resume ? ["--resume", spawn.resume] : []),

@@ -49,6 +49,10 @@ differs by provider:
 | opencode    | Put ahead of the task in the first message | A session deleted when it closes | Kept; there is no switch to leave them out    |
 | Pi          | Put ahead of the task in the first message | A run without a session file     | Left out unless the file says `plugins: true` |
 
+On Codex and Pi, a subagent without `plugins: true` has neither your own MCP servers nor your
+[shared ones](usage.md#shared-mcp-servers). On Claude Code and opencode, and with `plugins: true`, it gets the shared
+servers, and your own ones as your session has them.
+
 Its permission mode is the widest one its provider has that is no wider than both your session's mode and the agent's
 `permissions`. A subagent and your session share the working tree, and rewind snapshots follow your session only, so a
 rewind in your session can also undo a subagent's edits.
@@ -79,8 +83,8 @@ Review the changes you are given. Reply with each bug, its file and line, and wh
 - `provider`: `claude`, `codex`, `opencode` or `pi`.
 - `model`: the model's id as that provider lists it.
 - `permissions`: `read-only`, `edits`, or `inherit`, the default, which goes up to your session's mode.
-- `plugins`: `true` starts it with your plugins, hooks and MCP servers. Without it, it starts without them on Codex and
-  Pi. Claude Code and opencode have no switch for this and keep them either way.
+- `plugins`: `true` starts it with your plugins, hooks and MCP servers, the shared ones included. Without it, it starts
+  without them on Codex and Pi. Claude Code and opencode have no switch for this and keep them either way.
 
 The body is the agent's instructions. An agent runs only once it has a model on a provider you added. `/agents` lists
 every agent with its model: Enter picks a model, written into the agent's file (for a built-in, into a new file in

@@ -13,6 +13,7 @@ export const memoryCaps: Capabilities = {
   ownQuestions: false,
   clientTools: "none",
   mcpServers: "none",
+  ownMcpOff: false,
   instructions: false,
   planSignal: "none",
   cut: false,

@@ -1,16 +1,17 @@
+import { resolve } from "node:path"
 import { appVersion } from "../build-info.ts"
 import { type Accessor, createEffect, createMemo, createRoot, on } from "solid-js"
 import { z } from "zod"
-import type { ClientTool } from "../agent/agent.ts"
+import type { ClientTool, McpLaunch } from "../agent/agent.ts"
 import { log } from "../log/log.ts"
 import { MOD_SERVER_PREFIX as PREFIX, type ModHost } from "../mods/host.ts"
 import { setModServerErrors } from "../mods/registry.ts"
 import { callClientTool, mcpToolEntry } from "../protocol/mcp-tools.ts"
-import { type McpMessage, OWN_ASK_SERVER } from "../protocol/messages.ts"
-import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest } from "../protocol/outgoing.ts"
+import { type McpMessage, mcpServerRows, OWN_ASK_SERVER } from "../protocol/messages.ts"
+import { mcpAck, mcpError, mcpResponse, mcpSetServersRequest, mcpStatusRequest } from "../protocol/outgoing.ts"
 import type { Requests } from "./requests.ts"
 import { OWN_ASK_TIMEOUT_MS } from "./own-ask-tool.ts"
-import { commandOf, safeText } from "./safe-text.ts"
+import { commandOf, identityOf, IN_FOLDER, safeText, sameServer, type ServerIdentity } from "./safe-text.ts"
 
 const METHOD_NOT_FOUND = -32601
 const INVALID_PARAMS = -32602
@@ -54,13 +55,26 @@ export function serveModTools(
   }
 }
 
-// The servers claude should have: our ask server, every running mod's tools and its manifest's servers, and
-// YellowCode's other client tool servers.
+// A shared server in the shape of claude's .mcp.json. claude takes no cwd there, so a shell goes into the folder first;
+// a relative one is of the session's folder.
+const configOf = (server: McpLaunch, folder: string) => {
+  if ("url" in server) return { type: server.type ?? "http", url: server.url, headers: server.headers }
+  const { command, args, env, cwd } = server
+  return cwd === undefined
+    ? { type: "stdio", command, args, env }
+    : { type: "stdio", command: "/bin/sh", args: [...IN_FOLDER, resolve(folder, cwd), command, ...args], env }
+}
+
+// The servers claude should have: the shared ones, our ask server, every running mod's tools and its manifest's
+// servers, and YellowCode's other client tool servers.
 export function modServerConfigs(
   host: Pick<ModHost, "entries" | "servers">,
   tools: readonly ClientTool[],
+  shared: readonly McpLaunch[] = [],
+  folder = process.cwd(),
 ): Record<string, unknown> {
   const servers: Record<string, unknown> = {
+    ...Object.fromEntries(shared.map((server) => [server.name, configOf(server, folder)])),
     [OWN_ASK_SERVER]: { type: "sdk", name: OWN_ASK_SERVER, timeout: OWN_ASK_TIMEOUT_MS },
   }
   const withTools = new Set(tools.map((tool) => tool.server))
@@ -85,24 +99,68 @@ function toolNames(tools: readonly ClientTool[]): Record<string, string> {
   return Object.fromEntries(Object.entries(names).map(([server, list]) => [server, list.toSorted().join(",")]))
 }
 
-// Keeps claude's dynamic MCP servers in step with the client tools and the running mods' servers, from initialize on.
+const ownRow = z.looseObject({ name: z.string(), scope: z.string().optional(), config: z.unknown() })
+
+// What claude's own configured servers run, by name, from the list it has before any server of ours is set. Its
+// project servers are the project's .mcp.json, which the shared list holds too.
+async function ownServers(requests: Requests): Promise<Map<string, ServerIdentity | null>> {
+  const reply = await requests.send(mcpStatusRequest).catch(() => null)
+  const own = new Map<string, ServerIdentity | null>()
+  for (const row of mcpServerRows.safeParse(reply).data?.mcpServers ?? []) {
+    const server = ownRow.safeParse(row).data
+    if (server && server.scope !== "dynamic" && server.scope !== "project")
+      own.set(server.name, identityOf(server.config))
+  }
+  return own
+}
+
+// Keeps claude's dynamic MCP servers in step with the client tools, the running mods' servers and the shared ones,
+// from initialize on. `replaced` hears of a shared server that takes the place of one of claude's own.
 export function syncModServers(
   requests: Requests,
   host: Pick<ModHost, "entries" | "servers">,
   clientTools: Accessor<readonly ClientTool[]>,
+  shared: Accessor<readonly McpLaunch[]> = () => [],
+  replaced?: (name: string, different: boolean | null) => void,
+  folder = process.cwd(),
 ): () => void {
-  const configs = () => modServerConfigs(host, clientTools())
-  const setServers = (servers: Record<string, unknown>) =>
+  const configs = () => modServerConfigs(host, clientTools(), shared(), folder)
+  let own: Promise<Map<string, ServerIdentity | null>> | null = null
+  const told = new Set<string>()
+  const tellReplaced = async (servers: readonly McpLaunch[]) => {
+    if (!replaced || servers.length === 0) return
+    own ??= ownServers(requests)
+    const found = await own
+    for (const server of servers) {
+      if (!found.has(server.name) || told.has(server.name)) continue
+      told.add(server.name)
+      const theirs = found.get(server.name)
+      const ours = identityOf(server)
+      const same = theirs && ours ? sameServer(ours, theirs) : null
+      replaced(server.name, same === null ? null : !same)
+    }
+  }
+  let ahead: Promise<unknown> = Promise.resolve()
+  const setServers = (servers: Record<string, unknown>) => {
+    const given = shared()
+    ahead = ahead.then(() => tellReplaced(given)).then(() => sendServers(servers))
+    return ahead
+  }
+  const sendServers = (servers: Record<string, unknown>) =>
     requests
       .send((id) => mcpSetServersRequest(id, servers))
       .then(
         (reply) => {
           const errors = setServersReply.safeParse(reply).data?.errors ?? {}
-          const shown = Object.fromEntries(
-            Object.entries(errors).map(([name, error]) => [name, safeText(error, commandOf(servers[name]))]),
-          )
-          setModServerErrors(shown)
-          if (Object.keys(shown).length > 0) log.warn("mod MCP servers failed", shown)
+          const shown = Object.entries(errors).map(([name, error]): [string, string] => [
+            name,
+            safeText(error, commandOf(servers[name])),
+          ])
+          const ofMods = Object.fromEntries(shown.filter(([name]) => isModServer(name)))
+          const others = Object.fromEntries(shown.filter(([name]) => !isModServer(name)))
+          setModServerErrors(ofMods)
+          if (Object.keys(ofMods).length > 0) log.warn("mod MCP servers failed", ofMods)
+          if (Object.keys(others).length > 0) log.warn("MCP servers failed", others)
         },
         (error: unknown) => log.warn("mcp_set_servers failed", error instanceof Error ? error.message : error),
       )
