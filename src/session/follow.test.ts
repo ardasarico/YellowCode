@@ -18,6 +18,7 @@ const options = {
   plain: false,
   thinking: true,
   instructions: [],
+  skills: [],
   clientTools: [],
   mcpServers: [],
 }

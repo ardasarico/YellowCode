@@ -69,6 +69,7 @@ export type ChildrenOptions = {
   close?(agent: Agent): Promise<void>
   now?(): number
   relay?: StartOptions["relay"]
+  skills?: string[]
   // The shared MCP servers, which a child gets when it keeps the user's own.
   mcp?(): Pick<StartOptions, "mcpServers" | "ownMcp">
 }
@@ -279,6 +280,7 @@ export function createChildren(options: ChildrenOptions) {
         extraEffort: false,
         thinking: true,
         instructions: own && instructions ? [instructions] : [],
+        skills: options.skills ?? [],
         clientTools: [],
         ...mcp,
         ephemeral: true,

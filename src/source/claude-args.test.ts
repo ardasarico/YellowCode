@@ -71,3 +71,20 @@ test("a subagent's instructions go into the appended system prompt", () => {
   )
   expect(args[args.indexOf("--append-system-prompt") + 1]).toEndWith("\n\nReview only.")
 })
+
+test("each skills folder goes in as a plugin, and claude may read it", () => {
+  const args = claudeArgs(
+    { thinking: "summarized" },
+    launchOf({ permissionMode: "default" }),
+    {},
+    {
+      ephemeral: false,
+      skills: ["/home/u/.yellowcode/skills"],
+    },
+  )
+  expect(args.slice(args.indexOf("--plugin-dir"), args.indexOf("--plugin-dir") + 2)).toEqual([
+    "--plugin-dir",
+    "/home/u/.yellowcode/skills",
+  ])
+  expect(args.find((arg) => arg.startsWith("--allowedTools="))).toEndWith(",Read(//home/u/.yellowcode/skills/**)")
+})

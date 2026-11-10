@@ -1,5 +1,6 @@
 // One Codex thread on a `codex app-server` of its own, spawned in the session's folder. The kind's lists read a
 // short-lived app-server each.
+import { join } from "node:path"
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { appVersion } from "../../build-info.ts"
 import {
@@ -139,12 +140,22 @@ async function usable(deps: Deps): Promise<string> {
   return found.version
 }
 
+// The skills folders hold for the whole app-server and are not kept with a thread, so each one gets them again.
+async function addSkills(rpc: Rpc, skills: readonly string[]): Promise<void> {
+  if (skills.length === 0) return
+  const extraRoots = skills.map((folder) => join(folder, "skills"))
+  await within(rpc.request("skills/extraRoots/set", { extraRoots }), "Codex").catch((error: unknown) =>
+    log.warn("codex: the skills folders did not go on", { code: error instanceof RpcError ? error.code : null }),
+  )
+}
+
 // A spawned app-server after the handshake. With `signIn`, one nobody is signed in to is closed again: YellowCode
 // never signs in itself. `limited`: the sign-in has usage limits to read.
 async function connect(
   deps: Deps,
   cwd: string,
   signIn: boolean,
+  skills: readonly string[] = [],
 ): Promise<{ rpc: Rpc; version: string | null; limited: boolean }> {
   const rpc = rpcClient(deps.spawn(cwd))
   try {
@@ -161,6 +172,7 @@ async function connect(
     )
     if (init.kind !== "ok") throw new Error("Codex did not say what it is")
     rpc.notify("initialized")
+    await addSkills(rpc, skills)
     let limited = false
     if (signIn) {
       const account = resultOf(await within(rpc.request("account/read", {}), "Codex"), accountResult, "account/read")
@@ -271,7 +283,7 @@ function inputOf(prompt: Prompt): unknown[] {
 
 async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
   const detected = await usable(deps)
-  const connected = await connect(deps, options.cwd, true)
+  const connected = await connect(deps, options.cwd, true, options.skills)
   let { rpc, version } = connected
   const chosen = options.mode ?? (options.resume ? null : options.defaultMode)
   const opened = await openThread(rpc, options, chosen === PLAN ? null : chosen).catch(async (error: unknown) => {
@@ -814,7 +826,7 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
     if (!ended || closed) return { ok: false, problem: "Codex is still running" }
     tell({ type: "starting", at: lastAt })
     try {
-      const next = await connect(deps, options.cwd, true)
+      const next = await connect(deps, options.cwd, true, options.skills)
       try {
         if (saved.mcpServers) options = { ...options, mcpServers: saved.mcpServers, ownMcp: saved.ownMcp }
         await openThread(next.rpc, {

@@ -132,6 +132,7 @@ const START = {
   plain: false,
   thinking: false,
   instructions: [],
+  skills: [],
   clientTools: [],
   mcpServers: [],
 }

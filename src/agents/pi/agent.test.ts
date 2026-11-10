@@ -13,6 +13,7 @@ const OPTIONS: StartOptions = {
   extraEffort: false,
   thinking: false,
   instructions: [],
+  skills: [],
   clientTools: [],
   mcpServers: [],
   ephemeral: false,

@@ -1,6 +1,7 @@
 import { lstat } from "node:fs/promises"
 import { join } from "node:path"
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
+import { skillsAsText } from "../../skills/skills.ts"
 import { z } from "zod"
 import { appVersion } from "../../build-info.ts"
 import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "../../agent/agent.ts"
@@ -126,6 +127,12 @@ const HAND_MS = 3000
 // Session rules come after the config's and the agent's, so these win over an allow there.
 const ASK_ALL: Rule[] = ["edit", "shell"].map((action) => ({ action, resource: "*", effect: "ask" }))
 
+// Our skills sit outside the session's folder; a user who has opencode ask before such reads is not asked for them.
+const skillsRead = (folder: string): Rule => ({
+  action: "external_directory",
+  resource: `${folder}/*`,
+  effect: "allow",
+})
 const plain = ({ action, resource, effect }: Rule): Rule => ({ action, resource, effect })
 const isQuestionDeny = (rule: Rule) =>
   rule.action === QUESTION_DENY.action &&
@@ -153,7 +160,7 @@ async function sessionFor(transport: Transport, options: StartOptions, agent: Mo
             path: "/api/session",
             body: {
               location: { directory: options.cwd },
-              permissions: [QUESTION_DENY, ...(options.asks ? ASK_ALL : [])],
+              permissions: [QUESTION_DENY, ...(options.asks ? ASK_ALL : []), ...options.skills.map(skillsRead)],
               ...(agent === null ? {} : { agent }),
               ...(options.ephemeral ? { title: childTitle() } : {}),
             },
@@ -188,7 +195,10 @@ async function denyQuestions(transport: Transport, info: Session): Promise<void>
 const instructionsPath = (id: string) => `/api/experimental/session/${id}/instructions/entries/yellowcode`
 
 async function addInstructions(transport: Transport, id: string, options: StartOptions): Promise<void> {
-  const body = { value: instructionsFor(options.instructions) }
+  // opencode takes skills folders only in its service's config, which reaches the user's own opencode too, so ours
+  // go in as text.
+  const skills = skillsAsText(options.skills)
+  const body = { value: instructionsFor([...options.instructions, ...(skills ? [skills] : [])]) }
   const reply = await transport.request({ method: "PUT", path: instructionsPath(id), body }).catch(() => null)
   if (reply?.status !== 204 && reply?.status !== 200) log.warn("opencode: YellowCode's instructions did not go on")
 }

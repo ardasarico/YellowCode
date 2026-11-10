@@ -212,6 +212,8 @@ function sessionArgs(options: StartOptions): string[] {
 // YellowCode's instructions go with every start, as pi keeps no system prompt in the session.
 const leanArgs = (options: StartOptions) => [
   ...(options.plain ? ["--no-extensions", "--no-mcp"] : []),
+  // Pi keeps no skills folder with a session, so every start gives them again.
+  ...options.skills.flatMap((folder) => ["--skill", join(folder, "skills")]),
   "--append-system-prompt",
   instructionsFor(options.instructions),
 ]

@@ -39,7 +39,16 @@ export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Lau
 
 // A session claude keeps no transcript of, with instructions added to its system prompt. A plain start is not offered:
 // --safe-mode would also drop CLAUDE.md.
-export type Lean = { ephemeral: boolean; instructions?: string[] }
+export type Lean = { ephemeral: boolean; instructions?: string[]; skills?: string[] }
+
+// Each skills folder goes in as a plugin of this run only. Its files sit outside the session's folder, so claude may
+// read them unasked.
+function skillArgs(skills: readonly string[]): { flags: string[]; reads: string[] } {
+  return {
+    flags: skills.flatMap((folder) => ["--plugin-dir", folder]),
+    reads: skills.map((folder) => `Read(/${folder}/**)`),
+  }
+}
 
 // claude reads every .mcp.json from its folder up to / by itself and, under -p, runs them unasked. YellowCode hands
 // over the project file's servers the user trusts, so claude's own reading is turned off for this run, by name, with
@@ -60,13 +69,15 @@ export function claudeArgs(
   own?: OwnMcp,
 ): string[] {
   const bypass = launch.bypass ? ["--allow-dangerously-skip-permissions"] : []
+  const skills = skillArgs(lean.skills ?? [])
   return [
     ...CLAUDE_STREAM_ARGS,
     // Our own ask replaces the stock one and never waits on a permission ask. These flags take a list, so each is
     // one argument that cannot swallow the next.
-    `--allowedTools=${OWN_ASK},${OWN_SESSIONS},${OWN_AGENTS}`,
+    `--allowedTools=${[OWN_ASK, OWN_SESSIONS, OWN_AGENTS, ...skills.reads].join(",")}`,
     "--disallowedTools=AskUserQuestion",
     ...ownMcpArgs(own),
+    ...skills.flags,
     thinkingArg(stored.thinking),
     // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.
     ...(spawn.resume ? ["--resume", spawn.resume] : []),

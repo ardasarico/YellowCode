@@ -6,6 +6,7 @@ import { createHash } from "node:crypto"
 import { parseArgs } from "node:util"
 import solid from "@opentui/solid/bun-plugin"
 import packageJson from "../package.json"
+import { skillFiles } from "../src/skills/embed.ts"
 
 const TARGETS = {
   "darwin-arm64": "bun-darwin-arm64",
@@ -75,6 +76,7 @@ function defines({ version, channel, source = REPO }: BuildOptions): Record<stri
     BUILD_VERSION: JSON.stringify(version),
     BUILD_COMMIT: JSON.stringify(run(["git", "rev-parse", "--short", "HEAD"], source)),
     BUILD_CHANNEL: JSON.stringify(channel),
+    SKILL_FILES: JSON.stringify(skillFiles(source)),
   }
 }
 

@@ -303,7 +303,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
   const { cwd } = options
   const { provider } = bridge
   if (options.ephemeral && options.resume !== null) throw new Error("A session Claude Code does not keep cannot resume")
-  const lean = { ephemeral: options.ephemeral, instructions: options.instructions }
+  const lean = { ephemeral: options.ephemeral, instructions: options.instructions, skills: options.skills }
   // Every claude this agent starts serves them, as SDK MCP servers.
   const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
   const [shared, setShared] = createSignal<readonly McpLaunch[]>(options.mcpServers)

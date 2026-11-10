@@ -75,6 +75,8 @@ export type StartOptions = {
   thinking: boolean
   // Added to the agent's own instructions (caps.instructions).
   instructions: string[]
+  // Skills folders in Claude Code's plugin layout (src/skills/skills.ts), on top of the agent's own skills.
+  skills: string[]
   clientTools: ClientTool[]
   // The mods' servers (caps.mcpServers "start") and the shared ones (any cap but "none").
   mcpServers: McpLaunch[]

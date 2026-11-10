@@ -28,6 +28,7 @@ export type SubagentDeps = {
   cwd: string
   // For a child whose service gives it its parent's tool calls (StartOptions.relay).
   relay?: StartOptions["relay"]
+  skills?: string[]
   // The parent session's shared MCP servers, for a child that keeps the user's own servers.
   mcp?: ChildrenOptions["mcp"]
   // The parent's chat, where the asks open.
@@ -212,6 +213,7 @@ export function createSubagents(deps: SubagentDeps) {
       ) && !launcher.keepsAsks,
     close: (agent) => deps.close(agent),
     relay: deps.relay,
+    skills: deps.skills,
     mcp: deps.mcp,
   })
 

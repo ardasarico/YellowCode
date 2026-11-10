@@ -107,6 +107,7 @@ const START: Omit<StartOptions, "cwd"> = {
   plain: false,
   thinking: false,
   instructions: [],
+  skills: [],
   clientTools: [],
   mcpServers: [],
 }

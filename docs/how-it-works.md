@@ -72,9 +72,17 @@ get and Pi does not. How they start, which providers keep your plugins and how p
 
 ## What YellowCode adds to your session
 
-- With Claude Code, a short note at the end of the agent's system prompt that says what this screen can draw: local
-  images, mermaid diagrams, callouts and a few code blocks of its own. The text is in
-  [`src/source/append-prompt.ts`](../src/source/append-prompt.ts). Codex, opencode and Pi get no such note.
+- A short note added to the agent's own instructions that says it runs in YellowCode and what this screen can draw:
+  local images, mermaid diagrams, callouts and a few code blocks of its own. The text is in
+  [`src/agent/yellowcode-prompt.ts`](../src/agent/yellowcode-prompt.ts).
+- Two skills of YellowCode's, for this session only: `yellowcode-docs`, these docs, which the agent reads when you ask
+  about YellowCode, and `yellowcode-mods`, the Mod API and the example mods, for writing a mod. They are written to
+  `~/.yellowcode/skills/` and given to each provider its own way:
+  - Claude Code gets the folder as a plugin of the session, with `--plugin-dir`, and may read it without asking.
+  - Codex gets it as an extra skills folder of its app-server.
+  - opencode takes skills folders only in its service's settings, which would reach your own opencode screen too, so
+    it gets the skills' names and paths in the session's instructions and reads the files itself.
+  - Pi gets it with `--skill`.
 - Its own question tool in place of the agent's, such as Claude Code's `AskUserQuestion`, so questions show in
   YellowCode's own dialog. Pi has no question tool, so it gets none.
 - Permission asks come to YellowCode, and you answer them there. Pi asks none.

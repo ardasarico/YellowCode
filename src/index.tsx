@@ -139,6 +139,7 @@ import { forgetRefs } from "./ui/markdown/refs.ts"
 import { noteKey } from "./ui/ask/typing.ts"
 import { invertQueued } from "./ui/invert.ts"
 import { firstCapabilities, TerminalCheck, terminalProblem } from "./ui/terminal-check.tsx"
+import { builtInSkills } from "./skills/skills.ts"
 
 const USAGE = [
   "Usage: yellowcode [--skip-terminal-check] [--no-mods]",
@@ -766,6 +767,7 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
   const made: Subagents = createSubagents({
     cwd,
     relay: relayCall,
+    skills: builtInSkills(),
     parent: store,
     providers: addedProviders,
     launcher: (id) => launchers.find((one) => one.id === id) ?? null,
@@ -823,6 +825,7 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   plain: false,
   thinking: settings.thinking !== "hidden",
   instructions: modInstructions(),
+  skills: builtInSkills(),
   clientTools: clientTools(),
   mcpServers: modLaunches(runner),
   relay: relayCall,
