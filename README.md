@@ -82,7 +82,8 @@ No. It has no model and no login of its own. It runs the provider you already ha
 <details>
 <summary>Do my settings, MCP servers, skills and plugins still work?</summary>
 
-Yes. They belong to your provider and load as usual.
+Yes. They belong to your provider and load as usual. To use the same MCP servers with every provider, add them once
+with `yellowcode mcp add`.
 
 </details>
 

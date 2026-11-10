@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.0
+
+### Highlights
+
+- **One MCP list for every provider.** Add an MCP server once with `yellowcode mcp add` and Claude Code, Codex,
+  opencode and Pi all get it. `/settings` can turn the providers' own servers off.
+- **The agent can read YellowCode's docs.** Every provider gets two built-in skills: these docs, and a guide to
+  writing mods.
+- **A provider that cannot start no longer stops YellowCode.** It opens the next provider you added and says why.
+
+### Added
+
+- `/mcp` shows the shared servers first, and the reason when one is off.
+- The output of `!` commands reaches Codex, opencode and Pi with your next message.
+- Images you pasted move with the conversation when you switch to another provider's model.
+- Pi takes MCP servers, and its MCP tool calls are labelled in the chat.
+- Pi tells you once when it leaves an untrusted project's skills and `.pi` files off.
+
+### Changed
+
+- A project's `.mcp.json` servers start only after you say yes, in Claude Code too. YellowCode asks once for each
+  project, and again when the file changes.
+- With no provider installed, YellowCode lists how to install each one.
+- F4 says when ultracode is not available with the provider in use.
+
 ## 0.3.0
 
 ### Added
