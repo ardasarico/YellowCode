@@ -208,6 +208,23 @@ What each provider does with them:
 [Subagents](agents.md#subagents) get the shared servers when they keep the provider's own: on Codex and Pi, only with
 `plugins: true`.
 
+## Skills on every provider
+
+Each provider loads skills from its own folders, and YellowCode adds nothing to that. Codex, opencode and Pi read
+`.agents/skills` in your project and `~/.agents/skills`. Claude Code reads only `.claude/skills` and
+`~/.claude/skills`, which opencode reads too. To keep one copy of a skill for all four, put it in `.agents/skills` and
+link it for Claude Code:
+
+```sh
+mkdir -p .claude/skills
+ln -s ../../.agents/skills/my-skill .claude/skills/my-skill
+```
+
+For skills you use in every project, link from `~/.agents/skills` to `~/.claude/skills` the same way.
+
+Pi reads a project's `.agents/skills` only in a project you trust. Trust it once in Pi's own screen, or set
+`defaultProjectTrust` to `"always"` in `~/.pi/agent/settings.json`; YellowCode does not ask for it.
+
 ## Files it writes
 
 | Path                                                            | Holds                                                                                                                                                      |
