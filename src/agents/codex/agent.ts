@@ -227,7 +227,8 @@ function inputOf(prompt: Prompt): unknown[] {
     type: "image",
     url: `data:${image.mediaType};base64,${image.base64}`,
   }))
-  const text = prompt.text !== "" || images.length === 0 ? [{ type: "text", text: prompt.text, text_elements: [] }] : []
+  const alone = images.length === 0 && prompt.context === null
+  const text = prompt.text !== "" || alone ? [{ type: "text", text: prompt.text, text_elements: [] }] : []
   const context = prompt.context === null ? [] : [{ type: "text", text: prompt.context, text_elements: [] }]
   return [...context, ...text, ...images]
 }

@@ -65,8 +65,8 @@ On the welcome screen, ↓ moves into your recent sessions and Enter opens one.
 - `/` lists commands: YellowCode's own, your agent's, and those your mods add.
 - `@` picks a file to mention.
 - `!` on an empty prompt enters shell mode, and Esc leaves it. A line that starts with `!` runs as a shell command in
-  your project. With Claude Code, its output goes to the agent with your next message; Codex, opencode and Pi do not
-  get it.
+  your project. Its output goes to the agent with your next message. Claude Code also reads it at once when it is
+  idle; Codex, opencode and Pi wait for your message.
 - Ctrl+V pastes an image, a file or text. A long paste folds into one line: Ctrl+X unfolds it and Ctrl+Z folds it
   back. On Linux this needs `wl-clipboard` on Wayland or `xclip` on X11; your terminal's own paste works without them,
   for text.

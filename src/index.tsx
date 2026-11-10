@@ -90,7 +90,7 @@ import {
   rewoundTasks,
 } from "./session/rewind.ts"
 import type { Ask } from "./session/types.ts"
-import { runShell, type ShellRun } from "./source/shell-command.ts"
+import { runShell, shellsText, type ShellRun } from "./source/shell-command.ts"
 import { createCapture } from "./rewind/live-rewind.ts"
 import { pruneAtStart } from "./rewind/prune.ts"
 import { livePreview } from "./rewind/preview.ts"
@@ -294,8 +294,9 @@ type Runner = {
   ): Promise<{ agent: Agent; hooks: Partial<ClaudeHooks>; goBack?: () => Promise<Back> }>
   // The prompt in the chat at Enter, before it goes out; the store's own showEarly for an agent without one.
   show?: (store: SessionStore, prompt: Prompt) => void
-  // The output of `!` commands goes to the agent with the next message (Prompt.shells).
-  hearsShells: boolean
+  // The agent puts the `!` commands of Prompt.shells into the message itself; for one that does not, they go ahead of
+  // the text with the context.
+  takesShells: boolean
   // The agent starts over on a typed /clear itself; otherwise YellowCode starts a new session of it.
   clears: boolean
 }
@@ -376,7 +377,7 @@ const claudeRunner: Runner = {
       .start(options, store)
       .then((agent) => ({ agent, hooks: agent, goBack: () => agent.goBack(restartOptions()) })),
   show: showPrompt,
-  hearsShells: true,
+  takesShells: true,
   clears: true,
 }
 const opencode = opencodeKind()
@@ -399,7 +400,7 @@ const opencodeRunner: Runner = {
         goBack: () => agent.goBack(hiddenPrompts(store.state).at(-1) ?? null),
       }
     }),
-  hearsShells: false,
+  takesShells: false,
   clears: false,
 }
 const codex = codexKind()
@@ -416,7 +417,7 @@ const codexRunner: Runner = {
       // The cut goes in at the oldest prompt the store hides.
       return { agent, hooks: {}, goBack: () => agent.goBack(hiddenPrompts(store.state).at(-1) ?? null) }
     }),
-  hearsShells: false,
+  takesShells: false,
   clears: false,
 }
 const pi = piKind()
@@ -439,7 +440,7 @@ const piRunner: Runner = {
         })
       return { agent, hooks: {} }
     }),
-  hearsShells: false,
+  takesShells: false,
   clears: false,
 }
 // For an agent that takes no model at start: the switch right after.
@@ -1428,18 +1429,31 @@ function sendPrompt(
   const delivery = message.delivery === "queue" && target.agent.caps.queue ? "queue" : "steer"
   const carried = carrying?.store === session && message.to === null && !message.text.startsWith("/") ? carrying : null
   if (carried) carrying = null
-  const prompt: Prompt = { ...message, id: uuid, command, delivery, kept, context: carried?.text ?? null, shells }
+  const { takesShells } = target.runner
+  const told = carried ? [carried.text] : []
+  const ahead = [...told, ...(takesShells || shells.length === 0 ? [] : [shellsText(shells)])]
+  const context = ahead.length > 0 ? ahead.join("\n\n") : null
+  const prompt: Prompt = {
+    ...message,
+    id: uuid,
+    command,
+    delivery,
+    kept,
+    context,
+    shells: takesShells ? shells : [],
+  }
   const run = runOf(target)
   const startsTurn = session.state.status !== "running"
   for (const [id, entry] of withdrawable) if (!waitsIn(entry.session, id)) withdrawable.delete(id)
   // What goes out ahead of the text would be lost with it.
-  if (!startsTurn && kept.length === 0 && prompt.context === null) withdrawable.set(uuid, { session, shells })
+  if (!startsTurn && kept.length === 0 && carried === null) withdrawable.set(uuid, { session, shells })
   const show = target.runner.show ?? showEarly
   show(session, prompt)
   const ready = capture?.before(uuid, target.agent.session.id || null, session)
   const unsent = () => {
     withdrawable.delete(uuid)
     if (carried && carrying === null) carrying = carried
+    giveShellsBack(session, shells)
     capture?.drop(uuid)
     session.notSent(uuid)
     giveBack?.()
@@ -1489,9 +1503,15 @@ async function withdrawLive(prompt: PromptId): Promise<boolean> {
   await sending
   if (runOf(live) !== runOf(target) || !(await target.agent.withdraw(prompt))) return false
   capture?.drop(prompt)
-  const untold = untoldShells?.session === entry.session ? untoldShells.shells : []
-  if (entry.shells.length > 0) untoldShells = { session: entry.session, shells: [...entry.shells, ...untold] }
+  giveShellsBack(entry.session, entry.shells)
   return true
+}
+
+// `!` commands of a message that did not reach the agent go out with the next one, ahead of any run since.
+function giveShellsBack(session: SessionStore, shells: Prompt["shells"]): void {
+  if (shells.length === 0) return
+  const untold = untoldShells?.session === session ? untoldShells.shells : []
+  untoldShells = { session, shells: [...shells, ...untold] }
 }
 
 // With "Ask first" a message waits for the user, asked the way a permission is.
@@ -1590,8 +1610,7 @@ let untoldShells: { session: SessionStore; shells: Prompt["shells"] } | null = n
 
 // A replay sends nothing, so its commands are told from the start.
 function runShellCommand(session: SessionStore, command: string): void {
-  // An agent that does not hear them has nothing to be told.
-  const told = mode.kind !== "live" || !live.runner.hearsShells
+  const told = mode.kind !== "live"
   const id = session.startShell(command, told)
   const run = runShell(command, cwd, (output) => session.shellOutput(id, output))
   shellRun = run
@@ -1602,8 +1621,8 @@ function runShellCommand(session: SessionStore, command: string): void {
     const shells = untoldShells?.session === session ? untoldShells.shells : []
     const pending = { session, shells: [...shells, { command, output }] }
     untoldShells = pending
-    // An idle agent reads the output at once and answers it; a busy one gets it with the next message.
-    if (live.store !== session || session.state.status !== "idle") return
+    // An idle Claude Code reads the output at once and answers it; every other agent gets it with the next message.
+    if (!live.runner.takesShells || live.store !== session || session.state.status !== "idle") return
     const restore = () => {
       if (untoldShells === null) untoldShells = pending
     }

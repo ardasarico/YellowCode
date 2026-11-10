@@ -96,6 +96,7 @@ get and Pi does not. How they start, which providers keep your plugins and how p
 - Five tools to run [subagents](agents.md#subagents) on the providers you added. Pi does not get them.
 - The tools of the [mods](mods.md) you have turned on, and with Claude Code and Codex their MCP servers. Codex takes
   them when a session starts, so a change reaches it in the next session. Pi gets neither.
+- The output of your `!` shell commands, with your next message. Claude Code also reads it at once when it is idle.
 
 ## What it never does
 

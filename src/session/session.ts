@@ -1288,8 +1288,9 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         })
     }
     const running = state.status === "running"
+    const text = withoutHandoff(user.text)
     // A prompt that only carries `!` output starts a turn without a row of its own.
-    if (user.text === "" && user.images.length === 0) {
+    if (text === "" && user.images.length === 0) {
       if (user.history) return
       if (shownEarly && prompt !== null) early.set(prompt, !running)
       if (!running) setState("interrupting", false)
@@ -1302,7 +1303,6 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     // all ran already. One shown before it goes out waits until it does, but looks queued only behind a running turn.
     const queued = (running || shownEarly) && prompt !== null && !user.history
     const to = user.to && { id: user.to.task, name: user.to.name }
-    const text = withoutHandoff(user.text)
     const subagent = readSubagentMessage(text)
     const peer =
       readSessionMessage(text) ??

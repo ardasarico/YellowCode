@@ -105,17 +105,42 @@ const SEPARATOR = "\n\n"
 
 const leftOutLine = (count: number) => `[${count} earlier ${count === 1 ? "message" : "messages"} left out]`
 
-function render(kept: Entry[], leftOut: number, cut: number): string {
+// The block's own lines carry a token made for it, so text inside the block cannot end it.
+export const blockToken = () => crypto.randomUUID().slice(0, 8)
+export const marked = (line: string, token: string) => `${line} [${token}]`
+
+function render(kept: Entry[], leftOut: number, cut: number, token: string): string {
   const body = kept.map((entry) => entry.text)
   if (leftOut > 0) body.splice(cut, 0, leftOutLine(leftOut))
-  return [HEADER, ...body, FOOTER].join(SEPARATOR)
+  return [marked(HEADER, token), ...body, marked(FOOTER, token)].join(SEPARATOR)
 }
 
-// A prompt read back with its handoff ahead of the user's text, as the user wrote it.
-export function withoutHandoff(prompt: string): string {
-  if (!prompt.startsWith(HEADER)) return prompt
+// The `!` commands' block that goes ahead of a message (shellsText).
+export const SHELLS_HEADER =
+  "Since their last message, the user ran these shell commands in the project themselves. You did not run them."
+export const SHELLS_FOOTER = "End of the user's shell commands."
+
+const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+// The block ends only at the footer line with its header's token.
+function withoutBlock(prompt: string, header: string, footer: string): string {
+  const start = new RegExp(`^${escaped(header)}[^\\n]* \\[([0-9a-f]{8})\\]\\n`).exec(prompt)
+  if (!start) return prompt
+  const end = new RegExp(`\\n${escaped(marked(footer, start[1]!))}(?:\\n|$)`).exec(prompt.slice(start[0].length))
+  if (!end) return prompt
+  return prompt.slice(start[0].length + end.index + end[0].length).replace(/^\n/, "")
+}
+
+// Sessions saved before the token have the handoff's fixed lines.
+function withoutOldHandoff(prompt: string): string {
+  if (!prompt.startsWith(`${HEADER}\n`)) return prompt
   const end = prompt.indexOf(FOOTER)
   return end === -1 ? prompt : prompt.slice(end + FOOTER.length).replace(/^\n{1,2}/, "")
+}
+
+// A prompt read back as the user wrote it, without the handoff and the `!` commands that went ahead of it.
+export function withoutHandoff(prompt: string): string {
+  return withoutBlock(withoutOldHandoff(withoutBlock(prompt, HEADER, FOOTER)), SHELLS_HEADER, SHELLS_FOOTER)
 }
 
 // The shown conversation as plain text for another agent's model whose context window is `window` tokens. Over the
@@ -124,6 +149,7 @@ export function buildHandoff(session: Pick<Session, "items" | "byId" | "rewound"
   const budget = handoffBudget(window)
   const all = entries(session, cwd)
   const total = all.filter((entry) => entry.message).length
+  const token = blockToken()
   const result = (kept: Entry[], text: string): Handoff => {
     const moved = kept.filter((entry) => entry.message).length
     const images = kept.reduce((sum, entry) => sum + entry.images, 0)
@@ -131,11 +157,12 @@ export function buildHandoff(session: Pick<Session, "items" | "byId" | "rewound"
     return { text, moved, leftOut: total - moved, images, tools }
   }
 
-  const full = render(all, 0, 0)
+  const full = render(all, 0, 0, token)
   if (full.length <= budget) return result(all, full)
 
   const firstIndex = all.findIndex((entry) => entry.message && entry.text.startsWith("User:"))
-  let used = HEADER.length + FOOTER.length + leftOutLine(total).length + SEPARATOR.length * 2
+  let used =
+    marked(HEADER, token).length + marked(FOOTER, token).length + leftOutLine(total).length + SEPARATOR.length * 2
   let first: Entry | null = null
   if (firstIndex !== -1) {
     const { text } = all[firstIndex]!
@@ -155,5 +182,5 @@ export function buildHandoff(session: Pick<Session, "items" | "byId" | "rewound"
   }
   const kept = first ? [first, ...newest] : newest
   const counted = result(kept, "")
-  return { ...counted, text: render(kept, counted.leftOut, first ? 1 : 0) }
+  return { ...counted, text: render(kept, counted.leftOut, first ? 1 : 0, token) }
 }
