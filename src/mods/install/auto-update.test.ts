@@ -29,7 +29,7 @@ const server = Bun.serve({
 const env = {
   YELLOWCODE_MOD_LIST: `${server.url.href}list`,
   YELLOWCODE_CODELOAD: server.url.href.replace(/\/$/, ""),
-  XDG_CACHE_HOME: join(root, "cache"),
+  YELLOWCODE_HOME: join(root, "home"),
 }
 const saved = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]))
 Object.assign(process.env, env)

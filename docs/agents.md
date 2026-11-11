@@ -69,7 +69,7 @@ An agent file is a task description with a model. Three are built in:
 - **explore**: searches and reads the code to answer a question, and changes nothing.
 - **worker**: makes a well-defined change and reports what it changed.
 
-Add your own as Markdown files in `~/.config/yellowcode/agents/` or in your project's `.yellowcode/agents/`. The file
+Add your own as Markdown files in `~/.yellowcode/agents/` or in your project's `.yellowcode/agents/`. The file
 name is the agent's name. A project file wins over a global one of the same name, and both over a built-in one.
 
 ```markdown
@@ -94,7 +94,7 @@ Review the changes you are given. Reply with each bug, its file and line, and wh
 
 The body is the agent's instructions. An agent runs only once it has a model on a provider you added. `/agents` lists
 every agent with its model: Enter picks a model, written into the agent's file (for a built-in, into a new file in
-`~/.config/yellowcode/agents/`), and `e` opens the file.
+`~/.yellowcode/agents/`), and `e` opens the file.
 
 ## Sessions working together
 

@@ -16,4 +16,5 @@ test("the install method comes from where the binary lives", () => {
     ["/Users/a/Downloads/yellowcode", "none"],
   ]
   expect(cases.map(([path]) => [path, methodOf(path)])).toEqual(cases)
+  expect(methodOf("/data/yc/versions/0.5.0/yellowcode", "/data/yc")).toBe("script")
 })

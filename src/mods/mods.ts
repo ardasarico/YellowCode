@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs"
 import { createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { log } from "../log/log.ts"
 import { setSetting, settings } from "../session/settings.ts"
 import { createModHost, type ModAgent, revokedReason } from "./host.ts"
@@ -12,7 +12,7 @@ import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
 export const mods = createModHost({
-  folder: configPath("mods"),
+  folder: homePath("mods"),
   disabled: () => settings.disabledMods,
   saveDisabled: (ids) => setSetting("disabledMods", ids),
   revoked: (id, manifest, record) => revokedReason(readCachedList()?.list.revoked ?? [], id, manifest, record),

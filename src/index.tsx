@@ -1,3 +1,4 @@
+import { movedLines } from "./moved.ts"
 import { appVersion } from "./build-info.ts"
 import { addDefaultParsers, CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
 import { render } from "@opentui/solid"
@@ -180,6 +181,11 @@ function readArgs() {
   }
 }
 
+// Commands that end before the app shows say on stderr what the app says in its notice row.
+function tellMoved(): void {
+  for (const line of movedLines.splice(0)) process.stderr.write(`${line}\n`)
+}
+if (["mod", "mcp", "update", "providers"].includes(process.argv[2] ?? "")) tellMoved()
 if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
 if (process.argv[2] === "mcp") process.exit(runMcpCommand(process.argv.slice(3)))
 if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
@@ -206,6 +212,7 @@ const values = readArgs()
 if (values.replay === undefined && (values.speed !== undefined || values.titles !== undefined)) fail(USAGE)
 if (values.replay === undefined && values.sessions !== undefined) fail("--sessions only works with --replay")
 if (values.report && values.replay !== undefined) fail(USAGE)
+if (values.help || values.version || values.report) tellMoved()
 if (values.help) {
   process.stdout.write(`${USAGE}\n`)
   process.exit(0)
@@ -2118,9 +2125,10 @@ function Main() {
   )
 }
 
-// Why the saved default agent did not open, once the App shows.
+// What the start has to say once the App shows: the folders that moved, why the saved default agent did not open.
 function tellPicked(): void {
-  if (pickedNotice !== null) setControlProblem({ text: pickedNotice })
+  const lines = [...movedLines, ...(pickedNotice === null ? [] : [pickedNotice])]
+  if (lines.length > 0) setControlProblem({ text: lines.join(" · ") })
 }
 
 themeTextSelection()

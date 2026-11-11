@@ -12,7 +12,7 @@ import { dirname } from "node:path"
 import { createSignal } from "solid-js"
 import { z } from "zod"
 import type { AgentKindId, ModelRef, ModeId } from "../agent/ids.ts"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../json.ts"
 import { themes } from "../theme/theme.ts"
@@ -307,7 +307,7 @@ function readStored(stored: Record<string, unknown>) {
 const unreadable = new Set<string>()
 
 // `repair` false leaves a broken file as it is.
-export function loadSettings(path = configPath("settings.json"), repair = true): LoadedSettings {
+export function loadSettings(path = homePath("settings.json"), repair = true): LoadedSettings {
   let text: string
   try {
     text = readFileSync(path, "utf8")
@@ -342,7 +342,7 @@ export function loadSettings(path = configPath("settings.json"), repair = true):
     : { settings, problem: "settings.json is broken, cannot repair it", backup: null }
 }
 
-export function saveSettings(settings: Partial<StoredSettings>, path = configPath("settings.json")): boolean {
+export function saveSettings(settings: Partial<StoredSettings>, path = homePath("settings.json")): boolean {
   if (unreadable.has(path)) {
     setFailedSaves((count) => count + 1)
     return false

@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
 import { z } from "zod"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { parseJson } from "../json.ts"
 import { log } from "../log/log.ts"
 import {
@@ -26,7 +26,7 @@ const Answer = z.object({ fingerprint: z.string(), trusted: z.boolean() })
 const Answers = z.record(z.string(), Answer)
 
 // Answers by the project file's path, which findProjectFile and newProjectFile give with symlinks resolved.
-export const trustFile = () => configPath("mcp-trust.json")
+export const trustFile = () => homePath("mcp-trust.json")
 
 function readAnswers(store: string): Record<string, z.output<typeof Answer>> {
   let text: string

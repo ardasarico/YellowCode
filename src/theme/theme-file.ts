@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { basename, join } from "node:path"
 import { z } from "zod"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { parseJson } from "../json.ts"
 import { BUILT_IN_THEMES } from "./built-in.ts"
 import type { ThemeColors, ThemeDefinition } from "./theme.ts"
@@ -112,7 +112,7 @@ function readFolder(folder: string, source: ThemeSource): ThemeEntry[] {
 }
 
 // The built-in themes, then the user's; a user theme may not take a built-in theme's id.
-export function readThemes(userFolder = configPath("themes")): ThemeEntry[] {
+export function readThemes(userFolder = homePath("themes")): ThemeEntry[] {
   const builtIn = BUILT_IN_THEMES.map(({ id, json }) => themeEntry(id, json, "built-in"))
   const taken = new Set(builtIn.map((entry) => entry.id))
   const user = readFolder(userFolder, "user").map((entry): ThemeEntry =>

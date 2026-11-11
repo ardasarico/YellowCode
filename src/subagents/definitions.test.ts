@@ -6,19 +6,19 @@ import { log } from "../log/log.ts"
 import { globalFolder, loadDefinitions, projectFolder, writeModel } from "./definitions.ts"
 
 let cwd = ""
-const savedConfig = process.env["XDG_CONFIG_HOME"]
+const savedConfig = process.env["YELLOWCODE_HOME"]
 
 beforeEach(() => {
   const root = mkdtempSync(join(tmpdir(), "yellowcode-agents-"))
-  process.env["XDG_CONFIG_HOME"] = join(root, "config")
+  process.env["YELLOWCODE_HOME"] = join(root, "home")
   cwd = join(root, "project")
   mkdirSync(globalFolder(), { recursive: true })
   mkdirSync(projectFolder(cwd), { recursive: true })
 })
 
 afterEach(() => {
-  if (savedConfig === undefined) delete process.env["XDG_CONFIG_HOME"]
-  else process.env["XDG_CONFIG_HOME"] = savedConfig
+  if (savedConfig === undefined) delete process.env["YELLOWCODE_HOME"]
+  else process.env["YELLOWCODE_HOME"] = savedConfig
 })
 
 const added = (provider: string, model: string) => provider === "opencode" && model === "openrouter/deepseek-v4"

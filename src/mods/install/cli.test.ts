@@ -6,7 +6,7 @@ import { readRecord } from "./record.ts"
 import { dirEntries, hashEntries } from "./tree-hash.ts"
 
 const root = mkdtempSync(join(tmpdir(), "yellowcode-cli-"))
-const mods = join(root, "config", "yellowcode", "mods")
+const mods = join(root, "home", "mods")
 const tarballs = new Map<string, Uint8Array>()
 const manifests = new Map<string, string>()
 const heads = new Map<string, string>()
@@ -60,8 +60,7 @@ async function run(args: string, answers?: string) {
     stderr: "pipe",
     env: {
       ...process.env,
-      XDG_CONFIG_HOME: join(root, "config"),
-      XDG_CACHE_HOME: join(root, "cache"),
+      YELLOWCODE_HOME: join(root, "home"),
       YELLOWCODE_MOD_LIST: `${server.url.href}list`,
       YELLOWCODE_CODELOAD: `${server.url.href}codeload`,
       YELLOWCODE_GITHUB_API: `${server.url.href}api`,

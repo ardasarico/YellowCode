@@ -9,7 +9,7 @@ import type { CommandRow, ListName, ModeRow } from "../../agent/lists.ts"
 import { suggestFiles } from "../../input/files.ts"
 import { log } from "../../log/log.ts"
 import { firstUntrusted } from "../../session/settings.ts"
-import { yellowcodeHome } from "../../update/method.ts"
+import { homePath } from "../../paths.ts"
 import { queue, stdioTransport, type Transport } from "../codex/transport.ts"
 import { createAsks } from "./asks.ts"
 import { PI, PI_CAPS, PI_NAME } from "./caps.ts"
@@ -69,8 +69,8 @@ export type Deps = {
 
 const realDeps: Deps = {
   detect: () => detect(),
-  prompts: promptMap(join(yellowcodeHome(), "pi-prompts")),
-  extensions: join(yellowcodeHome(), "pi-extensions"),
+  prompts: promptMap(homePath("pi-prompts")),
+  extensions: homePath("pi-extensions"),
   env: process.env,
   firstUntrusted: (folder) => firstUntrusted(PI, folder),
   spawn: (cwd, args, env = {}) =>

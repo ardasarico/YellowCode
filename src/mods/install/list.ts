@@ -1,8 +1,8 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { dirname, isAbsolute, join } from "node:path"
+import { dirname } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
+import { cachePath } from "../../paths.ts"
 import { Agents, MOD_ID } from "../manifest.ts"
 
 const LIST_URL = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/mods.json"
@@ -71,10 +71,7 @@ export async function refreshList(now = Date.now()): Promise<ListResult> {
   return fetched
 }
 
-function cacheFile(): string {
-  const base = process.env["XDG_CACHE_HOME"]
-  return join(base && isAbsolute(base) ? base : join(homedir(), ".cache"), "yellowcode", "mods.json")
-}
+const cacheFile = () => cachePath("mods.json")
 
 const CachedList = z.object({ fetchedAt: z.number(), list: ModList })
 

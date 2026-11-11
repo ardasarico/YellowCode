@@ -28,7 +28,7 @@ A mod is a folder of TypeScript that YellowCode loads at startup. See [what a mo
 Make a folder for it in the mods folder:
 
 ```text
-~/.config/yellowcode/mods/hello/
+~/.yellowcode/mods/hello/
   yellowcode-mod.json
   index.tsx
 ```
@@ -72,14 +72,13 @@ with what it adds.
 
 ## Setting up
 
-A mod is a folder in `$XDG_CONFIG_HOME/yellowcode/mods/<id>/`, which is `~/.config/yellowcode/mods/<id>/` when
-`XDG_CONFIG_HOME` is not set. Folders whose name starts with a dot are skipped. YellowCode looks for mods at startup
+A mod is a folder in `~/.yellowcode/mods/<id>/` (under `$YELLOWCODE_HOME` when that is set). Folders whose name starts with a dot are skipped. YellowCode looks for mods at startup
 and when you switch to another agent, not while it runs, so restart it after adding a folder.
 
 While you work on a mod in another folder you can symlink it there:
 
 ```sh
-ln -s ~/my-mods/hello ~/.config/yellowcode/mods/hello
+ln -s ~/my-mods/hello ~/.yellowcode/mods/hello
 ```
 
 Bun loads `.ts` and `.tsx` directly, so there is no build step. A mod may import:
@@ -318,7 +317,7 @@ const greetings = Number(mod.storage.get("greetings") ?? 0) + 1
 mod.storage.set("greetings", greetings)
 ```
 
-The values live in `$XDG_CONFIG_HOME/yellowcode/mod-data/<id>.json` (`mod.storage.path`), outside the mod's folder, so
+The values live in `~/.yellowcode/mod-data/<id>.json` (`mod.storage.path`), outside the mod's folder, so
 replacing the folder with a new version keeps them. `get` returns `unknown`: check the value before you use it. Each
 `set` writes the file.
 

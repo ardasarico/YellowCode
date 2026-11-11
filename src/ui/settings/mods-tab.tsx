@@ -9,7 +9,7 @@ import { forAgent, incompatibleText } from "../../mods/manifest.ts"
 import { installedNow, installListed, modList, modsAreOff, refreshModList, updatedTo } from "../../mods/mods.ts"
 import { counts, modKeys, modPanes, modServerErrors } from "../../mods/registry.ts"
 import type { SettingsHandle } from "../../mods/settings.ts"
-import { configPath } from "../../config-path.ts"
+import { homePath } from "../../paths.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { blank, fact, header, text, title } from "../dialog/detail.ts"
@@ -104,7 +104,7 @@ function listedDetail(mod: ListedMod, width: number, agent: AgentOption, agents:
     header(`${mod.name} ${mod.version}`, state),
     ...(mod.description ? [text("description", [{ text: mod.description, fg: theme.text }])] : []),
     ...fact("agents", "Agents", agentsText(mod, agents), width, forAgent(mod, agent.id) ? theme.text : theme.warning),
-    ...(installed ? fact("source", "Source", tildePath(`${configPath("mods")}/${mod.id}`), width) : []),
+    ...(installed ? fact("source", "Source", tildePath(`${homePath("mods")}/${mod.id}`), width) : []),
     ...fact("repo", "Repo", `github.com/${mod.repo}`, width),
     ...fact("commit", "Commit", mod.sha.slice(0, 7), width),
   ]
@@ -396,7 +396,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption;
     if (id === "retry") refreshModList()
     else if (mod && id === "install") void install(mod)
     else if (mod && id === "folder")
-      void openPath(`${configPath("mods")}/${mod.id}`).then((opened) => {
+      void openPath(`${homePath("mods")}/${mod.id}`).then((opened) => {
         if (!opened) props.api.notify("Could not open the folder")
       })
   }
@@ -436,7 +436,7 @@ export function ModsTab(props: { api: TabApi; host: ModHost; agent: AgentOption;
           ? `No mods match "${query}".`
           : modsAreOff()
             ? "Mods are off for this run (--no-mods). Start without it to load them."
-            : `No mods yet. Put one in ${tildePath(configPath("mods"))}/.`
+            : `No mods yet. Put one in ${tildePath(homePath("mods"))}/.`
       }
       detail={(row, width) => {
         const entry = entryFor(row)

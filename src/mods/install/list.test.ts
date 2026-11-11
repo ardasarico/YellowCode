@@ -17,7 +17,10 @@ const entry = {
 }
 const list = { mods: [entry], revoked: [{ id: "old", versions: "all", reason: "broken" }] }
 
-const saved = { YELLOWCODE_MOD_LIST: process.env["YELLOWCODE_MOD_LIST"], XDG_CACHE_HOME: process.env["XDG_CACHE_HOME"] }
+const saved = {
+  YELLOWCODE_MOD_LIST: process.env["YELLOWCODE_MOD_LIST"],
+  YELLOWCODE_HOME: process.env["YELLOWCODE_HOME"],
+}
 afterAll(() => {
   for (const [key, value] of Object.entries(saved)) {
     if (value === undefined) delete process.env[key]
@@ -40,7 +43,7 @@ test("a malformed list is rejected with the first problem named", () => {
 test("a fetched list goes through the cache", async () => {
   using server = Bun.serve({ port: 0, fetch: () => Response.json(list) })
   process.env["YELLOWCODE_MOD_LIST"] = `${server.url.href}mods.json`
-  process.env["XDG_CACHE_HOME"] = mkdtempSync(join(tmpdir(), "yellowcode-cache-"))
+  process.env["YELLOWCODE_HOME"] = mkdtempSync(join(tmpdir(), "yellowcode-home-"))
 
   expect(readCachedList()).toBeNull()
   const fetched = await fetchList()

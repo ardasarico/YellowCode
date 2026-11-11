@@ -1,6 +1,6 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { basename, join } from "node:path"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { log } from "../log/log.ts"
 
 export type Permissions = "read-only" | "edits" | "inherit"
@@ -52,7 +52,7 @@ const BUILT_INS: readonly BuiltIn[] = [
 ]
 
 export function globalFolder(): string {
-  return configPath("agents")
+  return homePath("agents")
 }
 
 export function projectFolder(cwd: string): string {
@@ -125,7 +125,8 @@ export function loadDefinitions(cwd: string, isAvailable: IsAvailable): Definiti
   for (const entry of BUILT_INS)
     put({ ...entry, provider: null, model: null, plugins: false, source: "built-in", path: null })
   for (const entry of readFolder(globalFolder(), "global")) put(entry)
-  for (const entry of readFolder(projectFolder(cwd), "project")) put(entry)
+  // In the home folder the project's folder is the global one.
+  if (projectFolder(cwd) !== globalFolder()) for (const entry of readFolder(projectFolder(cwd), "project")) put(entry)
   return [...merged.values()]
 }
 

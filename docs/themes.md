@@ -5,8 +5,7 @@ A theme is a JSON file of colors. It runs no code, so any theme file is safe to 
 
 ## Where themes live
 
-Put the file in `$XDG_CONFIG_HOME/yellowcode/themes/`, which is `~/.config/yellowcode/themes/` when `XDG_CONFIG_HOME` is
-not set. The file name is the theme's id: `moss.json` is the theme `moss`. `/theme` and `/settings` read the folder each
+Put the file in `~/.yellowcode/themes/` (under `$YELLOWCODE_HOME` when that is set). The file name is the theme's id: `moss.json` is the theme `moss`. `/theme` and `/settings` read the folder each
 time they open, so a new file shows up without a restart.
 
 The built-in themes are files in the same format, in this repo's [`themes/`](../themes) folder. Copying one is the

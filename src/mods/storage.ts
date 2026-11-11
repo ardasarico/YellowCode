@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
 import { z } from "zod"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { log } from "../log/log.ts"
 import { parseJson } from "../json.ts"
 import type { ModStorage } from "./api.ts"
@@ -27,7 +27,7 @@ function readValues(path: string): Record<string, unknown> {
 }
 
 export function modStorage(id: string): ModStorage {
-  const path = configPath(`mod-data/${id}.json`)
+  const path = homePath("mod-data", `${id}.json`)
   let values: Record<string, unknown> | null = null
   const current = () => (values ??= readValues(path))
   return {

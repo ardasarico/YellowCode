@@ -13,7 +13,7 @@ import {
 } from "node:fs"
 import { dirname, join } from "node:path"
 import { z } from "zod"
-import { configPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { parseJson } from "../json.ts"
 import { projectOf } from "../peers/project.ts"
 import { OWN_AGENTS_SERVER, OWN_ASK_SERVER, OWN_SESSIONS_SERVER } from "../protocol/messages.ts"
@@ -55,7 +55,7 @@ export type SharedServer = { name: string; scope: McpScope; entry: McpEntry }
 
 export const GLOBAL_FILE = "mcp.json"
 export const PROJECT_FILE = ".mcp.json"
-export const globalFile = () => configPath(GLOBAL_FILE)
+export const globalFile = () => homePath(GLOBAL_FILE)
 
 const NAME = /^[A-Za-z0-9_-]{1,32}$/
 // opencode serves the ask under OWN_ASK_SERVER too.

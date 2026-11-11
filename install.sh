@@ -5,7 +5,11 @@ set -eu
 REPO="ardasarico/YellowCode"
 CHANNELS_URL="${YELLOWCODE_CHANNELS:-https://raw.githubusercontent.com/$REPO/main/release/channels.json}"
 DOWNLOADS_URL="${YELLOWCODE_DOWNLOADS:-https://github.com/$REPO/releases/download}"
-HOME_DIR="$HOME/.yellowcode"
+# YELLOWCODE_HOME relocates the folder, as it does for the app; a value that is not an absolute path is ignored.
+case "${YELLOWCODE_HOME:-}" in
+  /*) HOME_DIR="$YELLOWCODE_HOME" ;;
+  *) HOME_DIR="$HOME/.yellowcode" ;;
+esac
 BIN_DIR="$HOME/.local/bin"
 want="${1:-stable}"
 

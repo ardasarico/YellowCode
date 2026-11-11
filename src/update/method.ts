@@ -1,9 +1,9 @@
-import { readFileSync, realpathSync } from "node:fs"
-import { homedir } from "node:os"
+import { existsSync, readFileSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import { z } from "zod"
 import { buildChannel, compiled } from "../build-info.ts"
 import { parseJson } from "../json.ts"
+import { homePath, yellowcodeHome } from "../paths.ts"
 import type { Channel } from "./channels.ts"
 
 export type Method = "script" | "npm" | "bun" | "pnpm" | "brew" | "none"
@@ -11,11 +11,10 @@ export type Method = "script" | "npm" | "bun" | "pnpm" | "brew" | "none"
 export const INSTALL_SCRIPT = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/install.sh"
 export const FORMULA = "ardasarico/tap/yellowcode"
 
-export const yellowcodeHome = () => join(homedir(), ".yellowcode")
-
 // How this binary was installed, from where it lives; a run from source is "none" and never updates itself.
-export function methodOf(binary: string): Method {
-  if (/[/\\]\.yellowcode[/\\]versions[/\\]/.test(binary)) return "script"
+export function methodOf(binary: string, home = yellowcodeHome()): Method {
+  if (/[/\\]\.yellowcode[/\\]versions[/\\]/.test(binary) || binary.startsWith(`${join(home, "versions")}/`))
+    return "script"
   if (/[/\\]Cellar[/\\]yellowcode[/\\]/.test(binary)) return "brew"
   if (/[/\\]install[/\\]global[/\\]node_modules[/\\]/.test(binary)) return "bun"
   if (/[/\\]pnpm[/\\]|[/\\]\.pnpm[/\\]/.test(binary)) return "pnpm"
@@ -26,7 +25,8 @@ export function methodOf(binary: string): Method {
 export function installMethod(): Method {
   if (!compiled) return "none"
   try {
-    return methodOf(realpathSync(process.execPath))
+    const home = yellowcodeHome()
+    return methodOf(realpathSync(process.execPath), existsSync(home) ? realpathSync(home) : home)
   } catch {
     return "none"
   }
@@ -40,7 +40,7 @@ export function defaultChannel(): Channel {
   if (installMethod() === "script") {
     let text = ""
     try {
-      text = readFileSync(join(yellowcodeHome(), "install.json"), "utf8")
+      text = readFileSync(homePath("install.json"), "utf8")
     } catch {
       // No install.json: the build's channel decides.
     }

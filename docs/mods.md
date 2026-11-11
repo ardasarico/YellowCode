@@ -20,8 +20,7 @@ agent can call, or a new way to draw part of the screen. Mods are written in Typ
 
 You can also install a listed mod from `/mods`, under Available. A new mod loads on the next start.
 
-Mods live in `~/.config/yellowcode/mods/` (`$XDG_CONFIG_HOME/yellowcode/mods/` when `XDG_CONFIG_HOME` is set), one
-folder each. There are no mods per project, so cloning a repo never runs its code.
+Mods live in `~/.yellowcode/mods/` (under `$YELLOWCODE_HOME` when that is set), one folder each. There are no mods per project, so cloning a repo never runs its code.
 
 ## Updates
 

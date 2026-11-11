@@ -1,9 +1,9 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
-import { homedir } from "node:os"
-import { dirname, isAbsolute, join } from "node:path"
+import { dirname } from "node:path"
 import { z } from "zod"
 import { appVersion } from "../build-info.ts"
 import { parseJson } from "../json.ts"
+import { cachePath } from "../paths.ts"
 import { log } from "../log/log.ts"
 import { type Channel, CHANNELS, type Channels, parseChannels, type Release } from "./channels.ts"
 
@@ -31,10 +31,7 @@ export function pickUpdate(
   return best
 }
 
-function cacheFile(): string {
-  const base = process.env["XDG_CACHE_HOME"]
-  return join(base && isAbsolute(base) ? base : join(homedir(), ".cache"), "yellowcode", "update.json")
-}
+const cacheFile = () => cachePath("update.json")
 
 const Cached = z.object({ checkedAt: z.number(), channel: z.enum(CHANNELS).optional(), text: z.string() })
 

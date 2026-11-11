@@ -19,6 +19,7 @@ import { lstat } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { log } from "../log/log.ts"
+import { snapshotsRoot } from "../paths.ts"
 import { projectKey } from "../project-key.ts"
 import { alive, type GitRun, gitEnv, runGit } from "./common.ts"
 
@@ -225,10 +226,7 @@ export async function openSnapshots(cwd: string, onOff?: (reason: string) => voi
   if (root === "/") return off("the folder is /")
   if (root === home) return off("the folder is the home directory")
 
-  const base =
-    process.env["YELLOWCODE_SNAPSHOT_DIR"] ||
-    join(process.env["XDG_DATA_HOME"] || join(home, ".local", "share"), "yellowcode", "snapshots")
-  const store = join(base, projectKey(root))
+  const store = join(snapshotsRoot(), projectKey(root))
   const gitDir = join(store, "git")
   const work = join(store, `index-${process.pid}`)
   const index = join(work, "index")

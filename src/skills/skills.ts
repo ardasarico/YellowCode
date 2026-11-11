@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, w
 import { dirname, join, relative } from "node:path"
 import { appVersion } from "../build-info.ts"
 import { log } from "../log/log.ts"
-import { yellowcodeHome } from "../update/method.ts"
+import { homePath } from "../paths.ts"
 import { skillFiles } from "./embed.ts"
 
 declare const SKILL_FILES: Record<string, string>
@@ -54,7 +54,7 @@ let written: string[] | null = null
 // The skills folders every session gets; empty when ours could not be written.
 export function builtInSkills(): string[] {
   if (written) return written
-  const folder = writeSkills(join(yellowcodeHome(), "skills"))
+  const folder = writeSkills(homePath("skills"))
   written = folder ? [folder] : []
   return written
 }

@@ -161,7 +161,7 @@ where the windows come from.
 YellowCode keeps one list of MCP servers and gives it to whichever provider runs the session, on top of the provider's
 own. The list comes from two files, both in the `mcpServers` shape of Claude Code's `.mcp.json`:
 
-- `~/.config/yellowcode/mcp.json`, for every project.
+- `~/.yellowcode/mcp.json`, for every project.
 - The project's `.mcp.json`, the nearest one from the folder you start in up to the project's root. A server here
   replaces the global one of the same name.
 
@@ -261,26 +261,40 @@ project's skills and `.pi` files off, YellowCode tells you once for that project
 
 ## Files it writes
 
-| Path                                                            | Holds                                                                                                                                                      |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `~/.config/yellowcode/settings.json`                            | Your providers, favorite and hidden models and the model you used last. `settings.json.bak` is the backup of a settings file YellowCode could not read.    |
-| `~/.config/yellowcode/state.json`                               | Screen state, such as the sidebar width.                                                                                                                   |
-| `~/.config/yellowcode/mcp.json`                                 | Your [shared MCP servers](#shared-mcp-servers). A project's own are in its `.mcp.json`.                                                                    |
-| `~/.config/yellowcode/mcp-trust.json`                           | Your yes or no to each project's `.mcp.json`, with a fingerprint of the servers it held then.                                                              |
-| `~/.config/yellowcode/themes/`, `mods/`, `mod-data/`, `agents/` | Your themes, mods, mod data and agent files.                                                                                                               |
-| `~/.yellowcode/models.json`                                     | The models each provider listed last, with their names, effort levels and context windows.                                                                 |
-| `~/.yellowcode/logs/yellowcode.log`                             | The log, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug lines, which can contain session text.                                     |
-| `~/.yellowcode/sessions/`                                       | One record and one socket for each open session, in a folder only you can read. A session removes its own when it closes.                                  |
-| `~/.local/share/yellowcode/snapshots/`                          | Rewind snapshots: copies of files from your projects. Snapshots older than 30 days are deleted; with Claude Code, its `cleanupPeriodDays` is used instead. |
-| `~/.yellowcode/pi-prompts/`                                     | One small file per Pi session. Rewind snapshots are filed under a prompt id that Pi does not keep, so YellowCode saves it here.                            |
-| `~/.yellowcode/pi-extensions/`                                  | The extension that gives Pi the shared MCP servers. It holds no servers; they reach Pi in an environment variable.                                         |
-| `~/.yellowcode/skills/`                                         | YellowCode's own skills: these docs and the Mod API, written again when they change.                                                                       |
-| `~/.cache/yellowcode/mods.json`, `update.json`                  | The mod list and the release list.                                                                                                                         |
-| `~/.yellowcode/update-state.json`, `update-hold.json`           | The state of the last update.                                                                                                                              |
-| `~/.yellowcode/versions/`, `install.json`                       | The versions the install script put there, and its channel.                                                                                                |
+Everything YellowCode writes is in one folder, `~/.yellowcode`. Set `YELLOWCODE_HOME` to an absolute path to keep it
+somewhere else.
 
-The folders under `~/.config` follow `XDG_CONFIG_HOME`, the snapshots follow `XDG_DATA_HOME` and the cache follows
-`XDG_CACHE_HOME`.
+| In `~/.yellowcode`                         | Holds                                                                                                                                                      |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `settings.json`                            | Your providers, favorite and hidden models and the model you used last. `settings.json.bak` is the backup of a settings file YellowCode could not read.    |
+| `state.json`                               | Screen state, such as the sidebar width.                                                                                                                   |
+| `mcp.json`                                 | Your [shared MCP servers](#shared-mcp-servers). A project's own are in its `.mcp.json`.                                                                    |
+| `mcp-trust.json`                           | Your yes or no to each project's `.mcp.json`, with a fingerprint of the servers it held then.                                                              |
+| `themes/`, `mods/`, `mod-data/`, `agents/` | Your themes, mods, mod data and agent files.                                                                                                               |
+| `models.json`                              | The models each provider listed last, with their names, effort levels and context windows.                                                                 |
+| `logs/yellowcode.log`                      | The log, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug lines, which can contain session text.                                     |
+| `sessions/`                                | One record and one socket for each open session, in a folder only you can read. A session removes its own when it closes.                                  |
+| `snapshots/`                               | Rewind snapshots: copies of files from your projects. Snapshots older than 30 days are deleted; with Claude Code, its `cleanupPeriodDays` is used instead. |
+| `pi-prompts/`                              | One small file per Pi session. Rewind snapshots are filed under a prompt id that Pi does not keep, so YellowCode saves it here.                            |
+| `pi-extensions/`                           | The extension that gives Pi the shared MCP servers. It holds no servers; they reach Pi in an environment variable.                                         |
+| `skills/`                                  | YellowCode's own skills: these docs and the Mod API, written again when they change.                                                                       |
+| `cache/`                                   | The mod list and the release list. Safe to delete; they are fetched again.                                                                                 |
+| `update-state.json`, `update-hold.json`    | The state of the last update.                                                                                                                              |
+| `versions/`, `install.json`                | The versions the install script put there, and its channel.                                                                                                |
+| `moved.json`                               | Says that the files of older versions were brought here, so it is not tried again.                                                                         |
+
+Earlier versions kept these in `~/.config/yellowcode`, `~/.local/share/yellowcode` and `~/.cache/yellowcode` (or
+where `XDG_CONFIG_HOME`, `XDG_DATA_HOME` and `XDG_CACHE_HOME` pointed). The first start of this version moves them
+into `~/.yellowcode` once and removes the old folders that end up empty. When something stays behind, YellowCode
+names the folder once, and the rest is yours to move or delete:
+
+- A file that is already in `~/.yellowcode` is never replaced; the old one stays in its old folder.
+- An old folder that is a link to somewhere else (a dotfiles repository) is left as it is.
+- Rewind snapshots of a project that an older YellowCode has open at that moment are copied, and the originals stay
+  with that session. Restart sessions of the older version after updating: they still write to the old folders, which
+  YellowCode never reads again.
+
+With `YELLOWCODE_HOME` set nothing is moved. The XDG variables are no longer followed.
 
 Your agent keeps its own sessions and settings where it always does: `~/.claude` for Claude Code, `~/.codex` for Codex,
 opencode's own service for opencode and `~/.pi/agent` for Pi. `/resume` lists the sessions of every installed provider.
@@ -305,5 +319,5 @@ To remove YellowCode, uninstall it the way you installed it:
 - Install script: `rm ~/.local/bin/yellowcode` and `rm -rf ~/.yellowcode/versions`
 - npm, bun or pnpm: `npm uninstall -g yellowcode`, `bun remove -g yellowcode` or `pnpm remove -g yellowcode`
 
-Then delete the folders listed in [Files it writes](#files-it-writes): `~/.config/yellowcode`, `~/.yellowcode`,
-`~/.local/share/yellowcode` and `~/.cache/yellowcode`. Your agent and its sessions are not touched.
+Then delete `~/.yellowcode`, the folder described in [Files it writes](#files-it-writes). Your agent and its sessions
+are not touched.

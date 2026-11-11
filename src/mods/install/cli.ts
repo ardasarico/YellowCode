@@ -1,6 +1,6 @@
 import { existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
-import { configPath } from "../../config-path.ts"
+import { homePath } from "../../paths.ts"
 import { parseJson } from "../../json.ts"
 import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
 import { editedLocally, listedEntry, modFolders, revokedCommit, revokedListing } from "./checks.ts"
@@ -30,7 +30,7 @@ function fail(line: string): number {
 
 export async function runModCommand(args: string[]): Promise<number> {
   const [command, target, ...rest] = args
-  const mods = configPath("mods")
+  const mods = homePath("mods")
   if (rest.length === 0) {
     if (command === "add" && target) return GITHUB.test(target) ? addUnlisted(target, mods) : addListed(target, mods)
     if (command === "update") return update(target, mods)

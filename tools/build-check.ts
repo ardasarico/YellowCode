@@ -11,7 +11,7 @@ if (!host) throw new Error(`no build target for ${process.platform}-${process.ar
 const home = mkdtempSync(join(tmpdir(), "yellowcode-build-check-"))
 // The mod is written outside the mods folder, then copied in once and linked in once, the way an author works on one.
 const mod = join(home, "work", "probe")
-const installed = join(home, "yellowcode", "mods", "probe")
+const installed = join(home, "mods", "probe")
 const result = join(home, "result.json")
 
 function write(path: string, text: string): void {
@@ -74,7 +74,7 @@ async function load(how: "copied" | "linked"): Promise<string | null> {
   if (how === "copied") cpSync(mod, installed, { recursive: true })
   else symlinkSync(mod, installed)
   const run = Bun.spawn(tty, {
-    env: { ...process.env, XDG_CONFIG_HOME: home, YELLOWCODE_LOG_DIR: join(home, "logs") },
+    env: { ...process.env, YELLOWCODE_HOME: home },
     stdin: Bun.file("/dev/null"),
     stdout: "ignore",
     stderr: "ignore",

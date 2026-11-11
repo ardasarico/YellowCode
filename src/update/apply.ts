@@ -18,14 +18,15 @@ import { z } from "zod"
 import { parseJson } from "../json.ts"
 import { log } from "../log/log.ts"
 import type { Channel, Platform, Release } from "./channels.ts"
-import { FORMULA, manualCommand, type Method, yellowcodeHome } from "./method.ts"
+import { homePath, yellowcodeHome } from "../paths.ts"
+import { FORMULA, manualCommand, type Method } from "./method.ts"
 
 export type UpdateState = { version: string; status: "ready" | "failed"; command: string }
 // What an install needs from a release.
 export type Target = Pick<Release, "version" | "assets">
 
 const State = z.object({ version: z.string(), status: z.enum(["ready", "failed"]), command: z.string() })
-const stateFile = () => join(yellowcodeHome(), "update-state.json")
+const stateFile = () => homePath("update-state.json")
 
 export function readState(): UpdateState | null {
   let text: string
@@ -61,7 +62,7 @@ export function currentState(running: string): UpdateState | null {
 
 // After going back to an older version, the one left behind and everything up to it are not installed again; updates
 // resume with a newer one.
-const holdFile = () => join(yellowcodeHome(), "update-hold.json")
+const holdFile = () => homePath("update-hold.json")
 const Hold = z.object({ version: z.string() })
 
 export function heldVersion(): string | null {
@@ -90,7 +91,7 @@ export function holdBelow(version: string | null): void {
 const LOCK_STALE = 15 * 60 * 1000
 
 export function lock(): (() => void) | null {
-  const folder = join(yellowcodeHome(), "update.lock")
+  const folder = homePath("update.lock")
   mkdirSync(yellowcodeHome(), { recursive: true })
   try {
     if (Date.now() - statSync(folder).mtimeMs > LOCK_STALE) rmSync(folder, { recursive: true, force: true })
@@ -112,12 +113,16 @@ export function currentPlatform(): Platform {
 
 export type ScriptPaths = { home: string; binDir: string; running: string; platform: Platform }
 
-const scriptPaths = (): ScriptPaths => ({
-  home: yellowcodeHome(),
-  binDir: join(homedir(), ".local", "bin"),
-  running: realpathSync(process.execPath),
-  platform: currentPlatform(),
-})
+// The versions are installed beside the running one (<home>/versions/<version>/yellowcode), wherever that home is.
+function scriptPaths(): ScriptPaths {
+  const running = realpathSync(process.execPath)
+  return {
+    home: dirname(dirname(dirname(running))),
+    binDir: join(homedir(), ".local", "bin"),
+    running,
+    platform: currentPlatform(),
+  }
+}
 
 function pointLauncher(binary: string, binDir: string): void {
   mkdirSync(binDir, { recursive: true })

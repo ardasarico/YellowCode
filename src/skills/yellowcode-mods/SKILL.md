@@ -7,7 +7,7 @@ description: Write, change or debug a YellowCode mod — a TypeScript add-on tha
 
 Work like this:
 
-1. Make the mod in `~/.config/yellowcode/mods/<id>/` (under `$XDG_CONFIG_HOME` when set): `yellowcode-mod.json` (copy the `api` range from the manifest in `mod-api.md`) and an entry file whose default export is `defineMod(...)` from `yellowcode/mod`.
+1. Make the mod in `~/.yellowcode/mods/<id>/` (under `$YELLOWCODE_HOME` when set): `yellowcode-mod.json` (copy the `api` range from the manifest in `mod-api.md`) and an entry file whose default export is `defineMod(...)` from `yellowcode/mod`.
 2. A new mod folder loads on the next start. Tell the user to restart YellowCode; after that, Ctrl+R on the mod in `/mods` reloads the entry file (files it imports need a restart).
 3. You cannot see the screen. Check the result in `/mods` (load time, what it adds, last error) and in `~/.yellowcode/logs/yellowcode.log`, lines starting `[mod <id>]`; ask the user what they see.
 

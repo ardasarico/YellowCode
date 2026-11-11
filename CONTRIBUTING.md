@@ -94,7 +94,7 @@ its `node_modules` to YellowCode's, which also gives the API's types. That folde
 starts with a mod in place:
 
 ```sh
-ln -s ~/.config/yellowcode/mods/node_modules ~/my-mods/hello/node_modules
+ln -s ~/.yellowcode/mods/node_modules ~/my-mods/hello/node_modules
 ```
 
 ## License

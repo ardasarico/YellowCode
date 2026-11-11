@@ -1,5 +1,5 @@
 import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs"
-import { dataPath } from "../config-path.ts"
+import { sessionsDir } from "../paths.ts"
 import { join } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../json.ts"
@@ -23,7 +23,7 @@ export type PeerRecord = z.infer<typeof RECORD>
 export type PeerState = Omit<PeerRecord, "pid" | "socket">
 export type Registry = { readonly socket: string; update(patch: Partial<PeerState>): void; remove(): void }
 
-export const defaultPeersDir = () => process.env["YELLOWCODE_SESSIONS_DIR"] ?? dataPath("sessions")
+export const defaultPeersDir = sessionsDir
 
 // Only this user may read the records or reach the sockets.
 function ensureDir(dir: string): void {

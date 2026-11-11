@@ -5,7 +5,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 import type { AgentKindId } from "../agent/ids.ts"
 import type { ModelGroup, ModelRow } from "../agent/lists.ts"
-import { dataPath } from "../config-path.ts"
+import { homePath } from "../paths.ts"
 import { parseJson } from "../json.ts"
 import { writeBeside } from "../rewind/common.ts"
 
@@ -39,7 +39,7 @@ const catalog = z.object({ version: z.literal(1), providers: z.record(z.string()
 export type Listed = { version: string; at: number; groups: ModelGroup[] }
 export type Catalog = { version: 1; providers: Record<AgentKindId, Listed> }
 
-export const catalogFile = () => dataPath("models.json")
+export const catalogFile = () => homePath("models.json")
 
 const empty = (): Catalog => ({ version: 1, providers: {} })
 

@@ -1,8 +1,8 @@
 import { appendFileSync, mkdirSync, renameSync, statSync } from "node:fs"
-import { homedir } from "node:os"
 import { join } from "node:path"
+import { logDir } from "../paths.ts"
 
-const dir = process.env["YELLOWCODE_LOG_DIR"] ?? join(homedir(), ".yellowcode", "logs")
+const dir = logDir()
 export const logFile = join(dir, "yellowcode.log")
 const debugEnabled = process.env["YELLOWCODE_DEBUG"] === "1"
 const MAX_BYTES = 5 * 1024 * 1024

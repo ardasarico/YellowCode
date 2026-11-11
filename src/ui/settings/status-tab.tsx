@@ -1,5 +1,5 @@
 import { createMemo, createSignal, untrack } from "solid-js"
-import { configPath } from "../../config-path.ts"
+import { homePath } from "../../paths.ts"
 import { tildePath } from "../../rewind/common.ts"
 import { theme } from "../../theme/theme.ts"
 import { type DialogItem, type DialogLine, dialogLines, moveSelection, selectableIds } from "../dialog/list.ts"
@@ -56,7 +56,7 @@ const blank = (id: string): DialogItem => ({ id, spans: [] })
 const settingsFile = (): DialogItem => ({
   id: "settings-file",
   label: "Settings file",
-  detail: tildePath(configPath("settings.json")),
+  detail: tildePath(homePath("settings.json")),
   selectedValue: "enter open",
   labelColor: theme.panelMuted,
   valueColor: theme.text,
@@ -135,7 +135,7 @@ export function StatusTab(props: {
       } else if (key.name === "down") setChosen(moveSelection(ids(), id, 1))
       else if (key.name === "return") {
         if (isList(id)) props.onOpen(id)
-        if (id === "settings-file") void openFile(configPath("settings.json"))
+        if (id === "settings-file") void openFile(homePath("settings.json"))
       } else return key.name !== "escape"
       return true
     },
