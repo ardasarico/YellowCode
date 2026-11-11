@@ -156,10 +156,12 @@ import { modSpan, noticeFor, problemNotice, quitHint, type ReplayInfo, startingN
 import { PromptBar, promptInnerWidth } from "./prompt-bar.tsx"
 import { useSessionTitle } from "./session-title.ts"
 import { ResumeDialog, type ResumeSessions } from "./resume/resume-dialog.tsx"
+import { PaletteDialog } from "./palette/palette-dialog.tsx"
+import { type ActionId, type PaletteRow, paletteRows } from "./palette/rows.ts"
 import type { SessionList } from "./resume/rows.ts"
 import { RewindDialog } from "./rewind/rewind-dialog.tsx"
 import type { AgentSettings } from "./settings/config-tab.tsx"
-import type { AgentOption } from "./settings/options.ts"
+import { type AgentOption, settingsFor } from "./settings/options.ts"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
 import type { StatusList } from "./settings/status-tab.tsx"
 import { McpDialog } from "./mcp/mcp-dialog.tsx"
@@ -328,7 +330,7 @@ export type Message = Pick<Prompt, "text" | "images" | "to">
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "export" | "tasks" | "providers" }
+  | { name: "resume" | "theme" | "export" | "tasks" | "providers" | "palette" }
   // `back`: opened from the Status tab of /settings, where Esc returns to.
   | { name: StatusList; back?: boolean }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
@@ -339,6 +341,16 @@ type DialogName =
   | { name: "context" | "usage" }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
+
+// What Shift+←→ walks: the favorites of every provider, or the running provider's models while none is a favorite.
+function modelWalk(groups: PickerGroup[]): PickerModel[] {
+  const marks = {
+    favorite: (one: PickerModel) => isFavorite(one.provider, one.ref),
+    hidden: (one: PickerModel) => isHidden(one.provider, one.ref),
+  }
+  const favorites = favoriteWalk(groups, marks)
+  return favorites.length > 0 ? favorites : (groups[0]?.models ?? []).filter((one) => !marks.hidden(one))
+}
 
 export function App(props: AppProps) {
   // The agent's name in short texts, such as the ask bands' notes.
@@ -419,7 +431,13 @@ export function App(props: AppProps) {
     const open = dialog()
     return open?.name === "rewind" && props.rewind ? open : null
   }
-  const [fill, setFill] = createSignal<{ draft: Draft; seq: number; ifEmpty?: boolean; insert?: boolean }>()
+  const [fill, setFill] = createSignal<{
+    draft: Draft
+    seq: number
+    ifEmpty?: boolean
+    insert?: boolean
+    front?: boolean
+  }>()
   // The agent the prompt writes to, set by `m` on an agent.
   const [messageTo, setMessageTo] = createSignal<{ id: string; name: string } | null>(null)
   const [shellMode, setShellMode] = createSignal(false)
@@ -664,7 +682,10 @@ export function App(props: AppProps) {
   createEffect(() => setAppDialogOpen(dialog() !== null || pending() !== null))
   createEffect(
     on(pending, (ask) => {
-      if (ask) untrack(modDialog)?.close(null)
+      if (!ask) return
+      untrack(modDialog)?.close(null)
+      // Enter in the palette would run a row behind the ask.
+      if (untrack(dialog)?.name === "palette") setDialog(null)
     }),
   )
   createEffect(
@@ -1056,6 +1077,8 @@ export function App(props: AppProps) {
     return { count: props.models.defined(), problem: idle > 0 ? `${idle} without a model` : "" }
   }
   const listsRules = () => props.caps.lists.includes("rules") && props.permissions !== undefined
+  // What the settings rows say this provider cannot leave off.
+  const offCaps = () => ({ ownMcpOff: props.caps.ownMcpOff })
   const listCatalogs = () => {
     const lists = readCatalogs()
     setCatalogs(lists)
@@ -1106,16 +1129,9 @@ export function App(props: AppProps) {
     })
     return true
   }
-  // Shift+←→ walks the favorites of every provider, or the running provider's models while none is a favorite.
   // Another provider's model waits as the pending choice until a message is sent.
   const stepModel = (step: 1 | -1) => {
-    const groups = modelGroups(readCatalogs())
-    const marks = {
-      favorite: (one: PickerModel) => isFavorite(one.provider, one.ref),
-      hidden: (one: PickerModel) => isHidden(one.provider, one.ref),
-    }
-    const favorites = favoriteWalk(groups, marks)
-    const walk = favorites.length > 0 ? favorites : (groups[0]?.models ?? []).filter((one) => !marks.hidden(one))
+    const walk = modelWalk(modelGroups(readCatalogs()))
     const now = pendingModel() ?? currentModel()
     const at = walk.findIndex((one) => now !== null && isModelOf(one, now))
     const next = walk[at === -1 ? 0 : (at + step + walk.length) % walk.length]
@@ -1572,6 +1588,29 @@ export function App(props: AppProps) {
     props.rewind?.onRedo()
   }
 
+  const sendToBackground = () =>
+    void props.tasks?.background().then((done) => {
+      if (!done.ok) setControlProblem({ text: done.problem })
+    })
+  const toggleSidebar = () => {
+    if (narrow()) setOverlay(!overlay())
+    else setOverride(sidebar() === "hidden" ? "open" : "closed")
+  }
+  const moveEffort = (by: 1 | -1) => {
+    if (props.caps.effort)
+      toEffort(
+        stepEffort(
+          levels().map((level) => level.id),
+          by,
+        ),
+      )
+  }
+  const switchUltracode = () => void props.knobs?.setExtraEffort(toggleUltracode())
+  const toNextMode = () => {
+    const next = nextMode(props.provider.modes(), props.session.permissionMode)
+    if (props.knobs && !ended() && next !== null) chooseMode(next)
+  }
+
   // Registered before any ask view mounts, so stopPropagation keeps these keys from an open ask.
   useKeyboard((key) => {
     // Only two Escapes in a row open the rewind; any other key in between starts over.
@@ -1627,9 +1666,7 @@ export function App(props: AppProps) {
     if (key.ctrl && key.name === "b" && foreground().length > 0) {
       key.preventDefault()
       key.stopPropagation()
-      void props.tasks?.background().then((done) => {
-        if (!done.ok) setControlProblem({ text: done.problem })
-      })
+      sendToBackground()
       return
     }
     if (dialog()) return
@@ -1653,6 +1690,12 @@ export function App(props: AppProps) {
       if (!pending() && !welcome()) toggleAgentView()
       return
     }
+    if (key.ctrl && key.name === "p" && !pending() && agentView() === null) {
+      key.preventDefault()
+      key.stopPropagation()
+      openPalette()
+      return
+    }
     if (agentView() !== null) return
     const row = recent()
     if (row !== null) {
@@ -1671,9 +1714,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "f3") {
       key.stopPropagation()
-      if (welcome()) return
-      if (narrow()) setOverlay(!overlay())
-      else setOverride(sidebar() === "hidden" ? "open" : "closed")
+      if (!welcome()) toggleSidebar()
       return
     }
     if (sidebar() === "overlay" && (key.name === "escape" || key.sequence.startsWith("\x1b\x1b"))) {
@@ -1760,13 +1801,7 @@ export function App(props: AppProps) {
     }
     if (key.shift && (key.name === "up" || key.name === "down")) {
       key.preventDefault()
-      if (props.caps.effort)
-        toEffort(
-          stepEffort(
-            levels().map((level) => level.id),
-            key.name === "up" ? 1 : -1,
-          ),
-        )
+      moveEffort(key.name === "up" ? 1 : -1)
       return
     }
     if (key.shift && (key.name === "left" || key.name === "right")) {
@@ -1776,8 +1811,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "f4") {
       if (!props.caps.extraEffort) return waitNotice(`Not available with ${props.agent.name}`)
-      const ultracode = toggleUltracode()
-      void props.knobs?.setExtraEffort(ultracode)
+      switchUltracode()
       return
     }
     if ((key.name === "pageup" || key.name === "pagedown") && !welcome() && scroll) {
@@ -1793,8 +1827,7 @@ export function App(props: AppProps) {
     }
     if (key.name === "tab" && key.shift) {
       key.preventDefault()
-      const next = nextMode(props.provider.modes(), props.session.permissionMode)
-      if (props.knobs && !ended() && next !== null) chooseMode(next)
+      toNextMode()
       return
     }
     if (key.name === "tab") {
@@ -2075,6 +2108,71 @@ export function App(props: AppProps) {
         setFill((previous) => ({ draft: handed.draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
     })
   })
+
+  // Ctrl+P: the palette. Its rows are what the keys and the lists can do now.
+  const [paletteSessions, setPaletteSessions] = createSignal<SessionList>({ entries: [], names: null })
+  const openPalette = () => {
+    listCatalogs()
+    unlisted
+      .list()
+      .then(setPaletteSessions)
+      .catch((error: unknown) => log.warn("sessions for the palette failed to load", String(error)))
+    setDialog({ name: "palette" })
+  }
+  const paletteActions: Record<ActionId, () => void> = {
+    sidebar: toggleSidebar,
+    ultracode: switchUltracode,
+    agents: toggleAgentView,
+    mode: toNextMode,
+    "effort-up": () => moveEffort(1),
+    "effort-down": () => moveEffort(-1),
+    background: sendToBackground,
+  }
+  const paletteSource = (): PaletteRow[] => {
+    const knobs = props.knobs !== undefined && !ended()
+    const groups = modelGroups(catalogs())
+    const names = new Map(groups.map((group) => [group.provider, group.name]))
+    const now = pendingModel() ?? currentModel()
+    const actions: Record<ActionId, boolean> = {
+      sidebar: !welcome(),
+      ultracode: knobs && !props.readOnly && Boolean(props.caps.extraEffort),
+      agents: !welcome(),
+      mode: knobs && nextMode(props.provider.modes(), props.session.permissionMode) !== null,
+      "effort-up": knobs && props.caps.effort && levels().length > 1,
+      "effort-down": knobs && props.caps.effort && levels().length > 1,
+      background: foreground().length > 0,
+    }
+    return paletteRows({
+      commands: props.provider.commands(),
+      actions,
+      models: (knobs && !props.readOnly ? modelWalk(groups) : []).map((model) => ({
+        model,
+        provider: names.get(model.provider) ?? model.provider,
+        current: now !== null && isModelOf(model, now),
+      })),
+      sessions: paletteSessions(),
+      settings: settingsFor({ id: props.agent.id, name: props.agent.name, ...offCaps() }, props.provider.modes()),
+      now: Date.now(),
+    })
+  }
+  const runPalette = ({ target }: PaletteRow) => {
+    setDialog(null)
+    if (target.kind === "action") paletteActions[target.action]()
+    else if (target.kind === "model") chooseModel(target.model)
+    else if (target.kind === "session") props.sessions.open(target.entry)
+    else if (target.kind === "setting") setDialog({ name: "settings", tab: "config", row: target.row })
+    else {
+      // The command is for the session, whatever the prompt was writing to.
+      setMessageTo(null)
+      setShellMode(false)
+      const text = `/${target.name}`
+      if (target.fill) {
+        setFocus("input")
+        setRecent(null)
+        setFill((previous) => ({ draft: { text: `${text} `, chips: [] }, seq: (previous?.seq ?? 0) + 1, front: true }))
+      } else submit({ text, images: [], draft: { text, chips: [] } })
+    }
+  }
 
   const input = () => ({
     focused:
@@ -2446,7 +2544,7 @@ export function App(props: AppProps) {
             version={props.workspace.version}
             provider={props.provider}
             row={settingsRow()}
-            agent={{ id: props.agent.id, name: props.agent.name, ownMcpOff: props.caps.ownMcpOff }}
+            agent={{ id: props.agent.id, name: props.agent.name, ...offCaps() }}
             agents={agentOptions()}
             agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}
@@ -2578,6 +2676,9 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "agents"}>
         <AgentsDialog cwd={process.cwd()} groups={modelGroups(catalogs())} onClose={closeList} />
+      </Show>
+      <Show when={dialog()?.name === "palette"}>
+        <PaletteDialog rows={paletteSource()} onRun={runPalette} onClose={() => setDialog(null)} />
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />

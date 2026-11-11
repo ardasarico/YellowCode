@@ -42,7 +42,7 @@ export type InputBlockProps = {
   shell?: boolean
   onBang?: () => boolean
   onRecall?: (to: { id: string; name: string } | null) => void
-  fill?: { draft: Draft; seq: number; ifEmpty?: boolean; insert?: boolean }
+  fill?: { draft: Draft; seq: number; ifEmpty?: boolean; insert?: boolean; front?: boolean }
   // Gets what the input still holds when it goes away.
   onDraft?: (draft: Draft) => void
   // What the input starts from, such as what the prompt bar held when a /clear brought the welcome screen back.

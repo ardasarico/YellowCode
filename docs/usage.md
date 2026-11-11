@@ -54,6 +54,7 @@ yellowcode mcp <command>
 | Shift+Tab                    | Switch to your agent's next permission mode                                   |
 | Shift+← / Shift+→            | Previous or next favorite model. See [Models](#models)                        |
 | Shift+↑ / Shift+↓            | More or less effort                                                           |
+| Ctrl+P                       | Open the [command palette](#command-palette)                                  |
 | Ctrl+T                       | Show the agents, subagents and shells running in the background               |
 | Ctrl+B                       | Send the command or agent that is running to the background                   |
 | Ctrl+O                       | After `/report`, open the report it copied                                    |
@@ -62,6 +63,20 @@ yellowcode mcp <command>
 | F4                           | Turn ultracode on or off (Claude Code only)                                   |
 
 On the welcome screen, ↓ moves into your recent sessions and Enter opens one.
+
+## Command palette
+
+Ctrl+P opens one search over everything you can do, from the prompt, the chat and the welcome screen. Type a few
+letters, pick a row with ↑ and ↓, and Enter runs it. Each row shows what it is and, where it has one, its key.
+
+- Commands: the same ones `/` lists. A command that needs an argument is written into the prompt for you to finish.
+  Skills and your own commands show once you search for them, and a search that starts with `/` finds commands only.
+- Actions: what the keys above do, such as showing the sidebar or switching the permission mode.
+- Models: your favorite models, or your provider's models when you have no favorites. See [Models](#models).
+- Sessions: the recent sessions of this project, by title. A search looks through the older ones too.
+- Settings: each row of `/settings` with its current value. Enter opens `/settings` on that row.
+
+It does not open while the agent waits for your answer or another dialog is open.
 
 ## In the prompt
 
