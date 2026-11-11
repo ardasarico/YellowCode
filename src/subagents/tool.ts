@@ -31,6 +31,7 @@ export type SubagentDeps = {
   skills?: string[]
   // The parent session's shared MCP servers, for a child that keeps the user's own servers.
   mcp?: ChildrenOptions["mcp"]
+  plugins?: ChildrenOptions["plugins"]
   // The parent's chat, where the asks open.
   parent: { event(event: AgentEvent): void }
   // The added providers.
@@ -215,6 +216,7 @@ export function createSubagents(deps: SubagentDeps) {
     relay: deps.relay,
     skills: deps.skills,
     mcp: deps.mcp,
+    plugins: deps.plugins,
   })
 
   async function begin({ definition, provider, row, task }: Target): Promise<Begun> {

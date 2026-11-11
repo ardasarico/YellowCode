@@ -10,6 +10,7 @@ import type { ClientTool, McpLaunch, OwnMcp } from "../agent/agent.ts"
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
 import { type ClaudeSource, createClaudeSource, describeExit } from "./claude.ts"
+import { hostEnv } from "./claude-cli.ts"
 import { type AskServer, createAskServer } from "./ask-server.ts"
 import { claudeArgs, launchOf, type Lean, type Spawn } from "./claude-args.ts"
 import { type Controls, createControls, type Knobs } from "./controls.ts"
@@ -148,20 +149,27 @@ export function connect(options: {
   // The shared list's servers, given the same way.
   shared: Accessor<readonly McpLaunch[]>
   ownMcp?: OwnMcp
+  // The ids of the installed plugins this claude leaves off; without it they load.
+  pluginsOff?: readonly string[]
   // A shared server took the place of one of claude's own.
   replaced?: (name: string, different: boolean | null) => void
   lean?: Lean
 }): Connection {
   const { cwd, session, spawn, stored, provider, carry, onKnobs, clientTools, shared, ownMcp, replaced, lean } = options
+  const { pluginsOff } = options
   const launch = launchOf(stored, options.mode)
   // claude ends on closed input only once its turn and its background tasks are done.
   const busy = () =>
     session.state.status === "running" || Object.values(session.state.tasks).some((task) => task.state === "running")
-  const source = createClaudeSource(cwd, busy, [
-    "claude",
-    ...claudeArgs(stored, launch, spawn, lean, ownMcp),
-    ...chromeArgs(),
-  ])
+  const env = hostEnv()
+  // The --settings value empties it for claude's settings files; this is the one YellowCode itself was started with.
+  if (pluginsOff) delete env.CLAUDE_CODE_PLUGIN_DIRS
+  const source = createClaudeSource(
+    cwd,
+    busy,
+    ["claude", ...claudeArgs(stored, launch, spawn, lean, ownMcp, pluginsOff), ...chromeArgs()],
+    env,
+  )
   const requests = createRequests((line) => source.send(line))
   const controls = createControls({ requests, provider, session, launch, onKnobs })
   const mcp = createMcpControls({ requests, session })
@@ -181,6 +189,7 @@ export function connect(options: {
     ...spawn,
     ephemeral: lean?.ephemeral,
     ownMcp: ownMcp?.on,
+    pluginsOff: pluginsOff?.length,
   })
 
   // What claude offers before the first message (system/init only comes with it). The reply also names the account,

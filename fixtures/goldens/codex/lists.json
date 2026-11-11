@@ -2,7 +2,7 @@
   "events": [
     {
       "type": "ready",
-      "at": 1793264728000
+      "at": 1794331933000
     },
     {
       "type": "info",
@@ -23,7 +23,7 @@
         "plugins": [],
         "authSource": "none"
       },
-      "at": 1793264728000
+      "at": 1794331933000
     },
     {
       "type": "model",
@@ -31,7 +31,7 @@
         "provider": "mock",
         "id": "gpt-5.5"
       },
-      "at": 1793264728000
+      "at": 1794331933000
     },
     {
       "type": "lists",
@@ -190,7 +190,7 @@
           }
         ]
       },
-      "at": 1793264728926
+      "at": 1794331933757
     },
     {
       "type": "lists",
@@ -233,27 +233,7 @@
           }
         ]
       },
-      "at": 1793264730185
-    },
-    {
-      "type": "lists",
-      "lists": {
-        "plugins": []
-      },
-      "at": 1793264730185
-    },
-    {
-      "type": "lists",
-      "lists": {
-        "hooks": [
-          {
-            "event": "PreToolUse",
-            "matcher": "Bash",
-            "plugin": null
-          }
-        ]
-      },
-      "at": 1793264730185
+      "at": 1794331935014
     },
     {
       "type": "lists",
@@ -403,7 +383,7 @@
           }
         ]
       },
-      "at": 1793264730185
+      "at": 1794331935014
     },
     {
       "type": "lists",
@@ -562,7 +542,7 @@
           }
         ]
       },
-      "at": 1793264730185
+      "at": 1794331935014
     },
     {
       "type": "lists",
@@ -721,7 +701,7 @@
           }
         ]
       },
-      "at": 1793264730185
+      "at": 1794331935014
     },
     {
       "type": "lists",
@@ -764,7 +744,7 @@
           }
         ]
       },
-      "at": 1793264730312
+      "at": 1794331935044
     },
     {
       "type": "lists",
@@ -807,22 +787,22 @@
           }
         ]
       },
-      "at": 1793264731569
+      "at": 1794331936300
     },
     {
       "type": "turn.open",
       "prompts": [],
       "endedTasks": [],
-      "at": 1793264731725
+      "at": 1794331936412
     },
     {
       "type": "turn.step",
       "prompts": [],
-      "at": 1793264731725
+      "at": 1794331936412
     },
     {
       "type": "reply",
-      "at": 1793264731725
+      "at": 1794331936412
     },
     {
       "type": "user",
@@ -832,7 +812,7 @@
       "to": null,
       "history": false,
       "cutPoint": true,
-      "at": 1793264731756
+      "at": 1794331936431
     },
     {
       "type": "text.start",
@@ -841,47 +821,47 @@
       "text": "",
       "local": false,
       "quiet": false,
-      "at": 1793264731801
+      "at": 1794331936470
     },
     {
       "type": "text.delta",
       "part": "msg_mock0001",
       "text": "GREETED",
-      "at": 1793264731801
+      "at": 1794331936470
     },
     {
       "type": "text.end",
       "part": "msg_mock0001",
       "text": "GREETED",
-      "at": 1793264731803
+      "at": 1794331936474
     },
     {
       "type": "context.window",
       "tokens": 258400,
-      "at": 1793264731806
+      "at": 1794331936475
     },
     {
       "type": "context.used",
       "tokens": 1380,
-      "at": 1793264731806
+      "at": 1794331936475
     },
     {
       "type": "turn.end",
       "error": null,
       "interrupted": false,
       "local": false,
-      "durationMs": 159,
+      "durationMs": 109,
       "inputTokens": 1200,
       "outputTokens": 180,
       "tokens": 1380,
       "sessionCostUsd": null,
       "prompts": [],
-      "at": 1793264731812
+      "at": 1794331936479
     },
     {
       "type": "ended",
       "problem": null,
-      "at": 1793264731812
+      "at": 1794331936479
     }
   ],
   "outputs": [
@@ -944,13 +924,13 @@
         "id": "turn-3",
         "by": "user",
         "costUsd": 0,
-        "durationMs": 159,
+        "durationMs": 109,
         "inputTokens": 1200,
         "outputTokens": 180,
         "error": null,
         "retries": 0,
         "interrupted": false,
-        "endedAt": 1793264731812
+        "endedAt": 1794331936479
       }
     },
     "tasks": {},

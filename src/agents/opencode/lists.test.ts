@@ -42,13 +42,11 @@ test("the lists come on request and follow opencode's word, the server turns off
     "connecting",
     "connected",
   ])
-  const { commands, skills, mcp, plugins } = store.lists()
+  const { commands, skills, mcp } = store.lists()
   expect(commands?.map((row) => row.name)).toContain("hello")
   expect(skills?.find((row) => row.name === "greet")?.group).toBe("project")
   expect(skills?.find((row) => row.id === "opencode")?.group).toBe("builtin")
   expect(mcp?.map((row) => [row.name, row.state, row.tools])).toEqual([["echo", "connected", null]])
-  // opencode's own plugins are left out.
-  expect(plugins).toEqual([])
   const files = run.outputs.flatMap((output) => ("files" in output ? output.files : []))
   expect(files).toContain("README.md")
 

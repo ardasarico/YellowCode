@@ -203,7 +203,6 @@ export const outgoingCases: Record<string, string> = {
   mcpReconnectRequest: outgoing.mcpReconnectRequest("req-44", "docs"),
   "mcpToggleRequest on": outgoing.mcpToggleRequest("req-45", "docs", true),
   "mcpToggleRequest off": outgoing.mcpToggleRequest("req-46", "docs", false),
-  reloadPluginsRequest: outgoing.reloadPluginsRequest("req-47"),
 }
 
 const summarized = { thinking: "summarized" } as const

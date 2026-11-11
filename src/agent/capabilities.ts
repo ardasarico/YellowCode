@@ -29,6 +29,8 @@ export type Capabilities = {
   mcpServers: "none" | "start" | "live"
   // The agent's own configured MCP servers can be left off for a session (StartOptions.ownMcp).
   ownMcpOff: boolean
+  // The plugins installed in the agent can be left off for a session (StartOptions.ownPlugins).
+  pluginsOff: boolean
   // StartOptions.instructions reach the model.
   instructions: boolean
   // How the agent says a plan is finished: an ask, a plan item, a plan file it wrote, or not at all.
@@ -65,7 +67,6 @@ export type Capabilities = {
   // `failNotice`: a server that turns failed in the MCP list raises a notice while the sidebar is hidden.
   mcp: { toggle: boolean; reconnect: boolean; login: boolean; reach: string | null; failNotice: boolean }
   skills: { toggle: boolean; reload: boolean }
-  plugins: { toggle: boolean; reload: boolean }
   settings: boolean
   features: readonly Feature[]
 }

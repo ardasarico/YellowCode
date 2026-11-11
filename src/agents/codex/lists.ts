@@ -1,17 +1,9 @@
-// The lists Codex keeps for a session's folder: skills, plugins, hooks, MCP servers, commands and files.
+// The lists Codex keeps for a session's folder: skills, MCP servers, commands and files.
 /* oxlint-disable no-await-in-loop -- each page names the next */
-import { isAbsolute, relative } from "node:path"
-import type { CommandRow, HookRow, McpServerRow, McpState, PluginRow, SkillRow } from "../../agent/lists.ts"
+import type { CommandRow, McpServerRow, McpState, SkillRow } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
 import type { Rpc } from "./transport.ts"
-import {
-  fileMatches,
-  hooksList,
-  mcpStatusPage,
-  pluginsInstalled,
-  skillsList,
-  type CodexMcpServer,
-} from "./wire/lists.ts"
+import { fileMatches, mcpStatusPage, skillsList, type CodexMcpServer } from "./wire/lists.ts"
 import { resultOf } from "./wire/thread.ts"
 
 // Codex has no command list of its own; these are the ones YellowCode runs through its requests. Skills join them.
@@ -26,11 +18,6 @@ export const CODEX_COMMANDS: CommandRow[] = [
     knob: null,
   },
 ]
-
-const inFolder = (path: string, folder: string) => {
-  const inside = relative(folder, path)
-  return inside !== "" && !inside.startsWith("..") && !isAbsolute(inside)
-}
 
 const GROUPS: Record<string, SkillRow["group"]> = {
   system: "builtin",
@@ -78,41 +65,6 @@ export const commandRows = (skills: SkillRow[]): CommandRow[] => [
       knob: null,
     })),
 ]
-
-// Codex says which plugins brought a skill, a hook or a server, but not in this list, so `brings` stays empty.
-export async function readPlugins(rpc: Rpc, cwd: string): Promise<PluginRow[] | null> {
-  const reply = resultOf(
-    await rpc.request("plugin/installed", { cwds: [cwd] }).catch(() => null),
-    pluginsInstalled,
-    "plugin/installed",
-  )
-  if (reply.kind !== "ok") return null
-  return reply.value.marketplaces.flatMap((marketplace) =>
-    marketplace.plugins
-      .filter((plugin) => plugin.installed)
-      .map((plugin) => ({
-        id: plugin.id,
-        name: plugin.interface?.displayName ?? plugin.name,
-        marketplace: marketplace.name,
-        scope: marketplace.path && inFolder(marketplace.path, cwd) ? ("project" as const) : ("global" as const),
-        on: plugin.enabled,
-        brings: { skills: [], mcp: [], commands: [], agents: [], hooks: [] },
-      })),
-  )
-}
-
-// A hook's command is not kept.
-export async function readHooks(rpc: Rpc, cwd: string): Promise<HookRow[] | null> {
-  const reply = resultOf(await rpc.request("hooks/list", { cwds: [cwd] }).catch(() => null), hooksList, "hooks/list")
-  if (reply.kind !== "ok") return null
-  return reply.value.data.flatMap((entry) =>
-    entry.hooks.map((hook) => ({
-      event: hook.eventName.charAt(0).toUpperCase() + hook.eventName.slice(1),
-      matcher: hook.matcher ?? "",
-      plugin: hook.pluginId ?? null,
-    })),
-  )
-}
 
 const RUNTIME: Record<string, McpState> = {
   connected: "connected",

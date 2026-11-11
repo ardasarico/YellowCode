@@ -989,12 +989,5 @@
       "serverName": "docs",
       "enabled": false
     }
-  },
-  "reloadPluginsRequest": {
-    "type": "control_request",
-    "request_id": "req-47",
-    "request": {
-      "subtype": "reload_plugins"
-    }
   }
 }

@@ -30,8 +30,6 @@ export type StatusFacts = {
   model: string | null
   effort: string | null
   permissionMode: string | null
-  // undefined when the agent has no such list at all.
-  plugins: number | null | undefined
   // A list the provider does not fill is left out.
   lists: Partial<Record<StatusList, ListFact>>
   tools: number | null
@@ -62,14 +60,6 @@ const settingsFile = (): DialogItem => ({
   selectedValue: "enter open",
   labelColor: theme.panelMuted,
   valueColor: theme.text,
-})
-
-const jump = (id: "plugins", label: string, count: number | null): DialogItem => ({
-  id,
-  label,
-  detail: `${shown(count).text} ›`,
-  labelColor: theme.panelMuted,
-  valueColor: count === null ? theme.panelMuted : theme.text,
 })
 
 const listRows = (facts: StatusFacts): DialogItem[] =>
@@ -118,7 +108,6 @@ export function StatusTab(props: {
           fact("Effort", facts.effort),
           fact("Permission mode", facts.permissionMode),
           blank("gap-model"),
-          ...(facts.plugins === undefined ? [] : [jump("plugins", "Plugins", facts.plugins)]),
           fact("Tools", facts.tools),
           fact("Setting sources", facts.sources.join(", ")),
           blank("gap-sources"),
@@ -146,7 +135,6 @@ export function StatusTab(props: {
       } else if (key.name === "down") setChosen(moveSelection(ids(), id, 1))
       else if (key.name === "return") {
         if (isList(id)) props.onOpen(id)
-        if (id === "plugins") props.api.open(id)
         if (id === "settings-file") void openFile(configPath("settings.json"))
       } else return key.name !== "escape"
       return true

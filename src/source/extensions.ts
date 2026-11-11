@@ -2,67 +2,33 @@ import { z } from "zod"
 import type { LiveProvider } from "../agents/claude/provider.ts"
 import { log } from "../log/log.ts"
 import { parseJson, rowsOf } from "../json.ts"
-import {
-  hooksListing,
-  pluginHook,
-  pluginRow,
-  type ProtocolMessage,
-  reloadPluginsReply,
-  settingsSources,
-  skillRow,
-  skillsDialog,
-} from "../protocol/messages.ts"
-import {
-  getHooksListingRequest,
-  getSettingsRequest,
-  getSkillsDialogRequest,
-  reloadPluginsRequest,
-} from "../protocol/outgoing.ts"
-import { showServers } from "../agents/claude/mcp-rows.ts"
-import { pluginScope } from "../agents/claude/plugins.ts"
+import { type ProtocolMessage, settingsSources, skillRow, skillsDialog } from "../protocol/messages.ts"
+import { getSettingsRequest, getSkillsDialogRequest } from "../protocol/outgoing.ts"
 import type { SessionStore } from "../session/session.ts"
 import { printable } from "../ui/format.ts"
 import { type CliResult, runClaude } from "./claude-cli.ts"
-import { commandsOf } from "../agents/claude/lists.ts"
-import { mcpServers } from "./mcp.ts"
 import { type Requests, RequestTimeout } from "./requests.ts"
 
-// Live only: the skills, setting sources and plugin hooks claude reports (the dialogs' lists), and skill and plugin
-// on/off through claude's own settings editors.
+// Live only: the skills and setting sources claude reports (the dialogs' lists), and skill on/off through claude's
+// own settings editor.
 export type Extensions = {
   initialized(reply: unknown): void
   onMessage(message: ProtocolMessage): void
   refresh(): void
-  reload(): Promise<number>
   // A rejection says what went wrong.
   skills: { setEnabled(skill: { name: string; label: string }, enabled: boolean): Promise<void> }
-  // `id` is name@marketplace; it resolves with what changed where.
-  plugins: { setEnabled(id: string, enabled: boolean): Promise<string> }
   // Its claude is being replaced: no more asking, and skills it left waiting show their state again.
   dispose(): void
 }
 
 // A burst of commands_changed (claude's file watcher) asks once.
 const REFRESH_DELAY_MS = 300
-const RELOAD_TIMEOUT_MS = 60_000
 // claude reads a changed skillOverrides on its own, 0.2–2.4 s after the edit wrote it; a skill shows its new state
 // until claude reports it, or this long after the edit.
 const SKILL_SETTLE_MS = 5000
 const ENDED = "Claude Code exited"
 
-// The file `claude plugin enable|disable --scope` writes, named in the notice, since the project one is shared.
-const SCOPE_FILES = {
-  user: "user settings",
-  project: "project settings (.claude/settings.json)",
-  local: "local settings (.claude/settings.local.json)",
-}
-
 const editReply = z.looseObject({ ok: z.boolean(), error: z.string().optional() })
-const pluginReply = z.looseObject({
-  outcome: z.string(),
-  message: z.string().optional(),
-  failureCode: z.string().optional(),
-})
 
 // claude prints its result as the last line of stdout.
 const lastJson = (stdout: string): unknown => {
@@ -95,17 +61,12 @@ export function createExtensions(options: {
   let asking = false
   let again = false
   let disposed = false
-  // Skills whose edit runs; skills showing a state claude has not reported yet, and who waits to hear how it went;
-  // plugins being switched, and to which state.
+  // Skills whose edit runs; skills showing a state claude has not reported yet, and who waits to hear how it went.
   const editing = new Set<string>()
   const pending = new Map<
     string,
     { enabled: boolean; timer?: ReturnType<typeof setTimeout>; done?: (picked: boolean) => void }
   >()
-  const switching = new Map<string, boolean>()
-  // Plugin errors as of the last reload; a switch reports only new ones. init leaves some out (a broken hooks.json),
-  // so it is no baseline, and the first switch has none.
-  let pluginErrors: number | null = null
 
   const settle = (name: string, picked = true) => {
     const waiting = pending.get(name)
@@ -144,20 +105,6 @@ export function createExtensions(options: {
     )
   }
 
-  // A hook row also holds its command, which is never kept.
-  const readHooks = (reply: unknown) => {
-    if (disposed) return
-    const listing = hooksListing.safeParse(reply)
-    if (!listing.success) return log.warn("hooks reply", "no hooks array")
-    provider.setPluginHooks(
-      rowsOf(pluginHook, listing.data.hooks).rows.map(({ event, matcher, pluginName }) => ({
-        event,
-        matcher,
-        pluginName,
-      })),
-    )
-  }
-
   const ask = (build: (requestId: string) => string, what: string, read: (reply: unknown) => void) =>
     requests.send(build).then(read, (error: unknown) => log.warn(`${what} failed`, failureText(error)))
 
@@ -168,7 +115,6 @@ export function createExtensions(options: {
     void Promise.all([
       ask(getSkillsDialogRequest, "skills dialog", readSkills),
       ask(getSettingsRequest, "settings", readSources),
-      ask(getHooksListingRequest, "hooks listing", readHooks),
     ]).finally(() => {
       asking = false
       if (!again) return
@@ -186,37 +132,6 @@ export function createExtensions(options: {
     timer = setTimeout(run, REFRESH_DELAY_MS)
   }
 
-  // The plugin list, commands and MCP servers come with the reply; the setting sources go with them, so a plugin
-  // turned off moves to the off list in the same update. Resolves with the number of new plugin errors.
-  const reload = async () => {
-    const reply = reloadPluginsReply.safeParse(await requests.send(reloadPluginsRequest, RELOAD_TIMEOUT_MS))
-    if (disposed) return 0
-    readSources(await requests.send(getSettingsRequest).catch(() => null))
-    if (disposed) return 0
-    refresh()
-    if (!reply.success) {
-      log.warn("reload plugins reply", "no lists")
-      return 0
-    }
-    const plugins = reply.data.plugins.flatMap((value) => {
-      const row = pluginRow.safeParse(value)
-      return row.success ? [{ name: row.data.name, path: row.data.path, source: row.data.source ?? null }] : []
-    })
-    provider.setCommands(commandsOf(reply.data.commands))
-    session.setLists({ plugins, mcpServers: mcpServers(reply.data.mcpServers) })
-    showServers(session)
-    const errors = reply.data.error_count ?? 0
-    const added = pluginErrors === null ? 0 : errors - pluginErrors
-    pluginErrors = errors
-    return added
-  }
-
-  // What claude's CLI did, when the reload that would show it did not come.
-  const assume = (id: string, name: string, enabled: boolean) => {
-    const others = (session.state.plugins ?? session.state.info?.plugins ?? []).filter((entry) => entry.name !== name)
-    session.setLists({ plugins: enabled ? [...others, { name, path: "", source: id }] : others })
-  }
-
   return {
     // The lists are wanted before the first message, so this one does not wait.
     initialized: run,
@@ -225,12 +140,9 @@ export function createExtensions(options: {
       if (message.subtype === "commands_changed") refresh()
       else if (message.subtype === "init") {
         provider.setInitLists({ skills: message.skills, slashCommands: message.slash_commands ?? [] })
-        // init is newer than the list of the last reload.
-        if (session.state.plugins) session.setLists({ plugins: null })
       }
     },
     refresh,
-    reload,
     dispose() {
       disposed = true
       clearTimeout(timer)
@@ -272,45 +184,6 @@ export function createExtensions(options: {
           }, SKILL_SETTLE_MS)
         })
         if (!picked) throw new Error(`Claude Code has not picked up the change to ${skill.label} yet`)
-      },
-    },
-    plugins: {
-      async setEnabled(id, enabled) {
-        if (session.state.status === "ended") throw new Error(ENDED)
-        const at = id.lastIndexOf("@")
-        const name = at === -1 ? id : id.slice(0, at)
-        const running = switching.get(id)
-        if (running !== undefined) throw new Error(`${name} is still turning ${running ? "on" : "off"}`)
-        switching.set(id, enabled)
-        try {
-          // The scope decides which settings file claude writes, so it comes from the sources as they are now.
-          readSources(await requests.send(getSettingsRequest).catch(() => null))
-          const scope = pluginScope(id, provider.settingsSources())
-          if (scope === null) throw new Error(`${name} cannot be turned on or off here`)
-          log.info(`plugin ${enabled ? "on" : "off"}`, { id, scope })
-          const result = await runClaude(["plugin", enabled ? "enable" : "disable", id, "--json", "--scope", scope], {
-            cwd,
-          })
-          const reply = pluginReply.safeParse(lastJson(result.stdout)).data
-          // A row that was behind: what was asked for is already so, and the reload shows it.
-          const done = (result.code === 0 && reply?.outcome === "ok") || reply?.failureCode === "already_in_goal_state"
-          if (!done) {
-            refresh()
-            throw new Error(cliFailure(result, reply?.message))
-          }
-          const added = await reload().catch((error: unknown) => {
-            assume(id, name, enabled)
-            refresh()
-            throw error
-          })
-          const shown = `Turned ${enabled ? "on" : "off"} ${name} · ${SCOPE_FILES[scope]}`
-          if (added <= 0) return shown
-          return `${shown} · ${added === 1 ? "1 new plugin error" : `${added} new plugin errors`}`
-        } catch (error) {
-          throw new Error(failureText(error), { cause: error })
-        } finally {
-          switching.delete(id)
-        }
       },
     },
   }

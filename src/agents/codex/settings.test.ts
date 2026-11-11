@@ -126,7 +126,7 @@ test("settings: rows with their origins, writes to config.toml, a conflict read 
   expect(before.every((setting) => setting.writable && setting.applies === "new-session")).toBe(true)
 })
 
-test("lists: skills, servers, hooks and files, a skill toggled, and a skill run as a command", async () => {
+test("lists: skills, servers and files, a skill toggled, and a skill run as a command", async () => {
   const run = await replayed(lists)
   const told = run.events.flatMap((event) => (event.type === "lists" ? [event.lists] : []))
   const greet = told.flatMap((list) => list.skills ?? []).filter((skill) => skill.name === "greet")
@@ -141,6 +141,5 @@ test("lists: skills, servers, hooks and files, a skill toggled, and a skill run 
     ["echo", "connected", ["echo"]],
     ["remote", "failed", []],
   ])
-  expect(told.find((list) => list.hooks)?.hooks).toEqual([{ event: "PreToolUse", matcher: "Bash", plugin: null }])
   expect(run.outputs).toContainEqual({ files: ["src/", "src/a.ts"] })
 })

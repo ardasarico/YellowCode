@@ -1,4 +1,4 @@
-// What YellowCode keeps from opencode's config, provider, model, agent, MCP, skill and plugin answers. The first ones
+// What YellowCode keeps from opencode's config, provider, model, agent, MCP and skill answers. The first ones
 // echo API keys, headers and MCP environments, so everything not listed here is dropped before any other code sees the
 // body: z.object strips unknown keys. The model and settings stages add the fields they read.
 import { z } from "zod"
@@ -108,13 +108,6 @@ export const skillInfo = z.object({
   path: z.string(),
 })
 
-// Where a plugin comes from and whether it runs; a failed one's error is not kept.
-export const pluginInfo = z.object({
-  id: z.string().optional(),
-  source: z.object({ type: z.string(), target: z.string().optional(), path: z.string().optional() }),
-  state: z.object({ status: z.string() }),
-})
-
 // The Go allowance's windows; the workspace and its budgets are not kept.
 const meter = z.object({ percent: z.number(), limited: z.boolean(), resetsAt: z.number() })
 export const usageLimits = z.object({
@@ -145,7 +138,6 @@ const PROJECTIONS: [RegExp, (body: unknown) => unknown][] = [
   [/^\/api\/agent$/, wrapped(agentRow, true)],
   [/^\/api\/mcp$/, wrapped(mcpServer, true)],
   [/^\/api\/skill$/, wrapped(skillInfo, true)],
-  [/^\/api\/plugin$/, wrapped(pluginInfo, true)],
   [/^\/api\/experimental\/usage\/limits$/, wrapped(usageLimits, false)],
 ]
 

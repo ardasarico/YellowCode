@@ -82,6 +82,8 @@ export type StartOptions = {
   mcpServers: McpLaunch[]
   // Absent: the agent's own servers run as it has them configured.
   ownMcp?: OwnMcp
+  // False: the plugins installed in the agent stay off, where caps.pluginsOff says it can do that. Absent: they load.
+  ownPlugins?: boolean
   // A server of mcpServers the agent cannot run, and why; it is left out, and a same-named one of the agent's own is
   // switched off with it.
   mcpHeld?(name: string, problem: string): void
@@ -220,7 +222,6 @@ export type Agent = {
     login(name: string): Promise<Outcome>
   }
   skills: { toggle(id: string, on: boolean): Promise<Outcome>; reload(): Promise<Outcome> }
-  plugins: { toggle(id: string, on: boolean): Promise<Outcome>; reload(): Promise<Outcome> }
   permissions: { remove(id: string): Promise<Outcome> }
   settings: { rows(): Promise<SettingRow[]>; write(id: string, value: SettingValue): Promise<Outcome> }
   context(): Promise<ContextReport>

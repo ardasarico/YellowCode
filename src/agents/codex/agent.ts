@@ -25,7 +25,7 @@ import { needsOwn, ownServers, threadMcp } from "./mcp-config.ts"
 import { createCuts } from "./cut.ts"
 import { detect, findBinary } from "./detect.ts"
 import { historyPage, turnOf } from "./history.ts"
-import { commandRows, findFiles, readHooks, readMcp, readPlugins, readSkills, STARTUP } from "./lists.ts"
+import { commandRows, findFiles, readMcp, readSkills, STARTUP } from "./lists.ts"
 import {
   accessFields,
   accessOf,
@@ -189,6 +189,9 @@ async function connect(
 // The user's plugins, hooks and apps stay off. The MCP servers of the user's config go off only with ownMcp.
 const PLAIN = { "features.plugins": false, "features.hooks": false, "features.apps": false }
 
+// Only the plugins: the user's hooks and apps stay.
+const NO_PLUGINS = { "features.plugins": false }
+
 function withConfig(...parts: Record<string, unknown>[]) {
   const config: Record<string, unknown> = {}
   for (const part of parts) Object.assign(config, part)
@@ -233,6 +236,7 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
   const { resume, model } = options
   if (options.ephemeral && resume !== null) throw new Error("A session Codex does not keep cannot resume")
   const mcp = await mcpConfig(rpc, options)
+  const off = options.ownPlugins === false ? NO_PLUGINS : {}
   const developerInstructions = instructionsFor(options.instructions)
   const sent =
     resume === null
@@ -242,7 +246,7 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
           developerInstructions,
           dynamicTools: dynamicTools(options.clientTools),
           ...(options.ephemeral ? { ephemeral: true } : {}),
-          ...withConfig(mcp, options.plain ? PLAIN : {}),
+          ...withConfig(mcp, off, options.plain ? PLAIN : {}),
           ...(mode === null ? {} : startFields(mode)),
           ...(model === null ? {} : { model: model.id }),
           ...(model?.provider ? { modelProvider: model.provider } : {}),
@@ -252,14 +256,14 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...withConfig(mcp),
+            ...withConfig(mcp, off),
             ...(resume.at === null ? {} : { beforeTurnId: await turnOf(rpc, resume.ref.id, resume.at) }),
           })
         : rpc.request("thread/resume", {
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...withConfig(mcp),
+            ...withConfig(mcp, off),
           })
   const reply = await sent.catch((error: unknown) => {
     throw error instanceof RpcError && WRITER.test(error.message) ? new Error(HELD) : error
@@ -560,8 +564,10 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
   // Skills come with the commands they add.
   async function tellSkills(forceReload = false): Promise<boolean> {
     const asked = ++reads.skills
-    const rows = await readSkills(rpc, opened.cwd, forceReload)
-    if (!rows || asked !== reads.skills || ended || closed) return rows !== null
+    const listed = await readSkills(rpc, opened.cwd, forceReload)
+    if (!listed || asked !== reads.skills || ended || closed) return listed !== null
+    // Codex lists skills for the folder, not the thread, so a thread with plugins off still gets their skills here.
+    const rows = options.ownPlugins === false ? listed.filter((row) => row.plugin === null) : listed
     skills = rows
     tell({ type: "lists", lists: { skills: rows, commands: commandRows(rows) }, at: lastAt })
     return true
@@ -599,27 +605,12 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
     return true
   }
 
-  async function tellList<T>(load: () => Promise<T | null>, listed: (rows: T) => AgentEvent): Promise<void> {
-    const rows = await load()
-    if (rows && !ended && !closed) tell(listed(rows))
-  }
-
   function refresh(list: ListName): void {
     if (ended || closed) return
     if (list === "modes") void tellModes()
     if (list === "models") void tellModels()
     if (list === "commands" || list === "skills") void tellSkills()
     if (list === "mcp") void tellServers()
-    if (list === "plugins")
-      void tellList(
-        () => readPlugins(rpc, opened.cwd),
-        (rows) => ({ type: "lists", lists: { plugins: rows }, at: lastAt }),
-      )
-    if (list === "hooks")
-      void tellList(
-        () => readHooks(rpc, opened.cwd),
-        (rows) => ({ type: "lists", lists: { hooks: rows }, at: lastAt }),
-      )
   }
 
   async function toggleSkill(id: string, on: boolean): Promise<Outcome> {
@@ -897,7 +888,6 @@ async function start(options: StartOptions, deps: Deps): Promise<CodexAgent> {
     tasks: { stop: stopTask, background: later("background now") },
     mcp: { toggle: later("MCP on and off"), reconnect: () => reloadServers(), login: loginServer },
     skills: { toggle: toggleSkill, reload: reloadSkills },
-    plugins: { toggle: later("plugins on and off"), reload: later("plugin reload") },
     permissions: { remove: later("permissions") },
     settings: {
       rows: () => (ended || closed ? Promise.reject(new Error(DOWN)) : config.rows()),

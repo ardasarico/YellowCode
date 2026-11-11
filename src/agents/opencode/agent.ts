@@ -17,16 +17,7 @@ import { OPENCODE, OPENCODE_CAPS, OPENCODE_NAME } from "./caps.ts"
 import { createCuts, type Revert } from "./cut.ts"
 import { detect, findBinary } from "./detect.ts"
 import { historyPage } from "./history.ts"
-import {
-  DEFAULT_VARIANT,
-  findFiles,
-  readCommands,
-  readMcp,
-  readModels,
-  readPlugins,
-  readSkills,
-  savedRules,
-} from "./lists.ts"
+import { DEFAULT_VARIANT, findFiles, readCommands, readMcp, readModels, readSkills, savedRules } from "./lists.ts"
 import { readModes } from "./modes.ts"
 import { startOwnMcp } from "./own-mcp.ts"
 import { startSharedMcp, type SharedMcp } from "./shared-mcp.ts"
@@ -55,12 +46,11 @@ const CONFIG_MS = 3000
 const GONE = { text: "opencode stopped responding", detail: [] }
 const BUSY = "opencode is busy"
 // The lists read on request and again on opencode's word that one changed.
-type Watched = "commands" | "skills" | "mcp" | "plugins"
+type Watched = "commands" | "skills" | "mcp"
 const CHANGED: Partial<Record<string, Watched>> = {
   "command.updated": "commands",
   "skill.updated": "skills",
   "mcp.status.changed": "mcp",
-  "plugin.updated": "plugins",
 }
 
 export type Deps = {
@@ -337,10 +327,6 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       case "mcp": {
         const rows = await readMcp(transport, sharing?.marks())
         return rows && { mcp: rows }
-      }
-      case "plugins": {
-        const rows = await readPlugins(transport, await projectOf())
-        return rows && { plugins: rows }
       }
       default:
         return null
@@ -882,7 +868,7 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     if (ended) return
     if (list === "modes") return void tellModes()
     if (list === "models") return void tellModels()
-    if (list === "commands" || list === "skills" || list === "mcp" || list === "plugins") return tellList(list)
+    if (list === "commands" || list === "skills" || list === "mcp") return tellList(list)
     if (list !== "rules") return
     rulesAsked = true
     void tellRules()
@@ -1114,7 +1100,6 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
       login: later("MCP login"),
     },
     skills: { toggle: later("skills"), reload: later("skills") },
-    plugins: { toggle: later("plugins"), reload: later("plugins") },
     permissions: { remove: removeRule },
     settings: { rows: readSettings, write: writeSettingNow },
     context,

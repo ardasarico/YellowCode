@@ -106,7 +106,6 @@ It does not open while the agent waits for your answer or another dialog is open
 | `/mods`        | See and manage your mods                                                        |
 | `/mcp`         | The MCP servers of this session                                                 |
 | `/skills`      | The skills of this session                                                      |
-| `/plugins`     | The plugins of this session                                                     |
 | `/permissions` | The rules you allowed for good, where the agent lists them                      |
 | `/report`      | Copy a summary of your setup for a bug report                                   |
 
@@ -212,15 +211,35 @@ given shows why in place of its state.
 
 What each provider does with them:
 
-| Provider    | Shared servers                                                                                                                                                                                                                                                                                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code | Takes them at any time. A command server that sets its own folder (`cwd`) runs through `/bin/sh`, which goes into that folder first.                                                                                                                                                                                                      |
-| Codex       | Takes them when a session starts. It cannot connect to an SSE server, and cannot replace one of its own of another kind, or with settings the shared one cannot override; that server is off. When Codex does not say which servers it has, the shared ones are off for that session. With the setting Off, its plugins' servers stay on. |
-| opencode    | Takes them when a session starts, and cannot connect to an SSE server. The servers it gets, and its own switched off, apply to the whole folder in opencode's running service, your other opencode screens there included, until it restarts or reloads the folder.                                                                       |
-| Pi          | Takes them when a session starts, through a small extension YellowCode keeps in `~/.yellowcode/pi-extensions/`. It cannot connect to an SSE server. With the setting On, Pi's own server of the same name wins, and `/mcp` says so.                                                                                                       |
+| Provider    | Shared servers                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Claude Code | Takes them at any time. A command server that sets its own folder (`cwd`) runs through `/bin/sh`, which goes into that folder first.                                                                                                                                                                                                                                                 |
+| Codex       | Takes them when a session starts. It cannot connect to an SSE server, and cannot replace one of its own of another kind, or with settings the shared one cannot override; that server is off. When Codex does not say which servers it has, the shared ones are off for that session. With the setting Off, its plugins' servers stay on while [Providers' plugins](#plugins) is On. |
+| opencode    | Takes them when a session starts, and cannot connect to an SSE server. The servers it gets, and its own switched off, apply to the whole folder in opencode's running service, your other opencode screens there included, until it restarts or reloads the folder.                                                                                                                  |
+| Pi          | Takes them when a session starts, through a small extension YellowCode keeps in `~/.yellowcode/pi-extensions/`. It cannot connect to an SSE server. With the setting On, Pi's own server of the same name wins, and `/mcp` says so.                                                                                                                                                  |
 
 [Subagents](agents.md#subagents) get the shared servers when they keep the provider's own: on Codex and Pi, only with
 `plugins: true`.
+
+## Plugins
+
+A provider's plugins are the extras installed in it: Claude Code's and Codex's plugins, opencode's plugins, and the
+extensions and packages Pi finds by itself. Providers' plugins in `/settings` decides whether your sessions load them.
+Off, the default, a session starts without them, so their skills, commands, hooks, subagents and MCP servers are not
+there. Your own skills, the hooks in your settings files, your own MCP servers and the shared ones stay. On, each
+provider loads its plugins as it does by itself. It applies from the next session.
+
+| Provider    | With the setting Off                                                                                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | Every installed plugin is off for the session, and the folders in `CLAUDE_CODE_PLUGIN_DIRS` are not loaded. Its built-in plugins and the skills synced with your account stay.    |
+| Codex       | Plugins are off for the session. Your hooks and apps stay.                                                                                                                        |
+| opencode    | Nothing changes. opencode loads plugins in its service, which your other opencode screens share, so YellowCode cannot leave them off for one session. The setting's note says so. |
+| Pi          | Pi starts with `--no-extensions`. Its built-in extensions (MCP, local models, codemode and tool search) and the skills of a package stay. Needs Pi 1.4 or later.                  |
+
+YellowCode has no list of plugins. Install, remove and update them in the provider's own CLI, such as `claude plugin`
+or `pi install`. One installed while a session runs is left off from the next session on.
+
+A [subagent](agents.md#subagents) on Claude Code follows the setting unless its file says `plugins: true`.
 
 ## Skills on every provider
 

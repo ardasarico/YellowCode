@@ -4,19 +4,17 @@ import { agentCommands, withModCommands } from "../../input/commands.ts"
 import { suggestFiles } from "../../input/files.ts"
 import type { InputProvider } from "../../input/provider.ts"
 import { log } from "../../log/log.ts"
-import type { PluginHook, SettingsSource, SkillRow } from "../../protocol/messages.ts"
+import type { SettingsSource, SkillRow } from "../../protocol/messages.ts"
 import {
   type Recording,
   recordedCommands,
   recordedInitLists,
   recordedModels,
-  recordedPluginHooks,
   recordedSettingsSources,
   recordedSkillRows,
 } from "../../source/recording.ts"
 import { MODELS } from "../../session/settings.ts"
 import { BLOCKED_COMMANDS, CLAUDE_EFFORTS, CLAUDE_MODES, knobOf, settingOf } from "./lists.ts"
-import { pluginEntries } from "./plugins.ts"
 import { type InitLists, skillList } from "./skills.ts"
 
 const SOURCE_NAMES = ["user", "project", "local", "flag", "policy"]
@@ -49,7 +47,6 @@ export type LiveProvider = InputProvider & {
   setModels(models: ModelRow[]): void
   setSkillRows(rows: SkillRow[]): void
   setSettingsSources(sources: SettingsSource[]): void
-  setPluginHooks(hooks: PluginHook[]): void
   setInitLists(lists: InitLists): void
   setPlan(plan: string | null): void
   // A skill whose new state claude has not reported yet shows it already; null drops that.
@@ -64,7 +61,6 @@ export function liveProvider(files: (query: string) => Promise<string[]>): LiveP
   const [models, setModels] = createSignal(knownClaudeModels())
   const [skillRows, setSkillRows] = createSignal<SkillRow[] | null>(null)
   const [sources, setSources] = createSignal<SettingsSource[]>([])
-  const [hooks, setHooks] = createSignal<PluginHook[]>([])
   const [initLists, setInitLists] = createSignal<InitLists | null>(null)
   const [pending, setPending] = createSignal(new Map<string, boolean>())
   const [plan, setPlan] = createSignal<string | null>(null)
@@ -91,13 +87,11 @@ export function liveProvider(files: (query: string) => Promise<string[]>): LiveP
       for (const skill of skills) skill.enabled = pending().get(skill.name) ?? skill.enabled
       return skills
     },
-    plugins: (info) => info && pluginEntries(info, sources(), skillRows() ?? [], hooks()),
     settingSources: () => sourceNames(sources()),
     skillRows,
     settingsSources: sources,
     setSkillRows: (rows) => setSkillRows(rows),
     setSettingsSources: (next) => setSources(next),
-    setPluginHooks: (next) => setHooks(next),
     setInitLists: (lists) => setInitLists(lists),
     plan,
     setPlan: (next) => setPlan(next),
@@ -121,7 +115,6 @@ export function replayProvider(recording: Recording): InputProvider {
   if (problem !== null) log.warn("skills reply", problem)
   const sources = recordedSettingsSources(recording)
   const skills = replied ? skillList(rows, recordedInitLists(recording), sources) : null
-  const hooks = recordedPluginHooks(recording)
   const names = sourceNames(sources)
   return {
     commands: () => withModCommands(commands),
@@ -131,7 +124,6 @@ export function replayProvider(recording: Recording): InputProvider {
     models: () => models,
     modes: () => CLAUDE_MODES,
     skills: () => skills,
-    plugins: (info) => info && pluginEntries(info, sources, rows, hooks),
     settingSources: () => names,
     plan: () => null,
     files: suggestFiles,
@@ -142,6 +134,5 @@ export function replayProvider(recording: Recording): InputProvider {
 export const savedProvider = (provider: InputProvider): InputProvider => ({
   ...provider,
   skills: () => null,
-  plugins: (info) => info && pluginEntries(info, [], [], []),
   settingSources: () => [],
 })

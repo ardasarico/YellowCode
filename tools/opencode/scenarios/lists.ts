@@ -42,8 +42,6 @@ export const lists: AgentScenario = {
     await a.until("lists", (event) => event.lists.skills !== undefined)
     a.refresh("mcp")
     await echoIs(a, "connected")
-    a.refresh("plugins")
-    await a.until("lists", (event) => event.lists.plugins !== undefined)
     await a.files("READ")
     const off = await a.toggleMcp("echo", false)
     if (!off.ok) throw new Error(`echo did not turn off: ${off.problem}`)

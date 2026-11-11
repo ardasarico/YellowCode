@@ -582,10 +582,6 @@ export const settingsSources = z.looseObject({
   ),
 })
 
-export const pluginHook = z.looseObject({ event: z.string(), matcher: z.string(), pluginName: z.string() })
-
-export const hooksListing = z.looseObject({ hooks: z.array(z.unknown()) })
-
 export const mcpServerRows = z.looseObject({ mcpServers: z.array(z.unknown()) })
 // A config can hold keys (env, headers, arguments, a url's query), so it stays unknown until mcp.ts takes the safe
 // parts out.
@@ -601,14 +597,6 @@ export const mcpServerStatus = z.looseObject({
     .array(z.looseObject({ name: z.string() }))
     .optional()
     .catch(undefined),
-})
-
-export const pluginRow = z.looseObject({ name: z.string(), path: z.string(), source: z.string().optional() })
-export const reloadPluginsReply = z.looseObject({
-  commands: z.array(z.unknown()),
-  plugins: z.array(z.unknown()),
-  mcpServers: z.array(z.unknown()),
-  error_count: z.number().optional(),
 })
 
 const limitWindow = z.looseObject({ utilization: z.number(), resetsAt: z.number() })
@@ -700,7 +688,6 @@ export type SlashCommand = z.infer<typeof slashCommand>
 export type ModelInfo = z.infer<typeof modelInfo>
 export type SkillRow = z.infer<typeof skillRow>
 export type SettingsSource = z.infer<typeof settingsSources>["sources"][number]
-export type PluginHook = z.infer<typeof pluginHook>
 
 export const KNOWN_KEYS = new Set([
   "system/init",

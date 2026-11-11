@@ -1,4 +1,4 @@
-// The lists Codex keeps outside a thread: skills, plugins, hooks, MCP servers and file matches. Loose objects: fields
+// The lists Codex keeps outside a thread: skills, MCP servers and file matches. Loose objects: fields
 // Codex adds later pass.
 import { z } from "zod"
 
@@ -26,34 +26,6 @@ export const skillsList = z.looseObject({
 })
 
 export const skillsWriteResult = z.looseObject({ effectiveEnabled: z.boolean() })
-
-export const pluginsInstalled = z.looseObject({
-  marketplaces: z.array(
-    z.looseObject({
-      name: z.string(),
-      path: nullish(z.string()),
-      plugins: z.array(
-        z.looseObject({
-          id: z.string(),
-          name: z.string(),
-          installed: z.boolean(),
-          enabled: z.boolean(),
-          interface: nullish(z.looseObject({ displayName: nullish(z.string()) })),
-        }),
-      ),
-    }),
-  ),
-})
-
-export const hooksList = z.looseObject({
-  data: z.array(
-    z.looseObject({
-      hooks: z.array(
-        z.looseObject({ eventName: z.string(), matcher: nullish(z.string()), pluginId: nullish(z.string()) }),
-      ),
-    }),
-  ),
-})
 
 export const mcpStatusPage = z.looseObject({
   data: z.array(

@@ -64,7 +64,6 @@ export const listedProvider = (
   modelGroups: () => store().state.models ?? [],
   modes: () => store().state.modes ?? [],
   skills: () => store().lists().skills ?? null,
-  plugins: () => store().lists().plugins ?? null,
   settingSources: () => [],
   plan: () => null,
   files,

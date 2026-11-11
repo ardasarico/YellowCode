@@ -60,6 +60,7 @@ import { BLOCKED_COMMANDS, isClaudeMode } from "./lists.ts"
 import { toolPrefix } from "./mcp-rows.ts"
 import { listModels } from "./models.ts"
 import { oneShot } from "./one-shot.ts"
+import { installedPlugins } from "./plugins.ts"
 import { CLAUDE_PROJECTS, projectFolder, realPath } from "./projects.ts"
 import type { LiveProvider } from "./provider.ts"
 import { listSessions, type TranscriptEntry } from "./session-list.ts"
@@ -308,6 +309,8 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
   const [clientTools, setClientTools] = createSignal<readonly ClientTool[]>(options.clientTools)
   const [shared, setShared] = createSignal<readonly McpLaunch[]>(options.mcpServers)
   let { ownMcp } = options
+  // Read at every spawn, so a plugin installed meanwhile is off in a claude started again.
+  const pluginsOff = () => (options.ownPlugins === false ? installedPlugins(cwd) : undefined)
   const carried = carryOf(options, provider.models())
   // What the knobs show: what was picked last, or what claude said it uses. A claude started again gets them.
   const knobs: Knobs = { model: null, effort: null, ultracode: false, ...carried }
@@ -324,6 +327,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     clientTools,
     shared,
     ownMcp,
+    pluginsOff: pluginsOff(),
     replaced: (name, different) => options.mcpReplaced?.(name, different),
     lean,
   })
@@ -387,6 +391,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
         clientTools,
         shared,
         ownMcp,
+        pluginsOff: pluginsOff(),
         replaced: (name, different) => options.mcpReplaced?.(name, different),
         lean,
       })
@@ -602,8 +607,7 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
     // claude pushes its commands, models, modes and subagents itself.
     refresh(list) {
       if (list === "mcp") current.mcp.refresh()
-      else if (list === "skills" || list === "plugins" || list === "loaded" || list === "hooks")
-        current.extensions.refresh()
+      else if (list === "skills" || list === "loaded") current.extensions.refresh()
     },
     tasks: {
       stop: (id) => outcome(current.tasks.stop(id)),
@@ -643,15 +647,6 @@ function startClaude(options: StartOptions, store: SessionStore, bridge: Bridge)
           return failed(error)
         }
       },
-    },
-    plugins: {
-      toggle: (id, on) => outcome(current.extensions.plugins.setEnabled(id, on)),
-      reload: () =>
-        outcome(
-          current.extensions
-            .reload()
-            .then((added) => (added > 0 ? (added === 1 ? "1 new plugin error" : `${added} new plugin errors`) : null)),
-        ),
     },
     // Not known yet whether claude takes a rule removal, so every rule reads as not removable.
     permissions: { remove: () => Promise.resolve({ ok: false, problem: "Claude Code rules cannot be removed here" }) },

@@ -53,20 +53,39 @@ function skillArgs(skills: readonly string[]): { flags: string[]; reads: string[
 // claude reads every .mcp.json from its folder up to / by itself and, under -p, runs them unasked. YellowCode hands
 // over the project file's servers the user trusts, so claude's own reading is turned off for this run, by name, with
 // no file written.
-function ownMcpArgs(own: OwnMcp | undefined): string[] {
-  if (!own) return []
-  // With no --mcp-config it keeps only the servers YellowCode sets (set-servers and its own sdk servers).
-  if (!own.on || own.unsure) return ["--strict-mcp-config"]
-  return own.project.length > 0 ? ["--settings", JSON.stringify({ disabledMcpjsonServers: own.project })] : []
+function ownMcpSettings(own: OwnMcp | undefined): Record<string, unknown> {
+  return own && own.on && !own.unsure && own.project.length > 0 ? { disabledMcpjsonServers: own.project } : {}
 }
 
-// How YellowCode starts claude: the saved thinking display, in the launch's mode.
+// claude has no switch for every plugin, so each installed one is turned off by its id. The folders its
+// CLAUDE_CODE_PLUGIN_DIRS names go with them; a --plugin-dir still loads.
+function pluginsOffSettings(ids: readonly string[] | undefined): Record<string, unknown> {
+  if (!ids) return {}
+  return {
+    enabledPlugins: Object.fromEntries(ids.map((id) => [id, false])),
+    env: { CLAUDE_CODE_PLUGIN_DIRS: "" },
+  }
+}
+
+// Only the last --settings counts, so everything goes in one.
+function settingsArgs(own: OwnMcp | undefined, pluginsOff: readonly string[] | undefined): string[] {
+  const settings = { ...ownMcpSettings(own), ...pluginsOffSettings(pluginsOff) }
+  return [
+    // With no --mcp-config it keeps only the servers YellowCode sets (set-servers and its own sdk servers).
+    ...(own && (!own.on || own.unsure) ? ["--strict-mcp-config"] : []),
+    ...(Object.keys(settings).length > 0 ? ["--settings", JSON.stringify(settings)] : []),
+  ]
+}
+
+// How YellowCode starts claude: the saved thinking display, in the launch's mode. `pluginsOff`: the ids of the
+// installed plugins this run leaves off (agents/claude/plugins.ts); without it they load.
 export function claudeArgs(
   stored: Pick<StoredSettings, "thinking">,
   launch: Launch,
   spawn: Spawn = {},
   lean: Lean = { ephemeral: false },
   own?: OwnMcp,
+  pluginsOff?: readonly string[],
 ): string[] {
   const bypass = launch.bypass ? ["--allow-dangerously-skip-permissions"] : []
   const skills = skillArgs(lean.skills ?? [])
@@ -76,7 +95,7 @@ export function claudeArgs(
     // one argument that cannot swallow the next.
     `--allowedTools=${[OWN_ASK, OWN_SESSIONS, OWN_AGENTS, ...skills.reads].join(",")}`,
     "--disallowedTools=AskUserQuestion",
-    ...ownMcpArgs(own),
+    ...settingsArgs(own, pluginsOff),
     ...skills.flags,
     thinkingArg(stored.thinking),
     // Ahead of the prompt's line breaks, so a process list shows the session on claude's first line.

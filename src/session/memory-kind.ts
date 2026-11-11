@@ -14,6 +14,7 @@ export const memoryCaps: Capabilities = {
   clientTools: "none",
   mcpServers: "none",
   ownMcpOff: false,
+  pluginsOff: false,
   instructions: false,
   planSignal: "none",
   cut: false,
@@ -37,7 +38,6 @@ export const memoryCaps: Capabilities = {
   lists: [],
   mcp: { toggle: false, reconnect: false, login: false, reach: null, failNotice: false },
   skills: { toggle: false, reload: false },
-  plugins: { toggle: false, reload: false },
   settings: false,
   features: [],
 }
@@ -121,7 +121,6 @@ export function memoryKind(id = "memory", name = "Memory", reply = "hello") {
     tasks: { stop: refused, background: refused },
     mcp: { toggle: refused, reconnect: refused, login: refused },
     skills: { toggle: refused, reload: refused },
-    plugins: { toggle: refused, reload: refused },
     permissions: { remove: refused },
     settings: { rows: () => Promise.resolve([]), write: refused },
     context: () => Promise.reject(new Error("not in memory")),

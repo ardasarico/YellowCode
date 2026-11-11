@@ -242,8 +242,3 @@ export function mcpReconnectRequest(requestId: string, serverName: string): stri
 export function mcpToggleRequest(requestId: string, serverName: string, enabled: boolean): string {
   return controlRequest(requestId, "mcp_toggle", { serverName, enabled })
 }
-
-// The user asked for the change, so the reload is applied even when it costs the prompt cache.
-export function reloadPluginsRequest(requestId: string): string {
-  return controlRequest(requestId, "reload_plugins")
-}

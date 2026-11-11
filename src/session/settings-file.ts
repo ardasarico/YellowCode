@@ -65,6 +65,8 @@ export type StoredSettings = {
   maxSubagents: number
   // "off": the providers' own configured MCP servers stay out of YellowCode's sessions.
   ownMcpServers: "on" | "off"
+  // "off": a provider starts without the plugins installed in it, where it can (caps.pluginsOff).
+  providerPlugins: "on" | "off"
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -84,6 +86,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   agents: {},
   maxSubagents: 6,
   ownMcpServers: "on",
+  providerPlugins: "off",
 }
 
 // The providers an older file shows were used: those with an entry and the default agent it saved, in `known` order.
@@ -152,7 +155,7 @@ const Updates = z.enum(CHANNELS)
 const DefaultAgent = z.string()
 export const MAX_SUBAGENTS = 10
 const MaxSubagents = z.number().int().min(1).max(MAX_SUBAGENTS)
-const OwnMcpServers = z.enum(["on", "off"])
+const OnOff = z.enum(["on", "off"])
 const Providers = z.array(z.string()).min(1)
 const Keys = z.array(z.string()).default([])
 const Models = z.object({ favorites: Keys, hidden: Keys })
@@ -295,7 +298,8 @@ function readStored(stored: Record<string, unknown>) {
   read("updates", Updates)
   read("defaultAgent", DefaultAgent)
   read("maxSubagents", MaxSubagents)
-  read("ownMcpServers", OwnMcpServers)
+  read("ownMcpServers", OnOff)
+  read("providerPlugins", OnOff)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 

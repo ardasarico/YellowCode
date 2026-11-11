@@ -357,7 +357,7 @@ const taskActions: Agent["tasks"] = {
   stop: (id) => live.agent.tasks.stop(id),
   background: () => live.agent.tasks.background(),
 }
-const extensions: Pick<Agent, "mcp" | "skills" | "plugins"> = {
+const extensions: Pick<Agent, "mcp" | "skills"> = {
   mcp: {
     toggle: (name, enabled) => live.agent.mcp.toggle(name, enabled),
     reconnect: (name) => live.agent.mcp.reconnect(name),
@@ -366,10 +366,6 @@ const extensions: Pick<Agent, "mcp" | "skills" | "plugins"> = {
   skills: {
     toggle: (id, enabled) => live.agent.skills.toggle(id, enabled),
     reload: () => live.agent.skills.reload(),
-  },
-  plugins: {
-    toggle: (id, enabled) => live.agent.plugins.toggle(id, enabled),
-    reload: () => live.agent.plugins.reload(),
   },
 }
 const knobs: KnobActions = {
@@ -421,7 +417,7 @@ const opencodeRunner: Runner = {
   start: (options, store) =>
     opencode.start(options).then((agent) => {
       // opencode tells its lists, the model the session runs and its saved rules once asked.
-      for (const list of ["models", "rules", "commands", "skills", "mcp", "plugins"] as const) agent.refresh(list)
+      for (const list of ["models", "rules", "commands", "skills", "mcp"] as const) agent.refresh(list)
       startModel(agent, options.model)
       return {
         agent,
@@ -443,7 +439,7 @@ const codexRunner: Runner = {
   start: (options, store) =>
     codex.start(options).then((agent) => {
       // Codex tells its lists once asked; the skills come with the commands.
-      for (const list of ["modes", "models", "commands", "mcp", "plugins", "hooks"] as const) agent.refresh(list)
+      for (const list of ["modes", "models", "commands", "mcp"] as const) agent.refresh(list)
       // The cut goes in at the oldest prompt the store hides.
       return { agent, hooks: {}, goBack: () => agent.goBack(hiddenPrompts(store.state).at(-1) ?? null) }
     }),
@@ -634,6 +630,7 @@ async function startLive(runner: Runner, options: StartOptions, store: SessionSt
       ...options,
       mcpServers: [...options.mcpServers, ...mcp.handover.launches],
       ownMcp: mcp.handover.own,
+      ownPlugins: settings.providerPlugins === "on",
       mcpHeld: mcp.hold,
       mcpReplaced: (name, different) => {
         mcp.replace(name)
@@ -786,6 +783,7 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
         if (item?.kind !== "user" || item.from || item.to || readSubagentMessage(item.text)) return []
         return mentionNames(item.text)
       }),
+    plugins: () => settings.providerPlugins === "on",
     limit: () => settings.maxSubagents,
     // A result waits for the turn that runs, where the agent can queue it. One that cannot go out stays in the chat.
     tell: (text) => {

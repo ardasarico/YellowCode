@@ -6,7 +6,7 @@ export const CLAUDE_NAME = "Claude Code"
 export const CLAUDE_SHORT_NAME = "Claude"
 
 // Not "rules": claude keeps them in its own /permissions, which a typed /permissions opens.
-const LISTS: ListName[] = ["commands", "models", "modes", "skills", "mcp", "loaded", "plugins", "subagents", "hooks"]
+const LISTS: ListName[] = ["commands", "models", "modes", "skills", "mcp", "loaded", "subagents"]
 
 export const CLAUDE_CAPS: Capabilities = {
   steer: true,
@@ -18,6 +18,7 @@ export const CLAUDE_CAPS: Capabilities = {
   clientTools: "live",
   mcpServers: "live",
   ownMcpOff: true,
+  pluginsOff: true,
   instructions: true,
   planSignal: "ask",
   cut: true,
@@ -41,7 +42,6 @@ export const CLAUDE_CAPS: Capabilities = {
   lists: LISTS,
   mcp: { toggle: true, reconnect: true, login: true, reach: null, failNotice: false },
   skills: { toggle: true, reload: true },
-  plugins: { toggle: true, reload: true },
   settings: true,
   features: FEATURES,
 }

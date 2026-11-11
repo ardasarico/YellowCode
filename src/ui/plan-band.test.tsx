@@ -28,7 +28,6 @@ const providerOf = (modes: ModeRow[]): InputProvider => ({
   models: () => [],
   modes: () => modes,
   skills: () => null,
-  plugins: () => [],
   settingSources: () => [],
   plan: () => null,
   files: () => Promise.resolve([]),

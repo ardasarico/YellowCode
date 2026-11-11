@@ -1,6 +1,5 @@
 import type { Accessor } from "solid-js"
-import type { Knob, ModelGroup, ModelRow, ModeRow, PluginRow, SkillRow } from "../agent/lists.ts"
-import type { SessionInfo } from "../session/types.ts"
+import type { Knob, ModelGroup, ModelRow, ModeRow, SkillRow } from "../agent/lists.ts"
 import type { Command } from "./commands.ts"
 
 // `name` is the text a pick writes after the @.
@@ -23,8 +22,6 @@ export type InputProvider = {
   modes: Accessor<ModeRow[]>
   // Null while the agent has not listed them.
   skills: Accessor<SkillRow[] | null>
-  // The plugins of the session `info` describes; null while the agent has not listed them.
-  plugins(info: SessionInfo | null): PluginRow[] | null
   // The settings layers that set something, such as "user" or "project".
   settingSources: Accessor<string[]>
   // The subscription the account is on, such as "Claude Pro"; null when the agent has not said.

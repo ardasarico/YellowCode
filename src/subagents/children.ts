@@ -72,6 +72,8 @@ export type ChildrenOptions = {
   skills?: string[]
   // The shared MCP servers, which a child gets when it keeps the user's own.
   mcp?(): Pick<StartOptions, "mcpServers" | "ownMcp">
+  // The saved "Providers' plugins". A child follows it unless its file says `plugins: true`.
+  plugins?(): boolean
 }
 
 type Run = {
@@ -283,6 +285,7 @@ export function createChildren(options: ChildrenOptions) {
         skills: options.skills ?? [],
         clientTools: [],
         ...mcp,
+        ownPlugins: !plain || (options.plugins?.() ?? true),
         ephemeral: true,
         plain,
         asks: fit.asks,

@@ -14,6 +14,7 @@ export const CODEX_CAPS: Capabilities = {
   clientTools: "start",
   mcpServers: "start",
   ownMcpOff: true,
+  pluginsOff: true,
   instructions: true,
   planSignal: "item",
   cut: true,
@@ -36,12 +37,10 @@ export const CODEX_CAPS: Capabilities = {
   // Only a resume finds out (another app-server's thread is refused), and it starts the thread's MCP servers; the
   // holder is told nothing.
   heldElsewhere: { atOpen: false, live: false },
-  lists: ["models", "modes", "commands", "skills", "mcp", "plugins", "hooks"],
-  // A reconnect reloads every server's config; a server is turned on and off only in config.toml. Plugins have no
-  // switch in app-server.
+  lists: ["models", "modes", "commands", "skills", "mcp"],
+  // A reconnect reloads every server's config; a server is turned on and off only in config.toml.
   mcp: { toggle: false, reconnect: true, login: true, reach: null, failNotice: false },
   skills: { toggle: true, reload: true },
-  plugins: { toggle: false, reload: false },
   settings: true,
   features: [],
 }

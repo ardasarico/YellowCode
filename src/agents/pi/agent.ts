@@ -227,14 +227,27 @@ const leanArgs = (options: StartOptions) => [
 
 export const openArgs = (options: StartOptions) => [...sessionArgs(options), ...leanArgs(options)]
 
-// The MCP part of a start: the flags, our extension with the servers in its env variable, and the servers pi cannot
-// take, which are reported.
+// Pi's built-in extensions besides MCP: local models, and the two tools its MCP tools are called through.
+const BUILT_IN = ["builtin:llama.cpp", "builtin:codemode", "builtin:tool-search"]
+
+// Plugins Off: pi finds no extensions by itself. That also drops its built-in ones, so they are named again, MCP
+// unless this start turns pi's MCP off. An older pi is not known to take the names.
+export function pluginArgs(options: StartOptions, version: string, flags: readonly string[]): string[] {
+  if (options.ownPlugins !== false || options.plain || !replaces(version)) return []
+  const kept = flags.includes("--no-mcp") ? BUILT_IN : [...BUILT_IN, "builtin:mcp"]
+  return ["--no-extensions", ...kept.flatMap((name) => ["-e", name])]
+}
+
+// The MCP and plugin part of a start: the flags, our extension with the servers in its env variable, and the servers
+// pi cannot take, which are reported.
 function mcpLaunch(
   options: StartOptions,
   version: string,
   deps: Deps,
 ): { args: string[]; env: Record<string, string> } {
-  const { flags, extension, held } = piMcp(options, version)
+  const mcp = piMcp(options, version)
+  const { extension, held } = mcp
+  const flags = [...mcp.flags, ...pluginArgs(options, version, mcp.flags)]
   for (const { name, problem } of held) {
     log.warn("shared MCP server held", { name, problem })
     options.mcpHeld?.(name, problem)
@@ -679,7 +692,7 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
       return { agent: PI, id: session }
     },
     version,
-    caps: replaces(version) ? PI_CAPS : { ...PI_CAPS, ownMcpOff: false },
+    caps: replaces(version) ? PI_CAPS : { ...PI_CAPS, ownMcpOff: false, pluginsOff: false },
     events: out.items,
     send,
     interrupt,
@@ -711,7 +724,6 @@ async function start(options: StartOptions, deps: Deps): Promise<Agent> {
     tasks: { stop: later("tasks"), background: later("background now") },
     mcp: { toggle: later("MCP"), reconnect: later("MCP"), login: later("MCP") },
     skills: { toggle: later("skills"), reload: later("skills") },
-    plugins: { toggle: later("plugins"), reload: later("plugins") },
     permissions: { remove: later("permissions") },
     settings: { rows: () => Promise.reject(new Error("Pi settings are not built yet")), write: later("settings") },
     context: () =>

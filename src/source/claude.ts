@@ -47,8 +47,13 @@ function tryWrite(write: () => unknown): void {
   }
 }
 
-export function createClaudeSource(cwd: string, running: () => boolean, command: string[]): ClaudeSource {
-  const proc = Bun.spawn(command, { cwd, env: hostEnv(), stdin: "pipe", stdout: "pipe", stderr: "pipe" })
+export function createClaudeSource(
+  cwd: string,
+  running: () => boolean,
+  command: string[],
+  env = hostEnv(),
+): ClaudeSource {
+  const proc = Bun.spawn(command, { cwd, env, stdin: "pipe", stdout: "pipe", stderr: "pipe" })
   log.info("claude started", { pid: proc.pid, cwd })
   const alive = () => proc.exitCode === null && proc.signalCode === null
   const queue: SourceEvent[] = []

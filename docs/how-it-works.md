@@ -2,7 +2,8 @@
 
 YellowCode is a screen for your coding agent. It has no model and no login of its own. When you start it in a
 project, it starts your agent in the same folder, sends it what you type and draws what comes back. The agent runs on
-your own account, with your own settings, MCP servers, skills and plugins.
+your own account, with your own settings, MCP servers and skills. Its plugins load when you turn
+[Providers' plugins](usage.md#plugins) on.
 
 On screen, Claude Code, Codex, opencode and Pi are called providers. A session runs one of them. Subagents can run
 others beside it, each through its own binary or service in the same way.

@@ -225,7 +225,7 @@ export type AppProps = {
   settingsBackup?: string | null
   provider: InputProvider
   // Live only; without them the dialogs' actions show a notice.
-  extensions?: Pick<Agent, "mcp" | "skills" | "plugins">
+  extensions?: Pick<Agent, "mcp" | "skills">
   sessions: ResumeSessions
   // Live only: the agents installed here, in the order a start tries them.
   agents?: {
@@ -1078,7 +1078,7 @@ export function App(props: AppProps) {
   }
   const listsRules = () => props.caps.lists.includes("rules") && props.permissions !== undefined
   // What the settings rows say this provider cannot leave off.
-  const offCaps = () => ({ ownMcpOff: props.caps.ownMcpOff })
+  const offCaps = () => ({ ownMcpOff: props.caps.ownMcpOff, pluginsOff: props.caps.pluginsOff })
   const listCatalogs = () => {
     const lists = readCatalogs()
     setCatalogs(lists)
@@ -1436,7 +1436,8 @@ export function App(props: AppProps) {
   const copyReport = async () => {
     const info = currentInfo(props.session, props.firstInfo ?? null)
     const servers = shownServers() ?? []
-    const plugins = props.provider.plugins(info) ?? []
+    // What the session loaded, where the provider says it; its own built-in ones are left out.
+    const plugins = (info?.plugins ?? []).filter((plugin) => !plugin.source?.endsWith("@builtin"))
     const mode = props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null
     const text = reportMarkdown({
       environment: [...hostFacts(await reportVersions(info)), ...terminalFacts(renderer.capabilities)],
@@ -2023,14 +2024,12 @@ export function App(props: AppProps) {
     }
     // A dialog of a list the agent does not fill gives way to the agent's own command of that name. /mcp has the
     // shared servers to show.
-    const fills = (list: "mcp" | "skills" | "plugins") =>
+    const fills = (list: "mcp" | "skills") =>
       props.caps.lists.includes(list) || (list === "mcp" && hasShared(props.shared?.()))
-    const yields = (list: "mcp" | "skills" | "plugins") =>
+    const yields = (list: "mcp" | "skills") =>
       !fills(list) && props.provider.commands().some((row) => row.name === list && !OWN_COMMANDS.includes(row))
     // A list the agent does not fill and has no command for would open empty.
-    const empty = (["mcp", "skills", "plugins"] as const).find(
-      (list) => command === `/${list}` && !fills(list) && !yields(list),
-    )
+    const empty = (["mcp", "skills"] as const).find((list) => command === `/${list}` && !fills(list) && !yields(list))
     if (empty) {
       waitNotice(`Not available with ${props.agent.name}`)
       return false
@@ -2042,7 +2041,6 @@ export function App(props: AppProps) {
     else if (command === "/agents") openList("agents")
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp" && !yields("mcp")) openList("mcp")
-    else if (command === "/plugins" && !yields("plugins")) setDialog({ name: "settings", tab: "plugins" })
     else if (command === "/skills" && !yields("skills")) openList("skills")
     else if (command === "/mods") setDialog({ name: "settings", tab: "mods" })
     else if (command === "/rewind" || command === "/timeline") void openRewind()
@@ -2534,7 +2532,6 @@ export function App(props: AppProps) {
             info={currentInfo(props.session, props.firstInfo ?? null)}
             servers={shownServers()}
             shared={props.shared?.()}
-            extensions={props.extensions}
             caps={props.caps}
             subagents={subagentFact()}
             rules={listsRules() ? (props.permissions?.rules()?.length ?? null) : undefined}

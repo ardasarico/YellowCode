@@ -125,6 +125,7 @@ export function settingsFacts(
     ["Editor", settings.editor],
     ["Notifications", settings.notifications],
     ["Providers' own MCP servers", settings.ownMcpServers],
+    ["Providers' plugins", settings.providerPlugins],
     ["Problem", problem],
   ]
 }

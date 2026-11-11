@@ -4,7 +4,7 @@ import type { SessionStore } from "../../session/session.ts"
 import { listedProvider } from "../opencode/provider.ts"
 
 // YellowCode's dialogs of lists pi does not fill, which would open empty; pi's own command of the same name shows.
-const YIELDING = new Set(["mcp", "skills", "plugins"])
+const YIELDING = new Set(["mcp", "skills"])
 // pi takes no client tools, so it has no subagent tool to assign models for.
 const MISSING = new Set(["agents"])
 

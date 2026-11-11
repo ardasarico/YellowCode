@@ -85,8 +85,9 @@ const defaultMode = (agent: AgentKindId, modes: ModeRow[]): SettingDefinition =>
   reset: () => resetDefaultMode(agent),
 })
 
-// An agent YellowCode can open, by its name. `ownMcpOff`: it can leave its own MCP servers off.
-export type AgentOption = { id: AgentKindId; name: string; ownMcpOff?: boolean }
+// An agent YellowCode can open, by its name. `ownMcpOff`, `pluginsOff`: it can leave its own MCP servers, its plugins
+// off.
+export type AgentOption = { id: AgentKindId; name: string; ownMcpOff?: boolean; pluginsOff?: boolean }
 
 const SIDEBAR = stored<"sidebar">({
   key: "sidebar",
@@ -208,6 +209,28 @@ const ownMcp = (agent: AgentOption) =>
     ],
   })
 
+const plugins = (agent: AgentOption) =>
+  stored<"providerPlugins">({
+    key: "providerPlugins",
+    section: "Session",
+    label: "Providers' plugins",
+    options: [
+      {
+        value: "on",
+        label: "On",
+        note: `Each provider loads the plugins installed in it. ${NEXT_SESSION}`,
+      },
+      {
+        value: "off",
+        label: "Off",
+        note:
+          agent.pluginsOff === false
+            ? `${agent.name} cannot switch its plugins off.`
+            : `Your own skills, hooks and MCP servers stay. ${NEXT_SESSION}`,
+      },
+    ],
+  })
+
 const UPDATES: SettingDefinition = {
   key: "updates",
   section: "Updates",
@@ -246,6 +269,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefini
   NOTIFICATIONS,
   SUBAGENTS,
   ownMcp(agent),
+  plugins(agent),
   PEER_MESSAGES,
   PEER_VISIBLE,
   UPDATES,

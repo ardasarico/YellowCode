@@ -1,85 +1,80 @@
-import type { PluginRow } from "../../agent/lists.ts"
-import type { PluginHook, SettingsSource, SkillRow } from "../../protocol/messages.ts"
-import type { SessionInfo } from "../../session/types.ts"
-import { PROJECT_SCOPES, pluginGroup } from "./skills.ts"
+// The plugins Claude Code would load for a session in `cwd`, by the id its settings name them with. Claude has no
+// switch for all of them, so a session that leaves them off names each one.
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { z } from "zod"
+import { parseJson } from "../../json.ts"
+import { log } from "../../log/log.ts"
+import { projectOf } from "../../peers/project.ts"
+import { CLAUDE_HOME } from "./projects.ts"
 
-// The setting sources `claude plugin enable|disable --scope` writes.
-const CLI_SCOPES: Record<string, "user" | "project" | "local"> = {
-  userSettings: "user",
-  projectSettings: "project",
-  localSettings: "local",
+const keyed = z.record(z.string(), z.unknown())
+
+// Null for a file that is missing or cannot be read.
+function read(path: string): Record<string, unknown> | null {
+  try {
+    const json = parseJson(readFileSync(path, "utf8"))
+    return json.ok ? (keyed.safeParse(json.value).data ?? null) : null
+  } catch {
+    return null
+  }
 }
 
-// How settings and claude's CLI name a plugin.
-const settingId = (name: string, marketplace: string | null) => (marketplace ? `${name}@${marketplace}` : name)
+const keysOf = (path: string, field: string) => Object.keys(keyed.safeParse(read(path)?.[field]).data ?? {})
 
-// Where the setting that decides a plugin's state lives: the last source that names it. Null when no source does (a
-// --plugin-dir, synced or skills-dir plugin) or when the CLI cannot write that source (flag, policy).
-export function pluginScope(id: string, sources: SettingsSource[]): "user" | "project" | "local" | null {
-  let scope: "user" | "project" | "local" | null = null
-  for (const { source, settings } of sources)
-    if (Object.hasOwn(settings.enabledPlugins ?? {}, id)) scope = CLI_SCOPES[source] ?? null
-  return scope
-}
-
-const owned = (names: string[], prefix: string) =>
-  names.filter((name) => name.startsWith(prefix)).map((name) => name.slice(prefix.length))
-
-// Off plugins are not in init; they are the enabledPlugins ids whose last setting source turns them off.
-function offPlugins(sources: SettingsSource[], on: Set<string>): PluginRow[] {
-  const last = new Map<string, { value: unknown; source: string }>()
-  for (const { source, settings } of sources)
-    for (const [id, value] of Object.entries(settings.enabledPlugins ?? {})) last.set(id, { value, source })
-
-  return [...last].flatMap(([id, { value, source }]) => {
-    const [name = id, marketplace = null] = id.split("@")
-    if (value !== false || on.has(name)) return []
-    const scope = PROJECT_SCOPES.has(source) ? "project" : "global"
-    return [
-      {
-        id: settingId(name, marketplace),
-        name,
-        marketplace,
-        scope,
-        on: false,
-        brings: { skills: [], mcp: [], commands: [], agents: [], hooks: [] },
-      },
-    ]
+// A plugin folder inside a skills folder is listed nowhere else. Its id takes the manifest's name; the folder's
+// name goes along in case they differ.
+function inSkills(folder: string): string[] {
+  let entries: string[]
+  try {
+    entries = readdirSync(folder)
+  } catch {
+    return []
+  }
+  return entries.flatMap((entry) => {
+    const manifest = read(join(folder, entry, ".claude-plugin", "plugin.json"))
+    if (!manifest) return []
+    const { name } = manifest
+    return [entry, ...(typeof name === "string" && name !== entry ? [name] : [])].map((id) => `${id}@skills-dir`)
   })
 }
 
-export function pluginEntries(
-  info: SessionInfo,
-  sources: SettingsSource[],
-  skillRows: SkillRow[],
-  hooks: PluginHook[],
-): PluginRow[] {
-  const pluginSkills = skillRows.filter((row) => row.source === "plugin").map((row) => row.name)
-  const commands = info.slashCommands.filter((name) => !info.skills.includes(name))
-  const servers = info.mcpServers.filter((server) => server.source === "plugin").map((server) => server.name)
+// Claude Code reads the skills folders from the start folder up to the git root, or up to / outside a repository.
+function projectSkills(cwd: string): string[] {
+  const root = projectOf(cwd)
+  const inRepo = existsSync(join(root, ".git"))
+  let start = cwd
+  try {
+    start = realpathSync(cwd)
+  } catch {}
+  const folders: string[] = []
+  for (let dir = start; ; dir = dirname(dir)) {
+    folders.push(join(dir, ".claude", "skills"))
+    if ((inRepo && dir === root) || dirname(dir) === dir) break
+  }
+  return folders
+}
 
-  const on = info.plugins.map(({ name, source }): PluginRow => {
-    const ownHooks = hooks
-      .filter((hook) => hook.pluginName === source || hook.pluginName === name)
-      .map(({ event, matcher }) => (matcher === "" ? event : `${event} ${matcher}`))
-    const marketplace = source?.split("@")[1] ?? null
-    return {
-      id: settingId(name, marketplace),
-      name,
-      marketplace,
-      scope: pluginGroup(name, sources),
-      on: true,
-      brings: {
-        skills: owned(pluginSkills, `${name}:`),
-        mcp: owned(servers, `plugin:${name}:`),
-        commands: owned(commands, `${name}:`),
-        agents: owned(info.agents, `${name}:`),
-        hooks: [...new Set(ownHooks)],
-      },
-    }
-  })
-  const off = offPlugins(sources, new Set(on.map(({ name }) => name)))
-  return [...on, ...off]
-    .filter((plugin) => plugin.marketplace !== "builtin")
-    .toSorted((a, b) => a.name.localeCompare(b.name) || (a.marketplace ?? "").localeCompare(b.marketplace ?? ""))
+// The ids go out as one argument, and a project's files can name any number of any length.
+const MOST_IDS = 500
+const LONGEST_ID = 200
+
+// A file that gives nothing gives no ids, so reading never fails a start. Claude Code's built-in plugins stay on.
+export function installedPlugins(cwd: string, home = CLAUDE_HOME): string[] {
+  const settings = [
+    join(home, "settings.json"),
+    join(cwd, ".claude", "settings.json"),
+    join(cwd, ".claude", "settings.local.json"),
+  ]
+  const found = [
+    ...new Set([
+      ...keysOf(join(home, "plugins", "installed_plugins.json"), "plugins"),
+      ...inSkills(join(home, "skills")),
+      ...projectSkills(cwd).flatMap(inSkills),
+      ...settings.flatMap((path) => keysOf(path, "enabledPlugins")),
+    ]),
+  ].filter((id) => !id.endsWith("@builtin"))
+  const kept = found.filter((id) => id.length <= LONGEST_ID).slice(0, MOST_IDS)
+  if (kept.length < found.length) log.warn("too many plugins to switch off", { found: found.length, kept: kept.length })
+  return kept.toSorted()
 }

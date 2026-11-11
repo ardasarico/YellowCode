@@ -87,7 +87,6 @@ export function claudeReplay(recording: Recording, speed: Speed, store: SessionS
     tasks: { stop: nothing, background: nothing },
     mcp: { toggle: nothing, reconnect: nothing, login: nothing },
     skills: { toggle: nothing, reload: nothing },
-    plugins: { toggle: nothing, reload: nothing },
     permissions: { remove: nothing },
     settings: { rows: () => Promise.resolve([]), write: nothing },
     context: () => Promise.reject(new Error("a replay has no context report")),

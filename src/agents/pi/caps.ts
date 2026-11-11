@@ -17,6 +17,7 @@ export const PI_CAPS: Capabilities = {
   mcpServers: "start",
   // A running Pi that cannot leave them off says so in its own caps.
   ownMcpOff: true,
+  pluginsOff: true,
   instructions: true,
   planSignal: "none",
   cut: true,
@@ -41,7 +42,6 @@ export const PI_CAPS: Capabilities = {
   lists: ["commands", "modes", "models"],
   mcp: { toggle: false, reconnect: false, login: false, reach: null, failNotice: false },
   skills: { toggle: false, reload: false },
-  plugins: { toggle: false, reload: false },
   settings: false,
   features: [],
 }

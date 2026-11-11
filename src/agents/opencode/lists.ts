@@ -1,5 +1,4 @@
 // The lists opencode keeps for a session's project.
-import { basename, extname } from "node:path"
 import { z } from "zod"
 import type {
   CommandRow,
@@ -8,12 +7,11 @@ import type {
   McpState,
   ModelGroup,
   ModelRow,
-  PluginRow,
   RuleRow,
   SkillRow,
 } from "../../agent/lists.ts"
 import { log } from "../../log/log.ts"
-import { mcpServer, model, pluginInfo, provider, readAllowed, skillInfo } from "./allow.ts"
+import { mcpServer, model, provider, readAllowed, skillInfo } from "./allow.ts"
 import { configRules, inFolder } from "./settings.ts"
 import type { Transport } from "./transport.ts"
 import { answerOf, dataOf, rowsOf } from "./wire/envelope.ts"
@@ -186,27 +184,6 @@ export async function readCommands(transport: Transport): Promise<CommandRow[] |
     knob: null,
   }))
   return [...rows.filter((row) => row.name !== COMPACT.name), COMPACT]
-}
-
-type Plugin = z.output<typeof pluginInfo>
-
-const pluginName = ({ id, source }: Plugin) =>
-  id ?? source.target ?? (source.path ? basename(source.path, extname(source.path)) : source.type)
-
-// opencode's own plugins are left out. A plugin that failed to load reads as off.
-export async function readPlugins(transport: Transport, project: string): Promise<PluginRow[] | null> {
-  const rows = await readAllowed(transport, "/api/plugin", "the plugins")
-  if (!Array.isArray(rows)) return null
-  return rowsOf(rows, pluginInfo, "plugin")
-    .filter((row) => row.source.type !== "builtin")
-    .map((row) => ({
-      id: row.id ?? row.source.path ?? row.source.target ?? row.source.type,
-      name: pluginName(row),
-      marketplace: null,
-      scope: row.source.path && inFolder(row.source.path, project) ? "project" : "global",
-      on: row.state.status === "active",
-      brings: { skills: [], mcp: [], commands: [], agents: [], hooks: [] },
-    }))
 }
 
 const FILE_ROWS = 15

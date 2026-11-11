@@ -14,6 +14,8 @@ export const OPENCODE_CAPS: Capabilities = {
   clientTools: "live",
   mcpServers: "start",
   ownMcpOff: true,
+  // Only its service can leave plugins off, for every window it serves and until it restarts.
+  pluginsOff: false,
   instructions: true,
   planSignal: "file",
   cut: true,
@@ -34,7 +36,7 @@ export const OPENCODE_CAPS: Capabilities = {
   limits: true,
   cost: true,
   heldElsewhere: { atOpen: false, live: false },
-  lists: ["rules", "modes", "models", "commands", "skills", "mcp", "plugins"],
+  lists: ["rules", "modes", "models", "commands", "skills", "mcp"],
   mcp: {
     toggle: true,
     reconnect: true,
@@ -43,7 +45,6 @@ export const OPENCODE_CAPS: Capabilities = {
     failNotice: true,
   },
   skills: { toggle: false, reload: false },
-  plugins: { toggle: false, reload: false },
   settings: true,
   features: [],
 }

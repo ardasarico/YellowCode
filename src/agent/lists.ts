@@ -104,19 +104,7 @@ export type McpServerRow = {
 // A plugin a running session loaded.
 export type LoadedPlugin = { name: string; path: string; source: string | null }
 
-// A row of the plugins dialog.
-export type PluginRow = {
-  id: string
-  name: string
-  marketplace: string | null
-  scope: "global" | "project"
-  on: boolean
-  brings: { skills: string[]; mcp: string[]; commands: string[]; agents: string[]; hooks: string[] }
-}
-
 export type SubagentRow = { name: string; description: string }
-
-export type HookRow = { event: string; matcher: string; plugin: string | null }
 
 export type RuleRow = {
   id: string
@@ -142,9 +130,7 @@ export type Lists = {
   mcp: McpServerRow[]
   // The plugins the session has loaded now; null: as SessionInfo says.
   loaded: LoadedPlugin[] | null
-  plugins: PluginRow[]
   subagents: SubagentRow[]
-  hooks: HookRow[]
   rules: RuleRow[]
 }
 

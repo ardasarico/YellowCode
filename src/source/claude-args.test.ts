@@ -88,3 +88,20 @@ test("each skills folder goes in as a plugin, and claude may read it", () => {
   ])
   expect(args.find((arg) => arg.startsWith("--allowedTools="))).toEndWith(",Read(//home/u/.yellowcode/skills/**)")
 })
+
+test("plugins off and the project's .mcp.json names go in one --settings, the only one", () => {
+  const args = claudeArgs(
+    { thinking: "summarized" },
+    launchOf({ permissionMode: "default" }),
+    {},
+    { ephemeral: false, skills: ["/home/u/.yellowcode/skills"] },
+    { on: true, project: ["docs"] },
+    ["a@market", "b@skills-dir"],
+  )
+  expect(args.filter((arg) => arg === "--settings")).toHaveLength(1)
+  expect(args[args.indexOf("--settings") + 1]).toBe(
+    '{"disabledMcpjsonServers":["docs"],"enabledPlugins":{"a@market":false,"b@skills-dir":false},' +
+      '"env":{"CLAUDE_CODE_PLUGIN_DIRS":""}}',
+  )
+  expect(args).toContain("--plugin-dir")
+})

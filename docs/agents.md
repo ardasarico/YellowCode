@@ -44,7 +44,7 @@ differs by provider:
 
 | Provider    | Instructions                               | Not saved as                     | Your plugins, hooks and MCP servers           |
 | ----------- | ------------------------------------------ | -------------------------------- | --------------------------------------------- |
-| Claude Code | Added to the system prompt                 | A session without a saved file   | Kept; there is no switch to leave them out    |
+| Claude Code | Added to the system prompt                 | A session without a saved file   | Hooks and MCP servers kept; plugins as below  |
 | Codex       | Put ahead of the task in the first message | A thread that is not kept        | Left out unless the file says `plugins: true` |
 | opencode    | Put ahead of the task in the first message | A session deleted when it closes | Kept; there is no switch to leave them out    |
 | Pi          | Put ahead of the task in the first message | A run without a session file     | Left out unless the file says `plugins: true` |
@@ -52,6 +52,10 @@ differs by provider:
 On Codex and Pi, a subagent without `plugins: true` has neither your own MCP servers nor your
 [shared ones](usage.md#shared-mcp-servers). On Claude Code and opencode, and with `plugins: true`, it gets the shared
 servers, and your own ones as your session has them.
+
+[Providers' plugins](usage.md#plugins) in `/settings` covers your own session, and the `plugins` field covers a
+subagent. On Claude Code, a subagent without `plugins: true` has your plugins only when the setting is On. With
+`plugins: true` it has them whatever the setting says.
 
 Its permission mode is the widest one its provider has that is no wider than both your session's mode and the agent's
 `permissions`. A subagent and your session share the working tree, and rewind snapshots follow your session only, so a
@@ -83,8 +87,10 @@ Review the changes you are given. Reply with each bug, its file and line, and wh
 - `provider`: `claude`, `codex`, `opencode` or `pi`.
 - `model`: the model's id as that provider lists it.
 - `permissions`: `read-only`, `edits`, or `inherit`, the default, which goes up to your session's mode.
-- `plugins`: `true` starts it with your plugins, hooks and MCP servers, the shared ones included. Without it, it starts
-  without them on Codex and Pi. Claude Code and opencode have no switch for this and keep them either way.
+- `plugins`: `true` starts it with your plugins, hooks and MCP servers, the shared ones included, whatever
+  [Providers' plugins](usage.md#plugins) says. Without it, it starts without them on Codex and Pi. On Claude Code it
+  keeps your hooks and MCP servers, and has your plugins only when that setting is On. opencode has no switch for this
+  and keeps them either way.
 
 The body is the agent's instructions. An agent runs only once it has a model on a provider you added. `/agents` lists
 every agent with its model: Enter picks a model, written into the agent's file (for a built-in, into a new file in

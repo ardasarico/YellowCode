@@ -285,7 +285,7 @@ export type Session = {
   items: ItemId[]
   byId: Record<ItemId, Item>
   tasks: Record<string, Task>
-  // What Claude reported after the last init (mcp_status, reload_plugins), live only; it wins over info's lists.
+  // What Claude reported after the last init (mcp_status), live only; it wins over info's lists.
   mcpServers: McpServer[] | null
   plugins: SessionInfo["plugins"] | null
   usage: Usage

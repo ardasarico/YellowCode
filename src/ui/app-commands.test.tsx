@@ -16,7 +16,6 @@ const provider: InputProvider = {
   models: () => [],
   modes: () => [],
   skills: () => null,
-  plugins: () => [],
   settingSources: () => [],
   plan: () => null,
   files: () => Promise.resolve([]),

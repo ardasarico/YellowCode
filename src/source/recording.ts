@@ -5,10 +5,7 @@ import { initInfo } from "../agents/claude/system.ts"
 import { parseJson, rowsOf } from "../json.ts"
 import {
   initializeModels,
-  hooksListing,
   initializeResponse,
-  pluginHook,
-  type PluginHook,
   type SettingsSource,
   settingsSources,
   skillRow,
@@ -144,13 +141,6 @@ export function recordedSettingsSources(recording: Recording): SettingsSource[] 
   const reply = recordedReply(recording, SETTINGS_ID)
   const parsed = settingsSources.safeParse(reply?.response)
   return parsed.success ? parsed.data.sources : []
-}
-
-export function recordedPluginHooks(recording: Recording): PluginHook[] {
-  const reply = recordedReply(recording, HOOKS_ID)
-  const listing = hooksListing.safeParse(reply?.response)
-  if (!listing.success) return []
-  return rowsOf(pluginHook, listing.data.hooks).rows
 }
 
 export function recordedInitLists(recording: Recording): { skills: string[]; slashCommands: string[] } | null {
