@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.5.0
+
+### Highlights
+
+- **One memory for every provider.** What the agent learns about your project is kept by YellowCode, so Claude Code,
+  Codex, opencode and Pi all read it and it stays when you switch models. `/memory` lists it.
+- **A command palette.** Ctrl+P finds every command, model, recent session and setting in one list.
+- **A calmer chat.** When a turn is done, its tool calls fold into one line, such as `14 tools · 5 files changed`.
+  Enter opens it.
+
+### Breaking
+
+- Providers' plugins are off by default. Turn them on with Providers' plugins in `/settings`. opencode cannot switch
+  them off and loads them as before.
+- Everything YellowCode keeps now lives in `~/.yellowcode`. Your settings, themes, mods and rewind snapshots move
+  there on the first start, and an older version will not find them. `YELLOWCODE_HOME` puts the folder elsewhere.
+
+### Added
+
+- `/settings` opens with an overview of the session: MCP servers, skills, subagents, permissions and memory, each one
+  Enter away.
+- The Git mod lets you write notes on the lines of a diff and puts them in the prompt for the agent.
+- Mods can handle Esc in their own dialogs and use the theme's code and diff colours (Mod API 0.2.2).
+
+### Changed
+
+- `/mcp` opens in its own window, and `/settings` has the tabs Status, Config and Mods.
+- `/plugins` is gone, and `/timeline` is no longer listed. Typing `/timeline` still works.
+
+### Fixed
+
+- A resumed Claude Code session keeps the results of tool calls that ran at the same time.
+- Images behind an open window no longer stay in their old place or show only half.
+- In an opencode session, `/settings` shows the version and the session.
+
 ## 0.4.0
 
 ### Highlights
