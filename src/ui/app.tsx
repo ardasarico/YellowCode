@@ -555,7 +555,7 @@ export function App(props: AppProps) {
       renderer,
       () => props.session,
       // From the session's own info, so a model alias resolving to its full name is not a change.
-      () => settings.model ?? props.session.info?.model ?? null,
+      () => (settings.model ?? props.session.info?.model) || null,
     )
     setAppBridge({
       copy: copyText,

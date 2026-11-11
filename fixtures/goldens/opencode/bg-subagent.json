@@ -36,6 +36,27 @@
       "at": 1793924108626
     },
     {
+      "type": "info",
+      "info": {
+        "id": "ses_1",
+        "model": {
+          "provider": null,
+          "id": ""
+        },
+        "mode": "build",
+        "cwd": "<root>/project",
+        "version": "2.2.5",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": ""
+      },
+      "at": 1793924108626
+    },
+    {
       "type": "user",
       "prompt": "prompt-1",
       "text": "VICTOR start a helper in the background",
@@ -1148,7 +1169,20 @@
     }
   ],
   "state": {
-    "info": null,
+    "info": {
+      "id": "ses_1",
+      "model": "",
+      "permissionMode": "build",
+      "cwd": "<root>/project",
+      "cliVersion": "2.2.5",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": ""
+    },
     "status": "ended",
     "items": [
       "user-1",

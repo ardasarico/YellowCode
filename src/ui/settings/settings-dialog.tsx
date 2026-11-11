@@ -61,7 +61,7 @@ export function SettingsDialog(props: {
       mcpServers: props.caps.lists.includes("mcp") ? (props.servers?.length ?? null) : undefined,
       plugins: props.caps.lists.includes("plugins") ? (plugins()?.length ?? null) : undefined,
       skills: props.provider.skills()?.length ?? info?.skills.length ?? null,
-      tools: info ? info.tools.length : null,
+      tools: info && info.tools.length > 0 ? info.tools.length : null,
       sources: props.provider.settingSources(),
     }
   }

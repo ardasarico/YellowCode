@@ -94,9 +94,9 @@ test("each kind of call ends with what it wrote, ran or found, and rewind counts
   expect(fetch).toMatchObject({ status: "error", result: "Transport error (GET https://example.com/)" })
   const [point] = rewindPoints(store.state, null)
   expect(point?.files.map((file) => [file.path, file.created])).toEqual([
-    [`${PROJECT}/src/a.ts`, false],
-    [`${PROJECT}/src/b.ts`, true],
-    [`${PROJECT}/README.md`, false],
+    ["src/a.ts", false],
+    ["src/b.ts", true],
+    ["README.md", false],
   ])
   // The history gives the calls back the same way.
   expect(told(history, "tool.end").map(shape)).toEqual(told(events, "tool.end").map(shape))
@@ -121,7 +121,7 @@ test("a subagent's session goes under its call, and a stop interrupts it", async
   expect(requests("subagent")).toContain(`POST /api/session/${stopped?.id}/interrupt`)
   // The subagent's turns are no turns of the chat, and its edit counts for the prompt that started it.
   expect(told(events, "turn.end")).toHaveLength(2)
-  expect(rewindPoints(store.state, null)[0]?.files.map((file) => file.path)).toEqual([`${PROJECT}/src/a.ts`])
+  expect(rewindPoints(store.state, null)[0]?.files.map((file) => file.path)).toEqual(["src/a.ts"])
   expect(told(history, "tool.start").map((start) => [start.name, start.parent])).toEqual([
     ["subagent", null],
     ["read", "toolu_mock0001"],

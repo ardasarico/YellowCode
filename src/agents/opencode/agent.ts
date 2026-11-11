@@ -539,6 +539,26 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
     ref = { agent: OPENCODE, id: made.id }
     // A new session without an agent of its own runs opencode's default, which it lists first.
     if (modes) out.push(...translator.modes(modes, made.agent ?? wanted ?? modes.rows[0]?.id ?? null, lastAt))
+    const model = translator.model()
+    out.push({
+      type: "info",
+      info: {
+        id: made.id,
+        model: { provider: model?.providerID ?? null, id: model?.id ?? "" },
+        mode: made.agent ?? wanted ?? modes?.rows[0]?.id ?? "",
+        cwd: made.location.directory,
+        version: found.version,
+        tools: [],
+        mcpServers: [],
+        skills: [],
+        commands: [],
+        subagents: [],
+        plugins: [],
+        // opencode names no sign-in.
+        authSource: "",
+      },
+      at: lastAt,
+    })
     await addInstructions(transport, made.id, options)
     if (options.resume) await denyQuestions(transport, made)
     if (options.resume) await attach(made)

@@ -36,6 +36,27 @@
       "at": 1793924130516
     },
     {
+      "type": "info",
+      "info": {
+        "id": "ses_1",
+        "model": {
+          "provider": null,
+          "id": ""
+        },
+        "mode": "build",
+        "cwd": "<root>/project",
+        "version": "2.2.5",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": ""
+      },
+      "at": 1793924130516
+    },
+    {
       "type": "user",
       "prompt": "prompt-1",
       "text": "HOTEL pick a color",
@@ -1036,6 +1057,27 @@
       "at": 0
     },
     {
+      "type": "info",
+      "info": {
+        "id": "ses_1",
+        "model": {
+          "provider": null,
+          "id": ""
+        },
+        "mode": "build",
+        "cwd": "<root>/project",
+        "version": "2.2.5",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": ""
+      },
+      "at": 0
+    },
+    {
       "type": "title",
       "title": "Asking their way",
       "at": 0
@@ -1704,7 +1746,20 @@
     }
   ],
   "state": {
-    "info": null,
+    "info": {
+      "id": "ses_1",
+      "model": "",
+      "permissionMode": "build",
+      "cwd": "<root>/project",
+      "cliVersion": "2.2.5",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": ""
+    },
     "status": "ended",
     "items": [
       "user-1",

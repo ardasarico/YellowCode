@@ -36,6 +36,27 @@
       "at": 1793924119744
     },
     {
+      "type": "info",
+      "info": {
+        "id": "ses_1",
+        "model": {
+          "provider": null,
+          "id": ""
+        },
+        "mode": "build",
+        "cwd": "<root>/project",
+        "version": "2.2.5",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": ""
+      },
+      "at": 1793924119744
+    },
+    {
       "type": "user",
       "prompt": "prompt-1",
       "text": "KILO read the readme",
@@ -457,7 +478,20 @@
     }
   ],
   "state": {
-    "info": null,
+    "info": {
+      "id": "ses_1",
+      "model": "",
+      "permissionMode": "build",
+      "cwd": "<root>/project",
+      "cliVersion": "2.2.5",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": ""
+    },
     "status": "ended",
     "items": [
       "user-1",

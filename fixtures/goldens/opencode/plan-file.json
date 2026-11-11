@@ -36,6 +36,27 @@
       "at": 1793924139890
     },
     {
+      "type": "info",
+      "info": {
+        "id": "ses_1",
+        "model": {
+          "provider": null,
+          "id": ""
+        },
+        "mode": "build",
+        "cwd": "<root>/project",
+        "version": "2.2.5",
+        "tools": [],
+        "mcpServers": [],
+        "skills": [],
+        "commands": [],
+        "subagents": [],
+        "plugins": [],
+        "authSource": ""
+      },
+      "at": 1793924139890
+    },
+    {
       "type": "mode",
       "mode": "plan",
       "at": 1793924139933
@@ -408,7 +429,20 @@
   ],
   "outputs": [],
   "state": {
-    "info": null,
+    "info": {
+      "id": "ses_1",
+      "model": "",
+      "permissionMode": "build",
+      "cwd": "<root>/project",
+      "cliVersion": "2.2.5",
+      "tools": [],
+      "mcpServers": [],
+      "skills": [],
+      "slashCommands": [],
+      "agents": [],
+      "plugins": [],
+      "apiKeySource": ""
+    },
     "status": "ended",
     "items": [
       "user-1",

@@ -1,6 +1,5 @@
-import { type ImageRenderable, RGBA } from "@opentui/core"
-import { useTerminalDimensions } from "@opentui/solid"
-import { createMemo, For, Show } from "solid-js"
+import { type ImageRenderable, type NativeImage, RGBA } from "@opentui/core"
+import { createMemo, createSignal, For, Show } from "solid-js"
 import { theme } from "../../theme/theme.ts"
 import { onBackground, SCRIM, tracked, underScrim } from "../images.ts"
 
@@ -29,6 +28,7 @@ function shownRect(element: ImageRenderable): Rect {
 // The parts of `rect` the panel leaves free, without overlap: a terminal image is drawn above cells, so it must not
 // reach the panel. Above and below take the whole width, left and right the rows beside the panel.
 function besidePanel(rect: Rect, panel: Rect): Rect[] {
+  if (area(rect) === 0) return []
   if (area(intersect(rect, panel)) === 0) return [rect]
   const right = rect.x + rect.width
   const bottom = rect.y + rect.height
@@ -56,49 +56,71 @@ function blend(color: RGBA): RGBA {
 
 const base = () => theme.background ?? theme.canvas
 
+type Place = { box: Rect; parts: Rect[]; image: NativeImage | null }
+
+const samePlace = (a: Place, b: Place) =>
+  a.image === b.image && JSON.stringify([a.box, a.parts]) === JSON.stringify([b.box, b.parts])
+
 // The dialog's scrim wipes the images under it, so they are drawn again above it, dimmed like the cells around them.
+// The rows behind a dialog still move (a turn goes on, a setting changes them), and nothing tells when a renderable
+// was laid out elsewhere, so every image's place is read again in every frame.
 export function DimmedImages(props: { panel: Rect }) {
-  const dimensions = useTerminalDimensions()
+  const [frame, setFrame] = createSignal(0)
   return (
-    <For each={tracked()}>
-      {(element) => {
-        const box = createMemo(() => {
-          dimensions()
-          return { x: element.screenX, y: element.screenY, width: element.width, height: element.height }
-        })
-        const parts = () => besidePanel(shownRect(element), props.panel)
-        const source = () => (element.image ? underScrim(onBackground(element.image, base())) : undefined)
-        return (
-          <Show when={source()}>
-            {(image) => (
-              <For each={parts()}>
-                {(part) => (
-                  <box
-                    position="absolute"
-                    left={part.x}
-                    top={part.y}
-                    width={part.width}
-                    height={part.height}
-                    zIndex={10}
-                    overflow="hidden"
-                    backgroundColor={blend(base())}
-                  >
-                    <image
+    <>
+      <box position="absolute" left={0} top={0} width={1} height={1} renderAfter={() => setFrame(frame() + 1)} />
+      <For each={tracked()}>
+        {(element) => {
+          const place = createMemo(
+            (): Place => {
+              frame()
+              return {
+                box: { x: element.screenX, y: element.screenY, width: element.width, height: element.height },
+                parts: besidePanel(shownRect(element), props.panel),
+                image: element.image,
+              }
+            },
+            undefined,
+            { equals: samePlace },
+          )
+          const source = () => {
+            const { image } = place()
+            if (!image) return undefined
+            // Drawn as blocks, the cells show through where the image is transparent, as they do in the image itself.
+            return underScrim(element.effectiveProtocol === "blocks" ? image : onBackground(image, base()))
+          }
+          return (
+            <Show when={source()}>
+              {(image) => (
+                <For each={place().parts}>
+                  {(part) => (
+                    <box
                       position="absolute"
-                      left={box().x - part.x}
-                      top={box().y - part.y}
-                      width={box().width}
-                      height={box().height}
-                      fit={element.fit}
-                      source={image()}
-                    />
-                  </box>
-                )}
-              </For>
-            )}
-          </Show>
-        )
-      }}
-    </For>
+                      left={part.x}
+                      top={part.y}
+                      width={part.width}
+                      height={part.height}
+                      zIndex={10}
+                      overflow="hidden"
+                      backgroundColor={blend(base())}
+                    >
+                      <image
+                        position="absolute"
+                        left={place().box.x - part.x}
+                        top={place().box.y - part.y}
+                        width={place().box.width}
+                        height={place().box.height}
+                        fit={element.fit}
+                        source={image()}
+                      />
+                    </box>
+                  )}
+                </For>
+              )}
+            </Show>
+          )
+        }}
+      </For>
+    </>
   )
 }

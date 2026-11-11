@@ -218,15 +218,34 @@ function isCommandOutput(entry: Entry): boolean {
   return entry.type === "user" && entryText(entry).startsWith("<local-command-stdout>")
 }
 
+const isToolResult = (entry: Entry) =>
+  entry.type === "user" &&
+  typeof entry.message?.content === "object" &&
+  entry.message.content.some((block) => block.type === "tool_result")
+
 export async function readTranscript(path: string, cursor?: TranscriptCursor): Promise<TranscriptPart> {
   const events: SourceEvent[] = []
+  // Calls made in parallel each get their result as a child of their own entry, so the chain passes through the
+  // last result only. The others wait here, by parent, until the walk reaches their call.
+  const sideResults = new Map<string, Entry[]>()
+  // Where they go in `events`: next to the result the chain did pass.
+  let resultsAt: number | null = null
   let wanted = cursor?.wanted ?? null
   let prompts = 0
   // The entry walked before this one was the output of a command claude ran itself.
   let afterOutput = false
   for await (const { line, offset } of readLinesBackward(path, cursor?.offset ?? Bun.file(path).size)) {
     const entry = wanted === null ? leafEntry(line) : wantedEntry(line, wanted)
-    if (entry === null) continue
+    if (entry === null) {
+      const side = wanted !== null && line.includes('"tool_result"') ? parseEntry(line) : null
+      if (side?.parentUuid && !side.isSidechain && isToolResult(side)) {
+        sideResults.set(side.parentUuid, [...(sideResults.get(side.parentUuid) ?? []), side])
+      }
+      continue
+    }
+    const results = (sideResults.get(entry.uuid ?? "") ?? []).flatMap(toEvents)
+    events.splice(resultsAt ?? events.length, 0, ...results)
+    if (resultsAt !== null) resultsAt += results.length
     const mapped = toEvents(entry)
     // Such a command is no message of the user's (a set_model after a turn writes one too), and its output is
     // dropped already, so the history drops both; /compact keeps its row before the divider.
@@ -237,6 +256,8 @@ export async function readTranscript(path: string, cursor?: TranscriptCursor): P
     if (taken.length > 0 && isCompactBoundary(entry) && isCompactCommand(events.at(-1))) {
       events.splice(-1, 0, ...taken)
     } else events.push(...taken.toReversed())
+    if (isToolResult(entry)) resultsAt = events.length
+    else if (taken.some((event) => event.dir === "out")) resultsAt = null
     wanted = (isCompactBoundary(entry) ? entry.logicalParentUuid : entry.parentUuid) ?? null
     if (wanted === null) return { events: inOrder(events), earlier: null }
     const prompt = taken.find((event) => event.dir === "out")

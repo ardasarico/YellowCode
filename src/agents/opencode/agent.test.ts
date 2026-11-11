@@ -224,7 +224,15 @@ test("events of other sessions on the shared service never reach this one", asyn
   const events = agent.events[Symbol.asyncIterator]()
   shared.send(textStarted("ses_other", 2), textStarted("ses_1", 3))
   const seen = await until(events, "text.start")
-  expect(seen.map((event) => event.type)).toEqual(["ready", "seen", "turn.open", "reply", "turn.step", "text.start"])
+  expect(seen.map((event) => event.type)).toEqual([
+    "ready",
+    "info",
+    "seen",
+    "turn.open",
+    "reply",
+    "turn.step",
+    "text.start",
+  ])
   expect(seen.at(-1)).toMatchObject({ part: "msg_3:text:0" })
   await agent.close()
 })

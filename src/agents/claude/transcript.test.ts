@@ -135,6 +135,33 @@ test("a later task notification without its tool-use-id still reaches the agent"
   expect(tool).toMatchObject({ agent: { state: "completed", report: "finished" } })
 })
 
+const call = (id: string) => ({
+  type: "assistant",
+  message: { id: "m1", role: "assistant", content: [{ type: "tool_use", id, name: "Read", input: {} }] },
+})
+const result = (id: string) => ({
+  type: "user",
+  message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "ok" }] },
+})
+
+test("parallel calls keep their results: each hangs from its own call, off the chain but for the last", async () => {
+  const entries = [
+    { ...user("read three files"), uuid: "p", parentUuid: null },
+    { ...call("t1"), uuid: "c1", parentUuid: "p" },
+    { ...call("t2"), uuid: "c2", parentUuid: "c1" },
+    { ...call("t3"), uuid: "c3", parentUuid: "c2" },
+    { ...result("t1"), uuid: "r1", parentUuid: "c1" },
+    { ...result("t2"), uuid: "r2", parentUuid: "c2" },
+    { ...result("t3"), uuid: "r3", parentUuid: "c3" },
+  ]
+  const path = join(mkdtempSync(join(tmpdir(), "yellowcode-transcript-")), "parallel.jsonl")
+  writeFileSync(path, entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n")
+  const session = createSession()
+  loadHistory(session, (await readTranscript(path)).events)
+  const tools = Object.values(session.state.byId).filter((item) => item.kind === "tool")
+  expect(tools.map((tool) => tool.status)).toEqual(["done", "done", "done"])
+})
+
 test("commands claude ran itself drop out with their output, /compact stays", async () => {
   const entries = [
     user("first"),
