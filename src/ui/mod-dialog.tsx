@@ -71,15 +71,20 @@ function Input(props: { options: ModInputOptions; close: Close }) {
 function Custom(props: { options: ModDialogOptions; mod: string; close: Close }) {
   const dimensions = useTerminalDimensions()
   const mod = untrack(() => props.mod)
-  let handler: ((key: KeyEvent) => void) | null = null
+  let handler: ((key: KeyEvent) => boolean | void) | null = null
   useKeyboard((key) => {
     key.stopPropagation()
     key.preventDefault()
-    if (key.name === "escape") props.close(null)
-    else if (handler) {
+    let kept = false
+    if (handler) {
       const run = handler
-      guarded(mod, () => run(key))
+      guarded(mod, () => {
+        const result = run(key)
+        kept = result === true
+        return result
+      })
     }
+    if (key.name === "escape" && !kept) props.close(null)
   })
   const wide = () => props.options.wide === true
   return (

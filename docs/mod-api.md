@@ -145,7 +145,8 @@ The snippets in this guide go inside `setup(mod)` of a `defineMod` call, as in t
 
 The mods in this repo's `mods/` folder are complete examples:
 
-- `mods/git`: a sidebar section with the changed files, refreshed on events, and a diff dialog on click.
+- `mods/git`: a sidebar section with the changed files, refreshed on events, and a diff dialog on click that draws its
+  own rows, takes notes on lines and puts them in the prompt.
 - `mods/csv`: a fence that draws `csv` and `tsv` blocks as tables.
 - `mods/terminal`: shells in a pane, settings, shortcuts read from settings, two tools for the agent and rows for them.
 
@@ -526,12 +527,14 @@ mod.commands.add({
 
 - `theme`: the current theme's colors: `background` (null when the theme leaves the terminal's own), `text`, `muted`,
   `faint`, `accent`, `success`, `warning`, `error`, `frame`, `selection` (null when the theme has none), `diffAddText`
-  and `diffDelText`. Read them inside a view and the view follows a theme change. Only these are part of the API
+  and `diffDelText`, and the row tints `diffAdd` and `diffDel` (null when the theme has none). Read them inside a view and the view follows a theme change. Only these are part of the API
   (`ModTheme`).
 - `Diff`: a unified diff, as `git diff` prints it, drawn like the diffs in the chat. Props: `diff`, and optionally
   `lang` (a fence info string like `"ts"`) for highlighting and `context` lines (3 by default).
 - `Code`: highlighted code with line numbers. Props: `code` and `lang`, a fence info string like `"ts"`.
 - `Rule`: a line across the given `width`, in the frame color.
+- `syntaxStyle()`: the theme's colors for highlighted code, for the `syntaxStyle` of an OpenTUI `<code>` element when
+  a view draws its own code rows.
 
 This command opens a wide dialog with a diff; Tab switches to the file before the change:
 
@@ -578,10 +581,12 @@ export default defineMod({
 ```
 
 `open` takes a `title`, `wide` for nearly the whole screen instead of the usual width, footer `hints`, and the `view`.
-The view gets the room for its content (`width`, `height`), `onKey`, which gets every key but Esc, and `close()`. Esc
-always closes the dialog. `open` returns `{ shown, close(), closed }`, where `shown` is false when the dialog was
-refused, and `closed` is a promise that resolves when the dialog closes. The Git mod's diff dialog adds a `<scrollbox>`
-for long diffs.
+The view gets the room for its content (`width`, `height`), `onKey`, which gets every key, and `close()`. Esc closes the
+dialog. Since 0.2.2 the `onKey` handler gets Esc as well, and returning `true` for it keeps the dialog open, as a view
+does to leave an input of its own; a handler that returns nothing still lets Esc close it. `open` returns `{
+shown, close(), closed }`, where `shown` is false when the dialog was refused, and `closed` is a promise that resolves
+when the dialog closes. The Git mod's diff dialog draws its own rows instead of `Diff`, so it can keep a cursor on a
+line.
 
 ## Tool rows
 
@@ -867,6 +872,9 @@ read `mod.session.permissionMode()`, and `props.mode?.id` where a `status-line` 
 calls and `tool-done` gained `kind`. YellowCode's own question tool, which stands in for Claude Code's AskUserQuestion,
 now reaches row renderers as `short` `"AskUserQuestion"` with `source` `null`, like the tool it replaces; its `name` is
 unchanged.
+
+0.2.2 hands Esc to a dialog's `onKey` handler too: returning `true` for it keeps the dialog open. A handler that returns
+nothing works as before, and Esc closes the dialog.
 
 ## Getting a mod listed
 

@@ -1,9 +1,9 @@
 {
   "id": "git",
   "name": "Git",
-  "version": "0.2.0",
-  "description": "The files changed in this session, in the sidebar and in /git.",
-  "api": "^0.2",
+  "version": "0.3.0",
+  "description": "The files changed in this session, in the sidebar and in /git, with notes on diff lines for the agent.",
+  "api": "^0.2.2",
   "agents": "any",
   "entry": "index.tsx"
 }

@@ -169,8 +169,9 @@ export type ModDialogViewProps = {
   // Rows and columns for the mod's content, the title and footer left out.
   width: number
   height: number
-  // Every key but Esc, which closes the dialog, comes here. The last handler given wins; the returned function removes it.
-  onKey: (handler: (key: KeyEvent) => void) => Dispose
+  // Every key comes here. Esc closes the dialog unless the handler returns true for it. The last handler given wins;
+  // the returned function removes it.
+  onKey: (handler: (key: KeyEvent) => boolean | void) => Dispose
   close(): void
 }
 
@@ -398,5 +399,5 @@ export function defineMod<const S extends ModSettingDefinitions = ModSettingDefi
   return { settings: definition.settings, setup: (mod) => definition.setup(mod), [BRAND]: true }
 }
 
-export { Code, Diff, type ModTheme, Rule, theme } from "./kit.tsx"
+export { Code, Diff, type ModTheme, Rule, syntaxStyle, theme } from "./kit.tsx"
 export { apiVersion } from "./version.ts"
