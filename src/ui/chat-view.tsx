@@ -13,6 +13,7 @@ import {
 } from "solid-js"
 import type { SettingChange } from "../agent/settings.ts"
 import type { Command } from "../input/commands.ts"
+import { settings } from "../session/settings.ts"
 import { shellNodeId } from "../session/shells.ts"
 import type { Ask, Item, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
@@ -24,13 +25,13 @@ import { Markdown } from "./markdown/markdown.tsx"
 import { refTarget } from "./markdown/refs.ts"
 import { RewoundBand } from "./rewind/rewound-band.tsx"
 import { ShellEndRow } from "./shell-end-row.tsx"
-import { buildRows, REWOUND_ROW, type Row } from "./structure.ts"
+import { buildRows, foldRuns, REWOUND_ROW, type Row, RUN_SUFFIX } from "./structure.ts"
 import { Divider, SystemRow } from "./system-row.tsx"
 import { ThinkingRow } from "./thinking.tsx"
 import { TodoRow } from "./todos/todo-row.tsx"
 import { isPeerSend, PeerSendRow } from "./peer-send-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
-import { ToolGroupRow } from "./tool-group.tsx"
+import { ToolGroupRow, ToolRunRow } from "./tool-group.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
 import { UserMessageRow } from "./user-message.tsx"
 import type { Workspace } from "./welcome.tsx"
@@ -78,6 +79,8 @@ type RowProps = ChatProps & {
   askOf: (id: string) => Ask | null
   previous: Row["kind"] | undefined
   agentIndex: number
+  // The row belongs to an open run of a finished turn.
+  nested: boolean
   waiting: number
   viewport: () => Renderable | undefined
   // The height a row far off screen keeps while it draws nothing.
@@ -109,6 +112,7 @@ function RowView(props: RowProps) {
     <box
       ref={props.onBox}
       marginTop={gap()}
+      paddingLeft={props.nested ? 2 : 0}
       height={props.frozen}
       renderAfter={function () {
         const id = props.selected
@@ -118,7 +122,8 @@ function RowView(props: RowProps) {
         if (row.kind === "group") {
           const part = id === row.id || row.members.includes(id) ? this.findDescendantById(id) : undefined
           if (part) invertCells(part, props.viewport())
-        } else if (id === row.id) invertCells(this, props.viewport())
+        } else if (id === row.id)
+          invertCells((props.nested ? this.findDescendantById(id) : undefined) ?? this, props.viewport())
         // A selected reference is reversed in its own text run.
         else if (id.startsWith(`${props.row.id}/`) && !refTarget(id)) {
           const label = this.findDescendantById(id)
@@ -186,6 +191,18 @@ function RowView(props: RowProps) {
               />
             )}
           </Match>
+          <Match when={props.row.kind === "run" ? props.row : undefined}>
+            {(run) => (
+              <ToolRunRow
+                session={props.session}
+                id={run().id}
+                rows={run().rows}
+                selected={props.selected === run().id}
+                open={props.expanded[run().id] === true}
+                onToggle={props.onToggle}
+              />
+            )}
+          </Match>
           <Match when={props.row.kind === "agent" ? item("tool") : undefined}>
             {(tool) => (
               <AgentRow
@@ -239,22 +256,33 @@ function RowView(props: RowProps) {
   )
 }
 
-const holdsSelection = (row: Row, selected: string | null) =>
+export const holdsSelection = (row: Row, selected: string | null) =>
   selected !== null &&
   (selected === row.id || selected.startsWith(`${row.id}/`) || (row.kind === "group" && row.members.includes(selected)))
 
-// A row keeps its object while it stays the same, so its view does not run again.
-export function createRows(session: () => Session) {
-  return createMemo((previous: Row[]) => {
+const rowKeys = (rows: Row[]) => rows.map((row) => `${row.kind} ${row.id}`)
+
+// A row keeps its object while it stays the same, so its view does not run again. The rows of a run in `expanded`
+// follow it.
+export function createRows(session: () => Session, expanded: Record<string, boolean>) {
+  const built = createMemo((previous: Row[]) => {
     const old = new Map(previous.map((row) => [row.id, row]))
-    return buildRows(session()).map((row) => {
+    const rows = buildRows(session())
+    return (settings.finishedTurns === "fold" ? foldRuns(session(), rows) : rows).map((row) => {
       const kept = old.get(row.id)
       if (!kept || kept.kind !== row.kind) return row
       if (kept.kind === "end" && row.kind === "end") return sameIds(kept.turnEnds, row.turnEnds) ? kept : row
       if (kept.kind === "group" && row.kind === "group") return sameIds(kept.members, row.members) ? kept : row
+      if (kept.kind === "run" && row.kind === "run") return sameIds(rowKeys(kept.rows), rowKeys(row.rows)) ? kept : row
       return kept
     })
   }, [])
+  return createMemo(() =>
+    built().flatMap((row) => {
+      const rows: Row[] = [row]
+      return row.kind === "run" && expanded[row.id] === true ? rows.concat(row.rows) : rows
+    }),
+  )
 }
 
 export function ChatView(props: ChatViewProps) {
@@ -277,7 +305,30 @@ export function ChatView(props: ChatViewProps) {
       { defer: true },
     ),
   )
+  // Runs that fold above the lines the user reads leave those lines where they are: the first row in view is
+  // measured before the change and put back in the same layout pass.
+  let refolded: { box: Renderable | undefined; top: number } | null = null
+  const runIds = createMemo(() => rowIds().filter((id) => id.endsWith(RUN_SUFFIX)), [], { equals: sameIds })
+  createEffect(
+    on(
+      runIds,
+      () => {
+        refolded = null
+        if (!scroll || shifted || scroll.scrollTop >= scroll.scrollHeight - scroll.viewport.height) return
+        const edge = scroll.viewport.y
+        // A row made just now sits at the top with no height, so it is never the one in view.
+        const box = rowIds()
+          .map((id) => boxes.get(id))
+          .find((row) => row && row.y + row.height > edge)
+        refolded = { box, top: (box?.y ?? 0) - scroll.content.y }
+      },
+      { defer: true },
+    ),
+  )
   const rowById = createMemo(() => new Map(props.rows().map((row) => [row.id, row])))
+  const nested = createMemo(
+    () => new Set(props.rows().flatMap((row) => (row.kind === "run" ? row.rows.map((inner) => inner.id) : []))),
+  )
   const agentIndex = createMemo(
     () =>
       new Map(
@@ -333,7 +384,7 @@ export function ChatView(props: ChatViewProps) {
     ),
   )
   const turnStart = createMemo(() => props.rows().findLastIndex((row) => row.kind === "user"))
-  // A selection in a frozen row can only scroll into view once the row is laid out again.
+  // A selection in a frozen row, or in a row made just now, can only scroll into view once the row is laid out.
   let scrollToSelected: string | null = null
   let placingFrames = 0
   createEffect(
@@ -344,11 +395,12 @@ export function ChatView(props: ChatViewProps) {
         if (scroll) scroll.content.viewportCulling = true
         if (!id) return
         const row = props.rows().find((candidate) => holdsSelection(candidate, id))
-        if (row && frozen().has(row.id) && scroll) {
+        const placed = (scroll?.content.findDescendantById(id)?.height ?? 0) > 0
+        if (row && scroll && (frozen().has(row.id) || !placed)) {
           scrollToSelected = id
           placingFrames = 0
           scroll.content.viewportCulling = false
-          setFrozen(new Set([...frozen()].filter((frozenId) => frozenId !== row.id)))
+          if (frozen().has(row.id)) setFrozen(new Set([...frozen()].filter((frozenId) => frozenId !== row.id)))
         } else scroll?.scrollChildIntoView(id)
       },
     ),
@@ -387,6 +439,14 @@ export function ChatView(props: ChatViewProps) {
         element.content.onSizeChange = () => {
           const before = element.scrollHeight
           resized?.()
+          if (refolded) {
+            const moved = refolded.box ? refolded.box.getComputedLayout().top - refolded.top : 0
+            refolded = null
+            element.scrollTo(element.scrollTop + moved)
+            // Only what folded above the view was there when the user left the bottom.
+            if (leftAtHeight !== null) leftAtHeight = Math.min(leftAtHeight + moved, element.scrollHeight)
+            return
+          }
           if (!shifted) return
           reachedTop = false
           const delta = element.scrollHeight - before
@@ -403,6 +463,7 @@ export function ChatView(props: ChatViewProps) {
         leftAtHeight = atBottom ? null : (leftAtHeight ?? this.scrollHeight)
         props.onScrollState({ atBottom, newLines: this.scrollHeight - (leftAtHeight ?? this.scrollHeight) })
         shifted = false
+        refolded = null
         // Rows off screen get no layout while the viewport culls them, so the one with the selection is placed in a
         // frame without culling.
         if (scrollToSelected) {
@@ -455,6 +516,7 @@ export function ChatView(props: ChatViewProps) {
                   askOf={(tool) => askByTool().get(tool) ?? null}
                   previous={previous()}
                   agentIndex={index()}
+                  nested={nested().has(id)}
                   waiting={id === latestEnd() ? waitingAgents() : 0}
                   viewport={() => scroll?.viewport}
                   frozen={frozen().has(id) ? heights.get(id) : undefined}

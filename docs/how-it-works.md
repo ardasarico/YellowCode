@@ -104,6 +104,8 @@ get and Pi does not. How they start, which providers keep your plugins and how p
   only one. Pick another start mode for each agent in `/settings`.
 - Thinking shown as a summary, or hidden if you set Thinking to hidden in `/settings`. The setting does not apply to
   opencode or Pi.
+- The tool rows of a finished turn folded into one line, three or more in a row, which opens again with Enter or a
+  click. Set Finished turns to Show tools in `/settings` to keep every row.
 - Three tools for your other open sessions, `list`, `send` and `broadcast`, given to the agent the same way as the mods'
   tools. See [Sessions working together](agents.md#sessions-working-together). Pi does not get them.
 - Five tools to run [subagents](agents.md#subagents) on the providers you added. Pi does not get them.

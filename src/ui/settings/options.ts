@@ -102,6 +102,16 @@ const THINKING = stored<"thinking">({
   options: same(["summarized", "hidden"]),
 })
 
+const FINISHED_TURNS = stored<"finishedTurns">({
+  key: "finishedTurns",
+  section: "Appearance",
+  label: "Finished turns",
+  options: [
+    { value: "fold", label: "Fold tools" },
+    { value: "show", label: "Show tools" },
+  ],
+})
+
 const sessionTitle = (agentName: string) =>
   stored({
     key: "sessionTitle",
@@ -229,6 +239,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefini
   THEME,
   SIDEBAR,
   THINKING,
+  FINISHED_TURNS,
   sessionTitle(agent.name),
   defaultMode(agent.id, modes),
   EDITOR,

@@ -117,6 +117,7 @@ export function settingsFacts(
     ["Theme", settings.theme],
     ["Sidebar", settings.sidebar],
     ["Thinking", settings.thinking],
+    ["Finished turns", settings.finishedTurns],
     ["Session title", settings.sessionTitle],
     ["Providers", settings.providers?.map(named).join(", ")],
     [`${running.name} mode`, mode === null ? null : modeLabel(running.modes, mode)],

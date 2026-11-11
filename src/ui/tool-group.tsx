@@ -3,7 +3,7 @@ import { For, Index, Match, Show, Switch } from "solid-js"
 import type { Ask, ItemId, Session } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { FoldHint } from "./fold-hint.tsx"
-import { groupLabel } from "./structure.ts"
+import { groupLabel, type Row, runLabel } from "./structure.ts"
 import { ThinkingRow } from "./thinking.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 
@@ -89,6 +89,50 @@ export function ToolGroupRow(props: {
           </For>
         </box>
       </Show>
+    </box>
+  )
+}
+
+const count = (n: number, noun: string) => (
+  <>
+    <span style={{ fg: theme.text, bold: true }}>{n}</span>
+    <span style={{ fg: theme.muted }}>{` ${noun}`}</span>
+  </>
+)
+
+// A finished turn's folded tool rows; open, the rows follow it in the chat.
+export function ToolRunRow(props: {
+  session: Session
+  id: string
+  rows: Row[]
+  selected: boolean
+  open: boolean
+  onToggle: (id: string) => void
+}) {
+  const label = () => runLabel(props.session, props.rows)
+  return (
+    <box
+      id={props.id}
+      alignSelf="flex-start"
+      backgroundColor={(props.selected ? theme.selection : null) ?? CLEAR}
+      onMouseDown={(event) => {
+        event.preventDefault()
+        props.onToggle(props.id)
+      }}
+    >
+      <text wrapMode="none">
+        <span style={{ fg: theme.muted }}>● </span>
+        {count(label().tools, "tools")}
+        <Show when={label().files > 0}>
+          <span style={{ fg: theme.muted }}> · </span>
+          {count(label().files, label().files === 1 ? "file changed" : "files changed")}
+        </Show>
+        <Show when={label().failed > 0}>
+          <span style={{ fg: theme.muted }}> · </span>
+          <span style={{ fg: theme.error }}>{`${label().failed} failed`}</span>
+        </Show>
+        <FoldHint open={props.open} selected={props.selected} gap=" · " />
+      </text>
     </box>
   )
 }

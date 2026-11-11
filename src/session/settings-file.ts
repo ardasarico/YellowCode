@@ -45,6 +45,8 @@ export type StoredSettings = {
   theme: string
   sidebar: SidebarSetting
   thinking: ThinkingSetting
+  // "fold": the tool rows of a turn that ended shrink to one line per run.
+  finishedTurns: "fold" | "show"
   sessionTitle: TitleSource
   editor: Editor
   notifications: NotificationSetting
@@ -69,6 +71,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   theme: "default-dark",
   sidebar: "auto",
   thinking: "summarized",
+  finishedTurns: "fold",
   sessionTitle: "yellowcode",
   editor: "default",
   notifications: "all",
@@ -133,6 +136,7 @@ const Stored = z.record(z.string(), z.unknown())
 const Theme = z.string().refine((id) => themes().some((theme) => theme.id === id))
 const Sidebar = z.enum(["auto", "shown", "hidden"])
 const Thinking = z.enum(["summarized", "hidden"])
+const FinishedTurns = z.enum(["fold", "show"])
 // Earlier files saved the agent's own titles as "claude-code".
 const SessionTitle = z.preprocess(
   (source) => (source === "claude-code" ? "agent" : source),
@@ -274,6 +278,7 @@ function readStored(stored: Record<string, unknown>) {
   read("theme", Theme)
   read("sidebar", Sidebar)
   read("thinking", Thinking)
+  read("finishedTurns", FinishedTurns)
   read("sessionTitle", SessionTitle)
   read("providers", Providers)
   read("models", Models)

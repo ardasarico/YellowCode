@@ -296,6 +296,8 @@ export type Session = {
   // agent itself (a background task's end). The status can stay "running" without one while messages wait to be
   // taken in.
   turn: "user" | "agent" | null
+  // The first item the running turn added, once it has one. A message waiting to be taken in is not it.
+  turnFrom?: ItemId
   // The permission mode the agent says the session runs in (Claude's "default" is shown as manual).
   permissionMode: string | null
   // The modes an agent that lists its own said it has; absent until it does.

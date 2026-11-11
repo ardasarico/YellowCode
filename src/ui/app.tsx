@@ -111,7 +111,7 @@ import {
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
 import { useAttention } from "./attention.ts"
-import { ChatView, createRows, type ScrollState } from "./chat-view.tsx"
+import { ChatView, createRows, holdsSelection, type ScrollState } from "./chat-view.tsx"
 import { AgentOfChat } from "./turn-end.tsx"
 import { pasteNotice } from "./chips.ts"
 import type { Submission } from "./completion.ts"
@@ -861,7 +861,17 @@ export function App(props: AppProps) {
     return ids
   }
   const shownItems = () => itemsShown(props.session.items, props.session.rewound)
-  const rows = createRows(() => props.session)
+  const rows = createRows(() => props.session, expanded)
+  // A selected row that folds into a run at its turn's end hands the selection to the run.
+  createEffect(
+    on(rows, (now) => {
+      const id = untrack(selected)
+      const run = now.find(
+        (row) => row.kind === "run" && expanded[row.id] !== true && row.rows.some((inner) => holdsSelection(inner, id)),
+      )
+      if (run) setSelected(run.id)
+    }),
+  )
   // The rows' items in order: a hidden thought gives none, a group its own id and, while open, its calls and thoughts.
   const rowItems = () =>
     rows().flatMap((row) => {
@@ -870,7 +880,7 @@ export function App(props: AppProps) {
     })
   const selectableIds = () =>
     rowItems().flatMap((id) => {
-      if (id.endsWith("/group")) return [id]
+      if (id.endsWith("/group") || id.endsWith("/run")) return [id]
       const item = props.session.byId[id]
       const own =
         item?.kind === "tool" || (item?.kind === "thinking" && hasThinkingText(item)) || overflowing[id] === true

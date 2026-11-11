@@ -6,7 +6,7 @@ import { interruptRequest, userMessage } from "../protocol/outgoing.ts"
 import { parse } from "../protocol/parse.ts"
 import { createSession } from "../session/session.ts"
 import { parseRecording } from "../source/recording.ts"
-import { buildRows, groupLabel } from "./structure.ts"
+import { buildRows, foldRuns, groupLabel, runLabel } from "./structure.ts"
 
 function rowsOf(name: string) {
   const path = join(import.meta.dir, "..", "..", "fixtures", "sessions", `${name}.jsonl`)
@@ -143,4 +143,45 @@ test("a message queued while the agent writes stays below its output until the a
   receive({ type: "command_lifecycle", command_uuid: "u2", state: "started" })
   receive({ type: "assistant", message: { id: "b", content: [{ type: "text", text: "second" }] } })
   expect(kinds()).toEqual(["user", "markdown", "tool", "end", "user", "markdown"])
+})
+
+test("three or more tool rows in a row fold into one once their turn has ended", () => {
+  const session = createSession()
+  const receive = (message: object) => feed(session, "in", parse(JSON.stringify(message)), 0)
+  let n = 0
+  const assistant = (block: object) => receive({ type: "assistant", message: { id: `m${n++}`, content: [block] } })
+  const call = (name: string, input: object, failed = false) => {
+    const id = `t${n}`
+    assistant({ type: "tool_use", id, name, input })
+    receive({
+      type: "user",
+      message: { content: [{ type: "tool_result", tool_use_id: id, content: "out", is_error: failed }] },
+    })
+  }
+  const kinds = () => foldRuns(session.state, buildRows(session.state)).map((row) => row.kind)
+  feed(session, "out", parse(userMessage("fix it")), 0)
+  call("Edit", { file_path: "/p/a.ts", old_string: "a", new_string: "b" })
+  call("Edit", { file_path: "/p/a.ts", old_string: "b", new_string: "c" })
+  call("Write", { file_path: "/p/b.ts", content: "x" })
+  call("Edit", { file_path: "/p/c.ts", old_string: "a", new_string: "b" }, true)
+  assistant({ type: "text", text: "halfway" })
+  call("Edit", { file_path: "/p/a.ts", old_string: "c", new_string: "d" })
+  call("Write", { file_path: "/p/d.ts", content: "x" })
+  assistant({ type: "text", text: "done" })
+  expect(kinds()).toEqual(["user", "tool", "tool", "tool", "tool", "markdown", "tool", "tool", "markdown"])
+  receive(result)
+  expect(kinds()).toEqual(["user", "run", "markdown", "tool", "tool", "markdown", "end"])
+
+  const run = foldRuns(session.state, buildRows(session.state))[1]
+  if (run?.kind !== "run") throw new Error("no run")
+  expect(runLabel(session.state, run.rows)).toEqual({ tools: 4, files: 2, failed: 1 })
+
+  // The next turn's calls keep their rows while it runs.
+  feed(session, "out", parse(userMessage("more")), 0)
+  for (const path of ["/p/e.ts", "/p/f.ts", "/p/g.ts"]) call("Write", { file_path: path, content: "x" })
+  expect(kinds().slice(7)).toEqual(["user", "tool", "tool", "tool"])
+  // A message the agent takes in mid-turn does not end the turn.
+  feed(session, "out", parse(userMessage("and this", [], "u3")), 0)
+  receive({ type: "command_lifecycle", command_uuid: "u3", state: "started" })
+  expect(kinds().slice(7)).toEqual(["user", "tool", "tool", "tool", "user"])
 })

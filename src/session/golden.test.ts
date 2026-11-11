@@ -64,8 +64,11 @@ function json(text: string): unknown {
 }
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex").slice(0, 12)
-const snapshot = (session: SessionStore) => json(JSON.stringify(session.state))
-const hash = (session: SessionStore) => sha(JSON.stringify(session.state))
+// `turnFrom` only says where the chat may fold, and is gone once the turn ends.
+const pinned = (session: SessionStore) =>
+  JSON.stringify(session.state, (key, value: unknown) => (key === "turnFrom" ? undefined : value))
+const snapshot = (session: SessionStore) => json(pinned(session))
+const hash = (session: SessionStore) => sha(pinned(session))
 
 const show = (value: unknown, from = 0) => {
   const text = value === undefined ? "(missing)" : JSON.stringify(value)

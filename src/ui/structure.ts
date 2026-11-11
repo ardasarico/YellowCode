@@ -15,10 +15,12 @@ export type Row =
     }
   | { kind: "end"; id: ItemId; turnEnds: ItemId[] }
   | { kind: "group"; id: string; members: ItemId[] }
+  // The tool rows a finished turn made one after another, as one line; `rows` are what it opens into.
+  | { kind: "run"; id: string; rows: Row[] }
 
 type EndRow = Extract<Row, { kind: "end" }>
 
-function rowKind(item: Exclude<Item, { kind: "turn-end" | "ask" }>): Exclude<Row["kind"], "end" | "group"> {
+function rowKind(item: Exclude<Item, { kind: "turn-end" | "ask" }>): Exclude<Row["kind"], "end" | "group" | "run"> {
   if (item.kind === "text") return "markdown"
   if (item.kind === "tool")
     return item.agent || item.toolKind === "agent" || item.toolKind === "workflow" ? "agent" : "tool"
@@ -112,12 +114,17 @@ function foldable(session: Session, asks: Map<string, Ask>, tool: ToolCall): boo
 // Finished reads, searches and commands shrink to one line, and those in a row with only thoughts between them
 // share one once something else follows; until then each keeps its own line, so the work is seen going on. A
 // finished thought stays only right before the agent's reply.
-function fold(session: Session, rows: Row[]): Row[] {
+function asksByTool(session: Session): Map<string, Ask> {
   const asks = new Map<string, Ask>()
   for (const id of session.items) {
     const item = session.byId[id]
     if (item?.kind === "ask") asks.set(item.toolUseId, item)
   }
+  return asks
+}
+
+function fold(session: Session, rows: Row[]): Row[] {
+  const asks = asksByTool(session)
   const folded = (row: Row) => {
     const item = session.byId[row.id]
     return row.kind === "tool" && item?.kind === "tool" && foldable(session, asks, item)
@@ -166,6 +173,60 @@ function fold(session: Session, rows: Row[]): Row[] {
   flush()
   for (const row of rows.slice(tail)) out.push(folded(row) ? { kind: "brief", id: row.id } : row)
   return out.filter((row, index) => !finishedThought(row) || out[index + 1]?.kind === "markdown")
+}
+
+export const RUN_SUFFIX = "/run"
+const SHORTEST_RUN = 3
+
+// Once a turn has ended, three or more of its tool rows in a row become one. A call the user was asked about and
+// did not allow, a question, a plan, a `!` command, a call with images and a background shell keep their own rows.
+// While a turn runs, only what came before its first item has ended.
+export function foldRuns(session: Session, rows: Row[]): Row[] {
+  const first = session.turnFrom === undefined ? session.items.length : session.items.indexOf(session.turnFrom)
+  const ended = new Set(session.turn === null ? session.items : session.items.slice(0, Math.max(first, 0)))
+  const asks = asksByTool(session)
+  const joins = (row: Row) => {
+    if (row.kind === "group") return ended.has(row.members[0] ?? "")
+    const tool = row.kind === "tool" || row.kind === "brief" ? session.byId[row.id] : undefined
+    if (tool?.kind !== "tool" || !ended.has(tool.id) || tool.status === "running") return false
+    if (tool.toolKind === "question" || tool.toolKind === "plan" || tool.local || tool.images.length > 0) return false
+    if (isBackgroundShell(tool, session.tasks[tool.taskId ?? ""] ?? null)) return false
+    const ask = asks.get(tool.id)
+    return !ask || ask.status === "allowed"
+  }
+  const out: Row[] = []
+  let run: Row[] = []
+  const flush = () => {
+    const lead = run[0]
+    if (lead && run.length >= SHORTEST_RUN) out.push({ kind: "run", id: `${lead.id}${RUN_SUFFIX}`, rows: run })
+    else out.push(...run)
+    run = []
+  }
+  for (const row of rows) {
+    if (joins(row)) run.push(row)
+    else {
+      flush()
+      out.push(row)
+    }
+  }
+  flush()
+  return out
+}
+
+export function runLabel(session: Session, rows: Row[]): { tools: number; files: number; failed: number } {
+  const tools = rows
+    .flatMap((row) => (row.kind === "group" ? row.members : [row.id]))
+    .flatMap((id) => {
+      const item = session.byId[id]
+      return item?.kind === "tool" ? [item] : []
+    })
+  const files = new Set<string>()
+  for (const tool of tools) {
+    if (tool.status !== "done") continue
+    for (const file of tool.files) files.add(file.path)
+    if (tool.files.length === 0 && (tool.toolKind === "edit" || tool.toolKind === "write")) files.add(tool.summary)
+  }
+  return { tools: tools.length, files: files.size, failed: tools.filter((tool) => tool.status === "error").length }
 }
 
 function plural(n: number, noun: string): string {

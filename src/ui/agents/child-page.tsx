@@ -12,8 +12,8 @@ const none = () => {}
 // answered here.
 export function ChildPage(props: PageProps & { child: ChildView }) {
   const duration = useDuration(() => props.node)
-  const rows = createRows(() => props.child.store.state)
   const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
+  const rows = createRows(() => props.child.store.state, expanded)
   const providerId = () => props.child.providerId
   const meta = () => [
     "subagent",

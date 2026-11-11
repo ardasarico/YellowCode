@@ -309,6 +309,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
           ids.push(item.id)
         }),
       )
+      const waits = item.kind === "user" && item.queue === "queued"
+      if (state.turn !== null && state.turnFrom === undefined && !waits) setState("turnFrom", item.id)
     }
     return true
   }
@@ -945,6 +947,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     )
     for (const prompt of event.prompts) settleQueued(prompt)
     setState("turn", null)
+    setState("turnFrom", undefined)
     // A message still queued runs next, so the session keeps running.
     setState("status", waiting.size > 0 ? "running" : "idle")
   }
@@ -1458,6 +1461,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     early.clear()
     hiding = false
     setState("turn", null)
+    setState("turnFrom", undefined)
     setState("interrupting", false)
     setState("compacting", false)
     setState("status", "ended")
@@ -1565,6 +1569,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
         })
       if (startsTurn && waiting.size === 0) {
         setState("turn", null)
+        setState("turnFrom", undefined)
         setState("status", "idle")
       }
     },
