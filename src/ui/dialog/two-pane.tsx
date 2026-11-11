@@ -228,7 +228,7 @@ export function TwoPane(props: TwoPaneProps) {
       const owner = selectedRow()
       if (pane() === "detail") return (owner && props.detailFooter?.(owner, focusedItem())) ?? detailFooter()
       const row = selectedRow()
-      return row ? props.footer(row) : searchFooter("close")
+      return row ? props.footer(row) : searchFooter("close", props.api.strip())
     },
   })
 

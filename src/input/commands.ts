@@ -27,7 +27,6 @@ export const OWN_COMMANDS: Command[] = [
   { name: "providers", description: "Add or remove providers", argumentHint: "", aliases: [] },
   { name: "agents", description: "Assign models to subagents", argumentHint: "", aliases: [] },
   { name: "rewind", description: "Go back to before a prompt", argumentHint: "", aliases: [] },
-  { name: "timeline", description: "Move through the prompts of this session", argumentHint: "", aliases: [] },
   { name: "redo", description: "Bring back what the last rewind hid", argumentHint: "", aliases: [] },
   { name: "theme", description: "Choose the theme", argumentHint: "", aliases: [] },
   { name: "mcp", description: "See the MCP servers of this session", argumentHint: "", aliases: [] },

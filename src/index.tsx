@@ -1442,6 +1442,7 @@ const modelSource: ModelSource = {
   listed: listedRows,
   ensure: ensureListed,
   agents: () => definitions().filter((one) => one.active),
+  defined: () => definitions().length,
   carry: (id, model) => {
     const row = catalogOf(id).find((one) => one.ref.provider === model.provider && one.ref.id === model.id)
     const label = row?.resolves ? modelName(row.resolves) : (row?.label ?? model.id)

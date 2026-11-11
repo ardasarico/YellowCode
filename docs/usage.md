@@ -76,25 +76,24 @@ On the welcome screen, ↓ moves into your recent sessions and Enter opens one.
 
 ## Commands
 
-| Command        | What it does                                                  |
-| -------------- | ------------------------------------------------------------- |
-| `/rewind`      | Go back to before a prompt, with your files                   |
-| `/timeline`    | Move through the prompts of this session                      |
-| `/redo`        | Bring back what the last rewind undid                         |
-| `/resume`      | Open an earlier session from this project                     |
-| `/providers`   | Add or remove providers                                       |
-| `/model`       | Pick a model of any provider you added                        |
-| `/agents`      | Assign models to [subagents](agents.md#agent-files)           |
-| `/rename`      | Name the session, or let the agent name it (`/rename [name]`) |
-| `/export`      | Copy the conversation, or save it as Markdown                 |
-| `/settings`    | YellowCode's settings                                         |
-| `/theme`       | Pick a theme                                                  |
-| `/mods`        | See and manage your mods                                      |
-| `/mcp`         | The MCP servers of this session                               |
-| `/skills`      | The skills of this session                                    |
-| `/plugins`     | The plugins of this session                                   |
-| `/permissions` | The rules you allowed for good, where the agent lists them    |
-| `/report`      | Copy a summary of your setup for a bug report                 |
+| Command        | What it does                                                                    |
+| -------------- | ------------------------------------------------------------------------------- |
+| `/rewind`      | Open the timeline of the session to go back to before a prompt, with your files |
+| `/redo`        | Bring back what the last rewind undid                                           |
+| `/resume`      | Open an earlier session from this project                                       |
+| `/providers`   | Add or remove providers                                                         |
+| `/model`       | Pick a model of any provider you added                                          |
+| `/agents`      | Assign models to [subagents](agents.md#agent-files)                             |
+| `/rename`      | Name the session, or let the agent name it (`/rename [name]`)                   |
+| `/export`      | Copy the conversation, or save it as Markdown                                   |
+| `/settings`    | YellowCode's settings, and an overview of the session                           |
+| `/theme`       | Pick a theme                                                                    |
+| `/mods`        | See and manage your mods                                                        |
+| `/mcp`         | The MCP servers of this session                                                 |
+| `/skills`      | The skills of this session                                                      |
+| `/plugins`     | The plugins of this session                                                     |
+| `/permissions` | The rules you allowed for good, where the agent lists them                      |
+| `/report`      | Copy a summary of your setup for a bug report                                   |
 
 Other commands go to your agent. YellowCode handles a few itself, such as `/effort`, `/context` and `/plan`, and
 `/usage` with Claude Code. It leaves out the few of Claude Code's that only work in its own screen. Each of YellowCode's

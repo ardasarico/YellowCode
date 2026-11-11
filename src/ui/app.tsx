@@ -161,6 +161,8 @@ import { RewindDialog } from "./rewind/rewind-dialog.tsx"
 import type { AgentSettings } from "./settings/config-tab.tsx"
 import type { AgentOption } from "./settings/options.ts"
 import { SettingsDialog, type SettingsTab } from "./settings/settings-dialog.tsx"
+import type { StatusList } from "./settings/status-tab.tsx"
+import { McpDialog } from "./mcp/mcp-dialog.tsx"
 import { ThemeDialog } from "./settings/theme-dialog.tsx"
 import { relative } from "./tool-call.tsx"
 import { ExportDialog } from "./export/export-dialog.tsx"
@@ -299,6 +301,8 @@ export type ModelSource = {
   ensure: (id: AgentKindId) => Promise<unknown>
   // The agents a subagent can run as now.
   agents: () => Pick<Definition, "name" | "description">[]
+  // How many agents are defined, those without a usable model included.
+  defined: () => number
   // The conversation as text for a new session on the model, or why it cannot go there.
   carry: (provider: AgentKindId, model: ModelRef) => { ok: true; handoff: Handoff } | { ok: false; problem: string }
   // Asks before a message moves the conversation; true when the user lets it.
@@ -324,13 +328,15 @@ export type Message = Pick<Prompt, "text" | "images" | "to">
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
   | { name: "settings"; tab: SettingsTab; row?: string }
-  | { name: "resume" | "theme" | "skills" | "export" | "tasks" | "providers" | "agents" }
+  | { name: "resume" | "theme" | "export" | "tasks" | "providers" }
+  // `back`: opened from the Status tab of /settings, where Esc returns to.
+  | { name: StatusList; back?: boolean }
   | { name: "rewind"; extras: RewindExtras | null; late: Promise<RewindExtras | null> | null }
   | { name: "image"; images: ChatImage[]; index: number }
   | { name: "code"; refs: CodeRef[]; ids: string[]; index: number }
   | { name: "choice"; kind: "effort" }
   | { name: "model"; query: string }
-  | { name: "context" | "usage" | "permissions" }
+  | { name: "context" | "usage" }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
 
@@ -369,6 +375,7 @@ export function App(props: AppProps) {
       () => settingsTab() !== null,
       (open) => {
         if (open && props.agents?.installed() === null) void props.agents.detect()
+        if (open && props.caps.lists.includes("rules")) props.permissions?.refresh()
         const info = props.info
         if (!open || !info) return
         setAgentRows(null)
@@ -1022,10 +1029,23 @@ export function App(props: AppProps) {
     listCatalogs()
     setDialog({ name: "model", query })
   }
-  const openAgents = () => {
-    listCatalogs()
-    setDialog({ name: "agents" })
+  const openList = (name: StatusList, back = false) => {
+    if (name === "agents") listCatalogs()
+    if (name === "permissions") props.permissions?.refresh()
+    setDialog({ name, back })
   }
+  const closeList = () => {
+    const open = dialog()
+    const back = open !== null && "back" in open && open.back
+    setDialog(back ? { name: "settings", tab: "status", row: open.name } : null)
+  }
+  const canRunAgents = () => props.models !== undefined && props.caps.clientTools !== "none"
+  const subagentFact = () => {
+    if (!props.models || !canRunAgents()) return undefined
+    const idle = props.models.defined() - props.models.agents().length
+    return { count: props.models.defined(), problem: idle > 0 ? `${idle} without a model` : "" }
+  }
+  const listsRules = () => props.caps.lists.includes("rules") && props.permissions !== undefined
   const listCatalogs = () => {
     const lists = readCatalogs()
     setCatalogs(lists)
@@ -1129,8 +1149,10 @@ export function App(props: AppProps) {
   // A knob command with a value YellowCode knows picks it here. Any other value goes on to the agent's own command, and
   // where the agent has none, YellowCode's own /model and /effort say why instead.
   // YellowCode's own commands, knobs and mod commands run in the session they are typed in.
+  // /timeline is the unlisted second name of /rewind.
   const ownCommand = (name: string) =>
     OWN_COMMANDS.some((own) => own.name === name) ||
+    name === "timeline" ||
     OWN_KNOBS[name] !== undefined ||
     props.provider.knob(name) !== null ||
     findModCommand(props.provider.commands(), name) !== undefined
@@ -1924,9 +1946,8 @@ export function App(props: AppProps) {
     const named = command === `/${commandName}` ? findCommand(props.provider.commands(), commandName) : null
     if ((command === "/clear" || named?.name === "clear") && props.onClear) return props.onClear()
     // An agent that fills the rules list has the dialog, which reads them again as it opens.
-    if (command === "/permissions" && props.caps.lists.includes("rules") && props.permissions) {
-      props.permissions.refresh()
-      setDialog({ name: "permissions" })
+    if (command === "/permissions" && listsRules()) {
+      openList("permissions")
       return true
     }
     const report =
@@ -1946,7 +1967,7 @@ export function App(props: AppProps) {
       (rewinding && !props.rewind) ||
       (planning && (!props.onInterrupt || !props.provider.modes().some((mode) => mode.kind === "plan"))) ||
       (command === "/providers" && !props.agents) ||
-      (command === "/agents" && (!props.models || props.caps.clientTools === "none"))
+      (command === "/agents" && !canRunAgents())
     ) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name}`)
       return false
@@ -1975,11 +1996,11 @@ export function App(props: AppProps) {
     else if (command === "/settings") setDialog({ name: "settings", tab: "config" })
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/providers") setDialog({ name: "providers" })
-    else if (command === "/agents") openAgents()
+    else if (command === "/agents") openList("agents")
     else if (command === "/theme") setDialog({ name: "theme" })
-    else if (command === "/mcp" && !yields("mcp")) setDialog({ name: "settings", tab: "mcp" })
+    else if (command === "/mcp" && !yields("mcp")) openList("mcp")
     else if (command === "/plugins" && !yields("plugins")) setDialog({ name: "settings", tab: "plugins" })
-    else if (command === "/skills" && !yields("skills")) setDialog({ name: "skills" })
+    else if (command === "/skills" && !yields("skills")) openList("skills")
     else if (command === "/mods") setDialog({ name: "settings", tab: "mods" })
     else if (command === "/rewind" || command === "/timeline") void openRewind()
     else if (command === "/redo") redo()
@@ -2407,6 +2428,8 @@ export function App(props: AppProps) {
             shared={props.shared?.()}
             extensions={props.extensions}
             caps={props.caps}
+            subagents={subagentFact()}
+            rules={listsRules() ? (props.permissions?.rules()?.length ?? null) : undefined}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
             title={title()?.title ?? null}
             model={settings.model ?? props.model()}
@@ -2417,9 +2440,19 @@ export function App(props: AppProps) {
             agents={agentOptions()}
             agentSettings={agentSettings()}
             onTab={(next) => setDialog({ name: "settings", tab: next })}
+            onOpen={(list) => openList(list, true)}
             onClose={() => setDialog(null)}
           />
         )}
+      </Show>
+      <Show when={dialog()?.name === "mcp"}>
+        <McpDialog
+          servers={shownServers()}
+          shared={props.shared?.()}
+          actions={props.extensions?.mcp}
+          can={props.caps.mcp}
+          onClose={closeList}
+        />
       </Show>
       <Show when={dialog()?.name === "mod" && modDialog()}>{(request) => <ModDialogView request={request()} />}</Show>
       <Show when={dialog()?.name === "theme"}>
@@ -2448,7 +2481,7 @@ export function App(props: AppProps) {
             setDialog(null)
             setFill((previous) => ({ draft: { text: `/${command} `, chips: [] }, seq: (previous?.seq ?? 0) + 1 }))
           }}
-          onClose={() => setDialog(null)}
+          onClose={closeList}
         />
       </Show>
       <Show when={imageView()}>
@@ -2485,7 +2518,7 @@ export function App(props: AppProps) {
             agent={props.agent.name}
             rules={permissions().rules()}
             onRemove={(id) => permissions().remove(id)}
-            onClose={() => setDialog(null)}
+            onClose={closeList}
           />
         )}
       </Show>
@@ -2534,7 +2567,7 @@ export function App(props: AppProps) {
         )}
       </Show>
       <Show when={dialog()?.name === "agents"}>
-        <AgentsDialog cwd={process.cwd()} groups={modelGroups(catalogs())} onClose={() => setDialog(null)} />
+        <AgentsDialog cwd={process.cwd()} groups={modelGroups(catalogs())} onClose={closeList} />
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />
