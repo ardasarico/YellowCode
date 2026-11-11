@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center">Keep your agent, change the screen.</p>
+<p align="center">Keep your agents, change the screen.</p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
@@ -16,8 +16,9 @@
   <a href="#install">Install</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="docs/README.md">Docs</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="docs/mods.md">Mods</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="docs/themes.md">Themes</a>
 </p>
 
-YellowCode is a terminal screen for Claude Code, Codex, opencode and Pi. It runs the agent you already have, on your
-own account, and adds image paste, rewind that brings your files back, and mods.
+YellowCode is a better terminal for Claude Code, Codex, opencode and Pi. It runs the agents you already have, on your
+own accounts. Use one, or use them together: every model in one picker, with the same MCP servers and memory behind
+each.
 
 ## Install
 
@@ -44,15 +45,24 @@ Then run `yellowcode` in your project.
 
 ## What you get
 
+With one agent:
+
 - **Paste images.** Paste a screenshot or an image file into the prompt and see it before you send.
 - **Images and diagrams in the chat.** Mermaid diagrams, charts and images are drawn, not printed as text.
 - **Rewind with your files.** Go back to an earlier message and the project goes back too, whoever changed the files.
   `/redo` undoes it.
+- **A calmer chat.** When a turn is done, its tool calls fold into one line.
+- **A command palette.** Ctrl+P finds every command, model, session and setting.
+- **Mods.** Add your own commands, panes, sidebar sections and tools in TypeScript.
+
+With several:
+
 - **Every model in one picker.** `/model` lists the models of all your providers; pick another provider's and the chat
   moves there.
+- **One set of MCP servers.** Add a server once with `yellowcode mcp add` and every provider gets it.
+- **One memory.** What the agent learns about your project stays when you switch models.
 - **Subagents on any provider.** Hand a task to a Codex model from a Claude Code session and get the answer back.
 - **Sessions that work together.** Your open sessions can send each other work, whichever provider each runs.
-- **Mods.** Add your own commands, panes, sidebar sections and tools in TypeScript.
 
 ## Supported providers
 
@@ -80,10 +90,10 @@ No. It has no model and no login of its own. It runs the provider you already ha
 </details>
 
 <details>
-<summary>Do my settings, MCP servers, skills and plugins still work?</summary>
+<summary>Do my settings, MCP servers and skills still work?</summary>
 
-Yes. They belong to your provider and load as usual. To use the same MCP servers with every provider, add them once
-with `yellowcode mcp add`.
+Yes. They belong to your provider and load as usual. Plugins stay off until you turn on Providers' plugins in
+`/settings`. To use the same MCP servers with every provider, add them once with `yellowcode mcp add`.
 
 </details>
 
