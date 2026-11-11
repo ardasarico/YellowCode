@@ -52,6 +52,8 @@ export function SettingsDialog(props: {
   subagents: ListFact | undefined
   // The saved rules, null until the provider lists them; undefined where it does not.
   rules: number | null | undefined
+  // The project's memory; undefined where YellowCode's memory is not in use.
+  memory: ListFact | undefined
   // As the agent reports it ("default", "acceptEdits", …).
   permissionMode: string | null
   title: string | null
@@ -82,6 +84,7 @@ export function SettingsDialog(props: {
         skills: props.caps.lists.includes("skills") ? { count: props.provider.skills()?.length ?? null } : undefined,
         agents: props.subagents,
         permissions: props.rules === undefined ? undefined : { count: props.rules },
+        memory: props.memory,
       },
       tools: info && info.tools.length > 0 ? info.tools.length : null,
       sources: props.provider.settingSources(),

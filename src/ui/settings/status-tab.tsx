@@ -9,7 +9,7 @@ import type { TabApi } from "../dialog/tabbed-dialog.tsx"
 import type { SettingsTab } from "./settings-dialog.tsx"
 
 // The lists with a dialog of their own; the id is the dialog's name.
-export type StatusList = "mcp" | "skills" | "agents" | "permissions"
+export type StatusList = "mcp" | "skills" | "agents" | "permissions" | "memory"
 // Null while the provider has not listed them yet.
 export type ListFact = { count: number | null; problem?: string }
 
@@ -19,6 +19,7 @@ const LISTS: { id: StatusList; label: string; about: string }[] = [
   { id: "skills", label: "Skills", about: "Instructions the agent loads when a task needs them." },
   { id: "agents", label: "Subagents", about: "Helpers the agent hands work to, each on the model you pick." },
   { id: "permissions", label: "Permissions", about: "What you allowed for good, so the agent does not ask again." },
+  { id: "memory", label: "Memory", about: "What the agent remembers about this project, on every provider." },
 ]
 
 export type StatusFacts = {

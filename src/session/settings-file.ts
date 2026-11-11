@@ -21,6 +21,7 @@ import { type Channel, CHANNELS } from "../update/channels.ts"
 export type SidebarSetting = "auto" | "shown" | "hidden"
 export type ThinkingSetting = "summarized" | "hidden"
 export type TitleSource = "yellowcode" | "agent"
+export type MemorySetting = "on" | "off" | "provider"
 export const EDITORS = ["default", "zed", "vscode", "cursor"] as const
 export type Editor = (typeof EDITORS)[number]
 export const NOTIFICATIONS = ["all", "waiting", "off"] as const
@@ -67,6 +68,8 @@ export type StoredSettings = {
   ownMcpServers: "on" | "off"
   // "off": a provider starts without the plugins installed in it, where it can (caps.pluginsOff).
   providerPlugins: "on" | "off"
+  // "on": YellowCode's memory, with the providers' own off. "provider": theirs, without YellowCode's. "off": neither.
+  memory: MemorySetting
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -87,6 +90,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   maxSubagents: 6,
   ownMcpServers: "on",
   providerPlugins: "off",
+  memory: "on",
 }
 
 // The providers an older file shows were used: those with an entry and the default agent it saved, in `known` order.
@@ -156,6 +160,7 @@ const DefaultAgent = z.string()
 export const MAX_SUBAGENTS = 10
 const MaxSubagents = z.number().int().min(1).max(MAX_SUBAGENTS)
 const OnOff = z.enum(["on", "off"])
+const Memory = z.enum(["on", "off", "provider"])
 const Providers = z.array(z.string()).min(1)
 const Keys = z.array(z.string()).default([])
 const Models = z.object({ favorites: Keys, hidden: Keys })
@@ -300,6 +305,7 @@ function readStored(stored: Record<string, unknown>) {
   read("maxSubagents", MaxSubagents)
   read("ownMcpServers", OnOff)
   read("providerPlugins", OnOff)
+  read("memory", Memory)
   return { settings: { ...DEFAULT_SETTINGS, ...found }, found, invalid }
 }
 

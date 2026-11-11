@@ -1,4 +1,5 @@
 import { z } from "zod"
+import type { OneShotOptions } from "../../agent/agent.ts"
 import { parseJson } from "../../json.ts"
 import { log } from "../../log/log.ts"
 import { collect, hostEnv, KILL_AFTER_MS, OUTPUT_WAIT_MS } from "../../source/claude-cli.ts"
@@ -14,11 +15,12 @@ export function stopOneShots(): void {
   for (const proc of running) proc.kill()
 }
 
-// Asks Haiku through the claude binary, with no tools, customizations or saved session.
-export async function oneShot(prompt: string, cwd: string): Promise<string | null> {
+// Asks Haiku, or the model named, through the claude binary, with no tools, customizations or saved session.
+export async function oneShot(prompt: string, cwd: string, options: OneShotOptions = {}): Promise<string | null> {
   if (stopped) return null
+  const model = `--model=${options.model?.id ?? "haiku"}`
   const proc = Bun.spawn(
-    ["claude", "-p", "--model=haiku", "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
+    ["claude", "-p", model, "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
     { cwd, env: hostEnv(), stdin: new Blob([prompt]), stdout: "pipe", stderr: "pipe" },
   )
   running.add(proc)
@@ -29,7 +31,7 @@ export async function oneShot(prompt: string, cwd: string): Promise<string | nul
     late = true
     proc.kill()
     kill = setTimeout(() => proc.kill("SIGKILL"), KILL_AFTER_MS)
-  }, ONE_SHOT_TIMEOUT_MS)
+  }, options.timeoutMs ?? ONE_SHOT_TIMEOUT_MS)
   const out = collect(proc.stdout)
   const err = collect(proc.stderr)
   const code = await proc.exited
@@ -40,15 +42,15 @@ export async function oneShot(prompt: string, cwd: string): Promise<string | nul
   const output = out.text
   const stderr = err.text
   if (late || code !== 0) {
-    log.warn("session title failed", { code, late, stderrChars: stderr.length })
-    log.debug("session title stderr", stderr)
+    log.warn("one-shot failed", { code, late, stderrChars: stderr.length })
+    log.debug("one-shot stderr", stderr)
     return null
   }
   const json = parseJson(output)
   const result = json.ok ? Result.safeParse(json.value) : null
   if (!result?.success) {
-    log.warn("session title: unexpected output", { chars: output.length })
-    log.debug("session title output", output.slice(0, 500))
+    log.warn("one-shot: unexpected output", { chars: output.length })
+    log.debug("one-shot output", output.slice(0, 500))
     return null
   }
   return result.data.result

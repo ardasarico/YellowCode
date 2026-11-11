@@ -17,6 +17,7 @@ export const cachePath = (name: string): string => homePath("cache", name)
 
 export const logDir = (): string => process.env["YELLOWCODE_LOG_DIR"] ?? homePath("logs")
 export const snapshotsRoot = (): string => process.env["YELLOWCODE_SNAPSHOT_DIR"] || homePath("snapshots")
+export const memoryRoot = (): string => homePath("memory")
 
 // A unix socket's path holds about 100 bytes (104 on macOS, 108 on Linux), and a session's is <folder>/<pid>.sock.
 const SOCKET_FOLDER_BYTES = 84

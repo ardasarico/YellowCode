@@ -1,7 +1,10 @@
 import { expect, test } from "bun:test"
 import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import type { StartOptions } from "../../agent/agent.ts"
+import { memoryLaunch } from "../../memory/server.ts"
+import { MEMORY_SERVER } from "../../memory/tools.ts"
 import { openArgs, pluginArgs } from "./agent.ts"
+import { piMcp } from "./mcp.ts"
 
 const OPTIONS: StartOptions = {
   cwd: "/project",
@@ -34,4 +37,15 @@ test("plugins off keeps pi's built-in extensions, and its MCP only where the sta
   expect(pluginArgs(off, "1.4.0", [])).toEqual(["--no-extensions", ...builtIn, "-e", "builtin:mcp"])
   expect(pluginArgs(off, "1.4.0", ["--no-mcp"])).toEqual(["--no-extensions", ...builtIn])
   expect(pluginArgs(off, "1.3.0", [])).toEqual([])
+})
+
+test("the memory server reaches pi with plugins off, whether pi's own MCP is on or off", () => {
+  for (const ownMcp of [undefined, { on: false, project: [] }]) {
+    const options = { ...OPTIONS, ownPlugins: false, ownMcp, mcpServers: [memoryLaunch("/memory")] }
+    const mcp = piMcp(options, "1.4.0")
+    const args = pluginArgs(options, "1.4.0", mcp.flags)
+    expect(mcp.extension?.servers).toHaveProperty(MEMORY_SERVER)
+    expect(args).toContain("builtin:codemode")
+    expect(mcp.extension?.replace || args.includes("builtin:mcp")).toBe(true)
+  }
 })

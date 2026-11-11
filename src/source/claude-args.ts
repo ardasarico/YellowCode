@@ -1,7 +1,7 @@
 import type { OwnMcp } from "../agent/agent.ts"
 import type { ModeId } from "../agent/ids.ts"
 import type { StoredSettings } from "../session/settings-file.ts"
-import { OWN_AGENTS, OWN_ASK, OWN_SESSIONS } from "../protocol/messages.ts"
+import { OWN_AGENTS, OWN_ASK, OWN_MEMORY, OWN_SESSIONS } from "../protocol/messages.ts"
 import { instructionsFor } from "../agent/yellowcode-prompt.ts"
 
 export const CLAUDE_STREAM_ARGS = [
@@ -39,7 +39,7 @@ export function launchOf(stored: { permissionMode: ModeId }, mode?: ModeId): Lau
 
 // A session claude keeps no transcript of, with instructions added to its system prompt. A plain start is not offered:
 // --safe-mode would also drop CLAUDE.md.
-export type Lean = { ephemeral: boolean; instructions?: string[]; skills?: string[] }
+export type Lean = { ephemeral: boolean; instructions?: string[]; skills?: string[]; ownMemory?: boolean }
 
 // Each skills folder goes in as a plugin of this run only. Its files sit outside the session's folder, so claude may
 // read them unasked.
@@ -93,7 +93,7 @@ export function claudeArgs(
     ...CLAUDE_STREAM_ARGS,
     // Our own ask replaces the stock one and never waits on a permission ask. These flags take a list, so each is
     // one argument that cannot swallow the next.
-    `--allowedTools=${[OWN_ASK, OWN_SESSIONS, OWN_AGENTS, ...skills.reads].join(",")}`,
+    `--allowedTools=${[OWN_ASK, OWN_SESSIONS, OWN_AGENTS, OWN_MEMORY, ...skills.reads].join(",")}`,
     "--disallowedTools=AskUserQuestion",
     ...settingsArgs(own, pluginsOff),
     ...skills.flags,

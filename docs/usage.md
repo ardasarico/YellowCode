@@ -99,6 +99,7 @@ It does not open while the agent waits for your answer or another dialog is open
 | `/providers`   | Add or remove providers                                                         |
 | `/model`       | Pick a model of any provider you added                                          |
 | `/agents`      | Assign models to [subagents](agents.md#agent-files)                             |
+| `/memory`      | See and manage this project's [memory](#memory)                                 |
 | `/rename`      | Name the session, or let the agent name it (`/rename [name]`)                   |
 | `/export`      | Copy the conversation, or save it as Markdown                                   |
 | `/settings`    | YellowCode's settings, and an overview of the session                           |
@@ -259,6 +260,38 @@ Pi reads a project's `.agents/skills` only in a project you trust. Trust it once
 `defaultProjectTrust` to `"always"` in `~/.pi/agent/settings.json`; YellowCode does not ask for it. When Pi leaves a
 project's skills and `.pi` files off, YellowCode tells you once for that project.
 
+## Memory
+
+YellowCode keeps one memory for each project, and every provider you run there uses it: what a Claude Code session
+learned, a Codex or opencode session knows too. Your agent saves a memory when it learns something a later session
+should know, such as how you like to work or a decision about the project, and when you tell it to remember something.
+Each save, change and removal shows as a line in the chat.
+
+- Every session starts with the list of memories, one line each, and reads a whole memory when it needs it.
+- A project is its git repository, so its worktrees and subfolders share one memory. Outside git it is the folder.
+- The memories are Markdown files in `~/.yellowcode/memory/`, one folder for each project. `/memory` lists
+  them: Enter shows one, `e` opens its file in your editor and `d` twice deletes it.
+- A memory that looks like it holds a key, token or password is not saved.
+- A project's memory holds up to 200 entries. A save that brings it to 160 starts a tidy-up: the model of your session
+  gets all of them in one request, without tools, and answers which to merge and which to drop. YellowCode applies
+  that and the chat says what changed. `t` in `/memory` starts one by hand, and `u` takes the last one back, along
+  with anything saved since. A tidy-up is the only request memory adds.
+
+While this memory is on, the providers' own memories stay off in YellowCode's sessions, so nothing is kept twice. Their
+files are left as they are, and a provider you run outside YellowCode works as before. The first time you open a
+project that Claude Code has memories for, YellowCode asks whether to copy them in. Your answer is kept for that
+project.
+
+Memory in `/settings` says who remembers, from the next session on:
+
+| Memory         | What it does                                                                         |
+| -------------- | ------------------------------------------------------------------------------------ |
+| On             | YellowCode's memory. Claude Code's and Codex's own stay off in YellowCode.           |
+| Provider's own | Each provider keeps its own memory, as you have it set up. YellowCode's is not used. |
+| Off            | No memory, neither YellowCode's nor a provider's.                                    |
+
+[Subagents](agents.md#subagents) get no memory.
+
 ## Files it writes
 
 Everything YellowCode writes is in one folder, `~/.yellowcode`. Set `YELLOWCODE_HOME` to an absolute path to keep it
@@ -275,6 +308,7 @@ somewhere else.
 | `logs/yellowcode.log`                      | The log, or the folder in `YELLOWCODE_LOG_DIR`. `YELLOWCODE_DEBUG=1` adds debug lines, which can contain session text.                                     |
 | `sessions/`                                | One record and one socket for each open session, in a folder only you can read. A session removes its own when it closes.                                  |
 | `snapshots/`                               | Rewind snapshots: copies of files from your projects. Snapshots older than 30 days are deleted; with Claude Code, its `cleanupPeriodDays` is used instead. |
+| `memory/`                                  | Each project's [memory](#memory): one Markdown file for each entry, and `MEMORY.md`, their list.                                                           |
 | `pi-prompts/`                              | One small file per Pi session. Rewind snapshots are filed under a prompt id that Pi does not keep, so YellowCode saves it here.                            |
 | `pi-extensions/`                           | The extension that gives Pi the shared MCP servers. It holds no servers; they reach Pi in an environment variable.                                         |
 | `skills/`                                  | YellowCode's own skills: these docs and the Mod API, written again when they change.                                                                       |

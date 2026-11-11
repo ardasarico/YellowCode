@@ -46,7 +46,7 @@ test("every spawn allows our own ask and turns the stock one off, each flag in o
   for (const spawn of spawns) {
     const args = claudeArgs({ thinking: "summarized" }, launchOf({ permissionMode: "plan" }), spawn)
     expect(args).toContain(
-      "--allowedTools=mcp__yellowcode__ask,mcp__yellowcode-sessions__list,mcp__yellowcode-agents__agents",
+      "--allowedTools=mcp__yellowcode__ask,mcp__yellowcode-sessions__list,mcp__yellowcode-agents__agents,mcp__yellowcode-memory",
     )
     expect(args).toContain("--disallowedTools=AskUserQuestion")
   }

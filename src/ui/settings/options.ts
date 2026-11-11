@@ -230,6 +230,20 @@ const plugins = (agent: AgentOption) =>
       },
     ],
   })
+const MEMORY = stored<"memory">({
+  key: "memory",
+  section: "Session",
+  label: "Memory",
+  options: [
+    {
+      value: "on",
+      label: "On",
+      note: `One memory for this project, shared by every provider; their own stay off. ${NEXT_SESSION}`,
+    },
+    { value: "provider", label: "Provider's own", note: `Each provider keeps its own memory. ${NEXT_SESSION}` },
+    { value: "off", label: "Off", note: `No memory, neither YellowCode's nor a provider's. ${NEXT_SESSION}` },
+  ],
+})
 
 const UPDATES: SettingDefinition = {
   key: "updates",
@@ -270,6 +284,7 @@ export const settingsFor = (agent: AgentOption, modes: ModeRow[]): SettingDefini
   SUBAGENTS,
   ownMcp(agent),
   plugins(agent),
+  MEMORY,
   PEER_MESSAGES,
   PEER_VISIBLE,
   UPDATES,

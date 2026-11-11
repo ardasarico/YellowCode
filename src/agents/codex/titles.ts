@@ -1,5 +1,6 @@
 // One answer from Codex for YellowCode's session titles (Codex titles nothing itself): an ephemeral thread that can
 // change nothing, on the configured model at its lowest effort, with no reasoning summary.
+import type { ModelRef } from "../../agent/ids.ts"
 import { readCatalog } from "./models.ts"
 import type { Rpc } from "./transport.ts"
 import { createNotificationReader } from "./wire/notifications.ts"
@@ -25,7 +26,13 @@ const NO_TOOLS = {
 const UNSUPPORTED = -32601
 
 // The model's last words once the turn completes; null when it did not.
-export async function answerOnce(rpc: Rpc, prompt: string, cwd: string): Promise<string | null> {
+// On `model` it runs at that model's own effort.
+export async function answerOnce(
+  rpc: Rpc,
+  prompt: string,
+  cwd: string,
+  model: ModelRef | null = null,
+): Promise<string | null> {
   const opened = resultOf(
     await rpc.request("thread/start", {
       cwd,
@@ -35,6 +42,8 @@ export async function answerOnce(rpc: Rpc, prompt: string, cwd: string): Promise
       dynamicTools: [],
       baseInstructions: INSTRUCTIONS,
       config: NO_TOOLS,
+      ...(model ? { model: model.id } : {}),
+      ...(model?.provider ? { modelProvider: model.provider } : {}),
     }),
     threadStartResult,
     "thread/start",
@@ -42,7 +51,7 @@ export async function answerOnce(rpc: Rpc, prompt: string, cwd: string): Promise
   if (opened.kind !== "ok") return null
   const thread = opened.value.thread.id
   const catalog = await readCatalog(rpc).catch(() => [])
-  const effort = catalog.find((model) => model.id === opened.value.model)?.supportedReasoningEfforts[0]
+  const effort = model ? undefined : catalog.find((row) => row.id === opened.value.model)?.supportedReasoningEfforts[0]
   const read = createNotificationReader()
   const answered = (async () => {
     let said: string | null = null

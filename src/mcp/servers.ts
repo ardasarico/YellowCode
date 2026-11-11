@@ -16,7 +16,7 @@ import { z } from "zod"
 import { homePath } from "../paths.ts"
 import { parseJson } from "../json.ts"
 import { projectOf } from "../peers/project.ts"
-import { OWN_AGENTS_SERVER, OWN_ASK_SERVER, OWN_SESSIONS_SERVER } from "../protocol/messages.ts"
+import { OWN_AGENTS_SERVER, OWN_ASK_SERVER, OWN_MEMORY_SERVER, OWN_SESSIONS_SERVER } from "../protocol/messages.ts"
 import { MOD_SERVER_PREFIX } from "../mods/host.ts"
 
 // YellowCode's one list of MCP servers, which it hands to whichever provider runs: mcp.json in its config folder and
@@ -59,7 +59,7 @@ export const globalFile = () => homePath(GLOBAL_FILE)
 
 const NAME = /^[A-Za-z0-9_-]{1,32}$/
 // opencode serves the ask under OWN_ASK_SERVER too.
-const OWN_NAMES = new Set([OWN_ASK_SERVER, OWN_SESSIONS_SERVER, OWN_AGENTS_SERVER])
+const OWN_NAMES = new Set([OWN_ASK_SERVER, OWN_SESSIONS_SERVER, OWN_AGENTS_SERVER, OWN_MEMORY_SERVER])
 
 // Every provider makes tool names from the server name, each changes other characters its own way, and a tool name
 // has at most 64 characters.

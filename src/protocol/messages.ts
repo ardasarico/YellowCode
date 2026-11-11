@@ -350,10 +350,14 @@ export const OWN_SESSIONS = `mcp__${OWN_SESSIONS_SERVER}__list`
 // The subagent tools likewise; listing the agents never asks.
 export const OWN_AGENTS_SERVER = "yellowcode-agents"
 export const OWN_AGENTS = `mcp__${OWN_AGENTS_SERVER}__agents`
+// The memory tools likewise; none of them asks, and the chat shows what was saved.
+export const OWN_MEMORY_SERVER = "yellowcode-memory"
+export const OWN_MEMORY = `mcp__${OWN_MEMORY_SERVER}`
 
 // Those servers are how the tools get to claude, not the user's servers, so no server list shows them.
 export const isOwnAskServer = (server: { name: string; source?: string | null }) =>
-  [OWN_ASK_SERVER, OWN_SESSIONS_SERVER, OWN_AGENTS_SERVER].includes(server.name) && server.source === "sdk"
+  [OWN_ASK_SERVER, OWN_SESSIONS_SERVER, OWN_AGENTS_SERVER, OWN_MEMORY_SERVER].includes(server.name) &&
+  server.source === "sdk"
 
 const askPage = z.looseObject({
   question: z.string(),

@@ -12,6 +12,7 @@ import {
   type AgentKind,
   type ClientTool,
   type Detection,
+  type McpLaunch,
   type Prompt,
   type RelayedCall,
   type RelayedReply,
@@ -96,6 +97,13 @@ import {
 import { fallbackAgents, loadSettings, pickAgent, type StoredSettings } from "./session/settings-file.ts"
 import { NO_PROVIDER, runProvidersCommand, settleProviders } from "./setup/providers.ts"
 import { modOfError, mods, modsFor, startModUpdates, startMods } from "./mods/mods.ts"
+import { answerImport, claudeMemoryFolder, importAsk, importCount, importOf } from "./memory/import.ts"
+import { memoryInstructions } from "./memory/prompt.ts"
+import { listMemories, memoryFolder } from "./memory/store.ts"
+import { MEMORY_COMMAND, memoryLaunch, runMemoryServer } from "./memory/server.ts"
+import { tidy, TIDY_TIMEOUT_MS, tidyDue, tidyLine } from "./memory/tidy.ts"
+import { memoryClientTools } from "./memory/tools.ts"
+import { watchMemory } from "./memory/watch.ts"
 import { modInstructions } from "./mods/registry.ts"
 import { apiVersion } from "./mods/version.ts"
 import { runUpdateCommand, UPDATE_USAGE } from "./update/cli.ts"
@@ -189,6 +197,7 @@ if (["mod", "mcp", "update", "providers"].includes(process.argv[2] ?? "")) tellM
 if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
 if (process.argv[2] === "mcp") process.exit(runMcpCommand(process.argv.slice(3)))
 if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
+if (process.argv[2] === MEMORY_COMMAND) process.exit(await runMemoryServer(process.argv[3]))
 const KNOWN_AGENTS = [
   { id: CLAUDE, name: CLAUDE_NAME, detect: () => detectClaude() },
   { id: OPENCODE, name: OPENCODE_NAME, detect: () => detectOpencode() },
@@ -664,7 +673,52 @@ async function startLive(runner: Runner, options: StartOptions, store: SessionSt
     mcp,
   }
   offerTrust(store, shared)
+  offerImport(store)
   return started
+}
+
+// The stores whose question about Claude Code's memory is still open, by ask.
+const importWaiting = new Map<string, SessionStore>()
+let importOffered = false
+
+function offerImport(store: SessionStore): void {
+  if (importOffered || !ownMemory()) return
+  const count = importCount(memoryDir, claudeMemoryFolder(cwd))
+  if (count === 0) return
+  importOffered = true
+  const ask = importAsk(crypto.randomUUID(), count)
+  importWaiting.set(ask.id, store)
+  store.event({ type: "ask.open", ask, at: Date.now() })
+}
+
+// Esc leaves it unanswered. A session without a message yet starts again, so its list holds what came in.
+function settleImport(ask: { requestId: string }, reply: AskReply): void {
+  const store = importWaiting.get(ask.requestId)
+  importWaiting.delete(ask.requestId)
+  const yes = reply.type === "option" && reply.option === "yes"
+  const no = reply.type === "option" && reply.option === "no"
+  store?.event({
+    type: "ask.close",
+    id: ask.requestId,
+    outcome: yes
+      ? { status: "allowed" }
+      : no
+        ? { status: "denied", said: "", why: "declined", note: "" }
+        : { status: "cancelled" },
+    at: Date.now(),
+  })
+  if (!store || (!yes && !no)) return
+  const copied = answerImport(memoryDir, claudeMemoryFolder(cwd), yes)
+  if (!yes || mode.kind !== "live") return
+  const target = live
+  const { state } = target.store
+  const fresh = !state.items.some((id) => state.byId[id]?.kind === "user")
+  const said = `Brought in ${copied} ${copied === 1 ? "memory" : "memories"} from Claude Code`
+  const tell = (text: string) => live.store.event({ type: "notice", level: "info", text, at: Date.now() })
+  if (copied === 0 || !fresh) return tell(copied > 0 ? `${said}; the next session has them in its list` : said)
+  void startNew(target.runner, "bring in Claude Code's memory", state.model).then((started) =>
+    tell(started ? said : `${said}; the next session has them in its list`),
+  )
 }
 
 // The project files asked about in this run, by fingerprint, and the asks still open.
@@ -783,7 +837,11 @@ function subagentsOf(runner: Runner, store: SessionStore, owner: () => Live): Su
     models: catalogRows,
     listed: (id) => listedRows(id) !== null,
     definitions,
-    mcp: () => ({ mcpServers: owner().mcp.handover.launches, ownMcp: owner().mcp.handover.own }),
+    mcp: () => ({
+      mcpServers: owner().mcp.handover.launches,
+      ownMcp: owner().mcp.handover.own,
+      ownMemory: settings.memory === "provider",
+    }),
     mentioned: () =>
       store.state.items.flatMap((id) => {
         const item = store.state.byId[id]
@@ -829,10 +887,11 @@ const startOptions = (runner: Runner, resume: StartOptions["resume"]): StartOpti
   ephemeral: false,
   plain: false,
   thinking: settings.thinking !== "hidden",
-  instructions: modInstructions(),
+  instructions: [...modInstructions(), ...memoryNotes(runner)],
   skills: builtInSkills(),
   clientTools: clientTools(),
-  mcpServers: modLaunches(runner),
+  mcpServers: [...modLaunches(runner), ...memoryLaunches(runner)],
+  ownMemory: settings.memory === "provider",
   relay: relayCall,
   followUp: (text) => {
     const lost = () =>
@@ -853,13 +912,63 @@ async function relayCall(call: RelayedCall, signal: AbortSignal): Promise<Relaye
   return here ?? (await peers?.relay(call, signal)) ?? null
 }
 
+// The project's memory, the same folder for every worktree of the repository.
+const memoryDir = memoryFolder(cwd)
+const memoryNotice = (text: string) => live.store.event({ type: "notice", level: "info", text, at: Date.now() })
+let memoryTidying: Promise<string> | null = null
+
+// One tidy-up at a time, by the model of the session that runs now; the chat gets the line that says how it went.
+function tidyMemory(): Promise<string> {
+  memoryTidying ??= tidy(memoryDir, (prompt) => {
+    const ask = live.runner.kind.oneShot
+    const options = { model: live.store.state.model, timeoutMs: TIDY_TIMEOUT_MS }
+    return ask ? ask(prompt, cwd, options) : Promise.resolve(null)
+  })
+    .then(tidyLine)
+    .finally(() => (memoryTidying = null))
+  return memoryTidying.then((line) => {
+    memoryNotice(line)
+    return line
+  })
+}
+
+// A save that brings the memory near its limit starts a tidy-up.
+function tellMemory(text: string): void {
+  memoryNotice(text)
+  if (memoryTidying === null && tidyDue(memoryDir)) void tidyMemory()
+}
+const memoryTools = memoryClientTools(memoryDir, tellMemory)
+const ownMemory = () => settings.memory === "on" && values.replay === undefined
+
+// An agent that takes no client tools runs the memory's as a server of its own.
+const memoryByServer = ({ kind }: Runner) => kind.caps.clientTools === "none" && kind.caps.mcpServers !== "none"
+let memoryWatched = false
+// Such an agent's calls run outside YellowCode, so the chat hears of them from the folder.
+function memoryLaunches(runner: Runner): McpLaunch[] {
+  if (!ownMemory() || !memoryByServer(runner)) return []
+  if (!memoryWatched) watchMemory(memoryDir, () => ownMemory() && memoryByServer(live.runner), tellMemory)
+  memoryWatched = true
+  return [memoryLaunch(memoryDir)]
+}
+
+// The memory's rules and its list as it is at the start, for an agent the tools reach.
+const memoryNotes = (runner: Runner): string[] =>
+  ownMemory() && (runner.kind.caps.clientTools !== "none" || memoryByServer(runner))
+    ? [memoryInstructions(listMemories(memoryDir))]
+    : []
+
 // Each call goes to the session that runs now.
 const subagentTools = agentClientTools((name, input) => live.subagents.call(name, input))
 
-// What the agent is given beside its own tools: the mods' tools of the moment, the tools for the other sessions, and
-// those for subagents. A subagent gets none of them.
+// What the agent is given beside its own tools: the mods' tools of the moment, the tools for the other sessions, those
+// for subagents and those of the memory. A subagent gets none of them.
 function clientTools(): ClientTool[] {
-  return [...mods.clientTools(), ...(peers?.tools ?? []), ...(values.replay === undefined ? subagentTools : [])]
+  return [
+    ...mods.clientTools(),
+    ...(peers?.tools ?? []),
+    ...(values.replay === undefined ? subagentTools : []),
+    ...(ownMemory() ? memoryTools : []),
+  ]
 }
 
 // An agent that takes tools mid-session gets the mods' tools of the moment.
@@ -879,7 +988,7 @@ function restartOptions(): RestartOptions {
     mode: modePicked ? defaultModeOf(live.runner.kind.id) : null,
     defaultMode: defaultModeOf(live.runner.kind.id),
     thinking: settings.thinking !== "hidden",
-    mcpServers: [...modLaunches(live.runner), ...next.launches],
+    mcpServers: [...modLaunches(live.runner), ...memoryLaunches(live.runner), ...next.launches],
     ownMcp: next.own,
   }
 }
@@ -1973,6 +2082,8 @@ function Main() {
                   ? { title: current.resumed.entry.title, summary: current.resumed.entry.firstPrompt }
                   : undefined
               }
+              memoryFolder={mode.kind === "live" ? memoryDir : undefined}
+              onTidyMemory={tidyMemory}
               oneShot={
                 mode.kind === "live" ? live.runner.kind.oneShot : values.titles === true ? claude.oneShot : undefined
               }
@@ -2020,6 +2131,7 @@ function Main() {
                 if (held !== null) return answerHeld(held, ask, reply)
                 if (moveOf(ask.requestId) !== null) return answerMove(ask, reply)
                 if (trustOf(ask.requestId) !== null) return answerTrust(ask, reply)
+                if (importOf(ask.requestId) !== null) return settleImport(ask, reply)
                 if (mode.kind === "live" && live.subagents.answer(ask.requestId, reply)) return
                 const everywhere = everywhereOf(ask.requestId)
                 if (everywhere !== null) return answerEverywhere(everywhere, ask, reply)

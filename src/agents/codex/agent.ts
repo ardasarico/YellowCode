@@ -191,6 +191,8 @@ const PLAIN = { "features.plugins": false, "features.hooks": false, "features.ap
 
 // Only the plugins: the user's hooks and apps stay.
 const NO_PLUGINS = { "features.plugins": false }
+// Codex's own memory neither reads nor writes here, and no other Codex later draws memories from this thread.
+const MEMORY_OFF = { "features.memories": false, "memories.generate_memories": false }
 
 function withConfig(...parts: Record<string, unknown>[]) {
   const config: Record<string, unknown> = {}
@@ -238,6 +240,7 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
   const mcp = await mcpConfig(rpc, options)
   const off = options.ownPlugins === false ? NO_PLUGINS : {}
   const developerInstructions = instructionsFor(options.instructions)
+  const memory = options.ownMemory === false ? MEMORY_OFF : {}
   const sent =
     resume === null
       ? rpc.request("thread/start", {
@@ -246,7 +249,7 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
           developerInstructions,
           dynamicTools: dynamicTools(options.clientTools),
           ...(options.ephemeral ? { ephemeral: true } : {}),
-          ...withConfig(mcp, off, options.plain ? PLAIN : {}),
+          ...withConfig(mcp, off, options.plain ? PLAIN : {}, memory),
           ...(mode === null ? {} : startFields(mode)),
           ...(model === null ? {} : { model: model.id }),
           ...(model?.provider ? { modelProvider: model.provider } : {}),
@@ -256,20 +259,25 @@ async function openThread(rpc: Rpc, options: StartOptions, mode: ModeId | null =
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...withConfig(mcp, off),
+            ...withConfig(mcp, off, memory),
             ...(resume.at === null ? {} : { beforeTurnId: await turnOf(rpc, resume.ref.id, resume.at) }),
           })
         : rpc.request("thread/resume", {
             threadId: resume.ref.id,
             excludeTurns: true,
             developerInstructions,
-            ...withConfig(mcp, off),
+            ...withConfig(mcp, off, memory),
           })
   const reply = await sent.catch((error: unknown) => {
     throw error instanceof RpcError && WRITER.test(error.message) ? new Error(HELD) : error
   })
   const opened = resultOf(reply, threadStartResult, "thread")
   if (opened.kind !== "ok") throw new Error("Codex did not give the session")
+  // A thread keeps the mark it was made with, so one from before is marked by hand.
+  if (resume !== null && options.ownMemory === false)
+    await rpc
+      .request("thread/memoryMode/set", { threadId: opened.value.thread.id, mode: "disabled" })
+      .catch((error: unknown) => log.warn("codex: thread/memoryMode/set failed", error))
   return opened.value
 }
 
@@ -943,7 +951,7 @@ export function codexKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start"> & 
         const { groups } = await readModels(rpc, cwd, await defaultProvider(rpc, cwd))
         return withWindows(groups, cachedWindows())
       }),
-    async oneShot(prompt, cwd) {
+    async oneShot(prompt, cwd, options = {}) {
       try {
         checked ??= usable(merged)
         await checked.catch((error: unknown) => {
@@ -952,12 +960,12 @@ export function codexKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start"> & 
         })
         const { rpc } = await connect(merged, cwd, true)
         try {
-          return await within(answerOnce(rpc, prompt, cwd), "Codex", TITLE_MS)
+          return await within(answerOnce(rpc, prompt, cwd, options.model), "Codex", options.timeoutMs ?? TITLE_MS)
         } finally {
           await rpc.close()
         }
       } catch (error) {
-        log.warn("codex: session title failed", problemOf(error))
+        log.warn("codex: one-shot failed", problemOf(error))
         return null
       }
     },

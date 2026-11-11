@@ -24,6 +24,8 @@ import type { Source } from "./source.ts"
 import { createTaskControls, type TaskControls } from "./tasks.ts"
 import { chromeArgs } from "../agents/claude/chrome.ts"
 
+// claude neither reads nor writes its own memory, and the memory part of its system prompt goes.
+const MEMORY_OFF = { CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" }
 const INVALID_LOG_EVERY = 100
 const EXIT_WAIT_MS = 3000
 const INITIALIZE_TIMEOUT_MS = 60_000
@@ -164,6 +166,7 @@ export function connect(options: {
   const env = hostEnv()
   // The --settings value empties it for claude's settings files; this is the one YellowCode itself was started with.
   if (pluginsOff) delete env.CLAUDE_CODE_PLUGIN_DIRS
+  if (lean?.ownMemory === false) Object.assign(env, MEMORY_OFF)
   const source = createClaudeSource(
     cwd,
     busy,

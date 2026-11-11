@@ -177,6 +177,8 @@ import { useTicker } from "./ticker.ts"
 import { loadSidebarWidth, saveSidebarWidth } from "./ui-state.ts"
 import { type ProviderChoice, ProvidersDialog } from "./providers-dialog.tsx"
 import { AgentsDialog } from "./agents-dialog.tsx"
+import { MemoryDialog } from "./memory-dialog.tsx"
+import { listMemories, MAX_MEMORIES, NEAR_FULL } from "../memory/store.ts"
 import { RECENT_ROWS, Welcome, welcomeLayout, type Workspace } from "./welcome.tsx"
 import { updateNotice, updateText } from "../update/updater.ts"
 
@@ -220,6 +222,10 @@ export type AppProps = {
   title?: SessionTitle
   // YellowCode's titler asks it; without it nothing is titled.
   oneShot?: OneShot
+  // Live only: the folder of the project's memory.
+  memoryFolder?: string
+  // Runs a tidy-up of the memory; resolves to the line that says how it went.
+  onTidyMemory?: () => Promise<string>
   settingsProblem: string | null
   // The archived copy of a broken settings file, opened by a click on the notice.
   settingsBackup?: string | null
@@ -1075,6 +1081,11 @@ export function App(props: AppProps) {
     if (!props.models || !canRunAgents()) return undefined
     const idle = props.models.defined() - props.models.agents().length
     return { count: props.models.defined(), problem: idle > 0 ? `${idle} without a model` : "" }
+  }
+  const memoryFact = () => {
+    if (settings.memory !== "on" || props.memoryFolder === undefined) return undefined
+    const count = listMemories(props.memoryFolder).length
+    return { count, problem: count >= NEAR_FULL ? `near its limit of ${MAX_MEMORIES}` : "" }
   }
   const listsRules = () => props.caps.lists.includes("rules") && props.permissions !== undefined
   // What the settings rows say this provider cannot leave off.
@@ -2011,7 +2022,8 @@ export function App(props: AppProps) {
       (rewinding && !props.rewind) ||
       (planning && (!props.onInterrupt || !props.provider.modes().some((mode) => mode.kind === "plan"))) ||
       (command === "/providers" && !props.agents) ||
-      (command === "/agents" && !canRunAgents())
+      (command === "/agents" && !canRunAgents()) ||
+      (command === "/memory" && props.memoryFolder === undefined)
     ) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name}`)
       return false
@@ -2039,6 +2051,7 @@ export function App(props: AppProps) {
     else if (command === "/resume") setDialog({ name: "resume" })
     else if (command === "/providers") setDialog({ name: "providers" })
     else if (command === "/agents") openList("agents")
+    else if (command === "/memory") openList("memory")
     else if (command === "/theme") setDialog({ name: "theme" })
     else if (command === "/mcp" && !yields("mcp")) openList("mcp")
     else if (command === "/skills" && !yields("skills")) openList("skills")
@@ -2534,6 +2547,7 @@ export function App(props: AppProps) {
             shared={props.shared?.()}
             caps={props.caps}
             subagents={subagentFact()}
+            memory={memoryFact()}
             rules={listsRules() ? (props.permissions?.rules()?.length ?? null) : undefined}
             permissionMode={props.session.permissionMode ?? props.firstInfo?.permissionMode ?? null}
             title={title()?.title ?? null}
@@ -2676,6 +2690,16 @@ export function App(props: AppProps) {
       </Show>
       <Show when={dialog()?.name === "palette"}>
         <PaletteDialog rows={paletteSource()} onRun={runPalette} onClose={() => setDialog(null)} />
+      </Show>
+      <Show when={dialog()?.name === "memory" && props.memoryFolder}>
+        {(folder) => (
+          <MemoryDialog
+            folder={folder()}
+            onClose={closeList}
+            onCopy={copyText}
+            onTidy={() => props.onTidyMemory?.() ?? Promise.resolve("Not available here")}
+          />
+        )}
       </Show>
       <Show when={dialog()?.name === "resume"}>
         <ResumeDialog sessions={unlisted} onClose={() => setDialog(null)} />

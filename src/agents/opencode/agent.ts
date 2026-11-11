@@ -1192,9 +1192,12 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
       return groups
     },
     listModes: async (cwd) => (await readModes(await service(cwd)))?.rows ?? [],
-    oneShot: (prompt, cwd) =>
+    oneShot: (prompt, cwd, options = {}) =>
       service(cwd).then(
-        (transport) => answerOnce(transport, prompt, latest?.model() ?? null),
+        (transport) => {
+          const asked = options.model?.provider ? { providerID: options.model.provider, id: options.model.id } : null
+          return answerOnce(transport, prompt, asked ?? latest?.model() ?? null, options.timeoutMs)
+        },
         (error: unknown) => {
           log.warn("opencode: session title failed", error instanceof Error ? error.message : String(error))
           return null

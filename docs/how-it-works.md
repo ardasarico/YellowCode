@@ -127,6 +127,18 @@ get and Pi does not. How they start, which providers keep your plugins and how p
   - Pi gets them through a small extension of YellowCode's, loaded with `-e`, which reads them from an environment
     variable of Pi's process. With Off, on Pi 1.4 and later, Pi starts with `--no-mcp`, and the extension stands in
     for Pi's own MCP extension, with none of Pi's own servers.
+- The project's [memory](usage.md#memory), unless Memory in `/settings` says otherwise: its rules and the list of
+  memories, added to the agent's instructions, and three tools, `remember`, `forget` and `recall`.
+  - Claude Code, Codex and opencode get the tools the same way as the mods' tools. On Claude Code they run without a
+    permission ask.
+  - Pi takes no tools from YellowCode, so it gets them from a small MCP server: YellowCode started again as
+    `yellowcode memory-server`, which reads and writes only the project's memory folder.
+  - Claude Code starts with `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, so that process neither reads nor writes its auto
+    memory in `~/.claude/projects`. It keeps the list it got at its start through a `/clear`, and the agent can ask
+    for the list as it is now.
+  - Codex gets `features.memories` and `memories.generate_memories` off as config overrides of the thread. A thread
+    opened again is marked the same way, so Codex draws no memories from it later.
+  - opencode and Pi have no memory of their own. A memory plugin or extension you installed yourself keeps running.
 - The output of your `!` shell commands, with your next message. Claude Code also reads it at once when it is idle.
 
 ## What it never does
@@ -149,8 +161,9 @@ it has any, from npm. Mods are code you chose to run, so they can do more. See [
 
 ## What it keeps on your machine
 
-Settings, your shared MCP servers and your answers about each project's, the model lists, logs and rewind snapshots,
-which are copies of files from your projects.
+Settings, your shared MCP servers and your answers about each project's, the model lists, logs, each project's memory
+and rewind snapshots, which are copies of files from your projects. To bring in Claude Code's memories of a project it
+reads them from `~/.claude/projects` once, when you say yes.
 [Usage](usage.md#files-it-writes) lists where each one lives. For `/resume`, YellowCode reads the session lists your
 providers keep: Claude Code's `~/.claude/projects`, what Codex's app-server and opencode's service list for the project,
 and Pi's session files in `~/.pi/agent/sessions`.

@@ -62,6 +62,9 @@ export type RelayedCall = { server: string; caller: string; params: unknown }
 // The call's MCP answer.
 export type RelayedReply = { result: unknown } | { error: { code: number; message: string } }
 
+// `model`: the model that answers, in place of the small one titles run on. `timeoutMs`: longer than a title gets.
+export type OneShotOptions = { model?: ModelRef | null; timeoutMs?: number }
+
 export type StartOptions = {
   cwd: string
   // `fork` opens a copy ("Open a copy here"); `at` starts the copy before that prompt.
@@ -84,6 +87,8 @@ export type StartOptions = {
   ownMcp?: OwnMcp
   // False: the plugins installed in the agent stay off, where caps.pluginsOff says it can do that. Absent: they load.
   ownPlugins?: boolean
+  // False: the agent's own memory stays off, read and written, where it has one. Absent: as the user has it.
+  ownMemory?: boolean
   // A server of mcpServers the agent cannot run, and why; it is left out, and a same-named one of the agent's own is
   // switched off with it.
   mcpHeld?(name: string, problem: string): void
@@ -165,8 +170,8 @@ export type AgentKind = {
   // and `fileHistory` come from `sessions()`.
   history(ref: SessionRef, cursor: HistoryCursor | null): Promise<HistoryPage>
   heldElsewhere?(ref: SessionRef): Promise<boolean>
-  // One answer from the agent's model, outside the session, for YellowCode's own titles.
-  oneShot?(prompt: string, cwd: string): Promise<string | null>
+  // One answer from the agent's model, outside the session, for YellowCode's own titles; null when none came.
+  oneShot?(prompt: string, cwd: string, options?: OneShotOptions): Promise<string | null>
   // The models list from a short-lived process that keeps no session, for the catalog.
   listModels?(cwd: string): Promise<ModelGroup[]>
   // The agent's own file backups of a session (feature fileHistory), for the prompts `wanted` says yes to.

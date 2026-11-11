@@ -1,5 +1,6 @@
 // One answer from pi for YellowCode's session titles (pi titles nothing itself): a print run on the default model with
 // no session, tools, customizations or thinking. The prompt goes in on stdin, where an `@path` stays plain text.
+import type { OneShotOptions } from "../../agent/agent.ts"
 import { log } from "../../log/log.ts"
 import { spawnLimited } from "../../spawn.ts"
 
@@ -23,13 +24,16 @@ const PRINT = [
   INSTRUCTIONS,
 ]
 
-export async function answerOnce(prompt: string, cwd: string): Promise<string | null> {
-  const done = await spawnLimited(PRINT, { cwd, stdin: prompt, timeoutMs: TITLE_MS }).catch((error: unknown) => {
-    log.warn("pi: session title failed", error instanceof Error ? error.message : String(error))
+export async function answerOnce(prompt: string, cwd: string, options: OneShotOptions = {}): Promise<string | null> {
+  const { model } = options
+  const named = model ? ["--model", model.provider ? `${model.provider}/${model.id}` : model.id] : []
+  const run = { cwd, stdin: prompt, timeoutMs: options.timeoutMs ?? TITLE_MS }
+  const done = await spawnLimited([...PRINT, ...named], run).catch((error: unknown) => {
+    log.warn("pi: one-shot failed", error instanceof Error ? error.message : String(error))
     return null
   })
   if (done?.code === 0) return done.stdout.trim() || null
-  if (done) log.warn("pi: session title failed", { code: done.code, stderrChars: done.stderr.length })
-  else log.warn("pi: session title failed", "no answer in time")
+  if (done) log.warn("pi: one-shot failed", { code: done.code, stderrChars: done.stderr.length })
+  else log.warn("pi: one-shot failed", "no answer in time")
   return null
 }

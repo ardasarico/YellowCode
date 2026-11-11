@@ -71,7 +71,7 @@ export type ChildrenOptions = {
   relay?: StartOptions["relay"]
   skills?: string[]
   // The shared MCP servers, which a child gets when it keeps the user's own.
-  mcp?(): Pick<StartOptions, "mcpServers" | "ownMcp">
+  mcp?(): Pick<StartOptions, "mcpServers" | "ownMcp" | "ownMemory">
   // The saved "Providers' plugins". A child follows it unless its file says `plugins: true`.
   plugins?(): boolean
 }
@@ -245,10 +245,15 @@ export function createChildren(options: ChildrenOptions) {
     const own = launcher.caps.instructions
     const plain = !(definition?.plugins ?? false)
     // Shared servers go only where the agent's own are kept, so a plain child has neither where its own can go off.
+    const shared = options.mcp?.() ?? { mcpServers: [] }
     const mcp =
       launcher.plain && plain
-        ? { mcpServers: [], ...(launcher.caps.ownMcpOff && { ownMcp: { on: false, project: [] } }) }
-        : (options.mcp?.() ?? { mcpServers: [] })
+        ? {
+            mcpServers: [],
+            ...(launcher.caps.ownMcpOff && { ownMcp: { on: false, project: [] } }),
+            ownMemory: shared.ownMemory,
+          }
+        : shared
     const id = `c${++count}`
     const store = createSession({ idPrefix: `${id}-`, starting: true })
     const child: Child = {
