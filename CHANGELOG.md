@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+### Fixed
+
+- Animated GIFs play in the chat and in the image viewer, where they showed only their first frame.
+- When an image in the agent's reply does not show, the agent is told with your next message, so it can fix the
+  path.
+- An image that does not show says why: not found, too large (over 20 MB) or not a file.
+
 ## 0.5.0
 
 ### Highlights
