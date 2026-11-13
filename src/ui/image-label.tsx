@@ -1,10 +1,21 @@
 import { NativeImage, RGBA } from "@opentui/core"
 import { Resvg } from "@resvg/resvg-js"
-import { type Accessor, createEffect, createMemo, createSignal, Index, onCleanup, type Setter, Show } from "solid-js"
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  Index,
+  on,
+  onCleanup,
+  type Setter,
+  Show,
+} from "solid-js"
 import { shrunkCopy } from "../input/image-file.ts"
 import { log } from "../log/log.ts"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { decodeGif, isGif } from "./gif.ts"
 import { remember } from "./markdown/cache.ts"
 import { localImageProblem, markdownImages, readLocalImage } from "./markdown/images.ts"
 
@@ -129,9 +140,13 @@ export function hasImage(image: ChatImage): boolean {
   return remember(found, 5000, key, () => entryOf(image) !== null)
 }
 
-// The image's pixels while the caller is mounted, freed with it.
-export function createDecoded(image: () => ChatImage | null | undefined): () => NativeImage | undefined {
-  return createMemo(() => {
+// The image's pixels while the caller is mounted, freed with it. Given `playing`, an animated GIF plays while it says
+// so, and stays on its frame otherwise.
+export function createDecoded(
+  image: () => ChatImage | null | undefined,
+  playing?: () => boolean,
+): () => NativeImage | undefined {
+  const still = createMemo(() => {
     const shown = image()
     const entry = shown ? entryOf(shown) : null
     if (!shown || !entry || entry.shrinking() || entry.size === null) return undefined
@@ -139,8 +154,36 @@ export function createDecoded(image: () => ChatImage | null | undefined): () => 
     if (entry.size === undefined || !decoded) settle(shown, entry, decoded)
     if (!decoded) return undefined
     onCleanup(() => decoded.dispose())
-    return decoded
+    return { decoded, bytes: entry.bytes }
   })
+  const frames = createMemo(() => {
+    const shown = still()
+    const gif = playing && shown && isGif(shown.bytes) ? decodeGif(shown.bytes) : null
+    if (!gif) return null
+    const images = gif.frames.map((frame) => ({
+      image: NativeImage.fromRgba(frame.pixels, gif.width, gif.height),
+      delay: frame.delay,
+    }))
+    onCleanup(() => {
+      for (const frame of images) frame.image.dispose()
+    })
+    return images
+  })
+  const [index, setIndex] = createSignal(0)
+  createEffect(
+    on(frames, (list) => {
+      setIndex(0)
+      if (!list) return
+      let timer: Timer
+      const step = () => {
+        if (playing?.()) setIndex((at) => (at + 1) % list.length)
+        timer = setTimeout(step, list[index()]?.delay ?? 100)
+      }
+      timer = setTimeout(step, list[0]?.delay ?? 100)
+      onCleanup(() => clearTimeout(timer))
+    }),
+  )
+  return () => frames()?.[index()]?.image ?? still()?.decoded
 }
 
 export const labelId = (itemId: string, index: number) => `${itemId}/image/${index}`

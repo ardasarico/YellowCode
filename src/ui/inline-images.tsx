@@ -3,14 +3,19 @@ import { createSignal, Index, Show } from "solid-js"
 import type { ChatImage } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { createDecoded, ImageLabel, labelId, loadImage } from "./image-label.tsx"
-import { blank, type Cell, cellOf, createShown, sameCell, trackImage } from "./images.ts"
+import { blank, type Cell, cellOf, covered, createShown, sameCell, trackImage } from "./images.ts"
 
 const MAX_ROWS = 16
 const GAP = 2
 const MIN_SLOT = 20
 
 function InlineImage(props: { id?: string; image: ChatImage; width: number; selected: boolean; onOpen?: () => void }) {
-  const pixels = createDecoded(() => props.image)
+  // A GIF plays while it is drawn: rows scrolled out of the chat are not.
+  let drawnAt = 0
+  const pixels = createDecoded(
+    () => props.image,
+    () => !covered() && Date.now() - drawnAt < 1000,
+  )
   const [element, setElement] = createSignal<ImageRenderable>()
   const [cell, setCell] = createSignal<Cell | null>(null, { equals: sameCell })
   const size = () => {
@@ -57,6 +62,7 @@ function InlineImage(props: { id?: string; image: ChatImage; width: number; sele
                 trackImage(image)
               }}
               renderBefore={function () {
+                drawnAt = Date.now()
                 setCell(cellOf(this))
               }}
               source={shown()}

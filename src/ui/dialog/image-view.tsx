@@ -71,7 +71,7 @@ export function ImageView(props: {
     const shown = image()
     return shown ? loadImage(shown) : null
   }
-  const pixels = createDecoded(image)
+  const pixels = createDecoded(image, () => true)
   const several = () => props.images.length > 1
   const details = () => {
     const loaded = file()
