@@ -6,7 +6,7 @@ import { log } from "../log/log.ts"
 import type { ChatImage, Item } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
 import { remember } from "./markdown/cache.ts"
-import { markdownImages, readLocalImage } from "./markdown/images.ts"
+import { localImageProblem, markdownImages, readLocalImage } from "./markdown/images.ts"
 
 const CLEAR = RGBA.fromValues(0, 0, 0, 0)
 
@@ -177,6 +177,8 @@ export function ImageLabel(props: {
     const timer = setTimeout(() => setTries((count) => count + 1), RETRY_MS)
     onCleanup(() => clearTimeout(timer))
   })
+  const problem = () =>
+    (props.image.path && !props.image.data ? localImageProblem(props.image.path) : null) ?? "unreadable"
   const size = () => {
     const known = file()?.size
     return known ? ` · ${known.width}×${known.height}` : ""
@@ -196,7 +198,7 @@ export function ImageLabel(props: {
         fallback={
           <text wrapMode="none" fg={theme.muted}>
             <span style={{ fg: theme.frame }}>{props.prefix}</span>
-            {`▣ ${props.image.name} · not found`}
+            {`▣ ${props.image.name} · ${problem()}`}
           </text>
         }
       >

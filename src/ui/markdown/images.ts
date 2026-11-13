@@ -15,10 +15,18 @@ const MEDIA_TYPES: Record<string, string> = {
 
 const MAX_BYTES = 20 * 1024 * 1024
 
+export type ImageProblem = "not found" | "too large" | "not a file"
+
+export function localImageProblem(path: string): ImageProblem | null {
+  const stat = statSync(path, { throwIfNoEntry: false })
+  if (!stat) return "not found"
+  if (!stat.isFile()) return "not a file"
+  return stat.size > MAX_BYTES ? "too large" : null
+}
+
 // Only a regular file of a sane size: /dev/zero or a FIFO would be read forever.
 export function readLocalImage(path: string): Buffer | null {
-  const stat = statSync(path, { throwIfNoEntry: false })
-  return stat?.isFile() && stat.size <= MAX_BYTES ? readFileSync(path) : null
+  return localImageProblem(path) === null ? readFileSync(path) : null
 }
 
 function decoded(href: string): string {
@@ -70,4 +78,16 @@ export function imageLines(block: Token, cwd: string): ChatImage[][] {
 
 export function markdownImages(markdown: string, cwd: string): ChatImage[] {
   return markdown.includes("![") ? tokenImages(lex(markdown), cwd) : []
+}
+
+// The agent cannot see the pictures it links, so it is told about the ones that do not show.
+export function brokenImagesNote(markdowns: string[], cwd: string): string | null {
+  const lines = markdowns
+    .flatMap((markdown) => markdownImages(markdown, cwd))
+    .flatMap((image) => {
+      const problem = image.path ? localImageProblem(image.path) : null
+      return problem ? [`- ${image.path} (${problem === "too large" ? "over 20 MB" : problem})`] : []
+    })
+  if (lines.length === 0) return null
+  return `[YellowCode: these images in your last reply could not be shown to the user]\n${[...new Set(lines)].join("\n")}`
 }

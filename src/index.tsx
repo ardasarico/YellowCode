@@ -133,6 +133,7 @@ import { readTerminal } from "./theme/palette.ts"
 import { setTerminal, startTheme } from "./theme/theme.ts"
 import type { ProviderChoice } from "./ui/providers-dialog.tsx"
 import { App, type KnobActions, type Message, type ModelSource } from "./ui/app.tsx"
+import { brokenImagesNote } from "./ui/markdown/images.ts"
 import type { Submission } from "./ui/completion.ts"
 import { watchFocus } from "./ui/attention.ts"
 import { modelName } from "./ui/format.ts"
@@ -1699,7 +1700,12 @@ function sendPrompt(
   if (carried) carrying = null
   const { takesShells } = target.runner
   const told = carried ? [carried.handoff.textFor(message.images.length)] : []
-  const ahead = [...told, ...(takesShells || shells.length === 0 ? [] : [shellsText(shells)])]
+  const broken = message.to === null && !message.text.startsWith("/") ? brokenImagesNote(lastReply(session), cwd) : null
+  const ahead = [
+    ...told,
+    ...(takesShells || shells.length === 0 ? [] : [shellsText(shells)]),
+    ...(broken ? [broken] : []),
+  ]
   const context = ahead.length > 0 ? ahead.join("\n\n") : null
   const images = carried ? [...message.images, ...carried.handoff.images] : message.images
   const prompt: Prompt = {
@@ -1754,6 +1760,18 @@ function sendPrompt(
 }
 
 const HELD_LOG_MS = 1000
+
+// What the main agent wrote since the user's last message.
+function lastReply(session: SessionStore): string[] {
+  const { items, byId } = session.state
+  const texts: string[] = []
+  for (let index = items.length - 1; index >= 0; index--) {
+    const item = byId[items[index] ?? ""]
+    if (item?.kind === "user") break
+    if (item?.kind === "text" && !item.local && !item.quiet) texts.unshift(item.markdown)
+  }
+  return texts
+}
 
 // Messages sent behind a running turn that ↑ may take back, with the `!` commands that went out with them.
 const withdrawable = new Map<PromptId, { session: SessionStore; shells: Prompt["shells"] }>()
