@@ -7,6 +7,7 @@ import { editedLocally, listedEntry, modFolders, revokedCommit, revokedListing }
 import { installAt, type InstallResult } from "./install.ts"
 import { type ModList, readCachedList, refreshList, REPO, SHA } from "./list.ts"
 import { type InstallRecord, readRecord, recordPath } from "./record.ts"
+import { bold, dim, done, problem, say, warn } from "../../cli-style.ts"
 
 export const MOD_USAGE = [
   "       yellowcode mod add <id>",
@@ -20,24 +21,34 @@ const GITHUB = /^github:([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?$/
 const UNLISTED_WARNING =
   "is not on the YellowCode list. Nobody has reviewed it. It runs with the same access as YellowCode."
 
-const say = (line: string) => process.stdout.write(`${line}\n`)
 const short = (sha: string) => sha.slice(0, 7)
 
 function fail(line: string): number {
-  process.stderr.write(`${line}\n`)
+  problem(line)
   return 1
 }
 
 export async function runModCommand(args: string[]): Promise<number> {
   const [command, target, ...rest] = args
   const mods = homePath("mods")
-  if (rest.length === 0) {
-    if (command === "add" && target) return GITHUB.test(target) ? addUnlisted(target, mods) : addListed(target, mods)
-    if (command === "update") return update(target, mods)
-    if (command === "remove" && target) return remove(target, mods)
-    if (command === "list" && !target) return listMods(mods)
+  const run = rest.length === 0 ? commandFor(command, target, mods) : null
+  if (!run) {
+    process.stderr.write(`Usage:\n${MOD_USAGE.replaceAll("       ", "  ")}\n`)
+    return 1
   }
-  return fail(`Usage:\n${MOD_USAGE.replaceAll("       ", "  ")}`)
+  say()
+  const code = await run()
+  say()
+  return code
+}
+
+function commandFor(command: string | undefined, target: string | undefined, mods: string) {
+  if (command === "add" && target)
+    return () => (GITHUB.test(target) ? addUnlisted(target, mods) : addListed(target, mods))
+  if (command === "update") return () => update(target, mods)
+  if (command === "remove" && target) return () => remove(target, mods)
+  if (command === "list" && !target) return () => listMods(mods)
+  return null
 }
 
 async function addListed(id: string, mods: string): Promise<number> {
@@ -67,8 +78,8 @@ async function addUnlisted(target: string, mods: string): Promise<number> {
   if (installed === "local") return fail(`${id.value} is a local mod; remove its folder first`)
   if (installed) return alreadyInstalled(id.value, installed)
 
-  say(`⚠ ${id.value} ${UNLISTED_WARNING}`)
-  say(`${repo} @ ${short(sha.value)}`)
+  warn(`${bold(id.value)} ${UNLISTED_WARNING}`)
+  say(dim(`${repo} @ ${short(sha.value)}`))
   if (!(await ask("Install?"))) return fail("Nothing installed.")
   return finish(
     id.value,
@@ -90,13 +101,13 @@ async function update(only: string | undefined, mods: string): Promise<number> {
       continue
     }
     if (editedLocally(join(mods, id), record)) {
-      say(`${id}: edited locally, not updated`)
+      warn(`${bold(id)} was edited locally, not updated`)
       continue
     }
     const next = record.listed ? updateListed(id, record, mods, list) : updateUnlisted(id, record, mods, list)
     // oxlint-disable-next-line no-await-in-loop -- one mod at a time, since an unlisted one may ask first
-    const done = await next
-    if (!done) failed = true
+    const updated = await next
+    if (!updated) failed = true
   }
   return failed ? 1 : 0
 }
@@ -105,7 +116,7 @@ async function updateListed(id: string, record: InstallRecord, mods: string, lis
   if (!list) return false
   const entry = listedEntry(list, id)
   if (typeof entry === "string") return (fail(entry), false)
-  if (entry.sha === record.sha) return (say(`${id} ${record.version} is up to date`), true)
+  if (entry.sha === record.sha) return (done(`${bold(id)} ${record.version} is up to date`), true)
   return finish(id, await installAt({ ...entry, listed: true }, mods), record.version) === 0
 }
 
@@ -114,11 +125,11 @@ async function updateUnlisted(id: string, record: InstallRecord, mods: string, l
   if (!repo) return (fail(`${id}: the install record's source "${record.source}" is not github:owner/repo`), false)
   const sha = await resolveRef(repo, ref)
   if (!sha.ok) return (fail(`${id}: ${sha.problem}`), false)
-  if (sha.value === record.sha) return (say(`${id} ${record.version} is up to date`), true)
+  if (sha.value === record.sha) return (done(`${bold(id)} ${record.version} is up to date`), true)
   const revoked = list && revokedCommit(list, id, sha.value)
   if (revoked) return (fail(`${id} @ ${short(sha.value)}: Revoked: ${revoked}`), false)
-  say(`${id} (unlisted): ${repo} ${short(record.sha)} -> ${short(sha.value)}`)
-  if (!(await ask(`Update ${id}?`))) return (say(`${id} not updated`), true)
+  say(`${bold(id)} ${dim(`unlisted · ${repo} ${short(record.sha)} → ${short(sha.value)}`)}`)
+  if (!(await ask(`Update ${id}?`))) return (say(`${bold(id)} not updated`), true)
   const result = await installAt({ id, repo, sha: sha.value, treeHash: null, listed: false, ref }, mods)
   return finish(id, result, record.version) === 0
 }
@@ -130,38 +141,47 @@ async function remove(id: string, mods: string): Promise<number> {
   if (!(await ask(`Remove ${id}?`))) return fail("Nothing removed.")
   rmSync(join(mods, id), { recursive: true, force: true })
   rmSync(recordPath(mods, id), { force: true })
-  say(`Removed ${id}.`)
+  done(`Removed ${bold(id)}`)
   return 0
 }
 
 async function listMods(mods: string): Promise<number> {
   const folders = modFolders(mods)
-  for (const id of folders) {
+  const installed = folders.map((id) => {
     const record = readRecord(mods, id)
     const manifest = readManifest(join(mods, id))
     const version = record?.version ?? (manifest.ok ? manifest.manifest.version : "?")
-    const source = !record ? "local" : record.listed ? "listed" : `unlisted ${record.source}`
-    say(`${id} ${version} · ${source}`)
-  }
-  if (folders.length === 0) say("No mods installed.")
+    return { id, version, note: !record ? "local" : record.listed ? "listed" : `unlisted ${record.source}` }
+  })
   const list = await loadList()
-  const available =
+  const available = (
     list?.mods.filter((mod) => !folders.includes(mod.id) && revokedListing(list, mod.id, mod.version) === null) ?? []
-  if (available.length > 0) say("\nAvailable:")
-  for (const mod of available) say(`${mod.id} ${mod.version} · ${mod.description}`)
+  ).map((mod) => ({ id: mod.id, version: mod.version, note: mod.description }))
+  const width = Math.max(0, ...[...installed, ...available].map((row) => row.id.length + row.version.length))
+  const row = ({ id, version, note }: { id: string; version: string; note: string }) =>
+    say(`${bold(id)} ${version}${" ".repeat(width - id.length - version.length)}  ${dim(note)}`)
+  installed.forEach(row)
+  if (installed.length === 0) say("No mods installed.")
+  if (available.length > 0) {
+    say()
+    say(dim("Available"))
+  }
+  available.forEach(row)
   return 0
 }
 
 function finish(id: string, result: InstallResult, from?: string): number {
   if (!result.ok) return fail(result.problem)
   const { record } = result
-  const what = from ? `Updated ${id} ${from} -> ${record.version}` : `Installed ${id} ${record.version}`
-  say(`${what} @ ${short(record.sha)}. Restart YellowCode to load it.`)
+  const what = from
+    ? `Updated ${bold(id)} ${dim(`${from} →`)} ${record.version}`
+    : `Installed ${bold(id)} ${record.version}`
+  done(`${what} ${dim(`@ ${short(record.sha)}`)}. Restart YellowCode to load it.`)
   return 0
 }
 
 function alreadyInstalled(id: string, record: InstallRecord): number {
-  say(`${id} ${record.version} is already installed; run yellowcode mod update ${id}`)
+  done(`${bold(id)} ${record.version} is already installed; run yellowcode mod update ${id}`)
   return 0
 }
 
@@ -171,7 +191,7 @@ async function loadList(): Promise<ModList | null> {
   if (fetched.ok) return fetched.list
   const cached = readCachedList()
   if (!cached) return (fail(`Couldn't get the mod list: ${fetched.problem}`), null)
-  say(
+  warn(
     `Couldn't get the mod list (${fetched.problem}); using the copy cached ${new Date(cached.fetchedAt).toISOString()}`,
   )
   return cached.list
@@ -235,7 +255,7 @@ const decoder = new TextDecoder()
 
 // Reads one line from stdin. Only y or yes is yes; a closed stdin is no.
 async function ask(question: string): Promise<boolean> {
-  process.stdout.write(`${question} [y/N] `)
+  process.stdout.write(`  ${question} ${dim("[y/N]")} `)
   const chunks = (stdin ??= Bun.stdin.stream()[Symbol.asyncIterator]())
   while (!buffered.includes("\n")) {
     // oxlint-disable-next-line no-await-in-loop -- the line arrives in chunks

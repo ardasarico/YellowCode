@@ -94,22 +94,25 @@ test("mod add, update and remove", async () => {
   publish("someone/clash", "demo", "9.0.0")
   expect(await run("add github:someone/clash", "y\n")).toEqual({
     code: 1,
-    output: "demo is a mod on the YellowCode list; install it with yellowcode mod add demo\n",
+    output: "\n\n  ✗ demo is a mod on the YellowCode list; install it with yellowcode mod add demo\n",
   })
   mkdirSync(join(mods, "hand"))
-  expect(await run("add hand")).toMatchObject({ code: 1, output: "hand is a local mod; remove its folder first\n" })
+  expect(await run("add hand")).toMatchObject({
+    code: 1,
+    output: "\n\n  ✗ hand is a local mod; remove its folder first\n",
+  })
 
   const demo2 = publish("someone/demo", "demo", "2.0.0")
   const extra2 = publish("someone/extra", "extra", "0.2.0")
   list = { mods: [listed(demo2)], revoked: [] }
   const updated = await run("update", "y\n")
-  expect(updated.output).toContain("Updated demo 1.0.0 -> 2.0.0")
-  expect(updated.output).toContain("Updated extra 0.1.0 -> 0.2.0")
+  expect(updated.output).toContain("Updated demo 1.0.0 → 2.0.0")
+  expect(updated.output).toContain("Updated extra 0.1.0 → 0.2.0")
   expect(readRecord(mods, "extra")?.sha).toBe(extra2.sha)
 
   appendFileSync(join(mods, "demo", "index.ts"), "// mine\n")
   list = { mods: [listed(publish("someone/demo", "demo", "3.0.0"))], revoked: [] }
-  expect(await run("update demo")).toMatchObject({ code: 0, output: "demo: edited locally, not updated\n" })
+  expect(await run("update demo")).toMatchObject({ code: 0, output: "\n  ⚠ demo was edited locally, not updated\n\n" })
   expect(readRecord(mods, "demo")?.version).toBe("2.0.0")
 
   expect(await run("remove extra", "y\n")).toMatchObject({ code: 0 })

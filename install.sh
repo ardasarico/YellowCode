@@ -13,13 +13,53 @@ esac
 BIN_DIR="$HOME/.local/bin"
 want="${1:-stable}"
 
+# The terminal's own colors, and only when the output is a terminal.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != dumb ]; then
+  esc=$(printf '\033')
+  bold="${esc}[1m" dim="${esc}[2m" accent="${esc}[33m" good="${esc}[32m" bad="${esc}[31m" plain="${esc}[0m"
+else
+  esc="" bold="" dim="" accent="" good="" bad="" plain=""
+fi
+
 fail() {
-  echo "yellowcode install: $1" >&2
+  echo "  ${bad}✗${plain} yellowcode install: $1" >&2
   exit 1
+}
+
+step() {
+  printf '  %s✓%s %-10s  %s%s%s\n' "$good" "$plain" "$1" "$dim" "$2" "$plain"
 }
 
 fetch() {
   curl -fsSL --retry 2 "$1" -o "$2" || fail "could not download $1"
+}
+
+megabytes() {
+  awk -v bytes="$1" 'BEGIN { printf "%.1f", bytes / 1048576 }'
+}
+
+# Downloads like fetch, under a line that shows how far it is; the line is gone once it ends.
+download() {
+  if [ -z "$esc" ]; then
+    fetch "$1" "$2"
+    return
+  fi
+  total=$(curl -fsSLI "$1" 2>/dev/null | awk 'tolower($1) == "content-length:" { size = $2 } END { print size + 0 }')
+  curl -fsSL --retry 2 "$1" -o "$2" &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    got=0
+    [ -f "$2" ] && got=$(wc -c <"$2")
+    awk -v got="$got" -v total="$total" -v on="$accent" -v off="$dim" -v plain="$plain" 'BEGIN {
+      if (total <= 0) { printf "\r\033[2K  %s%.1f MB%s", off, got / 1048576, plain; exit }
+      filled = int(got * 30 / total)
+      for (i = 0; i < 30; i++) bar = bar (i == 0 ? on : "") (i == filled ? plain off : "") "━"
+      printf "\r\033[2K  %s%s  %s%.1f / %.1f MB%s", bar, plain, off, got / 1048576, total / 1048576, plain
+    }'
+    sleep 0.1
+  done
+  printf '\r\033[2K'
+  wait "$pid" || fail "could not download $1"
 }
 
 sha256() {
@@ -61,8 +101,8 @@ asset() {
 }
 
 case "$(uname -s)" in
-  Darwin) os=darwin ;;
-  Linux) os=linux ;;
+  Darwin) os=darwin system=macOS ;;
+  Linux) os=linux system=Linux ;;
   *) fail "YellowCode runs on macOS and Linux; on Windows, install it in WSL" ;;
 esac
 case "$(uname -m)" in
@@ -110,13 +150,17 @@ case "$want" in
 esac
 [ -n "$expected" ] || fail "no checksum for $file in $version"
 
-echo "Downloading YellowCode $version for $platform"
-fetch "$url" "$work/$file"
+echo
+echo "  ${accent}●${plain} ${bold}YellowCode $version${plain}  ${dim}$system $cpu · $channel${plain}"
+echo
+download "$url" "$work/$file"
+step Downloaded "$(megabytes "$(wc -c <"$work/$file")") MB"
 [ "$(sha256 "$work/$file")" = "$expected" ] || fail "$file does not match its checksum; nothing was installed"
 mkdir "$work/unpacked"
 tar -xzf "$work/$file" -C "$work/unpacked"
 [ -f "$work/unpacked/yellowcode" ] || fail "$file holds no yellowcode binary"
 chmod +x "$work/unpacked/yellowcode"
+step Verified sha256
 
 target="$HOME_DIR/versions/$version"
 rm -rf "$target"
@@ -125,9 +169,10 @@ ln -s "$target/yellowcode" "$work/link"
 mv -f "$work/link" "$BIN_DIR/yellowcode"
 printf '{ "method": "script", "channel": "%s" }\n' "$channel" >"$HOME_DIR/install.json"
 
-echo "Installed YellowCode $version in $BIN_DIR/yellowcode"
+step Installed "~${BIN_DIR#"$HOME"}/yellowcode"
+echo
 case ":$PATH:" in
-  *":$BIN_DIR:"*) ;;
+  *":$BIN_DIR:"*) echo "  Run ${accent}yellowcode${plain} to start." ;;
   *)
     case "$(basename "${SHELL:-sh}")" in
       zsh) hint="echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc" ;;
@@ -135,6 +180,8 @@ case ":$PATH:" in
       fish) hint="fish_add_path ~/.local/bin" ;;
       *) hint="add $BIN_DIR to PATH in your shell's startup file" ;;
     esac
-    echo "$BIN_DIR is not on your PATH. To add it: $hint"
+    echo "  ${accent}⚠${plain} ~${BIN_DIR#"$HOME"} is not on your PATH. To add it:"
+    echo "    ${accent}$hint${plain}"
     ;;
 esac
+echo

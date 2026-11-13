@@ -24,6 +24,8 @@ import { FORMULA, manualCommand, type Method } from "./method.ts"
 export type UpdateState = { version: string; status: "ready" | "failed"; command: string }
 // What an install needs from a release.
 export type Target = Pick<Release, "version" | "assets">
+// Bytes downloaded so far and the size of the whole file, 0 when the server does not say.
+export type Progress = (got: number, total: number) => void
 
 const State = z.object({ version: z.string(), status: z.enum(["ready", "failed"]), command: z.string() })
 const stateFile = () => homePath("update-state.json")
@@ -142,7 +144,11 @@ export function useInstalled(version: string, paths: ScriptPaths = scriptPaths()
 
 // Unpacks the release next to the installed versions and moves the launcher link to it in one rename. The running
 // version and the new one stay; older ones go.
-export async function installScript(release: Target, paths: ScriptPaths = scriptPaths()): Promise<void> {
+export async function installScript(
+  release: Target,
+  paths: ScriptPaths = scriptPaths(),
+  onProgress?: Progress,
+): Promise<void> {
   const versions = join(paths.home, "versions")
   const temp = join(versions, `.tmp-${release.version}-${process.pid}`)
   const asset = release.assets[paths.platform]
@@ -150,8 +156,17 @@ export async function installScript(release: Target, paths: ScriptPaths = script
   mkdirSync(temp, { recursive: true })
   try {
     const response = await fetch(asset.url, { signal: AbortSignal.timeout(10 * 60 * 1000) })
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${asset.url}`)
-    const archive = new Uint8Array(await response.arrayBuffer())
+    if (!response.ok || !response.body) throw new Error(`HTTP ${response.status} for ${asset.url}`)
+    const total = Number(response.headers.get("content-length")) || 0
+    const chunks: Uint8Array[] = []
+    let got = 0
+    const body: AsyncIterable<Uint8Array> = response.body
+    for await (const chunk of body) {
+      chunks.push(chunk)
+      got += chunk.length
+      onProgress?.(got, total)
+    }
+    const archive = Buffer.concat(chunks)
     const sha256 = createHash("sha256").update(archive).digest("hex")
     if (sha256 !== asset.sha256) throw new Error(`${basename(asset.url)} does not match its checksum`)
     writeFileSync(join(temp, "release.tar.gz"), archive)
@@ -190,14 +205,19 @@ export async function installPackage(method: Method, version: string): Promise<v
 }
 
 // Installs the release with the tool YellowCode came from; the new version runs from the next start.
-export async function applyUpdate(release: Target, method: Method, channel: Channel): Promise<UpdateState | null> {
+export async function applyUpdate(
+  release: Target,
+  method: Method,
+  channel: Channel,
+  onProgress?: Progress,
+): Promise<UpdateState | null> {
   if (method === "none") return null
   const unlock = lock()
   if (!unlock) return null
   const command = manualCommand(method, channel)
   let state: UpdateState
   try {
-    if (method === "script") await installScript(release)
+    if (method === "script") await installScript(release, undefined, onProgress)
     else await installPackage(method, release.version)
     state = { version: release.version, status: "ready", command }
     log.info(`update: ${release.version} installed with ${method}`)
