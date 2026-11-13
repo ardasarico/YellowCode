@@ -1,6 +1,12 @@
 import { movedLines } from "./moved.ts"
 import { appVersion } from "./build-info.ts"
-import { addDefaultParsers, CliRenderEvents, createCliRenderer, destroyTreeSitterClient } from "@opentui/core"
+import {
+  addDefaultParsers,
+  CliRenderEvents,
+  createCliRenderer,
+  destroyTreeSitterClient,
+  NativeSession,
+} from "@opentui/core"
 import { render } from "@opentui/solid"
 import { constants } from "node:os"
 import { basename } from "node:path"
@@ -1142,7 +1148,17 @@ const renderer = await createCliRenderer({
   autoFocus: false,
   // OpenTUI sends an image again whenever an image above it scrolls in or out; a file path is cheap to send again.
   kittyImageTransport: "file",
+  // An image whose file the terminal has not read yet is sent inline instead. A frame of those passes OpenTUI's
+  // 8 MB of output, and after one failed frame it sends every image inline, so the frames keep failing.
+  nativeSession: new NativeSession(process.stdout, {
+    output: { chunkSize: 65536, spanCapacity: 1024, maxBytes: 64n * 1024n * 1024n, controlCapacity: 4096 },
+  }),
 })
+// OpenTUI reports a failed frame with console.error, which would print over the screen.
+/* oxlint-disable no-console */
+console.error = (...parts: unknown[]) => log.error("console", parts.map(String).join(" "))
+console.warn = (...parts: unknown[]) => log.warn("console", parts.map(String).join(" "))
+/* oxlint-enable no-console */
 watchFocus(renderer)
 const capabilities = firstCapabilities(renderer)
 renderer.addPostProcessFn(invertQueued)
