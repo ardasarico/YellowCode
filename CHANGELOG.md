@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2
+
+### Fixed
+
+- Replies with many images no longer freeze the screen; the chat keeps drawing.
+- Install, update and mod commands print clearer output.
+- When a turn ends, calls that read images fold into the tool run with the others instead of staying on their own
+  rows.
+
 ## 0.5.1
 
 ### Fixed
