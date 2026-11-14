@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+### Fixed
+
+- An image you paste into an answer to the agent's question shows as `[Image N]` instead of its full file path.
+
 ## 0.5.2
 
 ### Fixed
