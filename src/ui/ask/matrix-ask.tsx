@@ -125,7 +125,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
       const row = (state.row + step) % count
       if ((state.answers[row] ?? -1) < 0) return setState("row", row)
     }
-    props.onAnswer({ type: "answers", answers: matrixAnswers(props.matrix, state) })
+    props.onAnswer({ type: "answers", answers: paste.expand(matrixAnswers(props.matrix, state)) })
   }
   const openNote = () => {
     setDraft(state.notes[state.row] ?? "")
@@ -152,7 +152,7 @@ export function MatrixAsk(props: AskViewProps & { matrix: Matrix }) {
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
-    if (paste(key, noting() ? noteField : undefined)) return
+    if (paste.take(key, noting() ? noteField : undefined)) return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {
       const moving = key.name === "up" || key.name === "down"

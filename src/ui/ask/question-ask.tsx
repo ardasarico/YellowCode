@@ -206,7 +206,7 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
   const submit = () => {
     const missing = questions().findIndex((current, index) => answerFor(current, state, index) === "")
     if (missing >= 0) return setState("page", missing)
-    props.onAnswer({ type: "answers", answers: answersFrom(props.pages, state) })
+    props.onAnswer({ type: "answers", answers: paste.expand(answersFrom(props.pages, state)) })
   }
   const next = () => (paged() ? setState("page", state.page + 1) : submit())
   const choose = (option: number) => {
@@ -265,7 +265,8 @@ export function QuestionAsk(props: AskViewProps & { pages: QuestionPage[] }) {
   useKeyboard((key) => {
     if (typing(key)) return key.preventDefault()
     if (props.answered || covered()) return
-    if (paste(key, noting() ? fields.note : onOwnRow() ? fields.own : onExtraRow() ? fields.extra : undefined)) return
+    if (paste.take(key, noting() ? fields.note : onOwnRow() ? fields.own : onExtraRow() ? fields.extra : undefined))
+      return
     // ↑↓ keep the note and go on moving, so a note never traps the cursor.
     if (noting()) {
       const moving = key.name === "up" || key.name === "down"

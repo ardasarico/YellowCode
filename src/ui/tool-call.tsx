@@ -98,14 +98,17 @@ function settledQuestion(tool: ToolCall): string | null {
   return tool.outcome?.status === "denied" ? deniedLine(tool.outcome) : null
 }
 
+// A pasted picture travels to the agent as `[Image N: path]`; the chat shows only its label.
+const withoutPaths = (text: string) => text.replaceAll("\n", " ").replace(/\[Image (\d+): [^\]]+\]/g, "[Image $1]")
+
 export function answerLines(tool: ToolCall, ask: Ask | null): string[] {
   const told = tool.outcome?.status === "answered" ? tool.outcome : { answers: {}, notes: {} }
   const { answers, notes }: Pick<Ask, "answers" | "notes"> = ask?.status === "answered" ? ask : told
   const pages = tool.questions && "pages" in tool.questions ? tool.questions.pages : []
   return Object.entries(answers).map(([key, answer]) => {
     const header = pages.find((page) => page.key === key)?.header ?? key
-    const shown = answer.replaceAll("\n", " ")
-    const note = notes[key]?.replaceAll("\n", " ")
+    const shown = withoutPaths(answer)
+    const note = notes[key] && withoutPaths(notes[key])
     return note ? `${header}: ${shown} · ${note}` : `${header}: ${shown}`
   })
 }
