@@ -179,7 +179,7 @@ export const RUN_SUFFIX = "/run"
 const SHORTEST_RUN = 3
 
 // Once a turn has ended, three or more of its tool rows in a row become one. A call the user was asked about and
-// did not allow, a question, a plan, a `!` command, a call with images and a background shell keep their own rows.
+// did not allow, a question, a plan, a `!` command and a background shell keep their own rows.
 // While a turn runs, only what came before its first item has ended.
 export function foldRuns(session: Session, rows: Row[]): Row[] {
   const first = session.turnFrom === undefined ? session.items.length : session.items.indexOf(session.turnFrom)
@@ -189,7 +189,7 @@ export function foldRuns(session: Session, rows: Row[]): Row[] {
     if (row.kind === "group") return ended.has(row.members[0] ?? "")
     const tool = row.kind === "tool" || row.kind === "brief" ? session.byId[row.id] : undefined
     if (tool?.kind !== "tool" || !ended.has(tool.id) || tool.status === "running") return false
-    if (tool.toolKind === "question" || tool.toolKind === "plan" || tool.local || tool.images.length > 0) return false
+    if (tool.toolKind === "question" || tool.toolKind === "plan" || tool.local) return false
     if (isBackgroundShell(tool, session.tasks[tool.taskId ?? ""] ?? null)) return false
     const ask = asks.get(tool.id)
     return !ask || ask.status === "allowed"
