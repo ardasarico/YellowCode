@@ -1331,6 +1331,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
       },
       null,
     )
+    // What the resumed conversation left unfinished leaves the panel with the first new message, like any finished agent.
+    if (!user.history && state.unfinished.length > 0) setState("unfinished", [])
     if (prompt !== null) prompts.set(prompt, id)
     if (queued && prompt !== null) waiting.set(prompt, id)
     if (shownEarly && prompt !== null) early.set(prompt, !running)
