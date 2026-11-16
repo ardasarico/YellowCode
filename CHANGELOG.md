@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.4
+
+### Fixed
+
+- Agents left unfinished in a resumed session leave the agents panel with your next message.
+- A subagent's result no longer sends a "done" notification for the main chat.
+
 ## 0.5.3
 
 ### Fixed
