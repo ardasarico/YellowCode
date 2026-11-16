@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- `/btw <question>` asks a side question, even while the agent works. A copy of the session answers it, so the
+  answer never enters the conversation, and the copy cannot change your files. Works with Claude Code, Codex,
+  opencode and Pi.
+- Ctrl+Enter (or Cmd+Enter) sends a message now: the agent reads it at once and its running commands go on in the
+  background.
+
+### Fixed
+
+- A subagent of Claude Code keeps the main chat's model when it starts.
+
 ## 0.5.4
 
 ### Fixed
