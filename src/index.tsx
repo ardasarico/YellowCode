@@ -2143,6 +2143,7 @@ function Main() {
               oneShot={
                 mode.kind === "live" ? live.runner.kind.oneShot : values.titles === true ? claude.oneShot : undefined
               }
+              sessionRef={mode.kind === "live" ? () => live.agent.session : undefined}
               // The App before it showed the settings file's problem already.
               settingsProblem={current.resumed ? null : problem}
               settingsBackup={current.resumed ? null : backup}

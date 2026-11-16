@@ -41,7 +41,7 @@ import { within } from "../rewind/common.ts"
 import { BtwDialog } from "./btw-dialog.tsx"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
-import type { SessionEntry } from "../agent/sessions.ts"
+import type { SessionEntry, SessionRef } from "../agent/sessions.ts"
 import { currentInfo } from "../session/lists.ts"
 import {
   type RewindExtras,
@@ -228,6 +228,9 @@ export type AppProps = {
   title?: SessionTitle
   // YellowCode's titler asks it; without it nothing is titled.
   oneShot?: OneShot
+  // Live only: the session the agent runs, known before the agent reports it (a resumed session reports it with the
+  // first message).
+  sessionRef?: () => SessionRef
   // Live only: the folder of the project's memory.
   memoryFolder?: string
   // Runs a tidy-up of the memory; resolves to the line that says how it went.
@@ -1493,19 +1496,24 @@ export function App(props: AppProps) {
       waitNotice("Type the question after /btw")
       return false
     }
-    if (!props.oneShot || props.replay !== null || props.readOnly || !props.session.info?.id) {
+    if (!props.oneShot || props.replay !== null || props.readOnly || !sideRef()) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name} yet`)
       return false
     }
     setDialog({ name: "btw", question })
     return true
   }
-  const askSide = (question: string): Promise<string | null> => {
+  // The id the session reports, which a /clear changes, else the one the agent started with.
+  const sideRef = (): SessionRef | null => {
     const id = props.session.info?.id
+    return id ? { agent: props.agent.id, id } : (props.sessionRef?.() ?? null)
+  }
+  const askSide = (question: string): Promise<string | null> => {
+    const from = sideRef()
     const model = settings.model ?? props.model()
-    if (!props.oneShot || !id) return Promise.resolve(null)
+    if (!props.oneShot || !from) return Promise.resolve(null)
     return props.oneShot(sidePrompt(question), process.cwd(), {
-      from: { agent: props.agent.id, id },
+      from,
       model: model ? modelRef(model) : null,
       timeoutMs: SIDE_MS,
     })
