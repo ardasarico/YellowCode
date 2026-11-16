@@ -174,7 +174,7 @@ export function connect(options: {
     env,
   )
   const requests = createRequests((line) => source.send(line))
-  const controls = createControls({ requests, provider, session, launch, onKnobs })
+  const controls = createControls({ requests, provider, session, launch, onKnobs, main: !lean?.ephemeral })
   const mcp = createMcpControls({ requests, session })
   controls.follow(mcp)
   const extensions = createExtensions({ requests, provider, session, cwd })

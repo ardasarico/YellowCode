@@ -98,12 +98,18 @@ export function createControls(options: {
   launch: Launch
   // Hears what claude says it uses, as the knobs show it.
   onKnobs?: (knobs: Partial<Knobs>) => void
+  // False for a subagent's claude: the app's knobs, model list and notices are the main session's.
+  main?: boolean
 }): Controls {
   const { requests, provider, session } = options
   const { bypass } = options.launch
+  const main = options.main ?? true
   const report = (knobs: Partial<Knobs>) => {
-    setKnobs(knobs)
+    if (main) setKnobs(knobs)
     options.onKnobs?.(knobs)
+  }
+  const problem = (next: { text: string } | null) => {
+    if (main) setControlProblem(next)
   }
   // claude starts in the mode it is given when it can, and silently in another one when it cannot (auto turned off,
   // a policy), so the mode it reports first is checked once against the one it was started with.
@@ -113,7 +119,7 @@ export function createControls(options: {
     if (modeChecked) return
     modeChecked = true
     if (current !== launched)
-      setControlProblem({
+      problem({
         text: `Permission mode ${modeLabel(CLAUDE_MODES, launched)} is not available, using ${modeLabel(CLAUDE_MODES, current)}`,
       })
   }
@@ -151,9 +157,8 @@ export function createControls(options: {
         log.info("claude settings", { ...known })
         // claude takes the request but turns ultracode on only for a model that has it, and on by itself once the
         // model changes to one that has it.
-        if (ultracodeAsked && applied.ultracodeRequested && !known.ultracode)
-          setControlProblem({ text: ULTRACODE_UNAVAILABLE })
-        else if (known.ultracode && controlProblem()?.text === ULTRACODE_UNAVAILABLE) setControlProblem(null)
+        if (ultracodeAsked && applied.ultracodeRequested && !known.ultracode) problem({ text: ULTRACODE_UNAVAILABLE })
+        else if (known.ultracode && controlProblem()?.text === ULTRACODE_UNAVAILABLE) problem(null)
         ultracodeAsked = false
         report({ ...known })
       },
@@ -187,7 +192,7 @@ export function createControls(options: {
         },
         (error: unknown) => {
           if (disposed) return
-          if (session.state.status !== "ended") setControlProblem({ text: failure(knob, error) })
+          if (session.state.status !== "ended") problem({ text: failure(knob, error) })
           settle(knob)
         },
       )
@@ -201,7 +206,7 @@ export function createControls(options: {
     // flag at the next start. Stepping past it on the way to another mode says nothing.
     if (mode === "bypassPermissions" && !bypass) {
       wait("permission", () => {
-        setControlProblem({ text: "bypassPermissions applies from the next start" })
+        problem({ text: "bypassPermissions applies from the next start" })
         settle("permission")
       })
       return
@@ -265,7 +270,7 @@ export function createControls(options: {
       if (rows) {
         const models = modelsOf(rows)
         provider.setModels(models)
-        setModelChoices(modelChoices(models))
+        if (main) setModelChoices(modelChoices(models))
       }
       provider.setPlan(initializeAccount.safeParse(reply).data?.account.subscriptionType ?? null)
       const mode = initializeMode.safeParse(reply).data?.current_permission_mode
