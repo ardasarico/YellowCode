@@ -960,7 +960,11 @@ export function codexKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start"> & 
         })
         const { rpc } = await connect(merged, cwd, true)
         try {
-          return await within(answerOnce(rpc, prompt, cwd, options.model), "Codex", options.timeoutMs ?? TITLE_MS)
+          return await within(
+            answerOnce(rpc, prompt, cwd, options.model, options.from),
+            "Codex",
+            options.timeoutMs ?? TITLE_MS,
+          )
         } finally {
           await rpc.close()
         }

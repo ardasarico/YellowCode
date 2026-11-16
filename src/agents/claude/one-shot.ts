@@ -15,12 +15,14 @@ export function stopOneShots(): void {
   for (const proc of running) proc.kill()
 }
 
-// Asks Haiku, or the model named, through the claude binary, with no tools, customizations or saved session.
+// Asks Haiku, or the model named, through the claude binary, with no tools, customizations or saved session. `from`
+// is resumed as a copy that is not saved either.
 export async function oneShot(prompt: string, cwd: string, options: OneShotOptions = {}): Promise<string | null> {
   if (stopped) return null
   const model = `--model=${options.model?.id ?? "haiku"}`
+  const from = options.from ? ["--resume", options.from.id, "--fork-session"] : []
   const proc = Bun.spawn(
-    ["claude", "-p", model, "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
+    ["claude", "-p", model, ...from, "--safe-mode", "--no-session-persistence", "--tools", "", "--output-format=json"],
     { cwd, env: hostEnv(), stdin: new Blob([prompt]), stdout: "pipe", stderr: "pipe" },
   )
   running.add(proc)

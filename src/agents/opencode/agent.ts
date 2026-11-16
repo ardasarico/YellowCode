@@ -4,7 +4,16 @@ import { instructionsFor } from "../../agent/yellowcode-prompt.ts"
 import { skillsAsText } from "../../skills/skills.ts"
 import { z } from "zod"
 import { appVersion } from "../../build-info.ts"
-import type { Agent, AgentKind, Detection, Prompt, RestartOptions, StartOptions } from "../../agent/agent.ts"
+import type {
+  Agent,
+  AgentKind,
+  Detection,
+  OneShotOptions,
+  Prompt,
+  RestartOptions,
+  StartOptions,
+} from "../../agent/agent.ts"
+import type { SessionRef } from "../../agent/sessions.ts"
 import type { AskReply } from "../../agent/ask.ts"
 import type { AgentEvent } from "../../agent/events.ts"
 import type { AskId, EffortId, ModeId, ModelRef, Outcome, PromptId } from "../../agent/ids.ts"
@@ -140,7 +149,8 @@ async function usable(deps: Deps): Promise<{ version: string; binary: string }> 
 // The session `start` makes, in `agent` when given, attaches to or forks; it rejects with opencode's own words.
 async function sessionFor(transport: Transport, options: StartOptions, agent: ModeId | null): Promise<Session> {
   const { resume } = options
-  if (options.ephemeral && resume !== null) throw new Error("A session opencode does not keep cannot resume")
+  if (options.ephemeral && resume !== null && !resume.fork)
+    throw new Error("A session opencode does not keep cannot resume")
   const reply = await transport
     .request(
       resume === null
@@ -1124,6 +1134,86 @@ async function connect(options: StartOptions, deps: Deps): Promise<OpencodeAgent
   return agent
 }
 
+// A side question: a copy of the session with every tool denied, asked once and deleted. Marked as not kept, so a
+// copy a crash left behind goes with the leftovers.
+async function sideAnswer(
+  prompt: string,
+  cwd: string,
+  options: OneShotOptions & { from: SessionRef },
+  deps: Deps,
+  transport: Transport,
+): Promise<string | null> {
+  const agent = await connect(
+    {
+      cwd,
+      resume: { ref: options.from, fork: true, at: null },
+      mode: null,
+      defaultMode: null,
+      model: options.model ?? null,
+      effort: null,
+      extraEffort: false,
+      thinking: false,
+      instructions: [],
+      skills: [],
+      clientTools: [],
+      mcpServers: [],
+      ephemeral: true,
+      plain: true,
+    },
+    deps,
+  )
+  try {
+    const marked = await agent.rename("YellowCode side question")
+    const denied = marked.ok && (await denyTools(transport, agent.session.id))
+    if (!denied) return null
+    const id = crypto.randomUUID()
+    const answered = (async () => {
+      let asked = false
+      let said: string | null = null
+      for await (const event of agent.events) {
+        if (event.type === "user" && event.prompt === id) asked = true
+        else if (!asked) continue
+        else if (event.type === "text.end" && event.text) said = event.text
+        else if (event.type === "turn.end") return event.error === null && !event.interrupted ? said : null
+        else if (event.type === "ended") return null
+      }
+      return null
+    })()
+    const prompted: Prompt = {
+      id,
+      text: prompt,
+      images: [],
+      command: null,
+      to: null,
+      delivery: "queue",
+      kept: [],
+      context: null,
+      shells: [],
+    }
+    const sent = await agent.send(prompted)
+    if (!sent.ok) return null
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const late = new Promise<null>((resolve) => (timer = setTimeout(() => resolve(null), options.timeoutMs ?? SIDE_MS)))
+    return await Promise.race([answered, late]).finally(() => clearTimeout(timer))
+  } finally {
+    await agent.close()
+  }
+}
+
+const SIDE_MS = 120_000
+const DENY_ALL: Rule = { action: "*", resource: "*", effect: "deny" }
+
+async function denyTools(transport: Transport, id: string): Promise<boolean> {
+  const reply = await transport.request({ method: "GET", path: `/api/session/${id}` }).catch(() => null)
+  const asked = reply ? answerOf(reply, created, "session") : null
+  if (asked?.kind !== "ok") return false
+  const rules = (asked.value.data.permissions ?? []).map(plain)
+  const done = await transport
+    .request({ method: "PATCH", path: `/api/session/${id}`, body: { permissions: [...rules, DENY_ALL] } })
+    .catch(() => null)
+  return done?.status === 204 || done?.status === 200
+}
+
 export function startOpencode(options: StartOptions, deps: Partial<Deps> = {}): Promise<OpencodeAgent> {
   return connect(options, { ...realDeps, ...deps })
 }
@@ -1192,8 +1282,16 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
       return groups
     },
     listModes: async (cwd) => (await readModes(await service(cwd)))?.rows ?? [],
-    oneShot: (prompt, cwd, options = {}) =>
-      service(cwd).then(
+    oneShot: (prompt, cwd, options = {}) => {
+      const { from } = options
+      if (from)
+        return service(cwd)
+          .then((transport) => sideAnswer(prompt, cwd, { ...options, from }, merged, transport))
+          .catch((error: unknown) => {
+            log.warn("opencode: side question failed", error instanceof Error ? error.message : String(error))
+            return null
+          })
+      return service(cwd).then(
         (transport) => {
           const asked = options.model?.provider ? { providerID: options.model.provider, id: options.model.id } : null
           return answerOnce(transport, prompt, asked ?? latest?.model() ?? null, options.timeoutMs)
@@ -1202,6 +1300,7 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
           log.warn("opencode: session title failed", error instanceof Error ? error.message : String(error))
           return null
         },
-      ),
+      )
+    },
   }
 }

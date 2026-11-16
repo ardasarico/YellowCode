@@ -34,6 +34,12 @@ export const OWN_COMMANDS: Command[] = [
   { name: "skills", description: "See the skills of this session", argumentHint: "", aliases: [] },
   { name: "mods", description: "See and manage your mods", argumentHint: "", aliases: [] },
   { name: "export", description: "Copy the conversation or save it as Markdown", argumentHint: "[file]", aliases: [] },
+  {
+    name: "btw",
+    description: "Ask a side question that stays out of the conversation",
+    argumentHint: "<question>",
+    aliases: [],
+  },
 ]
 
 // The agent's commands without the ones that work only in its own terminal UI, each name once, then YellowCode's.

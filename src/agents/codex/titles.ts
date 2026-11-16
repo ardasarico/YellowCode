@@ -1,6 +1,8 @@
 // One answer from Codex for YellowCode's session titles (Codex titles nothing itself): an ephemeral thread that can
-// change nothing, on the configured model at its lowest effort, with no reasoning summary.
+// change nothing, on the configured model at its lowest effort, with no reasoning summary. A side question asks an
+// ephemeral copy of the session the same way.
 import type { ModelRef } from "../../agent/ids.ts"
+import type { SessionRef } from "../../agent/sessions.ts"
 import { readCatalog } from "./models.ts"
 import type { Rpc } from "./transport.ts"
 import { createNotificationReader } from "./wire/notifications.ts"
@@ -32,21 +34,23 @@ export async function answerOnce(
   prompt: string,
   cwd: string,
   model: ModelRef | null = null,
+  from: SessionRef | null = null,
 ): Promise<string | null> {
+  const fields = {
+    cwd,
+    ephemeral: true,
+    approvalPolicy: "never",
+    sandbox: "read-only",
+    config: NO_TOOLS,
+    ...(model ? { model: model.id } : {}),
+    ...(model?.provider ? { modelProvider: model.provider } : {}),
+  }
   const opened = resultOf(
-    await rpc.request("thread/start", {
-      cwd,
-      ephemeral: true,
-      approvalPolicy: "never",
-      sandbox: "read-only",
-      dynamicTools: [],
-      baseInstructions: INSTRUCTIONS,
-      config: NO_TOOLS,
-      ...(model ? { model: model.id } : {}),
-      ...(model?.provider ? { modelProvider: model.provider } : {}),
-    }),
+    await (from
+      ? rpc.request("thread/fork", { threadId: from.id, excludeTurns: true, ...fields })
+      : rpc.request("thread/start", { ...fields, dynamicTools: [], baseInstructions: INSTRUCTIONS })),
     threadStartResult,
-    "thread/start",
+    from ? "thread/fork" : "thread/start",
   )
   if (opened.kind !== "ok") return null
   const thread = opened.value.thread.id

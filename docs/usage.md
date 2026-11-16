@@ -102,6 +102,7 @@ It does not open while the agent waits for your answer or another dialog is open
 | `/memory`      | See and manage this project's [memory](#memory)                                 |
 | `/rename`      | Name the session, or let the agent name it (`/rename [name]`)                   |
 | `/export`      | Copy the conversation, or save it as Markdown                                   |
+| `/btw`         | Ask a side question (`/btw <question>`), even while the agent works             |
 | `/settings`    | YellowCode's settings, and an overview of the session                           |
 | `/theme`       | Pick a theme                                                                    |
 | `/mods`        | See and manage your mods                                                        |
@@ -109,6 +110,9 @@ It does not open while the agent waits for your answer or another dialog is open
 | `/skills`      | The skills of this session                                                      |
 | `/permissions` | The rules you allowed for good, where the agent lists them                      |
 | `/report`      | Copy a summary of your setup for a bug report                                   |
+
+`/btw` asks a copy of the session that the agent does not keep, so the answer never enters the conversation. The copy
+cannot change files: Claude Code, opencode and Pi get no tools, and Codex reads only.
 
 Other commands go to your agent. YellowCode handles a few itself, such as `/effort`, `/context` and `/plan`, and
 `/usage` with Claude Code. It leaves out the few of Claude Code's that only work in its own screen. Each of YellowCode's

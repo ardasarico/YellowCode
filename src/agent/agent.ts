@@ -63,7 +63,8 @@ export type RelayedCall = { server: string; caller: string; params: unknown }
 export type RelayedReply = { result: unknown } | { error: { code: number; message: string } }
 
 // `model`: the model that answers, in place of the small one titles run on. `timeoutMs`: longer than a title gets.
-export type OneShotOptions = { model?: ModelRef | null; timeoutMs?: number }
+// `from`: the answer comes from a copy of that session (a side question), which the agent does not keep.
+export type OneShotOptions = { model?: ModelRef | null; timeoutMs?: number; from?: SessionRef }
 
 export type StartOptions = {
   cwd: string
@@ -170,7 +171,7 @@ export type AgentKind = {
   // and `fileHistory` come from `sessions()`.
   history(ref: SessionRef, cursor: HistoryCursor | null): Promise<HistoryPage>
   heldElsewhere?(ref: SessionRef): Promise<boolean>
-  // One answer from the agent's model, outside the session, for YellowCode's own titles; null when none came.
+  // One answer from the agent's model, outside the session, with no tools; null when none came.
   oneShot?(prompt: string, cwd: string, options?: OneShotOptions): Promise<string | null>
   // The models list from a short-lived process that keeps no session, for the catalog.
   listModels?(cwd: string): Promise<ModelGroup[]>

@@ -38,6 +38,7 @@ import type { Definition } from "../subagents/definitions.ts"
 import { mentionName } from "../subagents/mentions.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
+import { BtwDialog } from "./btw-dialog.tsx"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
 import type { SessionEntry } from "../agent/sessions.ts"
@@ -201,6 +202,11 @@ const MENTION_MODELS = 6
 
 const NO_LIMITS: Session["usage"]["limits"] = { fiveHour: null, week: null, models: {} }
 
+const SIDE_MS = 120_000
+const sidePrompt = (question: string) =>
+  `A side question from the user, asked while the conversation goes on. Answer it briefly from what the conversation ` +
+  `already holds, and change nothing. Your answer stays out of the conversation.\n\n${question}`
+
 export type AppProps = {
   session: Session
   // The agent whose session this is.
@@ -345,6 +351,7 @@ type DialogName =
   | { name: "choice"; kind: "effort" }
   | { name: "model"; query: string }
   | { name: "context" | "usage" }
+  | { name: "btw"; question: string }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
 
@@ -1479,6 +1486,29 @@ export function App(props: AppProps) {
   }
   const busy = () =>
     props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
+  // A side question goes to a copy of the session the agent does not keep; the conversation never sees it.
+  const sideQuestion = (question: string): boolean => {
+    if (!question) {
+      waitNotice("Type the question after /btw")
+      return false
+    }
+    if (!props.oneShot || props.replay !== null || props.readOnly || !props.session.info?.id) {
+      waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name} yet`)
+      return false
+    }
+    setDialog({ name: "btw", question })
+    return true
+  }
+  const askSide = (question: string): Promise<string | null> => {
+    const id = props.session.info?.id
+    const model = settings.model ?? props.model()
+    if (!props.oneShot || !id) return Promise.resolve(null)
+    return props.oneShot(sidePrompt(question), process.cwd(), {
+      from: { agent: props.agent.id, id },
+      model: model ? modelRef(model) : null,
+      timeoutMs: SIDE_MS,
+    })
+  }
   const waitNotice = (text = `Rewind waits until ${props.agent.name} is idle`) => {
     setRewindNote(text)
     clearTimeout(clearRewindNote)
@@ -1963,6 +1993,7 @@ export function App(props: AppProps) {
       waitNotice("Not available in YellowCode")
       return false
     }
+    if (commandName === "btw") return sideQuestion(commandArgs.trim())
     // An agent's command on a pending model of another provider runs in that provider's new session.
     const elsewhere = to ? null : pendingModel()
     if (elsewhere && commandName && !ownCommand(commandName)) {
@@ -2609,6 +2640,28 @@ export function App(props: AppProps) {
             images={view().images}
             index={view().index}
             onIndex={(index) => setDialog({ ...view(), index })}
+            onClose={() => setDialog(null)}
+          />
+        )}
+      </Show>
+      <Show
+        when={(() => {
+          const open = dialog()
+          return open?.name === "btw" ? open : null
+        })()}
+      >
+        {(open) => (
+          <BtwDialog
+            question={open().question}
+            ask={() => askSide(open().question)}
+            onCopy={(text) =>
+              void copyText(text).then((copied) => {
+                if (!copied) return waitNotice("Could not copy the answer")
+                setToast("Copied")
+                clearTimeout(clearToast)
+                clearToast = setTimeout(() => setToast(null), TOAST_MS)
+              })
+            }
             onClose={() => setDialog(null)}
           />
         )}
