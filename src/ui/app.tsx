@@ -38,7 +38,7 @@ import type { Definition } from "../subagents/definitions.ts"
 import { mentionName } from "../subagents/mentions.ts"
 import { log } from "../log/log.ts"
 import { within } from "../rewind/common.ts"
-import { BtwDialog } from "./btw-dialog.tsx"
+import { BtwBand } from "./btw-band.tsx"
 import { ContextDialog } from "./context/context-dialog.tsx"
 import { UsageDialog } from "./usage/usage-dialog.tsx"
 import type { SessionEntry, SessionRef } from "../agent/sessions.ts"
@@ -355,7 +355,8 @@ type DialogName =
   | { name: "choice"; kind: "effort" }
   | { name: "model"; query: string }
   | { name: "context" | "usage" }
-  | { name: "btw"; question: string }
+  // The side question's answer shows in the prompt's place; the dialog holds the app's keys meanwhile.
+  | { name: "btw" }
   // A dialog a mod opened; its request lives in the mod registry.
   | { name: "mod" }
 
@@ -1491,6 +1492,7 @@ export function App(props: AppProps) {
   const busy = () =>
     props.rewind !== undefined && props.replay === null && !props.readOnly && props.session.status === "running"
   // A side question goes to a copy of the session the agent does not keep; the conversation never sees it.
+  const [side, setSide] = createSignal<{ question: string; answer: string | null | undefined } | null>(null)
   const sideQuestion = (question: string): boolean => {
     if (!question) {
       waitNotice("Type the question after /btw")
@@ -1500,8 +1502,18 @@ export function App(props: AppProps) {
       waitNotice(props.readOnly ? SAVED_NOTICE : `Not available with ${props.agent.name} yet`)
       return false
     }
-    setDialog({ name: "btw", question })
+    const asked = { question, answer: undefined }
+    // The prompt clears first; the band takes its place after.
+    queueMicrotask(() => {
+      setSide(asked)
+      setDialog({ name: "btw" })
+    })
+    void askSide(question).then((answer) => setSide((shown) => (shown === asked ? { question, answer } : shown)))
     return true
+  }
+  const closeSide = () => {
+    setSide(null)
+    if (dialog()?.name === "btw") setDialog(null)
   }
   // The id the session reports, which a /clear changes, else the one the agent started with.
   const sideRef = (): SessionRef | null => {
@@ -2299,6 +2311,27 @@ export function App(props: AppProps) {
     ),
   )
 
+  const sideView = createMemo(() => {
+    const shown = side()
+    if (!shown || dialog()?.name !== "btw") return undefined
+    return (
+      <BtwBand
+        question={shown.question}
+        answer={shown.answer}
+        width={promptInnerWidth(chatWidth())}
+        onCopy={(text) =>
+          void copyText(text).then((copied) => {
+            if (!copied) return waitNotice("Could not copy the answer")
+            setToast("Copied")
+            clearTimeout(clearToast)
+            clearToast = setTimeout(() => setToast(null), TOAST_MS)
+          })
+        }
+        onClose={closeSide}
+      />
+    )
+  })
+
   const welcomeNotice = () => {
     if (quitArmed()) return quitHint()
     const problem = pasteNotice() ?? settingsProblem()
@@ -2534,7 +2567,7 @@ export function App(props: AppProps) {
               notice={notice()}
               newLines={newLines()}
               context={props.session.usage.context}
-              ask={askView()}
+              ask={askView() ?? sideView()}
               history={history}
               onListOpen={setListOpen}
               onLeaveDown={() => (shellCount() > 0 ? setFocus("shells") : enterPanel())}
@@ -2654,28 +2687,6 @@ export function App(props: AppProps) {
             images={view().images}
             index={view().index}
             onIndex={(index) => setDialog({ ...view(), index })}
-            onClose={() => setDialog(null)}
-          />
-        )}
-      </Show>
-      <Show
-        when={(() => {
-          const open = dialog()
-          return open?.name === "btw" ? open : null
-        })()}
-      >
-        {(open) => (
-          <BtwDialog
-            question={open().question}
-            ask={() => askSide(open().question)}
-            onCopy={(text) =>
-              void copyText(text).then((copied) => {
-                if (!copied) return waitNotice("Could not copy the answer")
-                setToast("Copied")
-                clearTimeout(clearToast)
-                clearToast = setTimeout(() => setToast(null), TOAST_MS)
-              })
-            }
             onClose={() => setDialog(null)}
           />
         )}
