@@ -79,6 +79,7 @@ import type { ChildActions, ChildView } from "./ui/agents/tree.ts"
 import { tildePath } from "./rewind/common.ts"
 import { follow, showEarly } from "./session/follow.ts"
 import { createSession, loadHistory, type SessionStore } from "./session/session.ts"
+import { foregroundTasks } from "./session/shells.ts"
 import {
   controlProblem,
   defaultModeOf,
@@ -1724,8 +1725,9 @@ function sendPrompt(
   ]
   const context = ahead.length > 0 ? ahead.join("\n\n") : null
   const images = carried ? [...message.images, ...carried.handoff.images] : message.images
+  const { now, ...typed } = message
   const prompt: Prompt = {
-    ...message,
+    ...typed,
     id: uuid,
     command,
     delivery,
@@ -1766,9 +1768,12 @@ function sendPrompt(
         const held = Date.now() - typedAt
         if (held > HELD_LOG_MS)
           log.warn("message held before it reached the agent", { ms: held, beforeSend: readyAt - typedAt })
-        if (sent.ok) return
-        unsent()
-        setControlProblem({ text: sent.problem })
+        if (!sent.ok) {
+          unsent()
+          setControlProblem({ text: sent.problem })
+          return
+        }
+        if (now && !startsTurn && target.agent.caps.backgroundNow) void readNow(target, run, uuid)
       })
     })
     .catch((error: unknown) => log.error("cannot send the message", error))
@@ -1776,6 +1781,23 @@ function sendPrompt(
 }
 
 const HELD_LOG_MS = 1000
+
+// Send now, once the message is on the agent's input: the commands that run go to the background so the agent reads
+// it at once. A background request before a command has started does nothing, so one that starts while the message
+// still waits goes then.
+async function readNow(target: Live, run: ReturnType<typeof runOf>, prompt: PromptId): Promise<void> {
+  const session = target.store
+  while (runOf(live) === run && session.state.status === "running" && waitsIn(session, prompt)) {
+    if (foregroundTasks(session.state).length > 0) {
+      void target.agent.tasks.background().then((done) => {
+        if (!done.ok) log.info("send now: nothing went to the background", done.problem)
+      })
+      return
+    }
+    // oxlint-disable-next-line no-await-in-loop
+    await Bun.sleep(100)
+  }
+}
 
 // What the main agent wrote since the user's last message.
 function lastReply(session: SessionStore): string[] {

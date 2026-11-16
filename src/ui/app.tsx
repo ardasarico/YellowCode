@@ -337,7 +337,8 @@ export type ModelSource = {
 }
 
 // What the user sends; `to` is a running subagent the message is for.
-export type Message = Pick<Prompt, "text" | "images" | "to">
+// `now`: the running tools go to the background once the message is out, so the agent reads it at once.
+export type Message = Pick<Prompt, "text" | "images" | "to"> & { now?: boolean }
 
 type Focus = "input" | "chat" | "panel" | "shells"
 type DialogName =
@@ -1946,10 +1947,15 @@ export function App(props: AppProps) {
     return start?.kind === "auto" ? `shift+tab ${start.label} to start` : null
   }
 
-  const submit = ({ text, images, draft }: Submission): boolean => {
+  const submit = ({ text, images, draft, now = false }: Submission): boolean => {
     if (rushedSubmit()) return false
     clearModNotice()
     const to = messageTo()
+    // An empty Ctrl+Enter lets the agent read the messages already waiting.
+    if (now && !to && !text.trim() && images.length === 0) {
+      if (lastWaiting() !== null && foreground().length > 0) sendToBackground()
+      return false
+    }
     const command = to ? "" : text.trim()
     if (to && images.length > 0) {
       waitNotice("Images cannot go to an agent")
@@ -2119,7 +2125,7 @@ export function App(props: AppProps) {
       const giveBack = () => setFill((previous) => ({ draft, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))
       const out: Message = to
         ? { text: changed, images, to: { task: to.id, name: to.name } }
-        : { text: planned ?? changed, images, to: null }
+        : { text: planned ?? changed, images, to: null, now }
       const kept = to ? { ...draft, to } : draft
       const back = to
         ? () => setFill((previous) => ({ draft: kept, seq: (previous?.seq ?? 0) + 1, ifEmpty: true }))

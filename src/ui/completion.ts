@@ -31,7 +31,8 @@ import { measureIn, useChips } from "./chips.ts"
 import { cut } from "./format.ts"
 import { type Suggestion, suggestionRows } from "./suggestion-list.tsx"
 
-export type Submission = { text: string; images: PromptImage[]; draft: Draft }
+// `now`: Ctrl+Enter or Cmd+Enter, which also sends the running tools to the background so the agent reads it at once.
+export type Submission = { text: string; images: PromptImage[]; draft: Draft; now?: boolean }
 
 type Completion =
   | { kind: "command"; entries: Suggestion[] }
@@ -292,10 +293,10 @@ export function useCompletion(options: CompletionOptions) {
   createEffect(() => options.onListOpen?.(shown().length > 0))
   onCleanup(() => options.onListOpen?.(false))
 
-  const submit = () => {
+  const submit = (now = false) => {
     if (!area) return
     const draft = chips.draft()
-    if (options.onSubmit({ ...expandDraft(draft), draft })) chips.clear()
+    if (options.onSubmit({ ...expandDraft(draft), draft, now })) chips.clear()
     // Refused text stays to be fixed, selected, so what is typed next replaces it instead of joining it.
     else area.selectAll()
   }
@@ -416,6 +417,12 @@ export function useCompletion(options: CompletionOptions) {
     if (!options.focused()) return
     // ↑ in the textarea moves the cursor without a cursor change event.
     sampleCursor()
+    if (key.name === "return" && (key.ctrl || key.super) && !key.shift) {
+      key.preventDefault()
+      close()
+      submit(true)
+      return
+    }
     if (key.ctrl && key.name === "c") {
       key.preventDefault()
       if (area && area.plainText !== "") {

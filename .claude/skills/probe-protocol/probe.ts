@@ -189,6 +189,18 @@ const scenarios: Record<string, Scenario> = {
   "queue-now": queue({ priority: "now" }),
   "queue-later": queue({ priority: "later" }),
   "queue-uuid": queue({ uuid: crypto.randomUUID() }),
+  // Claude Code's send now: the message, then the running tools to the background so it is read at once.
+  "send-now": {
+    steps: [
+      user("Run `sleep 20` with the Bash tool, then reply with one word."),
+      { until: is("system", "task_started") },
+      { waitMs: 1000 },
+      user("Also name the capital of France in one word.", { uuid: crypto.randomUUID() }),
+      control("background_tasks"),
+      { until: is("result") },
+      { waitMs: 25_000 },
+    ],
+  },
   "queue-cancel": (() => {
     const uuid = crypto.randomUUID()
     return {

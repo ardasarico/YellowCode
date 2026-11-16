@@ -57,6 +57,7 @@ yellowcode mcp <command>
 | Ctrl+P                       | Open the [command palette](#command-palette)                                  |
 | Ctrl+T                       | Show the agents, subagents and shells running in the background               |
 | Ctrl+B                       | Send the command or agent that is running to the background                   |
+| Ctrl+Enter / Cmd+Enter       | Send now: the agent reads it at once, its commands go on in the background    |
 | Ctrl+O                       | After `/report`, open the report it copied                                    |
 | Ctrl+]                       | Leave a [mod pane](mods.md) that has the focus                                |
 | F3                           | Show or hide the sidebar                                                      |

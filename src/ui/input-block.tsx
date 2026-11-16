@@ -162,7 +162,7 @@ export function InputBlock(props: InputBlockProps) {
               minHeight={1}
               maxHeight={6}
               keyBindings={PROMPT_KEY_BINDINGS}
-              onSubmit={completion.submit}
+              onSubmit={() => completion.submit()}
               onPaste={completion.paste}
               onContentChange={completion.refresh}
               onCursorChange={completion.leftToken}
