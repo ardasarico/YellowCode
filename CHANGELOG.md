@@ -9,6 +9,14 @@
   opencode and Pi.
 - Ctrl+Enter (or Cmd+Enter) sends a message now: the agent reads it at once and its running commands go on in the
   background.
+- `yellowcode mod list` also lists the mods on the list you have not installed, under Available.
+- A mod can name up to 6 screenshots in its manifest for the [Marketplace](https://yellowcode.ardasari.co/marketplace).
+
+### Changed
+
+- A mod taken off the list turns off as soon as YellowCode fetches the list, not at the next start.
+- `yellowcode mod add` says when a mod is not made for the provider YellowCode opens with.
+- A mod's `version` must be a semver version, like `"0.1.0"`.
 
 ### Fixed
 
