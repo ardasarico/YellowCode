@@ -12,6 +12,7 @@ import {
   shellContext,
   userMessage,
 } from "../protocol/outgoing.ts"
+import { subagentMessage } from "../peers/envelope.ts"
 import { parse } from "../protocol/parse.ts"
 import { parseRecording } from "../source/recording.ts"
 import { agentMessage } from "./agent-message.ts"
@@ -543,6 +544,15 @@ test("only a turn in progress can be interrupted, and the session knows who star
   // A turn claude starts on its own, after a background task ended, is claude's (Ctrl+C does not interrupt it).
   receive({ type: "system", subtype: "status", status: "requesting" })
   expect(session.state).toMatchObject({ status: "running", turn: "agent" })
+})
+
+test("a subagent's result starts a turn that is not the user's", () => {
+  const session = createSession()
+  const text = subagentMessage({ id: "c1", name: "docs", provider: "claude", text: "found it" })
+  feedLine(session, "out", parse(userMessage(text)), 0)
+  expect(session.state.turn).toBe("agent")
+  feedLine(session, "in", parse(JSON.stringify({ ...result, subtype: "success", is_error: false })), 0)
+  expect(rows(session).findLast((item) => item.kind === "turn-end")).toMatchObject({ by: "agent" })
 })
 
 test("/clear starts the chat over but keeps a message sent after it, and local commands get no turn end", () => {

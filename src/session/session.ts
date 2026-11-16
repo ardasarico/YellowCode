@@ -952,6 +952,11 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     setState("status", waiting.size > 0 ? "running" : "idle")
   }
 
+  function fromPeer(prompt: PromptId): boolean {
+    const item = state.byId[prompts.get(prompt) ?? ""]
+    return item?.kind === "user" && item.from !== undefined
+  }
+
   // The agent asks its model again; a turn it starts itself (a queued message, a background task's end) runs like any
   // other, and one that takes in a prompt counts as the user's.
   function stepTurn(taken: PromptId[]): void {
@@ -959,7 +964,7 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     if (hiding) return
     for (const prompt of taken) settleQueued(prompt)
     if (state.turn === null) setState("interrupting", false)
-    if (taken.length > 0) setState("turn", "user")
+    if (taken.some((prompt) => !fromPeer(prompt))) setState("turn", "user")
     else if (state.turn === null) setState("turn", "agent")
     if (state.status === "idle") setState("status", "running")
   }
@@ -1336,7 +1341,8 @@ export function createSession(options?: { idPrefix?: string; starting?: boolean;
     if (prompt !== null) prompts.set(prompt, id)
     if (queued && prompt !== null) waiting.set(prompt, id)
     if (shownEarly && prompt !== null) early.set(prompt, !running)
-    if (!queued || !running) setState("turn", "user")
+    // A subagent's result or another session's message is not the user's, so its turn's end does not say done.
+    if (!queued || !running) setState("turn", peer ? "agent" : "user")
     // A message queued during a turn keeps that turn's interrupt; a fresh turn drops one that raced the result.
     if (state.status !== "running") setState("interrupting", false)
     setState("status", "running")
