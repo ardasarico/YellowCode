@@ -2,7 +2,8 @@ import { existsSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { homePath } from "../../paths.ts"
 import { parseJson } from "../../json.ts"
-import { MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
+import { revokedReason } from "../host.ts"
+import { forAgent, MANIFEST, MOD_ID, readManifest } from "../manifest.ts"
 import { editedLocally, listedEntry, modFolders, revokedCommit, revokedListing } from "./checks.ts"
 import { installAt, type InstallResult } from "./install.ts"
 import { type ModList, readCachedList, refreshList, REPO, SHA } from "./list.ts"
@@ -28,10 +29,13 @@ function fail(line: string): number {
   return 1
 }
 
-export async function runModCommand(args: string[]): Promise<number> {
+// The agent YellowCode opens with, and the names agents are shown by.
+export type ModCommandAgents = { opening: () => Promise<string | undefined>; name: (id: string) => string }
+
+export async function runModCommand(args: string[], agents: ModCommandAgents): Promise<number> {
   const [command, target, ...rest] = args
   const mods = homePath("mods")
-  const run = rest.length === 0 ? commandFor(command, target, mods) : null
+  const run = rest.length === 0 ? commandFor(command, target, mods, agents) : null
   if (!run) {
     process.stderr.write(`Usage:\n${MOD_USAGE.replaceAll("       ", "  ")}\n`)
     return 1
@@ -42,27 +46,27 @@ export async function runModCommand(args: string[]): Promise<number> {
   return code
 }
 
-function commandFor(command: string | undefined, target: string | undefined, mods: string) {
+function commandFor(command: string | undefined, target: string | undefined, mods: string, agents: ModCommandAgents) {
   if (command === "add" && target)
-    return () => (GITHUB.test(target) ? addUnlisted(target, mods) : addListed(target, mods))
+    return () => (GITHUB.test(target) ? addUnlisted(target, mods, agents) : addListed(target, mods, agents))
   if (command === "update") return () => update(target, mods)
   if (command === "remove" && target) return () => remove(target, mods)
   if (command === "list" && !target) return () => listMods(mods)
   return null
 }
 
-async function addListed(id: string, mods: string): Promise<number> {
+async function addListed(id: string, mods: string, agents: ModCommandAgents): Promise<number> {
   const installed = installedState(mods, id)
   if (installed === "local") return fail(`${id} is a local mod; remove its folder first`)
-  if (installed) return alreadyInstalled(id, installed)
   const list = await loadList()
+  if (installed) return alreadyInstalled(id, installed, mods, list)
   if (!list) return 1
   const entry = listedEntry(list, id)
   if (typeof entry === "string") return fail(entry)
-  return finish(id, await installAt({ ...entry, listed: true }, mods))
+  return finishAdd(id, await installAt({ ...entry, listed: true }, mods), mods, agents)
 }
 
-async function addUnlisted(target: string, mods: string): Promise<number> {
+async function addUnlisted(target: string, mods: string, agents: ModCommandAgents): Promise<number> {
   const [, repo = "", ref] = target.match(GITHUB) ?? []
   const sha = await resolveRef(repo, ref)
   if (!sha.ok) return fail(sha.problem)
@@ -76,15 +80,30 @@ async function addUnlisted(target: string, mods: string): Promise<number> {
     return fail(`${id.value} is a mod on the YellowCode list; install it with yellowcode mod add ${id.value}`)
   const installed = installedState(mods, id.value)
   if (installed === "local") return fail(`${id.value} is a local mod; remove its folder first`)
-  if (installed) return alreadyInstalled(id.value, installed)
+  if (installed) return alreadyInstalled(id.value, installed, mods, list)
 
   warn(`${bold(id.value)} ${UNLISTED_WARNING}`)
   say(dim(`${repo} @ ${short(sha.value)}`))
   if (!(await ask("Install?"))) return fail("Nothing installed.")
-  return finish(
+  return finishAdd(
     id.value,
     await installAt({ id: id.value, repo, sha: sha.value, treeHash: null, listed: false, ref }, mods),
+    mods,
+    agents,
   )
+}
+
+// A mod made for other agents installs all the same; it loads only in their sessions.
+async function finishAdd(id: string, result: InstallResult, mods: string, agents: ModCommandAgents): Promise<number> {
+  const code = finish(id, result)
+  const read = code === 0 ? readManifest(join(mods, id)) : null
+  if (!read?.ok || read.manifest.agents === "any") return code
+  const opening = await agents.opening()
+  if (opening !== undefined && !forAgent(read.manifest, opening))
+    say(
+      `${id} stays off while you use ${agents.name(opening)}; it is for ${read.manifest.agents.map(agents.name).join(", ")}.`,
+    )
+  return code
 }
 
 async function update(only: string | undefined, mods: string): Promise<number> {
@@ -147,13 +166,15 @@ async function remove(id: string, mods: string): Promise<number> {
 
 async function listMods(mods: string): Promise<number> {
   const folders = modFolders(mods)
+  const list = await loadList()
   const installed = folders.map((id) => {
     const record = readRecord(mods, id)
     const manifest = readManifest(join(mods, id))
     const version = record?.version ?? (manifest.ok ? manifest.manifest.version : "?")
-    return { id, version, note: !record ? "local" : record.listed ? "listed" : `unlisted ${record.source}` }
+    const source = !record ? "local" : record.listed ? "listed" : `unlisted ${record.source}`
+    const revoked = list && revokedInstalled(list, mods, id, record)
+    return { id, version, note: revoked ? `${source} · Revoked: ${revoked}` : source }
   })
-  const list = await loadList()
   const available = (
     list?.mods.filter((mod) => !folders.includes(mod.id) && revokedListing(list, mod.id, mod.version) === null) ?? []
   ).map((mod) => ({ id: mod.id, version: mod.version, note: mod.description }))
@@ -180,7 +201,15 @@ function finish(id: string, result: InstallResult, from?: string): number {
   return 0
 }
 
-function alreadyInstalled(id: string, record: InstallRecord): number {
+// Why the list took the installed copy off, as the host decides it at start, or null.
+function revokedInstalled(list: ModList, mods: string, id: string, record: InstallRecord | null): string | null {
+  const read = readManifest(join(mods, id))
+  return read.ok ? revokedReason(list.revoked, id, read.manifest, record) : null
+}
+
+function alreadyInstalled(id: string, record: InstallRecord, mods: string, list: ModList | null): number {
+  const revoked = list && revokedInstalled(list, mods, id, record)
+  if (revoked) return fail(`${id} ${record.version} is installed but revoked: ${revoked}`)
   done(`${bold(id)} ${record.version} is already installed; run yellowcode mod update ${id}`)
   return 0
 }

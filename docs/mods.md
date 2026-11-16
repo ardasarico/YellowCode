@@ -16,7 +16,7 @@ agent can call, or a new way to draw part of the screen. Mods are written in Typ
 | `yellowcode mod add github:owner/repo[@ref]` | Installs a mod that is not on the list, from a branch, tag or commit. It shows the commit and asks first. |
 | `yellowcode mod update [id]`                 | Updates one mod, or all of them without an id. A mod from GitHub asks before it moves.                    |
 | `yellowcode mod remove <id>`                 | Asks, then deletes the mod.                                                                               |
-| `yellowcode mod list`                        | Lists the installed mods.                                                                                 |
+| `yellowcode mod list`                        | Lists the installed mods, then the mods on the list you have not installed, under Available.              |
 
 You can also install a listed mod from `/mods`, under Available. A new mod loads on the next start.
 
@@ -28,7 +28,8 @@ Mods from the list update themselves. YellowCode checks the list once a day in t
 effect on the next start. It skips a mod whose files you have edited, and a mod copied in by hand, which is never
 updated. Update a mod installed from GitHub with `yellowcode mod update`, which asks first.
 
-A mod taken off the list stops loading, and `/mods` shows why. Its folder stays on disk.
+A mod taken off the list is turned off as soon as YellowCode fetches the list, and `/mods` shows why. Its folder stays
+on disk.
 
 ## Managing mods
 
@@ -47,7 +48,8 @@ shows what it adds, its settings and its last error.
 
 Each mod names the providers it is made for, or works with any provider. With a provider it was not made for, it stays
 off and `/mods` shows it as "not for this agent"; a listed mod shows its providers under Available before you install
-it. A mod that names none was made for an older YellowCode and does not load until it is updated.
+it, and `yellowcode mod add` installs it all the same but says so when the provider YellowCode opens with is not one of
+them. A mod that names none was made for an older YellowCode and does not load until it is updated.
 
 - `Space` turns a mod on or off.
 - `→` opens its settings.

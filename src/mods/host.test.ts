@@ -96,6 +96,33 @@ export default defineMod({ setup() { calls.push("should not run") } })`
   expect(host.entries.find((entry) => entry.id === "works")?.status).toBe("off")
 })
 
+test("a revoke that arrives while the mod runs turns it off at once", async () => {
+  const folder = join(mkdtempSync(join(tmpdir(), "yellowcode-mods-")), "mods")
+  mkdirSync(folder, { recursive: true })
+  linkRuntime(folder)
+  writeMod(
+    folder,
+    "later-pulled",
+    "^0.2",
+    `import { defineMod } from "yellowcode/mod"
+const calls = (globalThis as any).modTestCalls
+export default defineMod({ setup() { return () => calls.push("later-pulled cleanup") } })`,
+  )
+  let reason: string | null = null
+  const host = createModHost({ folder, disabled: () => [], saveDisabled: () => {}, revoked: () => reason })
+  host.discover(claude)
+  await host.loadAll()
+  expect(host.entries[0]?.status).toBe("on")
+  expect(host.applyRevoked()).toEqual([])
+
+  reason = "steals tokens"
+  expect(host.applyRevoked()).toEqual(["later-pulled"])
+  expect(host.entries[0]?.status).toBe("revoked")
+  expect(host.entries[0]?.problem).toBe("Revoked: steals tokens")
+  expect(calls).toContain("later-pulled cleanup")
+  expect(host.applyRevoked()).toEqual([])
+})
+
 test("a revoke matches listed mods by version, unlisted by SHA and local ones only for every version", () => {
   const manifest = {
     id: "x",

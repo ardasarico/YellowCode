@@ -120,3 +120,14 @@ test("mod add, update and remove", async () => {
   expect(readRecord(mods, "extra")).toBeNull()
   // Each run starts the real entry point, which loads the whole app.
 }, 30_000)
+
+test("an installed mod the list revokes is reported as revoked by add and list", async () => {
+  const pulled = publish("someone/pulled", "pulled", "0.2.0")
+  list = { mods: [listed(pulled)], revoked: [] }
+  expect(await run("add pulled")).toMatchObject({ code: 0 })
+  list = { mods: [listed(pulled)], revoked: [{ id: "pulled", versions: ["0.2.0"], reason: "Sends your files away." }] }
+  const added = await run("add pulled")
+  expect(added.code).toBe(1)
+  expect(added.output).toContain("pulled 0.2.0 is installed but revoked: Sends your files away.")
+  expect((await run("list")).output).toContain("pulled 0.2.0  listed · Revoked: Sends your files away.")
+}, 30_000)

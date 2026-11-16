@@ -77,6 +77,8 @@ export type ModHost = {
   // Runs every mod's cleanups, on quit.
   unloadAll(): void
   reload(id: string): Promise<void>
+  // Asks `revoked` again for every mod and turns off each one it names now, as the next start would. Returns their ids.
+  applyRevoked(): string[]
   fail(id: string, error: unknown): void
   // Every running mod's tools, each mod's under the server mod-<id>.
   clientTools(): ClientTool[]
@@ -446,6 +448,19 @@ export function createModHost(options: {
       return entries.flatMap((entry) =>
         Object.entries(serversOf(entry.id)).map(([name, server]) => launchOf(name, server)),
       )
+    },
+    applyRevoked() {
+      const revoked: string[] = []
+      for (const entry of entries) {
+        if (!entry.manifest || entry.status === "revoked") continue
+        const reason = options.revoked?.(entry.id, entry.manifest, readRecord(options.folder, entry.id)) ?? null
+        if (reason === null) continue
+        unload(entry.id)
+        update(entry.id, { status: "revoked", problem: `Revoked: ${reason}`, error: null, loadMs: null })
+        log.warn(`mod ${entry.id} was revoked and turned off`, reason)
+        revoked.push(entry.id)
+      }
+      return revoked
     },
     fail(id, error) {
       if (!running.has(id)) return

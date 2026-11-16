@@ -28,6 +28,7 @@
     "types": "bun tools/mod-types.ts",
     "parsers": "bun node_modules/@opentui/core/lib/tree-sitter/update-assets.js --config tools/parsers-config.json --assets src/ui/markdown/parsers --output src/ui/markdown/parsers/parsers.ts",
     "types:check": "bun tools/mod-types.ts --check",
+    "mods:check": "bun tools/mods-check.ts",
     "check": "bun run typecheck && bun run lint && bun run format:check && bun run types:check && bun test",
     "build": "bun tools/build.ts",
     "build:check": "bun tools/build-check.ts",

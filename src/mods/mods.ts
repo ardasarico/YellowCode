@@ -7,7 +7,7 @@ import { setSetting, settings } from "../session/settings.ts"
 import { createModHost, type ModAgent, revokedReason } from "./host.ts"
 import { autoUpdate } from "./install/auto-update.ts"
 import { installAt } from "./install/install.ts"
-import { type ListedMod, type ModList, readCachedList, refreshList } from "./install/list.ts"
+import { type ListedMod, type ModList, onListFetched, readCachedList, refreshList } from "./install/list.ts"
 import { onModError, onModNotify } from "./registry.ts"
 import { linkRuntime } from "./runtime.ts"
 
@@ -55,6 +55,15 @@ export const clearModNotice = () => setModNotice(null)
 onModNotify((mod, text, level) => {
   const name = mods.entries.find((entry) => entry.id === mod)?.manifest?.name ?? mod
   setModNotice({ text: `${name}: ${text}`, problem: level !== "info", error: level === "error" })
+})
+
+// A revoke in a list fetched while YellowCode runs turns the mod off at once, not at the next start.
+onListFetched(() => {
+  const revoked = mods.applyRevoked()
+  if (revoked.length === 1)
+    setModNotice({ text: `Mod ${revoked[0]} was revoked and turned off · /mods`, problem: true })
+  else if (revoked.length > 1)
+    setModNotice({ text: `${revoked.length} mods were revoked and turned off · /mods`, problem: true })
 })
 
 // The agent the mods loaded for last, and the load of the moment; null while mods are off.

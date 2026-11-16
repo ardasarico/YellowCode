@@ -202,7 +202,6 @@ function tellMoved(): void {
   for (const line of movedLines.splice(0)) process.stderr.write(`${line}\n`)
 }
 if (["mod", "mcp", "update", "providers"].includes(process.argv[2] ?? "")) tellMoved()
-if (process.argv[2] === "mod") process.exit(await runModCommand(process.argv.slice(3)))
 if (process.argv[2] === "mcp") process.exit(runMcpCommand(process.argv.slice(3)))
 if (process.argv[2] === "update") process.exit(await runUpdateCommand(process.argv.slice(3)))
 if (process.argv[2] === MEMORY_COMMAND) process.exit(await runMemoryServer(process.argv[3]))
@@ -223,6 +222,20 @@ function lastProvider(saved: StoredSettings): AgentKindId | undefined {
   const last = saved.lastModel?.provider
   return last !== undefined && addedIds(saved).includes(last) ? last : undefined
 }
+// The agent a start opens, as pickFirst finds it, without starting it.
+function openingAgent(saved: StoredSettings): Promise<AgentKindId | undefined> {
+  return pickAgent(lastProvider(saved), addedIds(saved), async (id) => {
+    const detection = await KNOWN_AGENTS.find((agent) => agent.id === id)?.detect()
+    return detection?.installed === true && detection.blocked === null
+  })
+}
+if (process.argv[2] === "mod")
+  process.exit(
+    await runModCommand(process.argv.slice(3), {
+      opening: () => openingAgent(loadSettings(undefined, false).settings),
+      name: (id) => KNOWN_AGENTS.find((agent) => agent.id === id)?.name ?? id,
+    }),
+  )
 if (process.argv[2] === "providers" && process.argv.length === 3) process.exit(await runProvidersCommand(KNOWN_AGENTS))
 
 const values = readArgs()
@@ -241,10 +254,7 @@ if (values.version) {
 }
 if (values.report) {
   const loaded = loadSettings(undefined, false)
-  const running = await pickAgent(lastProvider(loaded.settings), addedIds(loaded.settings), async (id) => {
-    const detection = await KNOWN_AGENTS.find((agent) => agent.id === id)?.detect()
-    return detection?.installed === true && detection.blocked === null
-  })
+  const running = await openingAgent(loaded.settings)
   process.stdout.write(
     reportMarkdown({
       environment: [...hostFacts(await agentVersions(KNOWN_AGENTS)), ...terminalFacts(null)],

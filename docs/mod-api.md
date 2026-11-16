@@ -25,7 +25,9 @@ A mod is a folder of TypeScript that YellowCode loads at startup. See [what a mo
 
 ## A first mod
 
-Make a folder for it in the mods folder:
+For a mod in its own repo, start from the template repo
+[ardasarico/yellowcode-mod-template](https://github.com/ardasarico/yellowcode-mod-template). To try the API first, make
+a folder for a mod in the mods folder:
 
 ```text
 ~/.yellowcode/mods/hello/
@@ -159,12 +161,13 @@ Every mod folder has a `yellowcode-mod.json`:
 | ------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | `id`          | yes      | Lowercase letters and digits, words joined by single dashes. Must be the folder's name.                             |
 | `name`        | yes      | The name shown in `/mods`.                                                                                          |
-| `version`     | yes      | The mod's own version, shown in `/mods`.                                                                            |
+| `version`     | yes      | The mod's own version, a semver version like `"0.1.0"`, shown in `/mods`.                                           |
 | `description` | no       | One line, shown in `/mods`.                                                                                         |
 | `api`         | yes      | A semver range of mod API versions the mod works with, like `"^0.2"`.                                               |
 | `agents`      | yes      | The agents the mod is made for, like `["claude"]`, or `"any"`. See [Agents](#agents).                               |
 | `entry`       | yes      | The `.ts` or `.tsx` file to load, relative to the folder and inside it.                                             |
 | `mcpServers`  | no       | MCP servers to give the agent while the mod is on. See [MCP servers in the manifest](#mcp-servers-in-the-manifest). |
+| `screenshots` | no       | Up to 6 `.png`, `.jpg` or `.jpeg` files inside the folder, for the Marketplace. See [Screenshots](#screenshots).    |
 
 A manifest that is missing, is not valid JSON, or has a wrong field marks the mod as failed, and `/mods` names the
 problem. A mod whose `api` range does not match the running mod API version (`apiVersion`, exported by `yellowcode/mod`)
@@ -895,18 +898,32 @@ files:
 }
 ```
 
-`id`, `version`, `api` and `agents` must equal the ones in the mod's manifest at that commit. The list holds one version of each
-mod; there is no list of older versions.
+`id`, `name`, `description`, `version`, `api` and `agents` must equal the ones in the mod's manifest at that commit.
+The list holds one version of each mod; there is no list of older versions.
 
 To get listed:
 
 1. Push the commit you want listed to your repo.
 2. Add your entry to `mods` in `mods.json` in a fork of this repo. For `treeHash`, put any value of the right shape,
-   like `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`, and run `bun tools/mods-check.ts`. It checks the entries
-   that differ from this repo's `main` (`--all` checks every one), downloads your commit and fails with the hash of the
-   download; copy that into the entry and run it again until it passes. It also checks the manifest, refuses symlinks
-   and dry-runs the dependency install.
-3. Open a pull request. The check prints the link the review reads.
+   like `sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`.
+3. Open a pull request with the mod list template: on the compare page, add `&template=mod.md` to the address after
+   `?expand=1`, or copy [the template](../.github/PULL_REQUEST_TEMPLATE/mod.md) into the description. It asks for your
+   repo, the review link and the rules below.
+4. The Mods check runs `bun tools/mods-check.ts` on the pull request. It downloads your commit and fails with the hash
+   of the download; copy that into the entry and push again. Once it passes, it prints the link the review reads; put
+   that in the pull request.
+
+You can run the check yourself first with `bun run mods:check`. It checks the entries that differ from this repo's
+`main` (`--all` checks every one). Besides the hash, it checks the manifest against the entry, refuses symlinks, checks
+the screenshots and runs the dependency install in a throwaway folder.
+
+### Screenshots
+
+Listed mods appear on the [Marketplace](https://yellowcode.ardasari.co/marketplace). The manifest's `screenshots` names
+up to 6 images in the mod's repo, like `"screenshots": ["screenshots/main.png"]`. The first is the cover on the mod's
+card. Use 16:10 images at least 1280 pixels wide. Each must be a real PNG or JPEG of at most 1 MB; the check fails
+otherwise. The Marketplace loads them from the listed commit, so they are reviewed with the code and change only with
+an update. YellowCode itself does not show them.
 
 The first review reads the mod's full source. Every update is a new pull request that changes `version`, `sha` and
 `treeHash`; the review reads the diff between the old and the new commit and the `bun.lock` diff.
@@ -923,3 +940,21 @@ A listed mod must follow these rules:
 
 A mod that breaks a rule after it is listed is taken off the list with a reason; it then stops loading for everyone who
 installed it.
+
+### Taking a mod off the list
+
+This part is for the list's maintainers. A mod is taken off with an entry in `revoked`:
+
+```json
+{ "id": "hello", "versions": ["0.1.0"], "shas": ["<a full commit SHA>"], "reason": "Sends your files to a server." }
+```
+
+- `versions` is a list of listed versions to turn off, or `"all"` for every version from the list and copies put in
+  the mods folder by hand.
+- `shas`, optional, names commits for copies installed from GitHub with `github:`, which are matched only by commit.
+- `reason` is shown in `/mods` and by `yellowcode mod`.
+
+A running YellowCode turns a revoked mod off as soon as it fetches the list: at its daily check, or when `/mods` opens.
+
+To drop a mod from `mods`, also add a `revoked` entry for it with `"versions": "all"`. A mod that is only removed from
+`mods` would keep loading where it is installed and never update again, so the check fails on it.

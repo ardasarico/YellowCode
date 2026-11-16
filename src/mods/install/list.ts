@@ -3,7 +3,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 import { parseJson } from "../../json.ts"
 import { cachePath } from "../../paths.ts"
-import { Agents, MOD_ID } from "../manifest.ts"
+import { Agents, MOD_ID, Version } from "../manifest.ts"
 
 const LIST_URL = "https://raw.githubusercontent.com/ardasarico/YellowCode/main/mods.json"
 
@@ -15,7 +15,7 @@ const ListedMod = z.object({
   name: z.string().min(1),
   description: z.string(),
   repo: z.string().regex(REPO, "must be owner/repo"),
-  version: z.string().min(1),
+  version: Version,
   sha: z.string().regex(SHA, "must be a full 40-character commit SHA"),
   treeHash: z.string().regex(/^sha256-[A-Za-z0-9+/]{43}=$/, "must be sha256-<base64>"),
   api: z.string().min(1),
@@ -64,10 +64,21 @@ export async function fetchList(): Promise<ListResult> {
   return parseList(json.value)
 }
 
+const fetchedListeners = new Set<(list: ModList) => void>()
+
+// Called with each list refreshList fetched, once it is cached.
+export function onListFetched(listener: (list: ModList) => void): () => void {
+  fetchedListeners.add(listener)
+  return () => fetchedListeners.delete(listener)
+}
+
 // Fetches the list and caches it when that worked.
 export async function refreshList(now = Date.now()): Promise<ListResult> {
   const fetched = await fetchList()
-  if (fetched.ok) writeCachedList(fetched.list, now)
+  if (fetched.ok) {
+    writeCachedList(fetched.list, now)
+    for (const listener of fetchedListeners) listener(fetched.list)
+  }
   return fetched
 }
 

@@ -7,6 +7,11 @@ import { apiVersion } from "./version.ts"
 
 export const MANIFEST = "yellowcode-mod.json"
 export const MOD_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+// From semver.org.
+const SEMVER =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+
+export const Version = z.string().regex(SEMVER, "must be a semver version, like 1.0.0")
 
 // The agents a mod is made for, or "any" for one that uses no agent-bound API.
 export const Agents = z.union([z.literal("any"), z.array(z.string().min(1)).min(1)])
@@ -29,7 +34,7 @@ export type McpServer = z.output<typeof McpServer>
 const Manifest = z.object({
   id: z.string().regex(MOD_ID),
   name: z.string().min(1),
-  version: z.string().min(1),
+  version: Version,
   description: z.string().default(""),
   // A semver range of mod API versions, like "^0.2".
   api: z.string().min(1),
@@ -37,6 +42,11 @@ const Manifest = z.object({
   entry: z.string().regex(/\.tsx?$/),
   // Given to the agent while the mod is on. Tools served by YellowCode itself come from mod.tools.
   mcpServers: z.record(z.string().regex(/^[a-zA-Z0-9_-]+$/), McpServer).optional(),
+  // For the website's Marketplace; the first is the cover. The app only checks them.
+  screenshots: z
+    .array(z.string().regex(/\.(png|jpe?g)$/))
+    .max(6)
+    .optional(),
 })
 
 export type Manifest = z.output<typeof Manifest>
@@ -68,6 +78,13 @@ export function readManifest(folder: string): ManifestResult {
     }
   if (parsed.error?.issues.some((issue) => issue.path[0] === "entry"))
     return { ok: false, problem: `${MANIFEST}: "entry" must name a .ts or .tsx file, like "index.tsx"` }
+  if (parsed.error?.issues.some((issue) => issue.path[0] === "version"))
+    return { ok: false, problem: `${MANIFEST}: "version" must be a semver version, like "1.0.0"` }
+  if (parsed.error?.issues.some((issue) => issue.path[0] === "screenshots"))
+    return {
+      ok: false,
+      problem: `${MANIFEST}: "screenshots" takes up to 6 .png, .jpg or .jpeg files, like ["screenshots/main.png"]`,
+    }
   if (!parsed.success) {
     const fields = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".") || "manifest"))]
     return { ok: false, problem: `${MANIFEST}: invalid ${fields.join(", ")}` }
@@ -75,10 +92,16 @@ export function readManifest(folder: string): ManifestResult {
   const manifest = parsed.data
   if (manifest.id !== basename(folder))
     return { ok: false, problem: `${MANIFEST}: id "${manifest.id}" is not the folder name "${basename(folder)}"` }
-  const entry = normalize(manifest.entry)
-  if (isAbsolute(entry) || entry.startsWith(".."))
-    return { ok: false, problem: `${MANIFEST}: entry is outside the mod folder` }
+  if (!insideFolder(manifest.entry)) return { ok: false, problem: `${MANIFEST}: entry is outside the mod folder` }
+  const outside = manifest.screenshots?.find((path) => !insideFolder(path))
+  if (outside !== undefined)
+    return { ok: false, problem: `${MANIFEST}: screenshot "${outside}" is outside the mod folder` }
   return { ok: true, manifest }
+}
+
+function insideFolder(path: string): boolean {
+  const normalized = normalize(path)
+  return !isAbsolute(normalized) && !normalized.startsWith("..")
 }
 
 export function compatible(manifest: Manifest, version = apiVersion): boolean {

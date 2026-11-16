@@ -1,0 +1,38 @@
+name: Mods
+
+# Checks a change to the mod list: the schema, revokes, and each added or changed entry against its commit.
+on:
+  pull_request:
+    paths:
+      - mods.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mods-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mods-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # mods-check compares mods.json with origin/main's.
+      - run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+      # The check runs from the PR's own branch, so a list PR may not change anything else, the check included.
+      - name: Only mods.json changed
+        run: |
+          other=$(git diff --name-only origin/main...HEAD | grep -vx mods.json || true)
+          if [ -n "$other" ]; then
+            echo "A mod list pull request changes only mods.json. It also changes:"
+            echo "$other"
+            exit 1
+          fi
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - run: bun run mods:check
