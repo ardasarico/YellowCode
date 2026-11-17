@@ -67,3 +67,29 @@ test("a child that ends with an ask open closes the parent's copy", () => {
   expect(events.slice(1)).toMatchObject([{ type: "ask.close", id: "child-c1-a1", outcome: { status: "cancelled" } }])
   expect(asks.answer("child-c1-a1", { type: "declined", chat: false })).toBe(false)
 })
+
+test("under a parent that runs without asks, a child's web fetch is allowed and only its edits reach the user", () => {
+  const events: AgentEvent[] = []
+  const answered: [string, AskReply][] = []
+  const child: AskingChild = {
+    id: "c1",
+    name: "researcher",
+    provider: "Claude Code",
+    agent: { answer: (ask, reply) => Promise.resolve(void answered.push([ask, reply])) },
+  }
+  const asks = childAsks({ event: (event) => events.push(event) }, () => true)
+  const fetch: Ask = { ...edit("a1"), tool: { name: "WebFetch", kind: "fetch", mcp: null }, writes: [] }
+  expect(asks.take(child, { type: "ask.open", ask: fetch, at: 1 })).toBe(true)
+  expect(asks.take(child, { type: "ask.open", ask: edit("a2"), at: 2 })).toBe(true)
+  expect(answered).toEqual([
+    [
+      "a1",
+      {
+        type: "option",
+        option: fetch.options.find((o) => o.effect === "allow" && o.lasts === "once")?.id ?? "",
+        note: null,
+      },
+    ],
+  ])
+  expect(events).toMatchObject([{ type: "ask.open", ask: { id: "child-c1-a2" } }])
+})

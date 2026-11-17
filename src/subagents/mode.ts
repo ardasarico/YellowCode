@@ -8,7 +8,7 @@ export type Permissions = "read-only" | "edits" | "inherit"
 export type ChildMode = { fit: "ok" | "confirm"; mode: ModeRow; asks: boolean } | { fit: "none" }
 
 const ORDER: ModeKind[] = ["readonly", "plan", "default", "edits", "auto", "bypass"]
-const FREE = new Set<ModeKind>(["auto", "bypass"])
+export const FREE = new Set<ModeKind>(["auto", "bypass"])
 const WIDEST: Record<Permissions, ModeKind> = { "read-only": "readonly", edits: "edits", inherit: "bypass" }
 
 // A parent mode of unknown width counts as the narrowest.

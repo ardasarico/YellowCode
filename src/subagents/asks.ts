@@ -13,6 +13,7 @@ type Sink = { event(event: AgentEvent): void }
 export const childAskId = (childId: string, askId: AskId): AskId => `child-${childId}-${askId}`
 
 const FILE_KINDS: ReadonlySet<ToolKind> = new Set(["edit", "write", "delete", "move"])
+const READ_KINDS: ReadonlySet<ToolKind> = new Set(["read", "search", "fetch", "websearch"])
 
 const doing = (ask: Ask): string => {
   if (ask.kind === "question") return "asks"
@@ -40,7 +41,8 @@ export const parentCopy = (child: AskingChild, ask: Ask): Ask => ({
 })
 
 // A child's asks are shown and answered in the parent's chat, never in the child's own store.
-export function childAsks(parent: Sink) {
+// `free`: the parent runs without asks, so a child's ask to read a file or the web is allowed without the user.
+export function childAsks(parent: Sink, free: () => boolean = () => false) {
   const routes = new Map<AskId, { child: AskingChild; ask: AskId }>()
 
   const close = (id: AskId, outcome: Extract<AgentEvent, { type: "ask.close" }>["outcome"]) => {
@@ -52,6 +54,13 @@ export function childAsks(parent: Sink) {
     // True when the event was the child's ask; it then stays out of the child's store.
     take(child: AskingChild, event: AgentEvent): boolean {
       if (event.type === "ask.open") {
+        const allow = event.ask.options.find((option) => option.effect === "allow" && option.lasts === "once")
+        if (event.ask.kind === "permission" && READ_KINDS.has(event.ask.tool.kind) && allow && free()) {
+          child.agent
+            .answer(event.ask.id, { type: "option", option: allow.id, note: null })
+            .catch((error: unknown) => log.error("cannot answer the subagent's ask", error))
+          return true
+        }
         const copy = parentCopy(child, event.ask)
         routes.set(copy.id, { child, ask: event.ask.id })
         parent.event({ type: "ask.open", ask: copy, at: event.at })

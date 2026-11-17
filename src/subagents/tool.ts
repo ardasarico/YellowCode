@@ -18,6 +18,7 @@ import {
 } from "./children.ts"
 import type { Definition } from "./definitions.ts"
 import { resolveName } from "./mentions.ts"
+import { FREE } from "./mode.ts"
 
 // The tools reach the user's own session as client tools of this server; children get none.
 export const AGENTS_SERVER = OWN_AGENTS_SERVER
@@ -179,7 +180,7 @@ function begunText(begun: Begun, provider: Provider): ToolResult {
 
 // The subagents of one session of the user's: its tools, the asks they open in its chat, and its children.
 export function createSubagents(deps: SubagentDeps) {
-  const asks = childAsks(deps.parent)
+  const asks = childAsks(deps.parent, () => FREE.has(deps.parentMode()))
   const waiting = new Map<string, (reply: AskReply | null) => void>()
   let closed = false
 
