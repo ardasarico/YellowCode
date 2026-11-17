@@ -134,6 +134,36 @@ test("the first key still typed into the prompt as an ask appears does not answe
   setup.renderer.destroy()
 })
 
+test("the key right after an answer goes to the next ask at once", async () => {
+  const sent: AskReply[] = []
+  const surface = (requestId: string) =>
+    testRender(
+      () => (
+        <AskSurface
+          caps={CAPS}
+          agent="Claude"
+          ask={{ ...ask, requestId }}
+          width={80}
+          onAnswer={(_, reply) => sent.push(reply)}
+        />
+      ),
+      { width: 80, height: 20 },
+    )
+  const press = (setup: Awaited<ReturnType<typeof surface>>, at: number) => {
+    setSystemTime(new Date(at))
+    noteKey()
+    setup.mockInput.pressKey("1")
+  }
+  const first = await surface("request-1")
+  press(first, 20_000)
+  first.renderer.destroy()
+  const second = await surface("request-2")
+  press(second, 20_200)
+  expect(sent).toHaveLength(2)
+  setSystemTime()
+  second.renderer.destroy()
+})
+
 const words = (more: Partial<AskOption>) => {
   const shown = choiceOf({ ...YES, ...more })
   return `${shown.before}${shown.subject}${shown.after}`

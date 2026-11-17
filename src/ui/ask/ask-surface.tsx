@@ -6,6 +6,7 @@ import { MatrixAsk } from "./matrix-ask.tsx"
 import { PlanBand } from "./plan-band.tsx"
 import { PermissionBand } from "./permission-band.tsx"
 import { QuestionAsk } from "./question-ask.tsx"
+import { noteAnswer } from "./typing.ts"
 
 // A view reads keys with its own useKeyboard. While it is open, App passes on every key except Ctrl+C and F3.
 // The surface passes on only the first reply per ask; `answered` turns true once it is out, and the view then ignores
@@ -43,6 +44,7 @@ export function AskSurface(props: AskSurfaceProps) {
   const answer = (reply: AskReply) => {
     if (answered()) return
     setAnswered(true)
+    noteAnswer()
     props.onAnswer(props.ask, reply)
   }
   const view = createMemo((): { pages?: QuestionPage[]; matrix?: Matrix } | null => {

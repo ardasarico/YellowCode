@@ -6,6 +6,9 @@ const HOLD_LIMIT = 3000
 const FREE_KEYS = new Set(["up", "down", "left", "right", "escape"])
 
 let lastKeyAt = 0
+let keys = 0
+// The key that answered an ask. The keys after it go on answering asks, not typing at the prompt.
+let answerKey = -1
 // The key before the latest one: a handler of the latest key reads the pause before it from this.
 let keyBefore = 0
 // The hold ran out at its limit while the user went on typing at the prompt; that typing never sends.
@@ -15,6 +18,7 @@ let rushed = false
 export function noteKey(): void {
   keyBefore = lastKeyAt
   lastKeyAt = Date.now()
+  keys++
   if (lastKeyAt - keyBefore >= TYPING_GAP) rushed = false
 }
 
@@ -24,6 +28,11 @@ let asking: () => boolean = () => false
 let release: ReturnType<typeof setTimeout> | undefined
 
 export { held }
+
+// Called as an ask is answered, so the next ask that appears takes the user's keys at once.
+export function noteAnswer(): void {
+  answerKey = keys
+}
 
 function endHold(): void {
   clearTimeout(release)
@@ -48,7 +57,7 @@ function settle(): void {
 // or to the next ask, where it is no answer: keys are dropped while they keep coming less than a second apart.
 export function holdKeys(isAsking: () => boolean): void {
   const now = Date.now()
-  if (now - lastKeyAt >= TYPING_GAP) return
+  if (now - lastKeyAt >= TYPING_GAP || keys === answerKey) return
   asking = isAsking
   holdEnds = now + HOLD_LIMIT
   setHeld(true)
@@ -76,9 +85,10 @@ export function rushedSubmit(): boolean {
 // dropped.
 export function typingGuard(): (key: KeyEvent) => boolean {
   let first = true
+  const answering = keys === answerKey
   return (key) => {
     if (!first || key.ctrl || key.meta) return false
     first = false
-    return Date.now() - keyBefore < TYPING_GAP && !FREE_KEYS.has(key.name)
+    return !answering && Date.now() - keyBefore < TYPING_GAP && !FREE_KEYS.has(key.name)
   }
 }
