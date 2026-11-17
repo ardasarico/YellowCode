@@ -21,6 +21,8 @@
 ### Fixed
 
 - A subagent of Claude Code keeps the main chat's model when it starts.
+- Enter answers the next ask right away after you answer one, instead of being dropped for a second.
+- A subagent of a session in auto or bypass mode reads files and fetches pages without asking you.
 
 ## 0.5.4
 
