@@ -1,4 +1,4 @@
-import { type Command, findCommand } from "./commands.ts"
+import { type Command, findCommand, inlineCommands } from "./commands.ts"
 
 // `quoted`: written @"…", the only form claude expands a path with spaces in; codex and opencode get the mention as plain
 // text and leave the file to the model. `query` runs from after @ (or @") to the cursor.
@@ -16,6 +16,26 @@ function firstTokenEnd(text: string): number {
 export function slashQuery(text: string, cursor: number): string | null {
   if (!text.startsWith("/") || cursor < 1) return null
   return cursor <= firstTokenEnd(text) ? text.slice(1, cursor) : null
+}
+
+export type InlineSlash = { start: number; end: number; query: string }
+
+// A /name after the first word, with the cursor in its name. A second slash makes it a path, not a command.
+export function inlineSlashToken(text: string, cursor: number): InlineSlash | null {
+  let start = cursor
+  while (start > 0 && !isSpace(text[start - 1])) start--
+  if (start === 0 || text[start] !== "/" || cursor < start + 1) return null
+  let end = cursor
+  while (end < text.length && !isSpace(text[end])) end++
+  if (text.slice(start + 1, end).includes("/")) return null
+  return { start, end, query: text.slice(start + 1, cursor) }
+}
+
+export function replaceInlineSlash(text: string, token: InlineSlash, name: string): { text: string; cursor: number } {
+  const spaceFollows = isSpace(text[token.end])
+  const insert = spaceFollows ? `/${name}` : `/${name} `
+  const cursor = token.start + insert.length + (spaceFollows ? 1 : 0)
+  return { text: text.slice(0, token.start) + insert + text.slice(token.end), cursor }
 }
 
 export function completeCommand(text: string, name: string): { text: string; cursor: number } {
@@ -114,8 +134,12 @@ export function highlightRanges(text: string, commands: Command[]): Range[] {
   if (text.startsWith("/") && nameEnd > 1 && findCommand(commands, text.slice(1, nameEnd))) {
     ranges.push({ start: 0, end: nameEnd })
   }
+  const inline = inlineCommands(commands)
+  for (const word of text.matchAll(/(?<=\s)\/\S+/g)) {
+    if (findCommand(inline, word[0].slice(1))) ranges.push({ start: word.index, end: word.index + word[0].length })
+  }
   for (const { start, end, quoted } of mentions(text, text.length)) {
     if (end > start + (quoted ? 2 : 1)) ranges.push({ start, end })
   }
-  return ranges
+  return ranges.toSorted((a, b) => a.start - b.start)
 }

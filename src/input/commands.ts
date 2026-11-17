@@ -42,6 +42,11 @@ export const OWN_COMMANDS: Command[] = [
   },
 ]
 
+// The commands a /name after the first word may name: skills and custom commands, which the agent reads from the text.
+// The agent's own commands, YellowCode's and the mods' run only at the start of a message.
+export const inlineCommands = (commands: Command[]): Command[] =>
+  commands.filter((command) => !command.builtin && !command.mod && !OWN_COMMANDS.includes(command))
+
 // The agent's commands without the ones that work only in its own terminal UI, each name once, then YellowCode's.
 export function agentCommands(commands: ListedCommand[], terminalOnly: readonly string[]): Command[] {
   const hidden = new Set(terminalOnly)

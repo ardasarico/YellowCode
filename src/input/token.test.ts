@@ -5,6 +5,8 @@ import {
   commandLine,
   completeCommand,
   highlightRanges,
+  inlineSlashToken,
+  replaceInlineSlash,
   replaceToken,
   slashQuery,
 } from "./token.ts"
@@ -64,7 +66,7 @@ test("a picked command replaces only the first token", () => {
 })
 
 test("highlightRanges marks a leading known command and @ tokens after whitespace", () => {
-  const commands = [{ name: "compact", description: "", argumentHint: "", aliases: [] }]
+  const commands = [{ name: "compact", description: "", argumentHint: "", aliases: [], builtin: true }]
   expect(highlightRanges("/compact keep it short", commands)).toEqual([{ start: 0, end: 8 }])
   expect(highlightRanges("/comp x", commands)).toEqual([])
   expect(highlightRanges("see /compact", commands)).toEqual([])
@@ -73,4 +75,24 @@ test("highlightRanges marks a leading known command and @ tokens after whitespac
     { start: 0, end: 2 },
     { start: 3, end: 5 },
   ])
+})
+
+test("inlineSlashToken finds a /name after the first word, not a path", () => {
+  expect(inlineSlashToken("use /rev now", 8)).toEqual({ start: 4, end: 8, query: "rev" })
+  expect(inlineSlashToken("/rev", 4)).toBeNull()
+  expect(inlineSlashToken("see /tmp/a", 10)).toBeNull()
+  expect(inlineSlashToken("a/b", 3)).toBeNull()
+  expect(replaceInlineSlash("use /re", { start: 4, end: 7, query: "re" }, "review")).toEqual({
+    text: "use /review ",
+    cursor: 12,
+  })
+})
+
+test("highlightRanges marks a skill after the first word, not an agent command", () => {
+  const commands = [
+    { name: "review", description: "", argumentHint: "", aliases: [] },
+    { name: "compact", description: "", argumentHint: "", aliases: [], builtin: true },
+  ]
+  expect(highlightRanges("please /review this", commands)).toEqual([{ start: 7, end: 14 }])
+  expect(highlightRanges("please /compact", commands)).toEqual([])
 })

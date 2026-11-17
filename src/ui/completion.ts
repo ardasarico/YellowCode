@@ -1,7 +1,7 @@
 import type { PasteEvent, TextareaRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer } from "@opentui/solid"
 import { type Accessor, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js"
-import { argumentValues, findCommand, matchCommands, matchValues } from "../input/commands.ts"
+import { argumentValues, findCommand, inlineCommands, matchCommands, matchValues } from "../input/commands.ts"
 import {
   type Draft,
   expandDraft,
@@ -22,7 +22,9 @@ import {
   commandLine,
   completeCommand,
   highlightRanges,
+  inlineSlashToken,
   replaceArgument,
+  replaceInlineSlash,
   replaceToken,
   slashQuery,
 } from "../input/token.ts"
@@ -35,7 +37,8 @@ import { type Suggestion, suggestionRows } from "./suggestion-list.tsx"
 export type Submission = { text: string; images: PromptImage[]; draft: Draft; now?: boolean }
 
 type Completion =
-  | { kind: "command"; entries: Suggestion[] }
+  // `start`: a /name after the first word, where only a skill or custom command goes.
+  | { kind: "command"; start?: number; entries: Suggestion[] }
   | { kind: "argument"; entries: Suggestion[] }
   | { kind: "file"; start: number; entries: Suggestion[] }
 
@@ -211,11 +214,14 @@ export function useCompletion(options: CompletionOptions) {
       return
     }
     fileRequest++
-    const query = slashQuery(text, cursor)
+    const inline = inlineSlashToken(text, cursor)
+    const query = slashQuery(text, cursor) ?? inline?.query ?? null
     if (query !== null) {
-      const rows = matchCommands(options.provider().commands(), query)
+      const commands = options.provider().commands()
+      const rows = matchCommands(inline ? inlineCommands(commands) : commands, query)
       show({
         kind: "command",
+        start: inline?.start,
         entries: rows.map(({ name, description, argumentHint, match, alias }) => ({
           kind: "command",
           name,
@@ -273,7 +279,9 @@ export function useCompletion(options: CompletionOptions) {
     const cursor = cursorIndex(area)
     const inside =
       open.kind === "command"
-        ? slashQuery(text, cursor) !== null
+        ? open.start === undefined
+          ? slashQuery(text, cursor) !== null
+          : inlineSlashToken(text, cursor)?.start === open.start
         : open.kind === "argument"
           ? argumentToken(text, cursor) !== null
           : atToken(text, cursor)?.start === open.start
@@ -365,8 +373,15 @@ export function useCompletion(options: CompletionOptions) {
     if (!area) return
     const text = area.plainText
     if (entry.kind === "command") {
+      const open = completion()
+      const inline = open?.kind === "command" ? open.start : undefined
       close()
       const name = entry.alias ?? entry.name
+      if (inline !== undefined) {
+        const token = inlineSlashToken(text, cursorIndex(area))
+        if (token) edit(replaceInlineSlash(text, token, name))
+        return
+      }
       if (enter) {
         edit({ text: commandLine(text, name), cursor: 0 })
         submit()
