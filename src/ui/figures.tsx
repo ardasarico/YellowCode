@@ -160,7 +160,7 @@ function Paw(props: { color: RGBA; running: boolean; size?: Size; background?: R
 export function AgentMark(props: { color: RGBA; state: Agent["state"]; size?: Size; background?: RGBA | null }) {
   const background = () => props.background ?? theme.background
   const still = () => {
-    if (props.state === "completed") return checkImage(props.color, props.size)
+    if (props.state === "completed") return checkImage(theme.muted, props.size)
     if (props.state === "failed") return crossImage(theme.error, props.size)
     if (props.state === "stopped") return stoppedImage(props.color, props.size)
     return null
