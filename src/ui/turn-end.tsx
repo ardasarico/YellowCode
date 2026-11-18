@@ -8,6 +8,7 @@ import ocLightPng from "../../assets/opencode-mark-light.png" with { type: "file
 import { createContext, createSignal, Match, Show, Switch, useContext } from "solid-js"
 import type { TurnEnd } from "../session/types.ts"
 import { theme } from "../theme/theme.ts"
+import { ClaudeMark } from "./figures.tsx"
 import { cut, formatClock, formatDuration } from "./format.ts"
 import { blank, onBackground, trackImage } from "./images.ts"
 
@@ -25,8 +26,17 @@ const MARKS: Record<string, { dark: NativeImage; light: NativeImage }> = {
 // The id of the agent whose chat this is.
 export const AgentOfChat = createContext<() => string>()
 
-// `waiting` counts the background agents still running after the latest turn; the agent goes on when they finish.
-export type TurnEndRowProps = { parts: TurnEnd[]; waiting: number }
+// `waiting` counts the background agents still running after the latest turn and `shells` names its background shells
+// still running; the agent goes on when they finish.
+export type TurnEndRowProps = { parts: TurnEnd[]; waiting: number; shells?: readonly string[] }
+
+const counted = (count: number, word: string) => `${count} background ${word}${count === 1 ? "" : "s"}`
+
+function waitingText(agents: number, shells: readonly string[]): string {
+  const parts = [agents > 0 ? counted(agents, "agent") : "", shells.length > 0 ? counted(shells.length, "shell") : ""]
+  const names = shells.length > 0 ? ` · ${shells.join(", ")}` : ""
+  return `waiting for ${parts.filter(Boolean).join(" and ")}${names}`
+}
 
 function TurnEndRowBase(props: TurnEndRowProps) {
   const [width, setWidth] = createSignal(0)
@@ -78,10 +88,13 @@ function TurnEndRowBase(props: TurnEndRowProps) {
         <Match when={last()?.interrupted}>
           <text fg={theme.warning}>{`interrupted after ${duration()} · ${clock()}`}</text>
         </Match>
-        <Match when={!last()?.error && props.waiting > 0}>
-          <text fg={theme.muted}>
-            {`✻ waiting for ${props.waiting} background ${props.waiting === 1 ? "agent" : "agents"} to finish`}
-          </text>
+        <Match when={!last()?.error && (props.waiting > 0 || (props.shells?.length ?? 0) > 0)}>
+          <box flexDirection="row">
+            <ClaudeMark running />
+            <text fg={theme.accent} wrapMode="none">
+              {` ${cut(waitingText(props.waiting, props.shells ?? []), Math.max(1, width() - 3))}`}
+            </text>
+          </box>
         </Match>
         <Match when={error()}>
           {(message) => (

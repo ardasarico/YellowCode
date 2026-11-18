@@ -33,6 +33,8 @@ import { isPeerSend, PeerSendRow } from "./peer-send-row.tsx"
 import { ToolCallRow } from "./tool-call.tsx"
 import { ToolGroupRow, ToolRunRow } from "./tool-group.tsx"
 import { TurnEndRow } from "./turn-end.tsx"
+import { WorkingRow } from "./working-row.tsx"
+import { isShell } from "../session/shells.ts"
 import { UserMessageRow } from "./user-message.tsx"
 import type { Workspace } from "./welcome.tsx"
 
@@ -82,6 +84,7 @@ type RowProps = ChatProps & {
   // The row belongs to an open run of a finished turn.
   nested: boolean
   waiting: number
+  shells: string[]
   viewport: () => Renderable | undefined
   // The height a row far off screen keeps while it draws nothing.
   frozen: number | undefined
@@ -249,7 +252,9 @@ function RowView(props: RowProps) {
           <Match when={item("shell-end")}>
             {(end) => <ShellEndRow session={props.session} item={end()} onOpen={openShell} />}
           </Match>
-          <Match when={turnEnds()}>{(parts) => <TurnEndRow parts={parts()} waiting={props.waiting} />}</Match>
+          <Match when={turnEnds()}>
+            {(parts) => <TurnEndRow parts={parts()} waiting={props.waiting} shells={props.shells} />}
+          </Match>
         </Switch>
       </Show>
     </box>
@@ -351,6 +356,12 @@ export function ChatView(props: ChatViewProps) {
       Object.values(props.session.tasks).filter(
         (task) => task.kind === "agent" && task.background && task.parentId === null && task.state === "running",
       ).length,
+  )
+  // The agent goes on when they end, so the turn before them is not done.
+  const waitingShells = createMemo(() =>
+    Object.values(props.session.tasks)
+      .filter((task) => isShell(task) && task.parentId === null && task.state === "running")
+      .map((task) => task.description || task.command.split(/\s+/)[0] || "shell"),
   )
   // The end of the latest turn, unless a new message went out after it.
   const latestEnd = createMemo(() => {
@@ -518,6 +529,7 @@ export function ChatView(props: ChatViewProps) {
                   agentIndex={index()}
                   nested={nested().has(id)}
                   waiting={id === latestEnd() ? waitingAgents() : 0}
+                  shells={id === latestEnd() ? waitingShells() : []}
                   viewport={() => scroll?.viewport}
                   frozen={frozen().has(id) ? heights.get(id) : undefined}
                   onBox={(box) => boxes.set(id, box)}
@@ -527,6 +539,7 @@ export function ChatView(props: ChatViewProps) {
           )
         }}
       </For>
+      <WorkingRow session={props.session} width={props.width - 2 * EDGE_GAP} />
       <Show when={endsWithDivider()}>
         <box height={1} flexShrink={0} />
       </Show>
