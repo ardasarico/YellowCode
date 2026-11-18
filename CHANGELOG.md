@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0
+
+### Added
+
+- A `/` after the first word lists your skills and custom commands, so a skill can go anywhere in a message.
+- While the agent works, a live row at the bottom of the chat says what it is doing and for how long.
+- While the agent works, the terminal title turns a small circle, so a window in the background shows it is busy.
+- When a queued message waits behind a running command or agent, the hints say Ctrl+Enter sends it now.
+- Claude Code's auto-compact window can be set from 100k to 1m tokens in 50k steps.
+
+### Changed
+
+- A turn that ended with background shells still running says it is waiting for them, instead of done.
+- The model's name shows without the ✻ mark, in the color of the agent it runs on.
+- A finished agent's check mark is neutral instead of the agent's color.
+
 ## 0.6.0
 
 ### Added
