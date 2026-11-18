@@ -40,6 +40,12 @@ const toggle = (id: string, label: string, configKey: string, storedKey: string)
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === "object" && value !== null ? Object.fromEntries(Object.entries(value)) : {}
 
+// claude takes any window from 100k to 1m tokens.
+const WINDOW_STEPS: ClaudeOption[] = Array.from({ length: 19 }, (_, index) => {
+  const tokens = 100_000 + index * 50_000
+  return { value: String(tokens), label: tokens === 1_000_000 ? "1m" : `${tokens / 1000}k` }
+})
+
 const CLAUDE_SETTINGS: ClaudeSetting[] = [
   {
     id: "outputStyle",
@@ -51,12 +57,7 @@ const CLAUDE_SETTINGS: ClaudeSetting[] = [
   {
     id: "autoCompactWindow",
     label: "Auto-compact window",
-    options: [
-      { value: "auto", label: "auto" },
-      { value: "200000", label: "200k" },
-      { value: "500000", label: "500k" },
-      { value: "1000000", label: "1m" },
-    ],
+    options: [{ value: "auto", label: "auto" }, ...WINDOW_STEPS],
     read: (effective, { model }) => {
       const window =
         record(record(effective["modelSettings"])[model ?? ""])["autoCompactWindow"] ?? effective["autoCompactWindow"]
