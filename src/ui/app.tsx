@@ -111,7 +111,7 @@ import {
 } from "./agents/tree.ts"
 import { AskSurface, pendingAsk } from "./ask/ask-surface.tsx"
 import { held, heldKey, holdKeys, rushedSubmit } from "./ask/typing.ts"
-import { useAttention } from "./attention.ts"
+import { attentionState, useAttention } from "./attention.ts"
 import { ChatView, createRows, holdsSelection, type ScrollState } from "./chat-view.tsx"
 import { AgentOfChat } from "./turn-end.tsx"
 import { pasteNotice } from "./chips.ts"
@@ -194,6 +194,8 @@ const namesWithCount = (names: string[]) => (names.length > 0 ? `${names.join(",
 // A bare /rename takes up the title the agent sets this soon after.
 const ADOPT_TITLE_MS = 10_000
 const BACKGROUND_HINT_MS = 3000
+const TITLE_SPIN = ["◐", "◓", "◑", "◒"]
+const TITLE_SPIN_MS = 500
 // What "Yes, start" sends after a plan the agent reported without asking.
 const PLAN_START = "Implement the plan."
 // YellowCode's own knob commands, for an agent that has none of its own.
@@ -643,8 +645,12 @@ export function App(props: AppProps) {
         () => settings.notifications,
         () => called(),
       )
+  // While the agent works, the title turns a quarter circle, so a window in the background shows it is busy.
+  const agentWorking = () => !props.readOnly && attentionState(props.session).state === "working"
+  const titleTick = useTicker(agentWorking, TITLE_SPIN_MS)
   createEffect(() => {
-    const text = `${flagged() ? "(!) " : ""}${windowTitle(title()?.title ?? "") || "YellowCode"}`
+    const mark = agentWorking() ? `${TITLE_SPIN[titleTick() % TITLE_SPIN.length]} ` : flagged() ? "(!) " : ""
+    const text = `${mark}${windowTitle(title()?.title ?? "") || "YellowCode"}`
     try {
       renderer.setTerminalTitle(text)
     } catch (error) {
@@ -2243,6 +2249,7 @@ export function App(props: AppProps) {
   }
 
   const input = () => ({
+    agent: agentId(),
     focused:
       focus() === "input" && dialog() === null && recent() === null && agentView() === null && focusedPane() === null,
     messageTo: messageTo(),
@@ -2397,6 +2404,7 @@ export function App(props: AppProps) {
       held: held() && heldWithdrawn(),
       interruptible: interruptible(),
       backgroundable: backgroundable(),
+      sendNow: foreground().length > 0 && lastWaiting() !== null,
       // An agent whose modes cannot be stepped through, such as Pi's one, has nothing for Shift+Tab to do.
       modes:
         props.onInterrupt !== undefined &&

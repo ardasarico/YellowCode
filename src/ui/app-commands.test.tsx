@@ -166,7 +166,7 @@ test("an agent with providers lists its models by provider/model, and a pick and
   expect(picks).toEqual(["effort low", "model two/alpha"])
   // Another client switches the model back.
   store.event({ type: "model", model: { provider: "one", id: "alpha" }, at: 0 })
-  expect(await screen()).toContain("✻ one/alpha")
+  expect(await screen()).toContain("one/alpha")
   // Without an /effort of its own the agent would get this as a prompt.
   await setup.mockInput.typeText("/effort auto")
   setup.mockInput.pressEnter()

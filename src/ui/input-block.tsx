@@ -9,6 +9,7 @@ import { settings } from "../session/settings.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
 import { type Submission, useCompletion } from "./completion.ts"
+import { agentColor } from "./agent-color.ts"
 import { cut, modelName } from "./format.ts"
 import { ImageStrip } from "./image-strip.tsx"
 import { filledPadding, SuggestionList } from "./suggestion-list.tsx"
@@ -51,6 +52,8 @@ export type InputBlockProps = {
   history?: Accessor<Draft[]>
   // The running session's permission mode; auto shows nothing.
   permissionMode?: string | null
+  // The agent's id, which colors the model's name.
+  agent?: string
 }
 
 // `modes` are the agent's, which say what kind of mode it is.
@@ -112,7 +115,7 @@ export function InputBlock(props: InputBlockProps) {
     if (!props.model) return ""
     const word = modeWord(props.permissionMode ?? null, props.provider.modes())
     const modeWidth = word ? Bun.stringWidth(word.text) + 2 : 0
-    return cut(`✻ ${modelName(props.model)}`, props.width - 2 * TILE_PADDING - rightWidth() - modeWidth)
+    return cut(modelName(props.model), props.width - 2 * TILE_PADDING - rightWidth() - modeWidth)
   }
   const prefixWidth = () => (props.shell ? 2 : 0) + (props.messageTo ? props.messageTo.name.length + 2 : 0)
   const unfold = () =>
@@ -185,7 +188,7 @@ export function InputBlock(props: InputBlockProps) {
                   </text>
                 )}
               </Show>
-              <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
+              <text fg={agentColor(props.agent ?? "")} attributes={TextAttributes.BOLD} wrapMode="none">
                 {modelLabel()}
               </text>
             </box>

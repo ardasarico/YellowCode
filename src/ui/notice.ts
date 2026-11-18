@@ -42,6 +42,8 @@ type NoticeState = {
   interruptible: boolean
   // A foreground command or agent has run long enough to be worth sending to the background.
   backgroundable: boolean
+  // A queued message waits behind a foreground command or agent, which Ctrl+Enter sends to the background.
+  sendNow?: boolean
   // Shift+Tab changes the permission mode only with the agent running.
   modes: boolean
   // Says what Shift+Tab does in plan mode, in place of the plain hint.
@@ -136,10 +138,12 @@ export function noticeFor(state: NoticeState): Notice {
   // With the agent gone F4 has nothing to change.
   const fkeys = state.extraEffort && !ended ? `${SIDEBAR_HINT} · F4 ${state.extraEffort}` : SIDEBAR_HINT
   const keys = !ended && state.modes ? `${state.planHint ?? "shift+tab mode"} · ${fkeys}` : fkeys
-  const hints = state.backgroundable
-    ? "ctrl+b runs it in the background"
-    : state.interruptible
-      ? `esc interrupt · ${keys}`
-      : keys
+  const hints = state.sendNow
+    ? "ctrl+enter sends the queued message now"
+    : state.backgroundable
+      ? "ctrl+b runs it in the background"
+      : state.interruptible
+        ? `esc interrupt · ${keys}`
+        : keys
   return { left: leftSpans(state), right: state.asking ? [] : [{ text: hints, fg: theme.muted }] }
 }

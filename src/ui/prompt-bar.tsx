@@ -12,6 +12,7 @@ import { modeOf, settings } from "../session/settings.ts"
 import type { Usage } from "../session/types.ts"
 import { effortColor } from "../theme/brand.ts"
 import { syntaxStyle, theme } from "../theme/theme.ts"
+import { agentColor } from "./agent-color.ts"
 import { useCompletion } from "./completion.ts"
 import { ContextRing } from "./figures.tsx"
 import { cut, formatTokens, modelName } from "./format.ts"
@@ -253,6 +254,8 @@ function shellsLabel(count: number): string {
 
 export type StatusLineProps = {
   model: string | null
+  // The agent's id, which colors the model's name.
+  agent?: string
   context: Usage["context"]
   frame: number
   width: number
@@ -268,7 +271,7 @@ function InfoLineBase(props: StatusLineProps) {
   const mode = () => modeWord(props.mode?.id ?? null, props.modes)
   const modeWidth = () => (mode() ? Bun.stringWidth(mode()?.text ?? "") + 2 : 0)
   const label = () =>
-    props.model ? cut(`✻ ${modelName(props.model)}`, props.width - 2 - modeWidth() - contextWidth(props.context)) : ""
+    props.model ? cut(modelName(props.model), props.width - 2 - modeWidth() - contextWidth(props.context)) : ""
   const shells = () => (props.shells && props.shells.count > 0 ? props.shells : null)
   const counterWidth = () => {
     const counter = shells()
@@ -313,7 +316,7 @@ function InfoLineBase(props: StatusLineProps) {
             </text>
           )}
         </Show>
-        <text fg={theme.claude} attributes={TextAttributes.BOLD} wrapMode="none">
+        <text fg={agentColor(props.agent ?? "")} attributes={TextAttributes.BOLD} wrapMode="none">
           {label()}
         </text>
         <Show when={effort()}>
@@ -441,6 +444,7 @@ function PromptBarBase(props: PromptBarProps) {
       </Show>
       <InfoLine
         model={props.model}
+        agent={props.agent}
         context={props.context}
         frame={frame()}
         width={inner()}
