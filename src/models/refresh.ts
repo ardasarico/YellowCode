@@ -24,7 +24,9 @@ async function refresh(kind: Probed, cwd: string, file: string): Promise<boolean
   if (!kind.listModels) return false
   const found = await kind.detect().catch(() => null)
   if (!found?.installed || found.blocked !== null) return false
-  if (readCatalog(file).providers[kind.id]?.version === found.version) return true
+  // A list with no models is asked for again: the provider may not have been ready when it was saved.
+  const saved = readCatalog(file).providers[kind.id]
+  if (saved?.version === found.version && saved.groups.length > 0) return true
   let timer: ReturnType<typeof setTimeout> | undefined
   const late = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("timed out")), PROBE_MS)

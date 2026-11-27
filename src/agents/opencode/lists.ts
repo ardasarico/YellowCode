@@ -97,6 +97,21 @@ export async function readModels(transport: Transport): Promise<ModelGroup[] | n
   })
 }
 
+const SETTLE_MS = 3000
+const SETTLE_POLL_MS = 150
+
+// The service answers with no models while it is still loading a folder, so an empty list is asked for again.
+export async function readSettledModels(transport: Transport, waitMs = SETTLE_MS): Promise<ModelGroup[] | null> {
+  const until = Date.now() + waitMs
+  for (;;) {
+    // oxlint-disable-next-line no-await-in-loop -- polls a folder that is loading
+    const groups = await readModels(transport)
+    if (groups === null || groups.length > 0 || Date.now() >= until) return groups
+    // oxlint-disable-next-line no-await-in-loop -- polls a folder that is loading
+    await Bun.sleep(SETTLE_POLL_MS)
+  }
+}
+
 const STATES = new Map<string, McpState>(
   Object.entries({
     connected: "connected",

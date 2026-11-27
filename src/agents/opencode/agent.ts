@@ -26,7 +26,16 @@ import { OPENCODE, OPENCODE_CAPS, OPENCODE_NAME } from "./caps.ts"
 import { createCuts, type Revert } from "./cut.ts"
 import { detect, findBinary } from "./detect.ts"
 import { historyPage } from "./history.ts"
-import { DEFAULT_VARIANT, findFiles, readCommands, readMcp, readModels, readSkills, savedRules } from "./lists.ts"
+import {
+  DEFAULT_VARIANT,
+  findFiles,
+  readCommands,
+  readMcp,
+  readModels,
+  readSettledModels,
+  readSkills,
+  savedRules,
+} from "./lists.ts"
 import { readModes } from "./modes.ts"
 import { startOwnMcp } from "./own-mcp.ts"
 import { startSharedMcp, type SharedMcp } from "./shared-mcp.ts"
@@ -1277,7 +1286,7 @@ export function opencodeKind(deps: Partial<Deps> = {}): Omit<AgentKind, "start">
     // Any folder will do for reading a session by its id.
     history: async (ref, cursor) => historyPage(await service(process.cwd()), ref.id, cursor),
     async listModels(cwd) {
-      const groups = await readModels(await service(cwd))
+      const groups = await readSettledModels(await service(cwd))
       if (!groups) throw new Error("opencode listed no models")
       return groups
     },
