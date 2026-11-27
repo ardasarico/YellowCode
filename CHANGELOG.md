@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+### Fixed
+
+- opencode's models no longer go missing from the model list when opencode was still loading as YellowCode asked for
+  them.
+
 ## 0.7.0
 
 ### Added
